@@ -35,7 +35,28 @@ const config: KnipConfig = {
       ignoreDependencies: ["tailwindcss"],
     },
     "packages/kernel": {
-      project: ["src/**/*.ts"],
+      // Prebuild CLI + vendor entry modules are the reachability roots.
+      // Generated megabyte blobs stay out of project so knip never parses them.
+      entry: [
+        "src/index.ts",
+        "scripts/prebuild.mjs!",
+        "scripts/prebuild-client.mjs!",
+        "scripts/prebuild-css-vfs.mjs!",
+        "scripts/prebuild-types-vfs.mjs!",
+        "scripts/pins.mjs!",
+        "scripts/vendor-entries/*.mjs!",
+      ],
+      project: ["src/index.ts", "src/generated/*.d.ts", "scripts/**/*.mjs"],
+      // Pins referenced only as esbuild entrySource strings / client bailouts,
+      // not as static imports knip can follow from the prebuild scripts.
+      ignoreDependencies: [
+        "@base-ui/react",
+        "@tanstack/react-query",
+        "@tanstack/react-router",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge",
+      ],
     },
     "packages/core": {
       project: ["src/**/*.ts"],

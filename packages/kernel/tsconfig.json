@@ -1,9 +1,15 @@
 {
   "extends": "@sfab-lite/tsconfig/base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
-    "noEmit": true
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
   },
-  "include": ["src"]
+  "include": ["src/index.ts", "src/generated/*.d.ts", "kernel.json"],
+  "exclude": ["src/generated/*.js", "vendor", "scripts", "results"]
 }
