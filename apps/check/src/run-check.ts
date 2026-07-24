@@ -18,6 +18,9 @@ import {
   flattenDiagnosticMessageText,
 } from "./typescript-runtime.js";
 
+/** Cap on diagnostics returned in the response (sibling of lint's cap). */
+const MAX_REPORTED_DIAGNOSTICS = 40;
+
 /** Per-isolate LS store keyed by appId. */
 export type LsStore = Map<string, AppLsState>;
 
@@ -34,7 +37,7 @@ function stateFor(appId: string, store: LsStore): AppLsState {
 }
 
 function summarize(diags: Diagnostic[]): CheckDiagnostic[] {
-  return diags.slice(0, 40).map((d) => ({
+  return diags.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => ({
     code: d.code,
     message: flattenDiagnosticMessageText(d.messageText, "\n"),
     file: d.file?.fileName,
@@ -50,6 +53,10 @@ function resetAppOverlay(st: AppLsState): void {
   }
   st.rootFiles = null;
   st.service = null;
+}
+
+function bumpVersion(st: AppLsState, path: string): void {
+  st.versions.set(path, (st.versions.get(path) ?? 0) + 1);
 }
 
 /** Sync `/app/*` overlay to the request file map; returns bumped paths. */
@@ -72,12 +79,14 @@ function syncOverlay(
       continue;
     }
     st.overlay.set(path, text);
-    st.versions.set(path, (st.versions.get(path) ?? 0) + 1);
+    bumpVersion(st, path);
     st.snapshots.delete(path);
     bumpedFiles.push(path);
   }
 
   // Full merged tree is always passed; drop overlay paths not in files.
+  // Versions stay and bump — never restart — so a later re-add cannot reuse
+  // a DocumentRegistry SourceFile keyed by the old version string.
   for (const path of [...st.overlay.keys()]) {
     if (!path.startsWith("/app/")) {
       continue;
@@ -88,12 +97,25 @@ function syncOverlay(
     }
     st.overlay.delete(path);
     st.snapshots.delete(path);
-    st.versions.delete(path);
+    bumpVersion(st, path);
     fileSetChanged = true;
     bumpedFiles.push(path);
   }
 
   return { bumpedFiles, fileSetChanged };
+}
+
+function collectDiagnostics(
+  ls: ReturnType<typeof getLanguageService>,
+  appRoots: string[]
+): Diagnostic[] {
+  const compiler = ls.getCompilerOptionsDiagnostics();
+  const syntactic = appRoots.flatMap((f) => ls.getSyntacticDiagnostics(f));
+  if (syntactic.length > 0) {
+    return [...compiler, ...syntactic];
+  }
+  const semantic = appRoots.flatMap((f) => ls.getSemanticDiagnostics(f));
+  return [...compiler, ...semantic];
 }
 
 /**
@@ -132,24 +154,20 @@ export function runCheck(
   // Date.now(): performance.now() deltas were observed as 0 on Workers (lint).
   const t0 = Date.now();
   const ls = getLanguageService(st);
-  const diags = [
-    ...ls.getCompilerOptionsDiagnostics(),
-    ...appRoots.flatMap((f) => ls.getSemanticDiagnostics(f)),
-    ...appRoots.flatMap((f) => ls.getSyntacticDiagnostics(f)),
-  ];
+  const diags = collectDiagnostics(ls, appRoots);
   const checkMs = Date.now() - t0;
-  const clean = diags.length === 0;
+  const ok = diags.length === 0;
 
   return {
-    ok: clean,
+    ok,
     appId,
     pass: forceCold ? "cold" : "incremental",
     diagnosticCount: diags.length,
+    truncated: diags.length > MAX_REPORTED_DIAGNOSTICS,
     diagnostics: summarize(diags),
     checkMs,
     wallMs: Date.now() - wallT0,
     rootFileCount: roots.length,
-    clean,
     bumpedFiles,
     lsReused,
     vfsFileCount: TYPES_VFS_MANIFEST.vfsFileCount,

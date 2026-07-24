@@ -23,6 +23,16 @@ import {
 } from "./typescript-runtime.js";
 import { directoryExists, normalizePath, readVfs } from "./vfs.js";
 
+/** Frozen lib roots from TYPES_VFS — computed once. */
+const LIB_ROOT_FILES: readonly string[] = Object.keys(TYPES_VFS)
+  .filter((k) => k.startsWith("/libs/lib.") && k.endsWith(".d.ts"))
+  .sort();
+
+const AMBIENT_ROOT_FILES: readonly string[] = [
+  "/types/cloudflare-ambient.d.ts",
+  ...LIB_ROOT_FILES,
+];
+
 export interface AppLsState {
   overlay: Map<string, string>;
   versions: Map<string, number>;
@@ -59,9 +69,6 @@ function compilerOptions(): CompilerOptions {
 }
 
 function rootFilesFor(overlay: Map<string, string>): string[] {
-  const libs = Object.keys(TYPES_VFS)
-    .filter((k) => k.startsWith("/libs/lib.") && k.endsWith(".d.ts"))
-    .sort();
   const fromOverlay = [...overlay.keys()]
     .filter(
       (k) =>
@@ -69,8 +76,9 @@ function rootFilesFor(overlay: Map<string, string>): string[] {
         (k.endsWith(".ts") || k.endsWith(".tsx") || k.endsWith(".d.ts"))
     )
     .sort();
-  const ambient = ["/types/cloudflare-ambient.d.ts", ...libs];
-  return fromOverlay.length > 0 ? [...fromOverlay, ...ambient] : ambient;
+  return fromOverlay.length > 0
+    ? [...fromOverlay, ...AMBIENT_ROOT_FILES]
+    : [...AMBIENT_ROOT_FILES];
 }
 
 export function rootsForState(st: AppLsState): string[] {

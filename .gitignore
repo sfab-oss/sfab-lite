@@ -9,5 +9,6 @@
 .next
 .turbo
 .wrangler/
+.tmp
 dist
 node_modules

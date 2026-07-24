@@ -6,6 +6,25 @@ import { TYPES_VFS } from "@sfab-lite/kernel";
 const D_TS_SUFFIX = /\.d\.ts$/i;
 const TRAILING_SLASH = /\/$/;
 
+/** Frozen VFS directory prefixes — TYPES_VFS never changes at runtime. */
+const VFS_DIRECTORIES: ReadonlySet<string> = (() => {
+  const dirs = new Set<string>([
+    "/",
+    "/libs",
+    "/app",
+    "/node_modules",
+    "/types",
+  ]);
+  for (const key of Object.keys(TYPES_VFS)) {
+    let rest = key.startsWith("/") ? key.slice(1) : key;
+    while (rest.includes("/")) {
+      rest = rest.slice(0, rest.lastIndexOf("/"));
+      dirs.add(rest ? `/${rest}` : "/");
+    }
+  }
+  return dirs;
+})();
+
 export function normalizePath(path: string): string {
   let p = path.replaceAll("\\", "/");
   if (p.startsWith("file://")) {
@@ -67,18 +86,23 @@ export function joinPath(dir: string, rel: string): string {
   return `/${out.join("/")}`;
 }
 
+function overlayHasDirectory(
+  dir: string,
+  overlay: Map<string, string>
+): boolean {
+  const prefix = `${dir}/`;
+  for (const k of overlay.keys()) {
+    if (k.startsWith(prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function directoryExists(
   dir: string,
   overlay: Map<string, string>
 ): boolean {
   const d = normalizePath(dir).replace(TRAILING_SLASH, "");
-  return (
-    d === "/" ||
-    d === "/libs" ||
-    d === "/app" ||
-    d === "/node_modules" ||
-    d === "/types" ||
-    Object.keys(TYPES_VFS).some((k) => k.startsWith(`${d}/`)) ||
-    [...overlay.keys()].some((k) => k.startsWith(`${d}/`))
-  );
+  return VFS_DIRECTORIES.has(d) || overlayHasDirectory(d, overlay);
 }

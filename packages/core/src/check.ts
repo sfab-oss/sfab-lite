@@ -2,7 +2,7 @@
  * Shared check-worker request/response contract.
  *
  * Owned here so `apps/check` and (later) `apps/factory` agree on the wire
- * shape without either importing the other.
+ * shape without either importing the other. Sibling of `LintResult`.
  */
 
 export interface CheckRequest {
@@ -22,12 +22,14 @@ export interface CheckResult {
   ok: boolean;
   appId: string;
   pass: "cold" | "incremental";
+  /** Total diagnostics produced (before any response cap). */
   diagnosticCount: number;
+  /** True when `diagnostics` was truncated to the response cap. */
+  truncated: boolean;
   diagnostics: CheckDiagnostic[];
   checkMs: number;
   wallMs: number;
   rootFileCount: number;
-  clean: boolean;
   /** Paths whose script version bumped (content changed). Empty on pure reuse. */
   bumpedFiles: string[];
   /** True when the per-appId LanguageService instance was kept. */
