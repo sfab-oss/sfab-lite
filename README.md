@@ -38,3 +38,7 @@ pnpm lint:check
 ```
 
 No deployables are wired in the S0 skeleton — runtime/wrangler lands later.
+
+## Docs
+
+Engineering docs: [`docs/`](docs/) — start at [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md).
