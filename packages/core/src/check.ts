@@ -1,0 +1,36 @@
+/**
+ * Shared check-worker request/response contract.
+ *
+ * Owned here so `apps/check` and (later) `apps/factory` agree on the wire
+ * shape without either importing the other.
+ */
+
+export interface CheckRequest {
+  appId: string;
+  files: Record<string, string>;
+  /** Drop the per-app LanguageService and rehydrate from scratch. */
+  forceCold?: boolean;
+}
+
+export interface CheckDiagnostic {
+  code: number;
+  message: string;
+  file?: string;
+}
+
+export interface CheckResult {
+  ok: boolean;
+  appId: string;
+  pass: "cold" | "incremental";
+  diagnosticCount: number;
+  diagnostics: CheckDiagnostic[];
+  checkMs: number;
+  wallMs: number;
+  rootFileCount: number;
+  clean: boolean;
+  /** Paths whose script version bumped (content changed). Empty on pure reuse. */
+  bumpedFiles: string[];
+  /** True when the per-appId LanguageService instance was kept. */
+  lsReused: boolean;
+  vfsFileCount: number;
+}
