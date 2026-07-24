@@ -9,28 +9,37 @@
 import { RpcTarget, WorkerEntrypoint } from "cloudflare:workers";
 import type { AppDO } from "./app-do.js";
 
-export type ScopedSqlProps = {
+export interface ScopedSqlProps {
   /** Capability / sub-app token — required for any DB op. */
   appId: string;
-};
+}
 
-type ParentEnv = {
+interface ParentEnv {
   APP_DO: DurableObjectNamespace<AppDO>;
-};
+}
 
 function doStub(env: ParentEnv, appId: string) {
   return env.APP_DO.get(env.APP_DO.idFromName(appId));
 }
 
 /** RPC-passable prepared-statement wrapper (D1PreparedStatement shape). */
-export class SqlStmtStub extends RpcTarget {
+class SqlStmtStub extends RpcTarget {
+  private readonly env: ParentEnv;
+  private readonly appId: string;
+  private readonly query: string;
+  private readonly binds: unknown[];
+
   constructor(
-    private readonly env: ParentEnv,
-    private readonly appId: string,
-    private readonly query: string,
-    private readonly binds: unknown[] = []
+    env: ParentEnv,
+    appId: string,
+    query: string,
+    binds: unknown[] = []
   ) {
     super();
+    this.env = env;
+    this.appId = appId;
+    this.query = query;
+    this.binds = binds;
   }
 
   /** Parent-local unwrap for batch(). */
@@ -98,7 +107,7 @@ export class ScopedSql extends WorkerEntrypoint<ParentEnv, ScopedSqlProps> {
     return new SqlStmtStub(this.env, appId, query, []);
   }
 
-  async batch<T = unknown>(statements: SqlStmtStub[]) {
+  batch<T = unknown>(statements: SqlStmtStub[]) {
     const appId = this.#assertScope();
     const items = statements.map((s) => {
       if (s && typeof s === "object" && "_batchItem" in s) {
@@ -118,11 +127,11 @@ export class ScopedSql extends WorkerEntrypoint<ParentEnv, ScopedSqlProps> {
     return doStub(this.env, appId).execScript(query);
   }
 
-  async pingScope(): Promise<{
+  pingScope(): {
     appId: string;
     ok: true;
     backend: "do-sqlite";
-  }> {
+  } {
     return { appId: this.#assertScope(), ok: true, backend: "do-sqlite" };
   }
 }

@@ -12,6 +12,8 @@ import {
 } from "@sfab-lite/kernel";
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 
+const RELATIVE_PATH_PREFIX_RE = /^\.\//;
+
 function reexport(flat: string, withDefault: boolean): string {
   const star = `export * from ${JSON.stringify(flat)};`;
   if (!withDefault) {
@@ -31,7 +33,7 @@ function clientWiring(): {
   const flatToBare: Record<string, string> = {};
 
   for (const [bare, rel] of Object.entries(CLIENT_IMPORT_MAP)) {
-    const flat = rel.replace(/^\.\//, "");
+    const flat = rel.replace(RELATIVE_PATH_PREFIX_RE, "");
     if (!(flat in CLIENT_KERNEL_FILES)) {
       continue;
     }
@@ -79,12 +81,12 @@ function rewriteFlatToBare(
   return out;
 }
 
-export type CompileClientResult = {
+export interface CompileClientResult {
   js: string;
   compileMs: number;
   kernelVersion: string;
   bailouts: string[];
-};
+}
 
 export async function compileClient(
   sourceFiles: Record<string, string>
@@ -126,7 +128,7 @@ function buildImportMap(kernelVersion: string): Record<string, string> {
   const base = `/kernel/${encodeURIComponent(kernelVersion)}/client`;
   const map: Record<string, string> = {};
   for (const [bare, rel] of Object.entries(CLIENT_IMPORT_MAP)) {
-    const flat = rel.replace(/^\.\//, "");
+    const flat = rel.replace(RELATIVE_PATH_PREFIX_RE, "");
     if (flat in CLIENT_KERNEL_FILES) {
       map[bare] = `${base}/${flat}`;
     }

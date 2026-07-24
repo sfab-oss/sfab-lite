@@ -10,46 +10,47 @@
 import type { CheckResult, LintResult } from "@sfab-lite/core";
 import { mergeSources } from "@sfab-lite/core";
 import type { VersionRecord } from "./app-do.js";
-import { AppDO } from "./app-do.js";
+import { newVersionId } from "./app-do.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
-import { ScopedSql, type ScopedSqlProps } from "./scoped-sql.js";
+import type { ScopedSqlProps } from "./scoped-sql.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
 
-export { AppDO, ScopedSql };
+export { AppDO } from "./app-do.js";
+export { ScopedSql } from "./scoped-sql.js";
 
 /** Explicit stub surface — DO Rpc generics erase method returns under tsc alone. */
-type AppStub = {
-  touch(): Promise<{
+interface AppStub {
+  touch: () => Promise<{
     ok: true;
     appIdHint: string;
     appSchemaVersion: number;
     userCount: number | null;
     liveVersionId: string | null;
   }>;
-  bootstrap(migrations: { id: string; sql: string }[]): Promise<{
+  bootstrap: (migrations: { id: string; sql: string }[]) => Promise<{
     ok: true;
     bootstrapped: boolean;
     appSchemaVersion: number;
     bootstrapMs: number;
   }>;
-  putVersion(input: {
+  putVersion: (input: {
     id: string;
     parentId: string | null;
     sourceFiles: Record<string, string>;
     serverBundle: string;
     assets: Record<string, string>;
     kernelVersion: string;
-  }): Promise<{
+  }) => Promise<{
     ok: true;
     id: string;
     liveVersionId: string;
     parentId: string | null;
   }>;
-  revertTo(versionId: string): Promise<
+  revertTo: (versionId: string) => Promise<
     | {
         ok: true;
         id: string;
@@ -59,7 +60,7 @@ type AppStub = {
       }
     | { ok: false; error: string }
   >;
-  listVersions(): Promise<{
+  listVersions: () => Promise<{
     ok: true;
     liveVersionId: string | null;
     versions: {
@@ -71,35 +72,35 @@ type AppStub = {
       assetKeys: string[];
     }[];
   }>;
-  getVersion(
+  getVersion: (
     versionId: string
-  ): Promise<{ ok: true; version: VersionRecord | null }>;
-  getLatest(): Promise<{ ok: true; version: VersionRecord | null }>;
-  getLive(): Promise<{
+  ) => Promise<{ ok: true; version: VersionRecord | null }>;
+  getLatest: () => Promise<{ ok: true; version: VersionRecord | null }>;
+  getLive: () => Promise<{
     ok: true;
     liveVersionId: string | null;
     version: VersionRecord | null;
   }>;
-  setCheckStatus(
+  setCheckStatus: (
     versionId: string,
     status: "pending" | "pass" | "fail" | "error",
     payload?: unknown
-  ): Promise<{ ok: true; versionId: string; status: string }>;
-  getCheckStatus(versionId: string): Promise<{
+  ) => Promise<{ ok: true; versionId: string; status: string }>;
+  getCheckStatus: (versionId: string) => Promise<{
     ok: true;
     versionId: string;
     status: "pending" | "pass" | "fail" | "error" | "missing";
     updatedAt: number | null;
     payload: unknown;
   }>;
-};
+}
 
 function appStub(env: Env, appId: string): AppStub {
   return env.APP_DO.get(env.APP_DO.idFromName(appId)) as unknown as AppStub;
 }
 
 /** ctx.exports typing for WorkerEntrypoint classes isn't inferred by tsc alone. */
-type HostExports = {
+interface HostExports {
   ScopedSql: (opts: { props: ScopedSqlProps }) => {
     prepare: (query: string) => {
       bind: (...values: unknown[]) => {
@@ -121,7 +122,7 @@ type HostExports = {
       backend: "do-sqlite";
     }>;
   };
-};
+}
 
 function scopedDb(ctx: ExecutionContext, appId: string) {
   const ex = ctx.exports as unknown as HostExports;
@@ -289,7 +290,7 @@ async function commitSources(
     );
   }
 
-  const versionId = `v-${Date.now()}`;
+  const versionId = newVersionId();
   const put = await stub.putVersion({
     id: versionId,
     parentId,
@@ -340,6 +341,280 @@ async function commitSources(
   });
 }
 
+// --- Module-scope route patterns (compiled once) ---
+
+const RE_KERNEL = /^\/kernel\/(.+)$/;
+const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
+const RE_ADMIN_TOUCH = /^\/admin\/apps\/([^/]+)\/touch$/;
+const RE_ADMIN_SQL = /^\/admin\/apps\/([^/]+)\/sql$/;
+const RE_ADMIN_VERSIONS = /^\/admin\/apps\/([^/]+)\/versions$/;
+const RE_ADMIN_CHECK_STATUS = /^\/admin\/apps\/([^/]+)\/check-status$/;
+const RE_ADMIN_CHECK = /^\/admin\/apps\/([^/]+)\/check$/;
+const RE_ADMIN_COMMIT = /^\/admin\/apps\/([^/]+)\/commit$/;
+const RE_ADMIN_REVERT = /^\/admin\/apps\/([^/]+)\/revert$/;
+
+interface RouteCtx {
+  request: Request;
+  env: Env;
+  ctx: ExecutionContext;
+  url: URL;
+  match: RegExpMatchArray;
+}
+
+interface Route {
+  method: string | readonly string[];
+  pattern: RegExp;
+  handler: (rc: RouteCtx) => Promise<Response> | Response;
+}
+
+function methodMatches(
+  allowed: string | readonly string[],
+  method: string
+): boolean {
+  if (typeof allowed === "string") {
+    return allowed === method;
+  }
+  return allowed.includes(method);
+}
+
+async function handleCreateApp(rc: RouteCtx): Promise<Response> {
+  const body = (await rc.request.json().catch(() => null)) as {
+    appId?: string;
+  } | null;
+  const appId = body?.appId?.trim();
+  if (!appId) {
+    return jsonError("appId required");
+  }
+
+  const stub = appStub(rc.env, appId);
+  await stub.bootstrap(TEMPLATE_SEED.migrations);
+  const live = await stub.getLive();
+  if (live.liveVersionId) {
+    const touch = await stub.touch();
+    return Response.json({
+      ok: true,
+      appId,
+      alreadySeeded: true,
+      liveVersionId: live.liveVersionId,
+      touch,
+    });
+  }
+
+  const seedCommit = await commitSources(
+    rc.env,
+    appId,
+    TEMPLATE_SEED.sourceFiles,
+    null,
+    { forceColdCheck: true }
+  );
+  const seedBody = (await seedCommit.json()) as Record<string, unknown>;
+  if (!seedCommit.ok) {
+    return Response.json(
+      { ok: false, error: "seed_failed", appId, ...seedBody },
+      { status: seedCommit.status }
+    );
+  }
+  const touch = await stub.touch();
+  return Response.json({
+    ok: true,
+    appId,
+    seeded: true,
+    touch,
+    ...seedBody,
+  });
+}
+
+async function handleTouch(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const touch = await appStub(rc.env, appId).touch();
+  return Response.json({ ok: true, appId, touch });
+}
+
+async function handleSql(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const body = (await rc.request.json().catch(() => null)) as {
+    query?: string;
+    binds?: unknown[];
+  } | null;
+  if (!body?.query) {
+    return jsonError("query required");
+  }
+  const db = scopedDb(rc.ctx, appId);
+  const ping = await db.pingScope();
+  const result = await db
+    .prepare(body.query)
+    .bind(...(body.binds ?? []))
+    .all();
+  return Response.json({ ok: true, appId, ping, result });
+}
+
+async function handleListVersions(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const listed = await appStub(rc.env, appId).listVersions();
+  return Response.json({ appId, ...listed });
+}
+
+async function handleCheckStatus(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const versionId = rc.url.searchParams.get("versionId")?.trim();
+  if (!versionId) {
+    return jsonError("versionId query required");
+  }
+  const st = await appStub(rc.env, appId).getCheckStatus(versionId);
+  return Response.json({
+    ok: true,
+    appId,
+    versionId: st.versionId,
+    status: st.status,
+    updatedAt: st.updatedAt,
+    payload: st.payload,
+  });
+}
+
+async function handleCheck(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const body = (await rc.request.json().catch(() => null)) as {
+    files?: Record<string, string | null>;
+    forceCold?: boolean;
+  } | null;
+  const latest = await appStub(rc.env, appId).getLatest();
+  const base = latest.version?.sourceFiles ?? {};
+  if (!latest.version?.sourceFiles) {
+    return jsonError("no_version_with_sources", 404);
+  }
+  const files = mergeSources(base, body?.files ?? {});
+  const check = await callCheck(
+    rc.env,
+    appId,
+    files,
+    body?.forceCold !== false
+  );
+  const pass = checkPasses(check.body);
+  if (check.body && check.http < 500) {
+    await appStub(rc.env, appId).setCheckStatus(
+      latest.version.id,
+      pass ? "pass" : "fail",
+      {
+        ...(check.body ?? {}),
+        http: check.http,
+        wallMs: check.wallMs,
+        publishGate: pass,
+      }
+    );
+  }
+  return Response.json({
+    ok: check.http < 500 && Boolean(check.body?.ok),
+    appId,
+    baseVersionId: latest.version.id,
+    wallMs: check.wallMs,
+    publishGate: pass,
+    check: check.body,
+  });
+}
+
+async function handleCommit(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const body = (await rc.request.json().catch(() => null)) as {
+    files?: Record<string, string | null>;
+  } | null;
+  if (!body?.files || Object.keys(body.files).length === 0) {
+    return jsonError("files overlay required");
+  }
+  const stub = appStub(rc.env, appId);
+  const live = await stub.getLive();
+  if (!(live.version?.sourceFiles && live.liveVersionId)) {
+    return jsonError("no_live_version", 404);
+  }
+  const files = mergeSources(live.version.sourceFiles, body.files);
+  return commitSources(rc.env, appId, files, live.liveVersionId);
+}
+
+async function handleRevert(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const body = (await rc.request.json().catch(() => null)) as {
+    versionId?: string;
+  } | null;
+  if (!body?.versionId) {
+    return jsonError("versionId required");
+  }
+  const result = await appStub(rc.env, appId).revertTo(body.versionId);
+  if (!result.ok) {
+    return Response.json({ appId, ...result }, { status: 404 });
+  }
+  await appStub(rc.env, appId).setCheckStatus(result.id, "pass", {
+    source: "revert",
+    restoredFrom: result.restoredFrom,
+    trusted: true,
+  });
+  return Response.json({ appId, action: "revert", ...result });
+}
+
+function handleHealth(_rc: RouteCtx): Response {
+  return Response.json({
+    ok: true,
+    service: "sfab-lite-factory",
+    phase: "s2d",
+    bindings: {
+      check: Boolean(_rc.env.CHECK),
+      lint: Boolean(_rc.env.LINT),
+      loader: Boolean(_rc.env.LOADER),
+    },
+    seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
+    seedMigrations: TEMPLATE_SEED.migrations.length,
+  });
+}
+
+function handleKernel(rc: RouteCtx): Response {
+  const rest = rc.match[1] ?? "";
+  const res = serveKernel(rc.request, rest);
+  return res ?? new Response("unknown kernel path\n", { status: 404 });
+}
+
+function handleSubApp(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  let rest = rc.match[2] ?? "";
+  let mode: "live" | "preview" = "live";
+  if (rest === "preview" || rest.startsWith("preview/")) {
+    mode = "preview";
+    rest = rest === "preview" ? "" : rest.slice("preview/".length);
+  }
+  return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, mode);
+}
+
+const ROUTES: Route[] = [
+  { method: "GET", pattern: /^\/admin\/health$/, handler: handleHealth },
+  { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
+  { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
+  { method: "POST", pattern: /^\/admin\/apps$/, handler: handleCreateApp },
+  { method: "GET", pattern: RE_ADMIN_TOUCH, handler: handleTouch },
+  { method: "POST", pattern: RE_ADMIN_SQL, handler: handleSql },
+  { method: "GET", pattern: RE_ADMIN_VERSIONS, handler: handleListVersions },
+  {
+    method: "GET",
+    pattern: RE_ADMIN_CHECK_STATUS,
+    handler: handleCheckStatus,
+  },
+  { method: "POST", pattern: RE_ADMIN_CHECK, handler: handleCheck },
+  { method: "POST", pattern: RE_ADMIN_COMMIT, handler: handleCommit },
+  { method: "POST", pattern: RE_ADMIN_REVERT, handler: handleRevert },
+];
+
+function matchRoute(
+  method: string,
+  pathname: string
+): { route: Route; match: RegExpMatchArray } | null {
+  for (const route of ROUTES) {
+    if (route.method !== "*" && !methodMatches(route.method, method)) {
+      continue;
+    }
+    const match = pathname.match(route.pattern);
+    if (match) {
+      return { route, match };
+    }
+  }
+  return null;
+}
+
 export default {
   async fetch(
     request: Request,
@@ -355,247 +630,15 @@ export default {
       }
     }
 
-    if (url.pathname === "/admin/health") {
-      return Response.json({
-        ok: true,
-        service: "sfab-lite-factory",
-        phase: "s2d",
-        bindings: {
-          check: Boolean(env.CHECK),
-          lint: Boolean(env.LINT),
-          loader: Boolean(env.LOADER),
-        },
-        seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
-        seedMigrations: TEMPLATE_SEED.migrations.length,
-      });
-    }
-
-    // Client kernel chunks: /kernel/:ver/client/:file.js
-    {
-      const m = url.pathname.match(/^\/kernel\/(.+)$/);
-      if (m?.[1] && (request.method === "GET" || request.method === "HEAD")) {
-        const res = serveKernel(request, m[1]);
-        if (res) {
-          return res;
-        }
-      }
-    }
-
-    // Path-based sub-app routing: /a/:appId/* and /a/:appId/preview/*
-    {
-      const m = url.pathname.match(/^\/a\/([^/]+)(?:\/(.*))?$/);
-      if (m?.[1]) {
-        const appId = decodeURIComponent(m[1]);
-        let rest = m[2] ?? "";
-        let mode: "live" | "preview" = "live";
-        if (rest === "preview" || rest.startsWith("preview/")) {
-          mode = "preview";
-          rest = rest === "preview" ? "" : rest.slice("preview/".length);
-        }
-        return serveSubApp(request, env, ctx, appId, rest, mode);
-      }
-    }
-
-    // POST /admin/apps  { appId } — create + seed (check-gated commit of template)
-    if (url.pathname === "/admin/apps" && request.method === "POST") {
-      const body = (await request.json().catch(() => null)) as {
-        appId?: string;
-      } | null;
-      const appId = body?.appId?.trim();
-      if (!appId) {
-        return jsonError("appId required");
-      }
-
-      const stub = appStub(env, appId);
-      await stub.bootstrap(TEMPLATE_SEED.migrations);
-      const live = await stub.getLive();
-      if (live.liveVersionId) {
-        const touch = await stub.touch();
-        return Response.json({
-          ok: true,
-          appId,
-          alreadySeeded: true,
-          liveVersionId: live.liveVersionId,
-          touch,
-        });
-      }
-
-      const seedCommit = await commitSources(
+    const hit = matchRoute(request.method, url.pathname);
+    if (hit) {
+      return await hit.route.handler({
+        request,
         env,
-        appId,
-        TEMPLATE_SEED.sourceFiles,
-        null,
-        { forceColdCheck: true }
-      );
-      const seedBody = (await seedCommit.json()) as Record<string, unknown>;
-      if (!seedCommit.ok) {
-        return Response.json(
-          { ok: false, error: "seed_failed", appId, ...seedBody },
-          { status: seedCommit.status }
-        );
-      }
-      const touch = await stub.touch();
-      return Response.json({
-        ok: true,
-        appId,
-        seeded: true,
-        touch,
-        ...seedBody,
+        ctx,
+        url,
+        match: hit.match,
       });
-    }
-
-    // GET /admin/apps/:appId/touch
-    {
-      const m = url.pathname.match(/^\/admin\/apps\/([^/]+)\/touch$/);
-      if (m?.[1] && request.method === "GET") {
-        const appId = decodeURIComponent(m[1]);
-        const touch = await appStub(env, appId).touch();
-        return Response.json({ ok: true, appId, touch });
-      }
-    }
-
-    // POST /admin/apps/:appId/sql  { query, binds? }
-    {
-      const m = url.pathname.match(/^\/admin\/apps\/([^/]+)\/sql$/);
-      if (m?.[1] && request.method === "POST") {
-        const appId = decodeURIComponent(m[1]);
-        const body = (await request.json().catch(() => null)) as {
-          query?: string;
-          binds?: unknown[];
-        } | null;
-        if (!body?.query) {
-          return jsonError("query required");
-        }
-        const db = scopedDb(ctx, appId);
-        const ping = await db.pingScope();
-        const result = await db
-          .prepare(body.query)
-          .bind(...(body.binds ?? []))
-          .all();
-        return Response.json({ ok: true, appId, ping, result });
-      }
-    }
-
-    // GET /admin/apps/:appId/versions
-    {
-      const m = url.pathname.match(/^\/admin\/apps\/([^/]+)\/versions$/);
-      if (m?.[1] && request.method === "GET") {
-        const appId = decodeURIComponent(m[1]);
-        const listed = await appStub(env, appId).listVersions();
-        return Response.json({ appId, ...listed });
-      }
-    }
-
-    // GET /admin/apps/:appId/check-status?versionId=
-    {
-      const m = url.pathname.match(/^\/admin\/apps\/([^/]+)\/check-status$/);
-      if (m?.[1] && request.method === "GET") {
-        const appId = decodeURIComponent(m[1]);
-        const versionId = url.searchParams.get("versionId")?.trim();
-        if (!versionId) {
-          return jsonError("versionId query required");
-        }
-        const st = await appStub(env, appId).getCheckStatus(versionId);
-        return Response.json({
-          ok: true,
-          appId,
-          versionId: st.versionId,
-          status: st.status,
-          updatedAt: st.updatedAt,
-          payload: st.payload,
-        });
-      }
-    }
-
-    // POST /admin/apps/:appId/check  — proxy to CHECK worker (latency harness)
-    {
-      const m = url.pathname.match(/^\/admin\/apps\/([^/]+)\/check$/);
-      if (m?.[1] && request.method === "POST") {
-        const appId = decodeURIComponent(m[1]);
-        const body = (await request.json().catch(() => null)) as {
-          files?: Record<string, string | null>;
-          forceCold?: boolean;
-        } | null;
-        const latest = await appStub(env, appId).getLatest();
-        const base = latest.version?.sourceFiles ?? {};
-        if (!latest.version?.sourceFiles) {
-          return jsonError("no_version_with_sources", 404);
-        }
-        const files = mergeSources(base, body?.files ?? {});
-        const check = await callCheck(
-          env,
-          appId,
-          files,
-          body?.forceCold !== false
-        );
-        const pass = checkPasses(check.body);
-        if (check.body && check.http < 500) {
-          await appStub(env, appId).setCheckStatus(
-            latest.version.id,
-            pass ? "pass" : "fail",
-            {
-              ...(check.body ?? {}),
-              http: check.http,
-              wallMs: check.wallMs,
-              publishGate: pass,
-            }
-          );
-        }
-        return Response.json({
-          ok: check.http < 500 && Boolean(check.body?.ok),
-          appId,
-          baseVersionId: latest.version.id,
-          wallMs: check.wallMs,
-          publishGate: pass,
-          check: check.body,
-        });
-      }
-    }
-
-    // POST /admin/apps/:appId/commit  — lint + compile + check (blocking) → live
-    // POST /admin/apps/:appId/edit    — same (commit vocabulary; edit kept as alias)
-    {
-      const m = url.pathname.match(/^\/admin\/apps\/([^/]+)\/(commit|edit)$/);
-      if (m?.[1] && m[2] && request.method === "POST") {
-        const appId = decodeURIComponent(m[1]);
-        const body = (await request.json().catch(() => null)) as {
-          files?: Record<string, string | null>;
-        } | null;
-        if (!body?.files || Object.keys(body.files).length === 0) {
-          return jsonError("files overlay required");
-        }
-        const stub = appStub(env, appId);
-        const live = await stub.getLive();
-        if (!(live.version?.sourceFiles && live.liveVersionId)) {
-          return jsonError("no_live_version", 404);
-        }
-        const files = mergeSources(live.version.sourceFiles, body.files);
-        return commitSources(env, appId, files, live.liveVersionId);
-      }
-    }
-
-    // POST /admin/apps/:appId/revert  { versionId } — new version = old content
-    {
-      const m = url.pathname.match(/^\/admin\/apps\/([^/]+)\/revert$/);
-      if (m?.[1] && request.method === "POST") {
-        const appId = decodeURIComponent(m[1]);
-        const body = (await request.json().catch(() => null)) as {
-          versionId?: string;
-        } | null;
-        if (!body?.versionId) {
-          return jsonError("versionId required");
-        }
-        const result = await appStub(env, appId).revertTo(body.versionId);
-        if (!result.ok) {
-          return Response.json({ appId, ...result }, { status: 404 });
-        }
-        await appStub(env, appId).setCheckStatus(result.id, "pass", {
-          source: "revert",
-          restoredFrom: result.restoredFrom,
-          trusted: true,
-        });
-        return Response.json({ appId, action: "revert", ...result });
-      }
     }
 
     return new Response(

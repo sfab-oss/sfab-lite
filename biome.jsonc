@@ -80,32 +80,6 @@
           }
         }
       }
-    },
-    // Factory host: Durable Object RPC methods are async by convention even
-    // when synchronous; the fetch router is a long path match; regexes are
-    // per-request path matchers (not hot loops). Keep the port readable.
-    {
-      "includes": ["apps/factory/**"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "useAwait": "off"
-          },
-          "performance": {
-            "useTopLevelRegex": "off"
-          },
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "off"
-          },
-          "style": {
-            "useConsistentTypeDefinitions": "off",
-            "useConsistentMethodSignatures": "off",
-            "noNestedTernary": "off",
-            "noExportedImports": "off",
-            "noParameterProperties": "off"
-          }
-        }
-      }
     }
   ]
 }

@@ -10,7 +10,12 @@
  */
 import { DurableObject } from "cloudflare:workers";
 
-export type SqlMeta = {
+/** Sortable unique version id — timestamp prefix + random suffix avoids same-ms collisions. */
+export function newVersionId(): string {
+  return `v-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+export interface SqlMeta {
   duration: number;
   size_after: number;
   rows_read: number;
@@ -19,7 +24,7 @@ export type SqlMeta = {
   changed_db: boolean;
   changes: number;
   served_by: "do-sqlite";
-};
+}
 
 function d1Meta(cursor: { rowsRead: number; rowsWritten: number }): SqlMeta {
   return {
@@ -61,7 +66,7 @@ CREATE TABLE IF NOT EXISTS _sfab_check_status (
 );
 `.trim();
 
-export type VersionRecord = {
+export interface VersionRecord {
   id: string;
   parentId: string | null;
   createdAt: number;
@@ -69,13 +74,14 @@ export type VersionRecord = {
   serverBundle: string;
   assets: Record<string, string>;
   kernelVersion: string;
-};
+}
 
 export class AppDO extends DurableObject {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.ctx.blockConcurrencyWhile(async () => {
       this.#ensureMeta();
+      await Promise.resolve();
     });
   }
 
@@ -124,12 +130,12 @@ export class AppDO extends DurableObject {
     };
   }
 
-  async bootstrap(migrations: { id: string; sql: string }[]): Promise<{
+  bootstrap(migrations: { id: string; sql: string }[]): {
     ok: true;
     bootstrapped: boolean;
     appSchemaVersion: number;
     bootstrapMs: number;
-  }> {
+  } {
     if (!migrations.length) {
       throw new Error("bootstrap: migrations required (from template pack)");
     }
@@ -142,13 +148,13 @@ export class AppDO extends DurableObject {
     };
   }
 
-  async touch(): Promise<{
+  touch(): {
     ok: true;
     appIdHint: string;
     appSchemaVersion: number;
     userCount: number | null;
     liveVersionId: string | null;
-  }> {
+  } {
     this.#ensureMeta();
     const schemaRow = this.ctx.storage.sql
       .exec("SELECT version FROM _sfab_schema_version LIMIT 1")
@@ -174,7 +180,7 @@ export class AppDO extends DurableObject {
     };
   }
 
-  async ping(): Promise<{ ok: true; id: string }> {
+  ping(): { ok: true; id: string } {
     return { ok: true, id: this.ctx.id.toString() };
   }
 
@@ -182,19 +188,19 @@ export class AppDO extends DurableObject {
    * Append a checked version and point live at it.
    * INSERT only — never UPDATE an existing version row.
    */
-  async putVersion(input: {
+  putVersion(input: {
     id: string;
     parentId: string | null;
     sourceFiles: Record<string, string>;
     serverBundle: string;
     assets: Record<string, string>;
     kernelVersion: string;
-  }): Promise<{
+  }): {
     ok: true;
     id: string;
     liveVersionId: string;
     parentId: string | null;
-  }> {
+  } {
     this.#ensureMeta();
     const existing = this.ctx.storage.sql
       .exec("SELECT id FROM _sfab_versions WHERE id = ?", input.id)
@@ -264,7 +270,7 @@ export class AppDO extends DurableObject {
     if (live.liveVersionId === versionId) {
       return { ok: false, error: "already_live" };
     }
-    const id = `v-${Date.now()}`;
+    const id = newVersionId();
     const put = await this.putVersion({
       id,
       parentId: live.liveVersionId,
@@ -282,7 +288,7 @@ export class AppDO extends DurableObject {
     };
   }
 
-  async listVersions(): Promise<{
+  listVersions(): {
     ok: true;
     liveVersionId: string | null;
     versions: {
@@ -293,7 +299,7 @@ export class AppDO extends DurableObject {
       serverBundleBytes: number;
       assetKeys: string[];
     }[];
-  }> {
+  } {
     this.#ensureMeta();
     const live = this.ctx.storage.sql
       .exec("SELECT version_id FROM _sfab_live WHERE singleton = 1")
@@ -335,10 +341,10 @@ export class AppDO extends DurableObject {
     };
   }
 
-  async getVersion(versionId: string): Promise<{
+  getVersion(versionId: string): {
     ok: true;
     version: VersionRecord | null;
-  }> {
+  } {
     const row = this.ctx.storage.sql
       .exec(
         `SELECT id, parent_id, created_at, source_files, server_bundle, assets, kernel_version
@@ -375,11 +381,11 @@ export class AppDO extends DurableObject {
     };
   }
 
-  async setCheckStatus(
+  setCheckStatus(
     versionId: string,
     status: "pending" | "pass" | "fail" | "error",
     payload: unknown = null
-  ): Promise<{ ok: true; versionId: string; status: string }> {
+  ): { ok: true; versionId: string; status: string } {
     this.#ensureMeta();
     this.ctx.storage.sql.exec(
       `INSERT OR REPLACE INTO _sfab_check_status
@@ -393,13 +399,13 @@ export class AppDO extends DurableObject {
     return { ok: true, versionId, status };
   }
 
-  async getCheckStatus(versionId: string): Promise<{
+  getCheckStatus(versionId: string): {
     ok: true;
     versionId: string;
     status: "pending" | "pass" | "fail" | "error" | "missing";
     updatedAt: number | null;
     payload: unknown;
-  }> {
+  } {
     this.#ensureMeta();
     const row = this.ctx.storage.sql
       .exec(
@@ -436,10 +442,10 @@ export class AppDO extends DurableObject {
   }
 
   /** Latest version by created_at — equals live tip under append-only commit. */
-  async getLatest(): Promise<{
+  getLatest(): {
     ok: true;
     version: VersionRecord | null;
-  }> {
+  } {
     this.#ensureMeta();
     const row = this.ctx.storage.sql
       .exec("SELECT id FROM _sfab_versions ORDER BY created_at DESC LIMIT 1")
@@ -466,14 +472,14 @@ export class AppDO extends DurableObject {
     return { ok: true, liveVersionId, version };
   }
 
-  async execAll(
+  execAll(
     query: string,
     binds: unknown[] = []
-  ): Promise<{
+  ): {
     success: true;
     results: Record<string, unknown>[];
     meta: SqlMeta;
-  }> {
+  } {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
     const results = cursor.toArray() as Record<string, unknown>[];
     const meta = d1Meta(cursor);
@@ -488,11 +494,7 @@ export class AppDO extends DurableObject {
     return { success: true, results, meta };
   }
 
-  async execFirst(
-    query: string,
-    binds: unknown[] = [],
-    colName?: string
-  ): Promise<unknown> {
+  execFirst(query: string, binds: unknown[] = [], colName?: string): unknown {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
     const rows = cursor.toArray() as Record<string, unknown>[];
     if (rows.length === 0) {
@@ -508,10 +510,10 @@ export class AppDO extends DurableObject {
     return row;
   }
 
-  async execRun(
+  execRun(
     query: string,
     binds: unknown[] = []
-  ): Promise<{ success: true; meta: SqlMeta }> {
+  ): { success: true; meta: SqlMeta } {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
     cursor.toArray();
     const meta = d1Meta(cursor);
@@ -526,11 +528,11 @@ export class AppDO extends DurableObject {
     return { success: true, meta };
   }
 
-  async execRaw(
+  execRaw(
     query: string,
     binds: unknown[] = [],
     options?: { columnNames?: boolean }
-  ): Promise<unknown> {
+  ): unknown {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
     const rawIter = cursor.raw();
     const rows: unknown[][] = [];
@@ -548,9 +550,9 @@ export class AppDO extends DurableObject {
    * statements inside one sync transaction. Not byte-identical to D1.batch
    * for every edge case; enough for better-auth/drizzle.
    */
-  async execBatch(
+  execBatch(
     statements: { query: string; binds: unknown[] }[]
-  ): Promise<{ success: true; results: unknown[]; meta: SqlMeta }[]> {
+  ): { success: true; results: unknown[]; meta: SqlMeta }[] {
     const out: { success: true; results: unknown[]; meta: SqlMeta }[] = [];
     this.ctx.storage.transactionSync(() => {
       for (const s of statements) {
@@ -566,9 +568,7 @@ export class AppDO extends DurableObject {
     return out;
   }
 
-  async execScript(
-    query: string
-  ): Promise<{ count: number; duration: number }> {
+  execScript(query: string): { count: number; duration: number } {
     const t0 = performance.now();
     const cursor = this.ctx.storage.sql.exec(query);
     cursor.toArray();

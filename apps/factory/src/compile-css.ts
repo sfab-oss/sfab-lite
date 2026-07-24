@@ -16,12 +16,20 @@ const BUILTIN_SAFELIST = [
   "text-foreground",
 ];
 
-async function loadStylesheet(id: string, base: string) {
-  const key = id.startsWith("tailwindcss")
-    ? id
-    : id.startsWith("./") || id.startsWith("../")
-      ? `tailwindcss/${id.replace(/^\.\//, "")}`
-      : id;
+const RELATIVE_PATH_PREFIX_RE = /^\.\//;
+
+function resolveStylesheetKey(id: string): string {
+  if (id.startsWith("tailwindcss")) {
+    return id;
+  }
+  if (id.startsWith("./") || id.startsWith("../")) {
+    return `tailwindcss/${id.replace(RELATIVE_PATH_PREFIX_RE, "")}`;
+  }
+  return id;
+}
+
+function loadStylesheet(id: string, base: string) {
+  const key = resolveStylesheetKey(id);
 
   const content =
     TW_CSS_VFS[key] ??
@@ -32,11 +40,11 @@ async function loadStylesheet(id: string, base: string) {
   if (!content) {
     throw new Error(`loadStylesheet: unknown id=${id} base=${base}`);
   }
-  return {
+  return Promise.resolve({
     path: key,
     base: "/virtual/tailwindcss",
     content,
-  };
+  });
 }
 
 type Compiler = Awaited<ReturnType<typeof compile>>;
@@ -55,14 +63,14 @@ async function getCompiler(themeCss: string): Promise<Compiler> {
   return cached;
 }
 
-export type CompileCssResult = {
+export interface CompileCssResult {
   css: string;
   compileMs: number;
   buildMs: number;
   candidateCount: number;
   candidates: string[];
   missesDocumented: string[];
-};
+}
 
 /**
  * Publish CSS from app sources + theme (manifest `client.styles`).

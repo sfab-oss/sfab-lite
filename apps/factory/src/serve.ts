@@ -16,7 +16,7 @@ import {
   KERNEL_VERSION,
   KERNEL_ZOD,
 } from "@sfab-lite/kernel";
-import type { VersionRecord } from "./app-do.js";
+import type { AppDO, VersionRecord } from "./app-do.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
 const KERNEL_PATHS = {
@@ -29,6 +29,8 @@ const KERNEL_PATHS = {
   hono: "hono.js",
   zod: "zod.js",
 } as const;
+
+const LEADING_SLASHES_RE = /^\/+/;
 
 function kernelModules(): Record<string, { js: string }> {
   return {
@@ -62,11 +64,151 @@ function contentType(path: string): string {
   return "application/octet-stream";
 }
 
-type HostExports = {
+interface HostExports {
   ScopedSql: (opts: { props: ScopedSqlProps }) => unknown;
-};
+}
 
 export type ServeMode = "live" | "preview";
+
+async function loadVersion(
+  stub: DurableObjectStub<AppDO>,
+  mode: ServeMode
+): Promise<VersionRecord | null> {
+  if (mode === "preview") {
+    const latest = await stub.getLatest();
+    return latest.version;
+  }
+  const live = await stub.getLive();
+  return live.version;
+}
+
+function buildPathContext(
+  request: Request,
+  appId: string,
+  restPath: string,
+  mode: ServeMode
+): { rest: string; publicBase: string } {
+  const url = new URL(request.url);
+  const rest = restPath.replace(LEADING_SLASHES_RE, "");
+  const pathPrefix =
+    mode === "preview"
+      ? `/a/${encodeURIComponent(appId)}/preview`
+      : `/a/${encodeURIComponent(appId)}`;
+  return { rest, publicBase: `${url.origin}${pathPrefix}` };
+}
+
+async function serveApiRoute(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  appId: string,
+  version: VersionRecord,
+  rest: string,
+  publicBase: string,
+  mode: ServeMode
+): Promise<Response> {
+  const secret = env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    return Response.json(
+      { ok: false, error: "BETTER_AUTH_SECRET missing on host" },
+      { status: 500 }
+    );
+  }
+
+  const url = new URL(request.url);
+  const innerUrl = new URL(`/${rest}${url.search}`, url.origin);
+  const workerKey = `app:${appId}:${mode}:${version.id}`;
+
+  const ex = ctx.exports as unknown as HostExports;
+  const worker = env.LOADER.get(workerKey, () => ({
+    compatibilityDate: "2026-07-23",
+    compatibilityFlags: ["nodejs_compat"],
+    mainModule: "index.js",
+    modules: {
+      ...kernelModules(),
+      "index.js": version.serverBundle,
+    },
+    env: {
+      DB: ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps }),
+      BETTER_AUTH_SECRET: secret,
+      // Origin only — LOADER sees stripped `/api/auth/*` paths.
+      BETTER_AUTH_URL: url.origin,
+    },
+    globalOutbound: null,
+  }));
+
+  const headers = new Headers(request.headers);
+  headers.set("origin", publicBase);
+
+  const init: RequestInit = {
+    method: request.method,
+    headers,
+    redirect: "manual",
+  };
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    init.body = await request.arrayBuffer();
+  }
+
+  return worker.getEntrypoint().fetch(new Request(innerUrl, init));
+}
+
+function resolveStaticAsset(
+  version: VersionRecord,
+  rest: string
+): { assetKey: string; body: string } | null {
+  let assetKey = rest === "" || rest.endsWith("/") ? "index.html" : rest;
+  if (assetKey.startsWith("./")) {
+    assetKey = assetKey.slice(2);
+  }
+
+  let body = version.assets[assetKey];
+  if (body == null && !assetKey.includes(".")) {
+    body = version.assets["index.html"];
+    assetKey = "index.html";
+  }
+  if (body == null) {
+    return null;
+  }
+
+  if (assetKey === "index.html") {
+    return { assetKey, body };
+  }
+  return { assetKey, body };
+}
+
+function injectPublicBase(body: string, publicBase: string): string {
+  const boot = `<script>window.__SFAB_PUBLIC_BASE__=${JSON.stringify(publicBase)};</script>`;
+  if (body.includes("</head>")) {
+    return body.replace("</head>", `${boot}</head>`);
+  }
+  return boot + body;
+}
+
+function serveStaticAsset(
+  version: VersionRecord,
+  rest: string,
+  publicBase: string
+): Response {
+  const resolved = resolveStaticAsset(version, rest);
+  if (!resolved) {
+    const assetKey = rest === "" || rest.endsWith("/") ? "index.html" : rest;
+    return new Response(`not found: ${assetKey}`, { status: 404 });
+  }
+
+  let { assetKey, body } = resolved;
+  if (assetKey === "index.html") {
+    body = injectPublicBase(body, publicBase);
+  }
+
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "content-type": contentType(assetKey),
+      "cache-control":
+        assetKey === "index.html" ? "no-store" : "public, max-age=60",
+    },
+  });
+}
 
 export async function serveSubApp(
   request: Request,
@@ -77,15 +219,7 @@ export async function serveSubApp(
   mode: ServeMode = "live"
 ): Promise<Response> {
   const stub = env.APP_DO.get(env.APP_DO.idFromName(appId));
-  let version: VersionRecord | null = null;
-
-  if (mode === "preview") {
-    const latest = await stub.getLatest();
-    version = latest.version;
-  } else {
-    const live = await stub.getLive();
-    version = live.version;
-  }
+  const version = await loadVersion(stub, mode);
 
   if (!version) {
     return Response.json(
@@ -112,13 +246,7 @@ export async function serveSubApp(
     );
   }
 
-  const url = new URL(request.url);
-  const rest = restPath.replace(/^\/+/, "");
-  const pathPrefix =
-    mode === "preview"
-      ? `/a/${encodeURIComponent(appId)}/preview`
-      : `/a/${encodeURIComponent(appId)}`;
-  const publicBase = `${url.origin}${pathPrefix}`;
+  const { rest, publicBase } = buildPathContext(request, appId, restPath, mode);
 
   const withVersionHeader = (res: Response): Response => {
     const headers = new Headers(res.headers);
@@ -131,89 +259,19 @@ export async function serveSubApp(
     });
   };
 
-  // --- API → LOADER dynamic worker ---
   if (rest === "api" || rest.startsWith("api/")) {
-    const secret = env.BETTER_AUTH_SECRET;
-    if (!secret) {
-      return withVersionHeader(
-        Response.json(
-          { ok: false, error: "BETTER_AUTH_SECRET missing on host" },
-          { status: 500 }
-        )
-      );
-    }
-
-    const innerUrl = new URL(`/${rest}${url.search}`, url.origin);
-    const workerKey = `app:${appId}:${mode}:${version.id}`;
-
-    const ex = ctx.exports as unknown as HostExports;
-    const worker = env.LOADER.get(workerKey, () => ({
-      compatibilityDate: "2026-07-23",
-      compatibilityFlags: ["nodejs_compat"],
-      mainModule: "index.js",
-      modules: {
-        ...kernelModules(),
-        "index.js": version.serverBundle,
-      },
-      env: {
-        DB: ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps }),
-        BETTER_AUTH_SECRET: secret,
-        // Origin only — LOADER sees stripped `/api/auth/*` paths.
-        BETTER_AUTH_URL: url.origin,
-      },
-      globalOutbound: null,
-    }));
-
-    const headers = new Headers(request.headers);
-    headers.set("origin", publicBase);
-
-    const init: RequestInit = {
-      method: request.method,
-      headers,
-      redirect: "manual",
-    };
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      init.body = await request.arrayBuffer();
-    }
-
-    const res = await worker.getEntrypoint().fetch(new Request(innerUrl, init));
+    const res = await serveApiRoute(
+      request,
+      env,
+      ctx,
+      appId,
+      version,
+      rest,
+      publicBase,
+      mode
+    );
     return withVersionHeader(res);
   }
 
-  // --- Static assets from version record ---
-  let assetKey = rest === "" || rest.endsWith("/") ? "index.html" : rest;
-  if (assetKey.startsWith("./")) {
-    assetKey = assetKey.slice(2);
-  }
-
-  let body = version.assets[assetKey];
-  if (body == null && !assetKey.includes(".")) {
-    body = version.assets["index.html"];
-    assetKey = "index.html";
-  }
-  if (body == null) {
-    return withVersionHeader(
-      new Response(`not found: ${assetKey}`, { status: 404 })
-    );
-  }
-
-  if (assetKey === "index.html") {
-    const boot = `<script>window.__SFAB_PUBLIC_BASE__=${JSON.stringify(publicBase)};</script>`;
-    if (body.includes("</head>")) {
-      body = body.replace("</head>", `${boot}</head>`);
-    } else {
-      body = boot + body;
-    }
-  }
-
-  return withVersionHeader(
-    new Response(body, {
-      status: 200,
-      headers: {
-        "content-type": contentType(assetKey),
-        "cache-control":
-          assetKey === "index.html" ? "no-store" : "public, max-age=60",
-      },
-    })
-  );
+  return withVersionHeader(serveStaticAsset(version, rest, publicBase));
 }

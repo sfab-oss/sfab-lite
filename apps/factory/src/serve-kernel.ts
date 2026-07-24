@@ -3,11 +3,13 @@
  */
 import { CLIENT_KERNEL_FILES, KERNEL_VERSION } from "@sfab-lite/kernel";
 
+const KERNEL_CHUNK_PATH_RE = /^([^/]+)\/(?:client\/)?([^/]+\.js)$/;
+
 export function serveKernel(
   request: Request,
   restPath: string
 ): Response | null {
-  const m = restPath.match(/^([^/]+)\/(?:client\/)?([^/]+\.js)$/);
+  const m = restPath.match(KERNEL_CHUNK_PATH_RE);
   if (!m) {
     return null;
   }

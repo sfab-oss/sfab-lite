@@ -27,7 +27,11 @@ function reexport(flat: string, withDefault: boolean): string {
   return `${star} export { default } from ${JSON.stringify(flat)};`;
 }
 
-/** Bare npm → flat LOADER keys (same map serve.ts mounts). */
+/**
+ * Bare npm → flat LOADER keys (same map serve.ts mounts).
+ * `hono/*` subpaths reexport from hono.js — the kernel vendor entry exports
+ * factory + validator onto that same chunk (prebuild already maps hono/* → hono.js).
+ */
 const KERNEL_VIRTUAL_MODULES: Record<string, string> = {
   react: reexport(KERNEL_PATHS.react, true),
   "react/jsx-runtime": reexport(KERNEL_PATHS.jsxRuntime, true),
@@ -41,42 +45,8 @@ const KERNEL_VIRTUAL_MODULES: Record<string, string> = {
   "better-auth/adapters/drizzle": reexport(KERNEL_PATHS.betterAuth, false),
   "better-auth/plugins": reexport(KERNEL_PATHS.betterAuth, false),
   hono: reexport(KERNEL_PATHS.hono, false),
-  // S1 template uses these subpaths; the frozen hono.js chunk is main-only.
-  // Provide small inlined shims so they compile into the server bundle
-  // instead of being rewritten onto hono.js (which lacks the exports).
-  "hono/factory": `
-export const createMiddleware = (middleware) => middleware;
-export const createFactory = () => ({ createMiddleware });
-export class Factory {
-  createMiddleware = createMiddleware;
-}
-`.trim(),
-  "hono/validator": `
-const jsonRegex = /^application\\/([a-z-.]+\\+)?json/i;
-export const validator = (target, validationFunc) => {
-  return async (c, next) => {
-    let value = {};
-    if (target === "json") {
-      const contentType = c.req.header("Content-Type");
-      if (contentType && jsonRegex.test(contentType)) {
-        try {
-          value = await c.req.json();
-        } catch {
-          return c.json({ error: "Malformed JSON in request body" }, 400);
-        }
-      }
-    } else {
-      throw new Error(
-        "hono/validator shim: only json target is supported (got " + target + ")"
-      );
-    }
-    const res = await validationFunc(value, c);
-    if (res instanceof Response) return res;
-    c.req.addValidatedData(target, res);
-    return await next();
-  };
-};
-`.trim(),
+  "hono/factory": reexport(KERNEL_PATHS.hono, false),
+  "hono/validator": reexport(KERNEL_PATHS.hono, false),
   zod: reexport(KERNEL_PATHS.zod, false),
 };
 
@@ -118,9 +88,8 @@ function pickMainJs(result: Awaited<ReturnType<typeof createWorker>>): string {
 
 /** Normalize worker-bundler output to flat kernel keys (seed does the same). */
 function normalizeFlatImports(source: string): string {
-  // Do not rewrite hono/factory|validator — those are inlined via virtualModules.
   return source
-    .replace(/from\s+["']hono["']/g, 'from "hono.js"')
+    .replace(/from\s+["']hono(?:\/[^"']*)?["']/g, 'from "hono.js"')
     .replace(
       /from\s+["']drizzle-orm(?:\/[^"']*)?["']/g,
       'from "drizzle-orm.js"'
@@ -136,13 +105,13 @@ function normalizeFlatImports(source: string): string {
     .replace(/from\s+["']react-dom\/server["']/g, 'from "react-dom-server.js"');
 }
 
-export type CompileServerResult = {
+export interface CompileServerResult {
   serverBundle: string;
   compileMs: number;
   kernelVersion: string;
   mainModule: string;
   warnings: unknown[];
-};
+}
 
 /**
  * Compile sub-app server from source files (keys like `src/hono/index.ts`).
