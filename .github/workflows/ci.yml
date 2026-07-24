@@ -59,6 +59,11 @@ jobs:
 
       - run: pnpm lint:check
 
+      # The seed payload must also be clean under the config the factory
+      # lints apps with — a different config from the repo's own, since the
+      # lint worker cannot resolve `extends` in WASM.
+      - run: pnpm check:app-lint
+
   cycles:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:

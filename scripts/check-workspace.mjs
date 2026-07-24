@@ -73,9 +73,35 @@ if (!existsSync(join(root, "biome.jsonc"))) {
   failed = true;
 }
 
+// The template manifest is the factory's only map of the seed payload. When
+// a declared path stops existing, the failure otherwise surfaces as a broken
+// build — or, in the exploration's case, a silent fallback — long after the
+// rename that caused it.
+const templateRoot = join(root, "packages/template");
+const manifest = JSON.parse(
+  readFileSync(join(templateRoot, "manifest.json"), "utf8")
+);
+const appRoot = join(templateRoot, manifest.root);
+const declared = [
+  manifest.server.entry,
+  manifest.client.entry,
+  manifest.client.styles,
+  manifest.safelist,
+  manifest.migrations,
+  ...manifest.source.dirs,
+  ...manifest.source.files,
+  ...manifest.source.exclude,
+];
+for (const path of declared) {
+  if (!existsSync(join(appRoot, path))) {
+    console.error(`template manifest points at a missing path: ${path}`);
+    failed = true;
+  }
+}
+
 if (failed) {
   process.exit(1);
 }
 console.log(
-  `workspace ok: ${products.length} products + ${tooling.length} tooling`
+  `workspace ok: ${products.length} products + ${tooling.length} tooling, ${declared.length} template paths`
 );
