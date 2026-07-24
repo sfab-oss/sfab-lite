@@ -1,0 +1,12 @@
+node_modules
+dist
+.next
+.turbo
+.env
+.env.local
+.dev.vars
+.dev.seed.vars
+.wrangler/
+*.log
+.DS_Store
+*.tsbuildinfo
