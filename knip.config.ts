@@ -16,7 +16,7 @@ const config: KnipConfig = {
       project: ["src/**/*.ts"],
     },
     "apps/lint": {
-      project: ["src/**/*.ts"],
+      project: ["src/**/*.{ts,tsx}"],
     },
     // Two trees with different rules. `src` is the package the factory
     // imports; `app` is the seed payload, whose reachability roots are its

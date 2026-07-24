@@ -7,9 +7,17 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "wrangler dev --port 8803"
+  },
+  "dependencies": {
+    "@biomejs/js-api": "6.0.0",
+    "@biomejs/wasm-web": "2.5.5",
+    "@sfab-lite/core": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@cloudflare/workers-types": "5.20260721.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.113.0"
   }
 }
