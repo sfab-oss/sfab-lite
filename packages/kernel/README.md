@@ -12,6 +12,11 @@ Regenerates `vendor/`, `kernel.json`, and `src/generated/*` from the pinned
 inputs. Same inputs → byte-identical outputs (wall-clock timestamps are not
 written into committed artifacts).
 
+Shared app pins (react, hono, zod, …) are **read from
+`packages/template/package.json` at prebuild time** — they are not
+hand-copied. Only kernel tooling pins (`esbuild`, `typescript`) are
+declared in `scripts/pins.mjs`.
+
 ## TypeScript pin (contract with `apps/check`)
 
 The kernel pins **TypeScript 6.0.3** (`scripts/pins.mjs` / `kernel.json`).
