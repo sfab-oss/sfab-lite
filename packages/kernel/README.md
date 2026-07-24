@@ -62,8 +62,7 @@ the types VFS build both refuse if it appears.
 ## TypeScript pin (contract with `apps/check`)
 
 The kernel pins **TypeScript 6.0.3** in `universe/package.json` (also
-recorded in `scripts/pins.mjs` / `kernel.json`). That is intentional and
-**different from the monorepo root** (currently 7.0.2). The pin is not on
+recorded in `scripts/pins.mjs` / `kernel.json`). The pin is not on
 `packages/kernel/package.json` — that package only declares workspace
 tooling; the frozen compiler lives in the isolated universe install.
 
@@ -74,6 +73,11 @@ baked.
 
 **`apps/check` must depend on TypeScript 6.0.3** (same pin as
 `packages/kernel/universe/package.json`). Do not bump the universe
-TypeScript pin without updating the check worker in the same change. The
-root / factory / template TypeScript versions are unrelated to this
-contract.
+TypeScript pin without updating the check worker in the same change.
+
+The rest of the repo now follows the same pin. `check:workspace` reads
+the version from `universe/package.json` and fails any workspace package
+that declares a different one, so the universe is the single source of
+truth for the compiler version. **TypeScript 7 is not used in this
+repo.** Bumping the universe pin is therefore a repo-wide change: update
+every package in the same commit and rebuild the kernel.
