@@ -10,8 +10,19 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# One job, one install, every gate as its own named step.
+#
+# These gates run 0-4s each — about 9s for all seven — against ~16s of
+# per-job setup (runner, checkout, pnpm, node, install). Splitting them
+# across six jobs paid that 16s six times to buy parallelism the runner
+# pool does not actually grant: only four runners are assigned at once, so
+# six jobs already ran in two waves.
+#
+# Per-gate attribution was the real reason to split, and it survives: each
+# gate carries an `if:` so one failure does not skip the rest. A red run
+# still names every gate that failed, in one log instead of six.
 jobs:
-  workspace:
+  gates:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v6
@@ -23,93 +34,40 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - id: install
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm check:workspace
-
-  typecheck:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm typecheck
-
-  lint:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm lint:check
+      # Every gate below runs whenever the install succeeded, even if an
+      # earlier gate failed — that is what keeps per-gate attribution.
+      - name: workspace
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:workspace
 
       # The seed payload must also be clean under the config the factory
       # lints apps with — a different config from the repo's own, since the
       # lint worker cannot resolve `extends` in WASM.
-      - run: pnpm check:app-lint
+      - name: app-lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:app-lint
 
-  cycles:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v6
+      - name: typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm typecheck
 
-      - uses: pnpm/action-setup@v6
+      - name: lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm lint:check
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
+      - name: cycles
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:cycles
 
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm check:cycles
-
-  dead-code:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm check:dead-code
-
-  kernel:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+      - name: dead-code
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:dead-code
 
       # Rebuilds from packages/kernel/universe (isolated lockfile) and fails
       # if any committed vendor / generated / kernel.json byte changed.
-      - run: pnpm check:kernel
+      - name: kernel
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:kernel
