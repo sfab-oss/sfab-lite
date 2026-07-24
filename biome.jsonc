@@ -38,5 +38,10 @@
         "noIncrementDecrement": "off"
       }
     }
+  },
+  // Vendored Biome WASM binary for apps/lint — not text source.
+  // Extended presets already include "**"; only add the exception here.
+  "files": {
+    "includes": ["!!**/*.wasm"]
   }
 }
