@@ -40,10 +40,23 @@ importers:
         version: 7.0.2
 
   apps/check:
-    devDependencies:
+    dependencies:
+      '@sfab-lite/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@sfab-lite/kernel':
+        specifier: workspace:*
+        version: link:../../packages/kernel
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: 6.0.3
+        version: 6.0.3
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: 5.20260721.1
+        version: 5.20260721.1
+      wrangler:
+        specifier: 4.113.0
+        version: 4.113.0(@cloudflare/workers-types@5.20260721.1)
 
   apps/factory:
     devDependencies:
@@ -2878,6 +2891,11 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -5207,6 +5225,8 @@ snapshots:
       '@turbo/windows-arm64': 2.10.6
 
   typescript@5.9.3: {}
+
+  typescript@6.0.3: {}
 
   typescript@7.0.2:
     optionalDependencies:
