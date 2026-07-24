@@ -15,9 +15,11 @@ apps/
   check/     # TypeScript check worker
   lint/      # Biome lint worker
 packages/
-  template/  # starter-lite seed (independently runnable later)
-  kernel/    # frozen dependency universe + prebuild
-  core/      # shared contracts
+  template/      # starter-lite seed (independently runnable later)
+  kernel/        # frozen dependency universe + prebuild
+  core/          # shared contracts
+  tsconfig/      # shared TS configs
+  biome-config/  # shared Biome presets
 ```
 
 ## License

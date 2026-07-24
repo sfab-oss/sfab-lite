@@ -11,6 +11,12 @@ importers:
       '@biomejs/biome':
         specifier: 2.5.2
         version: 2.5.2
+      '@sfab-lite/biome-config':
+        specifier: workspace:*
+        version: link:packages/biome-config
+      '@sfab-lite/tsconfig':
+        specifier: workspace:*
+        version: link:packages/tsconfig
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -33,6 +39,8 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  packages/biome-config: {}
+
   packages/core:
     devDependencies:
       typescript:
@@ -50,6 +58,8 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  packages/tsconfig: {}
 
 packages:
 

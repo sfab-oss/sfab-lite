@@ -1,20 +1,22 @@
 {
-	"name": "sfab-lite",
-	"version": "0.0.1",
-	"private": true,
-	"license": "AGPL-3.0-only",
-	"scripts": {
-		"typecheck": "pnpm -r --if-present typecheck",
-		"lint:check": "biome check .",
-		"lint:fix": "biome check --write .",
-		"check:workspace": "node scripts/check-workspace.mjs"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.5.2",
-		"typescript": "^5.9.3"
-	},
-	"packageManager": "pnpm@11.5.2",
-	"engines": {
-		"node": ">=20"
-	}
+  "name": "sfab-lite",
+  "version": "0.0.1",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint:check": "biome check .",
+    "lint:fix": "biome check --write .",
+    "check:workspace": "node scripts/check-workspace.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.2",
+    "@sfab-lite/biome-config": "workspace:*",
+    "@sfab-lite/tsconfig": "workspace:*",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=20"
+  }
 }

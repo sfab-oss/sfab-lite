@@ -1,0 +1,14 @@
+{
+  "name": "@sfab-lite/tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "files": [
+    "base.json",
+    "nextjs.json",
+    "react-library.json",
+    "react-library-bundler.json",
+    "tanstack-start.json",
+    "css-modules.d.ts"
+  ]
+}

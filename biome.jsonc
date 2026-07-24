@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": [
+    "@sfab-lite/biome-config/core",
+    "@sfab-lite/biome-config/react",
+    "@sfab-lite/biome-config/tanstack"
+  ],
+  // Same assist/noise offs as starter — presets turn these on; not worth
+  // a mass rewrite for little signal.
+  "assist": {
+    "actions": {
+      "source": {
+        "useSortedKeys": "off",
+        "useSortedAttributes": "off",
+        "useSortedInterfaceMembers": "off",
+        "useSortedProperties": "off",
+        "useSortedTypeFields": "off"
+      }
+    }
+  },
+  "linter": {
+    "rules": {
+      "performance": {
+        "noBarrelFile": "off",
+        "noImgElement": "off",
+        "noJsxPropsBind": "off",
+        "noAwaitInLoops": "off"
+      },
+      "suspicious": {
+        "noLeakedRender": "off",
+        "noEqualsToNull": "off",
+        "noShadow": "off",
+        "noUnusedExpressions": "off",
+        "noUnnecessaryConditions": "off"
+      },
+      "style": {
+        "useDestructuring": "off",
+        "noIncrementDecrement": "off"
+      }
+    }
+  }
+}

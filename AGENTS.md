@@ -28,8 +28,14 @@ Evidence: agent-workspace `archive/explore-edge-native-lite/artifacts/t5/`.
 | `packages/template` | Starter-lite seed; independently runnable; kernel-closure source |
 | `packages/kernel` | Frozen universe + prebuild (types VFS, client chunks) |
 | `packages/core` | Shared contracts |
+| `packages/tsconfig` | Shared TS configs (`@sfab-lite/tsconfig`) |
+| `packages/biome-config` | Shared Biome presets (`@sfab-lite/biome-config`) |
 
 Package names: `@sfab-lite/*`.
+
+Monorepo tooling matches the starter/platform idiom (shared config
+packages). **Lite** refers to the hosted template / frozen-kernel
+sub-apps — not skimpy factory tooling.
 
 ## Hard boundaries
 
@@ -48,7 +54,7 @@ Package names: `@sfab-lite/*`.
 ## Tooling
 
 - pnpm workspace (`apps/*`, `packages/*`)
-- TypeScript strict via root `tsconfig.base.json`
+- TypeScript via `@sfab-lite/tsconfig`; Biome via `@sfab-lite/biome-config`
 - CI on Blacksmith: workspace integrity + typecheck + biome
 
 ## License
