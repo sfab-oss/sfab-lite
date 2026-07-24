@@ -7,6 +7,7 @@
  */
 import { Biome, type Configuration } from "@biomejs/js-api/web";
 import { initSync } from "@biomejs/wasm-web";
+import biomeWasm from "@biomejs/wasm-web/biome_wasm_bg.wasm";
 import {
   APP_BIOME_CONFIG,
   type LintFileResult,
@@ -15,7 +16,6 @@ import {
   type LintResult,
   type LintVersions,
 } from "@sfab-lite/core";
-import biomeWasm from "./biome_wasm_bg.wasm";
 
 const LINT_VERSIONS: LintVersions = {
   jsApi: "6.0.0",
