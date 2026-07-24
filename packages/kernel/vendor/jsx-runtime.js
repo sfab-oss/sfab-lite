@@ -33,9 +33,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.production.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.production.js
 var require_react_jsx_runtime_production = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
     "use strict";
     var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
     var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
@@ -63,9 +63,9 @@ var require_react_jsx_runtime_production = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.development.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.development.js
 var require_react_jsx_runtime_development = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function getComponentNameFromType(type) {
@@ -320,9 +320,9 @@ var require_react_jsx_runtime_development = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/jsx-runtime.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/jsx-runtime.js
 var require_jsx_runtime = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/jsx-runtime.js"(exports, module) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/jsx-runtime.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_jsx_runtime_production();

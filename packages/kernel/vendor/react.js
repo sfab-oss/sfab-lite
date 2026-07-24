@@ -28,9 +28,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.production.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.production.js
 var require_react_production = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.production.js"(exports) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.production.js"(exports) {
     "use strict";
     var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
     var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -469,9 +469,9 @@ var require_react_production = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js"(exports, module) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js"(exports, module) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function defineDeprecationWarning(methodName, info) {
@@ -1441,9 +1441,9 @@ var require_react_development = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/index.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/index.js
 var require_react = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/index.js"(exports, module) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_production();
