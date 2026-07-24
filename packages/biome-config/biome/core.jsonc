@@ -41,14 +41,6 @@
       "!!**/auto-generated",
       "!!**/codegen",
       "!!**/__generated__",
-      // @sfab-lite/kernel prebuild outputs — megabyte string-literal blobs.
-      // `src/generated/` is already covered by `!!**/generated` above;
-      // vendor chunks and build intermediates need explicit force-ignores.
-      "!!**/packages/kernel/vendor",
-      "!!**/packages/kernel/kernel.json",
-      "!!**/packages/kernel/results",
-      "!!**/packages/kernel/scripts/.shims",
-      "!!**/packages/kernel/scripts/.shims-client",
       "!!**/graphql-types.*",
       "!!**/schema.d.ts",
       "!!**/schema.graphql.d.ts",

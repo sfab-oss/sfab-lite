@@ -5,6 +5,20 @@
     "@sfab-lite/biome-config/react",
     "@sfab-lite/biome-config/tanstack"
   ],
+  // Repo-specific force-ignores only (no catch-all `**` — the shared preset
+  // already provides it; re-adding `**` trips noBiomeFirstException).
+  // Kernel vendor/manifest blobs are megabyte string dumps; shims/results are
+  // build intermediates. `src/generated/` is covered by the preset's
+  // `!!**/generated`.
+  "files": {
+    "includes": [
+      "!!**/packages/kernel/vendor",
+      "!!**/packages/kernel/kernel.json",
+      "!!**/packages/kernel/results",
+      "!!**/packages/kernel/scripts/.shims",
+      "!!**/packages/kernel/scripts/.shims-client"
+    ]
+  },
   // Same assist/noise offs as starter — presets turn these on; not worth
   // a mass rewrite for little signal.
   "assist": {
@@ -39,9 +53,9 @@
       }
     }
   },
-  // Kernel prebuild scripts are Node CLI (run once), not shipped app code.
-  // Tree-shaking / hot-path regex rules do not apply; keep the scripts
-  // readable ports of the exploration rather than lint-noise refactors.
+  // Kernel prebuild scripts are one-shot Node CLI. Keep only the two rules
+  // that target runtime bundling / hot-path concerns off; readability rules
+  // (complexity, nested ternary) stay on and the scripts must satisfy them.
   "overrides": [
     {
       "includes": ["packages/kernel/scripts/**"],
@@ -50,12 +64,19 @@
           "performance": {
             "noNamespaceImport": "off",
             "useTopLevelRegex": "off"
-          },
-          "style": {
-            "noNestedTernary": "off"
-          },
-          "complexity": {
-            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    },
+    // vendor-entries export order is load-bearing: esbuild follows it when
+    // concatenating the chunk, so organizeImports would silently change
+    // committed vendor hashes.
+    {
+      "includes": ["packages/kernel/scripts/vendor-entries/**"],
+      "assist": {
+        "actions": {
+          "source": {
+            "organizeImports": "off"
           }
         }
       }

@@ -130,6 +130,23 @@ const chunks = [
   },
 ];
 
+/** Map a react/react-dom bare specifier to its flat client chunk filename. */
+function toClientFlatKey(spec) {
+  if (spec === "react") {
+    return "react.js";
+  }
+  if (spec === "react/jsx-runtime") {
+    return "jsx-runtime.js";
+  }
+  if (spec === "react-dom/client") {
+    return "react-dom-client.js";
+  }
+  if (spec === "react-dom" || spec.startsWith("react-dom/")) {
+    return "react-dom.js";
+  }
+  return spec;
+}
+
 /** Rewrite esbuild CJS stubs to flat client keys. */
 function rewriteExternalRequires(source, external) {
   if (!external.length) {
@@ -139,14 +156,7 @@ function rewriteExternalRequires(source, external) {
   const map = [];
   for (const spec of external) {
     const id = spec.replace(/[^a-zA-Z0-9]/g, "_");
-    const flat =
-      spec === "react"
-        ? "react.js"
-        : spec === "react-dom"
-          ? "react-dom.js"
-          : spec === "react/jsx-runtime"
-            ? "jsx-runtime.js"
-            : spec;
+    const flat = toClientFlatKey(spec);
     imports.push(`import __ext_${id} from ${JSON.stringify(flat)};`);
     map.push(
       `  if (x === ${JSON.stringify(spec)}) return __ext_${id}?.default ?? __ext_${id};`
@@ -227,20 +237,10 @@ async function vendorPkg(opts) {
                   {
                     filter: /^(react|react-dom|react\/jsx-runtime)(\/.*)?$/,
                   },
-                  (args) => {
-                    const flat =
-                      args.path === "react"
-                        ? "react.js"
-                        : args.path === "react-dom" ||
-                            args.path.startsWith("react-dom/")
-                          ? args.path === "react-dom/client"
-                            ? "react-dom-client.js"
-                            : "react-dom.js"
-                          : args.path === "react/jsx-runtime"
-                            ? "jsx-runtime.js"
-                            : args.path;
-                    return { path: flat, external: true };
-                  }
+                  (args) => ({
+                    path: toClientFlatKey(args.path),
+                    external: true,
+                  })
                 );
               },
             },
