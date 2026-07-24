@@ -11,7 +11,7 @@
     "lint:check": "biome check .",
     "lint:fix": "biome check --write .",
     "check:workspace": "node scripts/check-workspace.mjs",
-    "check:cycles": "madge --circular --extensions ts,tsx packages apps",
+    "check:cycles": "madge --circular --extensions ts,tsx --exclude 'generated|vendor|results|\\\\.shims' packages apps",
     "check:dead-code": "knip",
     "prepare": "husky",
     "check:app-lint": "biome check --config-path=packages/core/app-biome.json packages/template/app/src"

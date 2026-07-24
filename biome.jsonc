@@ -38,5 +38,27 @@
         "noIncrementDecrement": "off"
       }
     }
-  }
+  },
+  // Kernel prebuild scripts are Node CLI (run once), not shipped app code.
+  // Tree-shaking / hot-path regex rules do not apply; keep the scripts
+  // readable ports of the exploration rather than lint-noise refactors.
+  "overrides": [
+    {
+      "includes": ["packages/kernel/scripts/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noNamespaceImport": "off",
+            "useTopLevelRegex": "off"
+          },
+          "style": {
+            "noNestedTernary": "off"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    }
+  ]
 }
