@@ -26,9 +26,9 @@ Guarantees:
    artifacts on rebuild.
 2. **Workspace isolation** — adding or removing an unrelated workspace
    package (and its peers) must not change any kernel artifact byte.
-3. **Drift detection** — `pnpm check:kernel` rebuilds and fails if committed
-   `vendor/`, `kernel.json`, or `src/generated/*` differ. CI job `kernel`
-   enforces the same.
+3. **Drift detection** — `pnpm check:kernel` rebuilds and fails if the
+   rebuild output differs from the **git index** for `vendor/`,
+   `kernel.json`, or `src/generated/*`. CI job `kernel` enforces the same.
 
 Two consecutive builds in one worktree only prove determinism for a fixed
 install graph. Isolation + the drift gate are what make the universe frozen
@@ -61,16 +61,19 @@ the types VFS build both refuse if it appears.
 
 ## TypeScript pin (contract with `apps/check`)
 
-The kernel pins **TypeScript 6.0.3** (`scripts/pins.mjs` / `kernel.json`).
-That is intentional and **different from the monorepo root** (currently
-7.0.2).
+The kernel pins **TypeScript 6.0.3** in `universe/package.json` (also
+recorded in `scripts/pins.mjs` / `kernel.json`). That is intentional and
+**different from the monorepo root** (currently 7.0.2). The pin is not on
+`packages/kernel/package.json` — that package only declares workspace
+tooling; the frozen compiler lives in the isolated universe install.
 
 Why: `prebuild-types-vfs.mjs` ships the compiler's `lib/*.d.ts` into
 `TYPES_VFS`. The check worker's LanguageService must run a compiler whose
 libs match that VFS — otherwise diagnostics diverge from what the factory
 baked.
 
-**`apps/check` must depend on TypeScript 6.0.3** (same pin as this package).
-Do not bump the kernel's TypeScript pin without updating the check worker
-in the same change. The root / factory / template TypeScript versions are
-unrelated to this contract.
+**`apps/check` must depend on TypeScript 6.0.3** (same pin as
+`packages/kernel/universe/package.json`). Do not bump the universe
+TypeScript pin without updating the check worker in the same change. The
+root / factory / template TypeScript versions are unrelated to this
+contract.
