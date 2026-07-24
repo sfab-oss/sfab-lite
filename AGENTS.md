@@ -33,6 +33,14 @@ Evidence: agent-workspace `archive/explore-edge-native-lite/artifacts/t5/`.
 
 Package names: `@sfab-lite/*`.
 
+## Docs
+
+Engineering docs live in-repo under [`docs/`](docs/) (PR-authored):
+
+- **What the system is** → [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md)
+- **Why a choice was made** → [`docs/decisions/`](docs/decisions/)
+- **Working notes** → [`docs/notes/`](docs/notes/)
+
 Monorepo tooling matches the starter/platform idiom (shared config
 packages). **Lite** refers to the hosted template / frozen-kernel
 sub-apps — not skimpy factory tooling.
