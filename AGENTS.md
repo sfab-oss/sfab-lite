@@ -53,9 +53,11 @@ sub-apps — not skimpy factory tooling.
 
 ## Tooling
 
-- pnpm workspace (`apps/*`, `packages/*`)
+- pnpm workspace (`apps/*`, `packages/*`); Turbo for typecheck/build/test/dev
 - TypeScript via `@sfab-lite/tsconfig`; Biome via `@sfab-lite/biome-config`
-- CI on Blacksmith: workspace integrity + typecheck + biome
+- Husky pre-commit (platform-closer): lint-staged → workspace → typecheck →
+  cycles (madge) → dead-code (knip). Pre-push blocks direct pushes to `main`.
+- CI on Blacksmith: workspace + typecheck + biome + cycles + dead-code
 
 ## License
 
