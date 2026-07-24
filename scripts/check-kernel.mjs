@@ -46,24 +46,17 @@ function snapshot() {
   const map = new Map();
   for (const abs of files.sort()) {
     const rel = abs.slice(repoRoot.length + 1);
-    map.set(
-      rel,
-      createHash("sha256").update(readFileSync(abs)).digest("hex")
-    );
+    map.set(rel, createHash("sha256").update(readFileSync(abs)).digest("hex"));
   }
   return map;
 }
 
 function runBuild() {
-  const result = spawnSync(
-    "pnpm",
-    ["--filter", "@sfab-lite/kernel", "build"],
-    {
-      cwd: repoRoot,
-      encoding: "utf8",
-      stdio: "inherit",
-    }
-  );
+  const result = spawnSync("pnpm", ["--filter", "@sfab-lite/kernel", "build"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: "inherit",
+  });
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
   }
