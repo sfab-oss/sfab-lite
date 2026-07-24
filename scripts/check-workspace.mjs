@@ -99,9 +99,45 @@ for (const path of declared) {
   }
 }
 
+// One TypeScript across the repo, and it is the kernel's. The kernel ships
+// a specific compiler's lib/*.d.ts inside TYPES_VFS, so apps/check must match
+// it exactly or the check worker typechecks apps against libs it did not
+// build. Letting the rest of the repo drift to a different major is what
+// produced five different pins across seven packages. TypeScript 7 is not
+// used in this repo.
+const universePkg = JSON.parse(
+  readFileSync(join(root, "packages/kernel/universe/package.json"), "utf8")
+);
+const KERNEL_TS =
+  universePkg.dependencies?.typescript ??
+  universePkg.devDependencies?.typescript;
+
+if (KERNEL_TS) {
+  const pkgPaths = [
+    "package.json",
+    ...products.map(([dir]) => join(dir, "package.json")),
+  ];
+  for (const rel of pkgPaths) {
+    const pkg = JSON.parse(readFileSync(join(root, rel), "utf8"));
+    const pin = pkg.dependencies?.typescript ?? pkg.devDependencies?.typescript;
+    if (pin == null) {
+      continue;
+    }
+    if (pin !== KERNEL_TS) {
+      console.error(
+        `${rel} pins typescript ${pin}; must be exactly ${KERNEL_TS} (the kernel's)`
+      );
+      failed = true;
+    }
+  }
+} else {
+  console.error("packages/kernel/universe must pin typescript");
+  failed = true;
+}
+
 if (failed) {
   process.exit(1);
 }
 console.log(
-  `workspace ok: ${products.length} products + ${tooling.length} tooling, ${declared.length} template paths`
+  `workspace ok: ${products.length} products + ${tooling.length} tooling, ${declared.length} template paths, typescript ${KERNEL_TS}`
 );
