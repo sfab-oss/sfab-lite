@@ -7,9 +7,20 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "wrangler dev -c wrangler.jsonc -c ../check/wrangler.jsonc -c ../lint/wrangler.jsonc --port 8790",
+    "bake-seed": "node scripts/bake-seed.mjs"
+  },
+  "dependencies": {
+    "@cloudflare/worker-bundler": "0.2.2",
+    "@sfab-lite/core": "workspace:*",
+    "@sfab-lite/kernel": "workspace:*",
+    "@sfab-lite/template": "workspace:*",
+    "tailwindcss": "4.1.11"
   },
   "devDependencies": {
-    "typescript": "6.0.3"
+    "@cloudflare/workers-types": "5.20260721.1",
+    "typescript": "6.0.3",
+    "wrangler": "4.113.0"
   }
 }

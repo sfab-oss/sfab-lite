@@ -10,7 +10,10 @@ const config: KnipConfig = {
       project: ["scripts/**/*.mjs"],
     },
     "apps/factory": {
-      project: ["src/**/*.ts"],
+      entry: ["src/index.ts", "scripts/*.mjs"],
+      project: ["src/**/*.ts", "scripts/**/*.mjs"],
+      // `cloudflare:workers` is a workerd built-in, not an npm package.
+      ignoreDependencies: ["cloudflare"],
     },
     "apps/check": {
       project: ["src/**/*.ts"],
