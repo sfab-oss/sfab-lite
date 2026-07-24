@@ -37,25 +37,29 @@ const config: KnipConfig = {
     "packages/kernel": {
       // Prebuild CLI + vendor entry modules are the reachability roots.
       // Generated megabyte blobs stay out of project so knip never parses them.
+      // Universe deps live in packages/kernel/universe (not this package.json).
       entry: [
         "src/index.ts",
         "scripts/prebuild.mjs!",
         "scripts/prebuild-client.mjs!",
         "scripts/prebuild-css-vfs.mjs!",
         "scripts/prebuild-types-vfs.mjs!",
+        "scripts/ensure-universe.mjs!",
         "scripts/pins.mjs!",
+        "scripts/universe.mjs!",
         "scripts/vendor-entries/*.mjs!",
       ],
       project: ["src/index.ts", "src/generated/*.d.ts", "scripts/**/*.mjs"],
-      // Pins referenced only as esbuild entrySource strings / client bailouts,
-      // not as static imports knip can follow from the prebuild scripts.
+      // Resolved at prebuild from packages/kernel/universe, not package.json.
       ignoreDependencies: [
-        "@base-ui/react",
-        "@tanstack/react-query",
-        "@tanstack/react-router",
-        "class-variance-authority",
-        "clsx",
-        "tailwind-merge",
+        "esbuild",
+        "react",
+        "react-dom",
+        "tailwindcss",
+        "better-auth",
+        "drizzle-orm",
+        "hono",
+        "zod",
       ],
     },
     "packages/core": {

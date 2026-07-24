@@ -1,0 +1,8 @@
+packages:
+  - "."
+
+minimumReleaseAge: 2880
+
+allowBuilds:
+  esbuild: false
+  "@tailwindcss/oxide": false

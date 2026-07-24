@@ -1,4 +1,4 @@
-// ../../node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/utils/cookie.js
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/utils/cookie.js
 var validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
 var _serialize = (name, value, opt = {}) => {
   if (!validCookieNameRegEx.test(name)) {
@@ -71,7 +71,7 @@ var serialize = (name, value, opt) => {
   return _serialize(name, value, opt);
 };
 
-// ../../node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/client/fetch-result-please.js
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/client/fetch-result-please.js
 var nullBodyResponses = /* @__PURE__ */ new Set([101, 204, 205, 304]);
 async function fetchRP(fetchRes) {
   const _fetchRes = await fetchRes;
@@ -130,7 +130,7 @@ function detectResponseType(response) {
   return "text";
 }
 
-// ../../node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/client/utils.js
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/client/utils.js
 var mergePath = (base, path) => {
   base = base.replace(/\/+$/, "");
   base = base + "/";
@@ -196,7 +196,7 @@ async function parseResponse(fetchRes) {
   return fetchRP(fetchRes);
 }
 
-// ../../node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/client/client.js
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/client/client.js
 var createProxy = (callback, path) => {
   const proxy = new Proxy(() => {
   }, {

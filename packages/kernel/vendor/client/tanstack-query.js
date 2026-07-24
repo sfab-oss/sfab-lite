@@ -1,4 +1,4 @@
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/subscribable.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/subscribable.js
 var Subscribable = class {
   constructor() {
     this.listeners = /* @__PURE__ */ new Set();
@@ -21,7 +21,7 @@ var Subscribable = class {
   }
 };
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/utils.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/utils.js
 var isServer = typeof window === "undefined" || "Deno" in globalThis;
 function noop() {
 }
@@ -249,7 +249,7 @@ function shouldThrowError(throwOnError, params) {
   return !!throwOnError;
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/focusManager.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/focusManager.js
 var FocusManager = class extends Subscribable {
   #focused;
   #cleanup;
@@ -311,7 +311,7 @@ var FocusManager = class extends Subscribable {
 };
 var focusManager = new FocusManager();
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/onlineManager.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/onlineManager.js
 var OnlineManager = class extends Subscribable {
   #online = true;
   #cleanup;
@@ -363,7 +363,7 @@ var OnlineManager = class extends Subscribable {
 };
 var onlineManager = new OnlineManager();
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/thenable.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/thenable.js
 function pendingThenable() {
   let resolve;
   let reject;
@@ -407,7 +407,7 @@ function tryResolveSync(promise) {
   return void 0;
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/retryer.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/retryer.js
 function defaultRetryDelay(failureCount) {
   return Math.min(1e3 * 2 ** failureCount, 3e4);
 }
@@ -532,7 +532,7 @@ function createRetryer(config) {
   };
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/notifyManager.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/notifyManager.js
 var defaultScheduler = (cb) => setTimeout(cb, 0);
 function createNotifyManager() {
   let queue = [];
@@ -612,7 +612,7 @@ function createNotifyManager() {
 }
 var notifyManager = createNotifyManager();
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/removable.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/removable.js
 var Removable = class {
   #gcTimeout;
   destroy() {
@@ -640,7 +640,7 @@ var Removable = class {
   }
 };
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/query.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/query.js
 var Query = class extends Removable {
   #initialState;
   #revertState;
@@ -1032,7 +1032,7 @@ function getDefaultState(options) {
   };
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queryCache.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queryCache.js
 var QueryCache = class extends Subscribable {
   constructor(config = {}) {
     super();
@@ -1122,7 +1122,7 @@ var QueryCache = class extends Subscribable {
   }
 };
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/mutation.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/mutation.js
 var Mutation = class extends Removable {
   #observers;
   #mutationCache;
@@ -1353,7 +1353,7 @@ function getDefaultState2() {
   };
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/mutationCache.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/mutationCache.js
 var MutationCache = class extends Subscribable {
   constructor(config = {}) {
     super();
@@ -1469,7 +1469,7 @@ function scopeFor(mutation) {
   return mutation.options.scope?.id;
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/infiniteQueryBehavior.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/infiniteQueryBehavior.js
 function infiniteQueryBehavior(pages) {
   return {
     onFetch: (context, query) => {
@@ -1586,7 +1586,7 @@ function hasPreviousPage(options, data) {
   return getPreviousPageParam(options, data) != null;
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queryClient.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queryClient.js
 var QueryClient = class {
   #queryCache;
   #mutationCache;
@@ -1873,7 +1873,7 @@ var QueryClient = class {
   }
 };
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queryObserver.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queryObserver.js
 var QueryObserver = class extends Subscribable {
   constructor(client, options) {
     super();
@@ -2319,7 +2319,7 @@ function shouldAssignObserverCurrentProperties(observer, optimisticResult) {
   return false;
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queriesObserver.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/queriesObserver.js
 function difference(array1, array2) {
   const excludeSet = new Set(array2);
   return array1.filter((x) => !excludeSet.has(x));
@@ -2507,7 +2507,7 @@ var QueriesObserver = class extends Subscribable {
   }
 };
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/infiniteQueryObserver.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/infiniteQueryObserver.js
 var InfiniteQueryObserver = class extends QueryObserver {
   constructor(client, options) {
     super(client, options);
@@ -2569,7 +2569,7 @@ var InfiniteQueryObserver = class extends QueryObserver {
   }
 };
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/mutationObserver.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/mutationObserver.js
 var MutationObserver = class extends Subscribable {
   #client;
   #currentResult = void 0;
@@ -2664,7 +2664,7 @@ var MutationObserver = class extends Subscribable {
   }
 };
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/hydration.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/hydration.js
 function defaultTransformerFn(data) {
   return data;
 }
@@ -2796,7 +2796,7 @@ function hydrate(client, dehydratedState, options) {
   );
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/streamedQuery.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/streamedQuery.js
 function streamedQuery({
   queryFn,
   refetchMode = "reset",
@@ -2836,15 +2836,15 @@ function streamedQuery({
   };
 }
 
-// ../../node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/types.js
+// universe/node_modules/.pnpm/@tanstack+query-core@5.83.0/node_modules/@tanstack/query-core/build/modern/types.js
 var dataTagSymbol = /* @__PURE__ */ Symbol("dataTagSymbol");
 var dataTagErrorSymbol = /* @__PURE__ */ Symbol("dataTagErrorSymbol");
 var unsetMarker = /* @__PURE__ */ Symbol("unsetMarker");
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useQueries.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useQueries.js
 import * as React5 from "react.js";
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js
 import * as React from "react.js";
 import { jsx } from "jsx-runtime.js";
 var QueryClientContext = React.createContext(
@@ -2873,13 +2873,13 @@ var QueryClientProvider = ({
   return /* @__PURE__ */ jsx(QueryClientContext.Provider, { value: client, children });
 };
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/IsRestoringProvider.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/IsRestoringProvider.js
 import * as React2 from "react.js";
 var IsRestoringContext = React2.createContext(false);
 var useIsRestoring = () => React2.useContext(IsRestoringContext);
 var IsRestoringProvider = IsRestoringContext.Provider;
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/QueryErrorResetBoundary.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/QueryErrorResetBoundary.js
 import * as React3 from "react.js";
 import { jsx as jsx2 } from "jsx-runtime.js";
 function createValue() {
@@ -2905,7 +2905,7 @@ var QueryErrorResetBoundary = ({
   return /* @__PURE__ */ jsx2(QueryErrorResetBoundaryContext.Provider, { value, children: typeof children === "function" ? children(value) : children });
 };
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/errorBoundaryUtils.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/errorBoundaryUtils.js
 import * as React4 from "react.js";
 var ensurePreventErrorBoundaryRetry = (options, errorResetBoundary) => {
   if (options.suspense || options.throwOnError || options.experimental_prefetchInRender) {
@@ -2929,7 +2929,7 @@ var getHasError = ({
   return result.isError && !errorResetBoundary.isReset() && !result.isFetching && query && (suspense && result.data === void 0 || shouldThrowError(throwOnError, [result.error, query]));
 };
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/suspense.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/suspense.js
 var defaultThrowOnError = (_error, query) => query.state.data === void 0;
 var ensureSuspenseTimers = (defaultedOptions) => {
   if (defaultedOptions.suspense) {
@@ -2947,7 +2947,7 @@ var fetchOptimistic = (defaultedOptions, observer, errorResetBoundary) => observ
   errorResetBoundary.clearReset();
 });
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useQueries.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useQueries.js
 function useQueries({
   queries,
   ...options
@@ -3032,7 +3032,7 @@ function useQueries({
   return getCombinedResult(trackResult());
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useBaseQuery.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useBaseQuery.js
 import * as React6 from "react.js";
 function useBaseQuery(options, Observer, queryClient) {
   if (true) {
@@ -3116,12 +3116,12 @@ function useBaseQuery(options, Observer, queryClient) {
   return !defaultedOptions.notifyOnChangeProps ? observer.trackResult(result) : result;
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useQuery.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useQuery.js
 function useQuery(options, queryClient) {
   return useBaseQuery(options, QueryObserver, queryClient);
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useSuspenseQuery.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useSuspenseQuery.js
 function useSuspenseQuery(options, queryClient) {
   if (true) {
     if (options.queryFn === skipToken) {
@@ -3141,7 +3141,7 @@ function useSuspenseQuery(options, queryClient) {
   );
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useSuspenseInfiniteQuery.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useSuspenseInfiniteQuery.js
 function useSuspenseInfiniteQuery(options, queryClient) {
   if (true) {
     if (options.queryFn === skipToken) {
@@ -3160,7 +3160,7 @@ function useSuspenseInfiniteQuery(options, queryClient) {
   );
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useSuspenseQueries.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useSuspenseQueries.js
 function useSuspenseQueries(options, queryClient) {
   return useQueries(
     {
@@ -3184,7 +3184,7 @@ function useSuspenseQueries(options, queryClient) {
   );
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/usePrefetchQuery.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/usePrefetchQuery.js
 function usePrefetchQuery(options, queryClient) {
   const client = useQueryClient(queryClient);
   if (!client.getQueryState(options.queryKey)) {
@@ -3192,7 +3192,7 @@ function usePrefetchQuery(options, queryClient) {
   }
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/usePrefetchInfiniteQuery.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/usePrefetchInfiniteQuery.js
 function usePrefetchInfiniteQuery(options, queryClient) {
   const client = useQueryClient(queryClient);
   if (!client.getQueryState(options.queryKey)) {
@@ -3200,17 +3200,17 @@ function usePrefetchInfiniteQuery(options, queryClient) {
   }
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/queryOptions.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/queryOptions.js
 function queryOptions(options) {
   return options;
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/infiniteQueryOptions.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/infiniteQueryOptions.js
 function infiniteQueryOptions(options) {
   return options;
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/HydrationBoundary.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/HydrationBoundary.js
 import * as React7 from "react.js";
 var HydrationBoundary = ({
   children,
@@ -3258,7 +3258,7 @@ var HydrationBoundary = ({
   return children;
 };
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useIsFetching.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useIsFetching.js
 import * as React8 from "react.js";
 function useIsFetching(filters, queryClient) {
   const client = useQueryClient(queryClient);
@@ -3273,7 +3273,7 @@ function useIsFetching(filters, queryClient) {
   );
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useMutationState.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useMutationState.js
 import * as React9 from "react.js";
 function useIsMutating(filters, queryClient) {
   const client = useQueryClient(queryClient);
@@ -3316,7 +3316,7 @@ function useMutationState(options = {}, queryClient) {
   );
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useMutation.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useMutation.js
 import * as React10 from "react.js";
 function useMutation(options, queryClient) {
   const client = useQueryClient(queryClient);
@@ -3349,12 +3349,12 @@ function useMutation(options, queryClient) {
   return { ...result, mutate, mutateAsync: result.mutate };
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/mutationOptions.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/mutationOptions.js
 function mutationOptions(options) {
   return options;
 }
 
-// ../../node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useInfiniteQuery.js
+// universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useInfiniteQuery.js
 function useInfiniteQuery(options, queryClient) {
   return useBaseQuery(
     options,

@@ -6,18 +6,18 @@
 
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import * as esbuild from "esbuild";
+import { getUniverseRequire, universeResolvePlugin } from "./universe.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 const outDir = join(root, "vendor", "client");
 const shimDir = join(root, "scripts", ".shims-client");
 const generatedDir = join(root, "src", "generated");
-const require = createRequire(import.meta.url);
+const require = getUniverseRequire();
+const esbuild = require("esbuild");
 
 mkdirSync(outDir, { recursive: true });
 mkdirSync(shimDir, { recursive: true });
@@ -184,6 +184,7 @@ const browserShared = {
   conditions: ["import", "module", "browser", "default"],
   mainFields: ["browser", "module", "main"],
   logLevel: "info",
+  plugins: [universeResolvePlugin()],
 };
 
 /** @type {Record<string, number>} */
@@ -228,24 +229,27 @@ async function vendorPkg(opts) {
       entryPoints: [entry],
       outfile,
       external,
-      plugins: external.length
-        ? [
-            {
-              name: "flat-client-externals",
-              setup(build) {
-                build.onResolve(
-                  {
-                    filter: /^(react|react-dom|react\/jsx-runtime)(\/.*)?$/,
-                  },
-                  (args) => ({
-                    path: toClientFlatKey(args.path),
-                    external: true,
-                  })
-                );
+      plugins: [
+        ...(external.length
+          ? [
+              {
+                name: "flat-client-externals",
+                setup(build) {
+                  build.onResolve(
+                    {
+                      filter: /^(react|react-dom|react\/jsx-runtime)(\/.*)?$/,
+                    },
+                    (args) => ({
+                      path: toClientFlatKey(args.path),
+                      external: true,
+                    })
+                  );
+                },
               },
-            },
-          ]
-        : [],
+            ]
+          : []),
+        universeResolvePlugin(),
+      ],
     });
     let source = readFileSync(outfile, "utf8");
     source = source

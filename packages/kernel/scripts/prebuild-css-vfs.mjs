@@ -4,14 +4,14 @@
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
+import { getUniverseRequire } from "./universe.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const generatedDir = join(root, "src", "generated");
-const require = createRequire(import.meta.url);
+const require = getUniverseRequire();
 const twRoot = dirname(require.resolve("tailwindcss/package.json"));
 
 const files = {

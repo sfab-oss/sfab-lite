@@ -35,9 +35,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.production.js
+// universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.production.js
 var require_react_dom_server_edge_production = __commonJS({
-  "../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.production.js"(exports) {
+  "universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.production.js"(exports) {
     "use strict";
     var React = __require("react");
     var ReactDOM = __require("react-dom");
@@ -5667,9 +5667,9 @@ performance.now();setTimeout(w,2300>q&&2E3<q?2300-q:500)})])},types:[]});z.ready
   }
 });
 
-// ../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.production.js
+// universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.production.js
 var require_react_dom_server_legacy_browser_production = __commonJS({
-  "../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.production.js"(exports) {
+  "universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.production.js"(exports) {
     "use strict";
     var React = __require("react");
     var ReactDOM = __require("react-dom");
@@ -10520,9 +10520,9 @@ var require_react_dom_server_legacy_browser_production = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.development.js
+// universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.development.js
 var require_react_dom_server_edge_development = __commonJS({
-  "../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.development.js"(exports) {
+  "universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server.edge.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function styleReplacer(match, prefix2, s, suffix2) {
@@ -18217,9 +18217,9 @@ performance.now();setTimeout(w,2300>q&&2E3<q?2300-q:500)})])},types:[]});z.ready
   }
 });
 
-// ../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.development.js
+// universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.development.js
 var require_react_dom_server_legacy_browser_development = __commonJS({
-  "../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.development.js"(exports) {
+  "universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/cjs/react-dom-server-legacy.browser.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function styleReplacer(match, prefix2, s, suffix2) {
@@ -25328,9 +25328,9 @@ var require_react_dom_server_legacy_browser_development = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/server.edge.js
+// universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/server.edge.js
 var require_server_edge = __commonJS({
-  "../../node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/server.edge.js"(exports) {
+  "universe/node_modules/.pnpm/react-dom@19.2.8_react@19.2.8/node_modules/react-dom/server.edge.js"(exports) {
     "use strict";
     var b;
     var l;

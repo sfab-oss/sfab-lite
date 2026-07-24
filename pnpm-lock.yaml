@@ -83,60 +83,9 @@ importers:
 
   packages/kernel:
     devDependencies:
-      '@base-ui/react':
-        specifier: 1.6.0
-        version: 1.6.0(@types/react@19.1.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@sfab-lite/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
-      '@tanstack/react-query':
-        specifier: 5.83.0
-        version: 5.83.0(react@19.2.8)
-      '@tanstack/react-router':
-        specifier: 1.129.0
-        version: 1.129.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@types/react':
-        specifier: 19.1.8
-        version: 19.1.8
-      '@types/react-dom':
-        specifier: 19.1.6
-        version: 19.1.6(@types/react@19.1.8)
-      better-auth:
-        specifier: 1.6.19
-        version: 1.6.19(drizzle-orm@0.45.2(kysely@0.29.4))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      class-variance-authority:
-        specifier: 0.7.1
-        version: 0.7.1
-      clsx:
-        specifier: 2.1.1
-        version: 2.1.1
-      drizzle-orm:
-        specifier: 0.45.2
-        version: 0.45.2(kysely@0.29.4)
-      esbuild:
-        specifier: 0.28.1
-        version: 0.28.1
-      hono:
-        specifier: 4.12.31
-        version: 4.12.31
-      react:
-        specifier: 19.2.8
-        version: 19.2.8
-      react-dom:
-        specifier: 19.2.8
-        version: 19.2.8(react@19.2.8)
-      tailwind-merge:
-        specifier: 3.3.1
-        version: 3.3.1
-      tailwindcss:
-        specifier: 4.1.11
-        version: 4.1.11
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      zod:
-        specifier: 4.3.5
-        version: 4.3.5
 
   packages/template:
     dependencies:
@@ -2929,11 +2878,6 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
     engines: {node: '>=16.20.0'}
@@ -5263,8 +5207,6 @@ snapshots:
       '@turbo/windows-arm64': 2.10.6
 
   typescript@5.9.3: {}
-
-  typescript@6.0.3: {}
 
   typescript@7.0.2:
     optionalDependencies:

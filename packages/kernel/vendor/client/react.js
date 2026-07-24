@@ -28,9 +28,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js"(exports, module) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/cjs/react.development.js"(exports, module) {
     "use strict";
     (function() {
       function defineDeprecationWarning(methodName, info) {
@@ -1000,9 +1000,9 @@ var require_react_development = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/react@19.2.8/node_modules/react/index.js
+// universe/node_modules/.pnpm/react@19.2.8/node_modules/react/index.js
 var require_react = __commonJS({
-  "../../node_modules/.pnpm/react@19.2.8/node_modules/react/index.js"(exports, module) {
+  "universe/node_modules/.pnpm/react@19.2.8/node_modules/react/index.js"(exports, module) {
     "use strict";
     if (false) {
       module.exports = null;
