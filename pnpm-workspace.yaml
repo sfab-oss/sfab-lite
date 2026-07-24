@@ -1,3 +1,32 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Release-age gate — supply-chain hardening (Shai-Hulud class of npm worms,
+# whose compromised versions are live for only hours before takedown). Refuses
+# to install any dependency version younger than `minimumReleaseAge` minutes.
+# pnpm 11 verifies EVERY lockfile entry against this on install, not just newly
+# resolved versions. Requires pnpm >= 10.16 (we pin pnpm 11 via packageManager).
+minimumReleaseAge: 2880 # 2 days. Raise (10080 = 7d, 43200 = 30d) for more cushion.
+# brace-expansion@5.0.8 published 2026-07-23T11:39Z — under the 2d gate until
+# ~2026-07-25T11:39Z. Version-scoped exclude so the current lockfile can land;
+# remove after maturity.
+minimumReleaseAgeExclude:
+  - "brace-expansion@5.0.8"
+
+# Build-script (postinstall) policy — supply-chain hardening. A malicious
+# postinstall is the classic npm infection vector, so pnpm blocks dependency
+# lifecycle scripts until you decide per-package. Recording the decision here
+# also stops pnpm 11 from failing the dep check. Anything NEW that ships a
+# postinstall appears here unset and trips the check again — by design. Flip
+# one to `true` only if a build is genuinely required.
+allowBuilds:
+  "@mongodb-js/zstd": false
+  "@prisma/engines": false
+  better-sqlite3: false
+  core-js-pure: false
+  esbuild: false
+  node-liblzma: false
+  prisma: false
+  sharp: false
+  workerd: false
