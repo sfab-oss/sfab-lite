@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+pnpm exec lint-staged
+pnpm check:workspace
+pnpm typecheck
+pnpm check:cycles
+pnpm check:dead-code
