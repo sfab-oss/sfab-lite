@@ -10,7 +10,6 @@
 import type { CheckResult, LintResult } from "@sfab-lite/core";
 import { mergeSources } from "@sfab-lite/core";
 import type { VersionRecord } from "./app-do.js";
-import { newVersionId } from "./app-do.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
@@ -38,7 +37,6 @@ interface AppStub {
     bootstrapMs: number;
   }>;
   putVersion: (input: {
-    id: string;
     parentId: string | null;
     sourceFiles: Record<string, string>;
     serverBundle: string;
@@ -290,16 +288,14 @@ async function commitSources(
     );
   }
 
-  const versionId = newVersionId();
   const put = await stub.putVersion({
-    id: versionId,
     parentId,
     sourceFiles: files,
     serverBundle: compiled.compiled.serverBundle,
     assets: compiled.assets,
     kernelVersion: compiled.compiled.kernelVersion,
   });
-  await stub.setCheckStatus(versionId, "pass", {
+  await stub.setCheckStatus(put.id, "pass", {
     ...(check.body ?? {}),
     http: check.http,
     wallMs: check.wallMs,
@@ -314,7 +310,7 @@ async function commitSources(
   return Response.json({
     ok: true,
     appId,
-    versionId,
+    versionId: put.id,
     parentId,
     liveVersionId: put.liveVersionId,
     live: true,

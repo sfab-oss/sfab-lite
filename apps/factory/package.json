@@ -16,7 +16,8 @@
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
     "@sfab-lite/template": "workspace:*",
-    "tailwindcss": "4.1.11"
+    "tailwindcss": "4.1.11",
+    "ulid": "3.0.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260721.1",

@@ -9,10 +9,27 @@
  * - revert appends a new version; it never moves the pointer backwards alone
  */
 import { DurableObject } from "cloudflare:workers";
+import { monotonicFactory } from "ulid";
 
-/** Sortable unique version id — timestamp prefix + random suffix avoids same-ms collisions. */
-export function newVersionId(): string {
-  return `v-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+/**
+ * Version ids are monotonic ULIDs: 48-bit ms timestamp + 80 bits entropy,
+ * Crockford base32. Unique *and* lexicographically sortable by creation
+ * time, which is why `listVersions` can order on `id` instead of
+ * `created_at` — `created_at` is also `Date.now()`, so ties there are
+ * ambiguous and "the latest version" was resolvable to the wrong row.
+ *
+ * The monotonic factory matters: plain `ulid()` randomises within a single
+ * millisecond, which would move the ambiguity rather than remove it. This
+ * one guarantees each id is strictly greater than the last.
+ *
+ * Minted only here, in the DO — the single writer and serialization point
+ * for an app. Handing this to the host worker would put two isolates on
+ * two independent sequences and the guarantee would be nominal.
+ */
+const nextUlid = monotonicFactory();
+
+function newVersionId(): string {
+  return `v_${nextUlid()}`;
 }
 
 export interface SqlMeta {
@@ -189,7 +206,6 @@ export class AppDO extends DurableObject {
    * INSERT only — never UPDATE an existing version row.
    */
   putVersion(input: {
-    id: string;
     parentId: string | null;
     sourceFiles: Record<string, string>;
     serverBundle: string;
@@ -202,14 +218,7 @@ export class AppDO extends DurableObject {
     parentId: string | null;
   } {
     this.#ensureMeta();
-    const existing = this.ctx.storage.sql
-      .exec("SELECT id FROM _sfab_versions WHERE id = ?", input.id)
-      .toArray();
-    if (existing.length > 0) {
-      throw new Error(
-        `putVersion: version ${input.id} already exists (append-only)`
-      );
-    }
+    const id = newVersionId();
     if (input.parentId != null) {
       const parent = this.ctx.storage.sql
         .exec("SELECT id FROM _sfab_versions WHERE id = ?", input.parentId)
@@ -223,7 +232,7 @@ export class AppDO extends DurableObject {
       `INSERT INTO _sfab_versions
         (id, parent_id, created_at, source_files, server_bundle, assets, kernel_version)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      input.id,
+      id,
       input.parentId,
       createdAt,
       JSON.stringify(input.sourceFiles),
@@ -234,12 +243,12 @@ export class AppDO extends DurableObject {
     // A version only exists if checks passed, and on creation it is live.
     this.ctx.storage.sql.exec(
       "INSERT OR REPLACE INTO _sfab_live (singleton, version_id) VALUES (1, ?)",
-      input.id
+      id
     );
     return {
       ok: true,
-      id: input.id,
-      liveVersionId: input.id,
+      id,
+      liveVersionId: id,
       parentId: input.parentId,
     };
   }
@@ -270,9 +279,7 @@ export class AppDO extends DurableObject {
     if (live.liveVersionId === versionId) {
       return { ok: false, error: "already_live" };
     }
-    const id = newVersionId();
     const put = await this.putVersion({
-      id,
       parentId: live.liveVersionId,
       sourceFiles: version.sourceFiles,
       serverBundle: version.serverBundle,
@@ -307,7 +314,7 @@ export class AppDO extends DurableObject {
     const rows = this.ctx.storage.sql
       .exec(
         `SELECT id, parent_id, created_at, kernel_version, server_bundle, assets
-         FROM _sfab_versions ORDER BY created_at DESC`
+         FROM _sfab_versions ORDER BY id DESC`
       )
       .toArray() as {
       id: string;
@@ -448,7 +455,7 @@ export class AppDO extends DurableObject {
   } {
     this.#ensureMeta();
     const row = this.ctx.storage.sql
-      .exec("SELECT id FROM _sfab_versions ORDER BY created_at DESC LIMIT 1")
+      .exec("SELECT id FROM _sfab_versions ORDER BY id DESC LIMIT 1")
       .toArray()[0] as { id?: string } | undefined;
     if (!row?.id) {
       return { ok: true, version: null };
