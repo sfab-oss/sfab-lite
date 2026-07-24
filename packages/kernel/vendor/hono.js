@@ -42,6 +42,39 @@ var compose = (middleware, onError, onNotFound) => {
   };
 };
 
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/http-exception.js
+var HTTPException = class extends Error {
+  res;
+  status;
+  /**
+   * Creates an instance of `HTTPException`.
+   * @param status - HTTP status code for the exception. Defaults to 500.
+   * @param options - Additional options for the exception.
+   */
+  constructor(status = 500, options) {
+    super(options?.message, { cause: options?.cause });
+    this.res = options?.res;
+    this.status = status;
+  }
+  /**
+   * Returns the response object associated with the exception.
+   * If a response object is not provided, a new response is created with the error message and status code.
+   * @returns The response object.
+   */
+  getResponse() {
+    if (this.res) {
+      const newResponse = new Response(this.res.body, {
+        status: this.status,
+        headers: this.res.headers
+      });
+      return newResponse;
+    }
+    return new Response(this.message, {
+      status: this.status
+    });
+  }
+};
+
 // universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/request/constants.js
 var GET_MATCH_RESULT = /* @__PURE__ */ Symbol();
 
@@ -2104,7 +2137,190 @@ var Hono2 = class extends Hono {
     });
   }
 };
+
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/helper/factory/index.js
+var Factory = class {
+  initApp;
+  #defaultAppOptions;
+  constructor(init) {
+    this.initApp = init?.initApp;
+    this.#defaultAppOptions = init?.defaultAppOptions;
+  }
+  createApp = (options) => {
+    const app = new Hono2(
+      options && this.#defaultAppOptions ? { ...this.#defaultAppOptions, ...options } : options ?? this.#defaultAppOptions
+    );
+    if (this.initApp) {
+      this.initApp(app);
+    }
+    return app;
+  };
+  createMiddleware = (middleware) => middleware;
+  createHandlers = (...handlers) => {
+    return handlers.filter((handler) => handler !== void 0);
+  };
+};
+var createFactory = (init) => new Factory(init);
+var createMiddleware = (middleware) => middleware;
+
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/utils/cookie.js
+var validCookieNameRegEx = /^[\w!#$%&'*.^`|~+-]+$/;
+var validCookieValueRegEx = /^[ !#-:<-[\]-~]*$/;
+var trimCookieWhitespace = (value) => {
+  let start = 0;
+  let end = value.length;
+  while (start < end) {
+    const charCode = value.charCodeAt(start);
+    if (charCode !== 32 && charCode !== 9) {
+      break;
+    }
+    start++;
+  }
+  while (end > start) {
+    const charCode = value.charCodeAt(end - 1);
+    if (charCode !== 32 && charCode !== 9) {
+      break;
+    }
+    end--;
+  }
+  return start === 0 && end === value.length ? value : value.slice(start, end);
+};
+var parse = (cookie, name) => {
+  if (name && cookie.indexOf(name) === -1) {
+    return {};
+  }
+  const pairs = cookie.split(";");
+  const parsedCookie = /* @__PURE__ */ Object.create(null);
+  for (const pairStr of pairs) {
+    const valueStartPos = pairStr.indexOf("=");
+    if (valueStartPos === -1) {
+      continue;
+    }
+    const cookieName = trimCookieWhitespace(pairStr.substring(0, valueStartPos));
+    if (name && name !== cookieName || !validCookieNameRegEx.test(cookieName) || cookieName in parsedCookie) {
+      continue;
+    }
+    let cookieValue = trimCookieWhitespace(pairStr.substring(valueStartPos + 1));
+    if (cookieValue.startsWith('"') && cookieValue.endsWith('"')) {
+      cookieValue = cookieValue.slice(1, -1);
+    }
+    if (validCookieValueRegEx.test(cookieValue)) {
+      parsedCookie[cookieName] = cookieValue.indexOf("%") !== -1 ? tryDecode(cookieValue, decodeURIComponent_) : cookieValue;
+      if (name) {
+        break;
+      }
+    }
+  }
+  return parsedCookie;
+};
+
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/helper/cookie/index.js
+var getCookie = (c, key, prefix) => {
+  const cookie = c.req.raw.headers.get("Cookie");
+  if (typeof key === "string") {
+    if (!cookie) {
+      return void 0;
+    }
+    let finalKey = key;
+    if (prefix === "secure") {
+      finalKey = "__Secure-" + key;
+    } else if (prefix === "host") {
+      finalKey = "__Host-" + key;
+    }
+    const obj2 = parse(cookie, finalKey);
+    return obj2[finalKey];
+  }
+  if (!cookie) {
+    return {};
+  }
+  const obj = parse(cookie);
+  return obj;
+};
+
+// universe/node_modules/.pnpm/hono@4.12.31/node_modules/hono/dist/validator/validator.js
+var jsonRegex = /^application\/([a-z-\.]+\+)?json(;\s*[a-zA-Z0-9\-]+\=([^;]+))*$/i;
+var multipartRegex = /^multipart\/form-data(;\s?boundary=[a-zA-Z0-9'"()+_,\-./:=?]+)?$/i;
+var urlencodedRegex = /^application\/x-www-form-urlencoded(;\s*[a-zA-Z0-9\-]+\=([^;]+))*$/i;
+var validator = (target, validationFunc) => {
+  return async (c, next) => {
+    let value = {};
+    const contentType = c.req.header("Content-Type");
+    switch (target) {
+      case "json":
+        if (!contentType || !jsonRegex.test(contentType)) {
+          break;
+        }
+        try {
+          value = await c.req.json();
+        } catch {
+          const message = "Malformed JSON in request body";
+          throw new HTTPException(400, { message });
+        }
+        break;
+      case "form": {
+        if (!contentType || !(multipartRegex.test(contentType) || urlencodedRegex.test(contentType))) {
+          break;
+        }
+        let formData;
+        if (c.req.bodyCache.formData) {
+          formData = await c.req.bodyCache.formData;
+        } else {
+          try {
+            const arrayBuffer = await c.req.arrayBuffer();
+            formData = await bufferToFormData(arrayBuffer, contentType);
+            c.req.bodyCache.formData = formData;
+          } catch (e) {
+            let message = "Malformed FormData request.";
+            message += e instanceof Error ? ` ${e.message}` : ` ${String(e)}`;
+            throw new HTTPException(400, { message });
+          }
+        }
+        const form = /* @__PURE__ */ Object.create(null);
+        formData.forEach((value2, key) => {
+          if (key.endsWith("[]")) {
+            ;
+            (form[key] ??= []).push(value2);
+          } else if (Array.isArray(form[key])) {
+            ;
+            form[key].push(value2);
+          } else if (Object.hasOwn(form, key)) {
+            form[key] = [form[key], value2];
+          } else {
+            form[key] = value2;
+          }
+        });
+        value = form;
+        break;
+      }
+      case "query":
+        value = Object.fromEntries(
+          Object.entries(c.req.queries()).map(([k, v]) => {
+            return v.length === 1 ? [k, v[0]] : [k, v];
+          })
+        );
+        break;
+      case "param":
+        value = c.req.param();
+        break;
+      case "header":
+        value = c.req.header();
+        break;
+      case "cookie":
+        value = getCookie(c);
+        break;
+    }
+    const res = await validationFunc(value, c);
+    if (res instanceof Response) {
+      return res;
+    }
+    c.req.addValidatedData(target, res);
+    return await next();
+  };
+};
 export {
   Context,
-  Hono2 as Hono
+  Hono2 as Hono,
+  createFactory,
+  createMiddleware,
+  validator
 };

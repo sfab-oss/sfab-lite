@@ -62,7 +62,7 @@
     "react-dom-server.js": "sha256:d133944e450d3ad5efa061fcbeda23f1396d0f6e651e876a4e1dfbc5f6483c9b",
     "drizzle-orm.js": "sha256:6611960de289524ca530bec3fd362d66cfbf9770983f5011a46a2425067f0a79",
     "better-auth.js": "sha256:182cf290055a394ba081ea5b792d37e094556e9c0254f760da7f628b67b4afbd",
-    "hono.js": "sha256:d089753f2e4d8c181c420b1d4647d2776dee5b96f15de6f6608a7b31f7333e76",
+    "hono.js": "sha256:67d70f5ebe37e1d21fb51c7aa74b815ea3c852db6926c299ef428c3a5b33cf9a",
     "zod.js": "sha256:41101327e94750f37fba2d4b7d1ae34aea1f40a372c0f33486e1adfe575162dc",
     "client/react.js": "sha256:0fc9cf1bb1dc0c49cfb6a7339a7ddb310fddd231581b1ffa366400fbeed4b799",
     "client/jsx-runtime.js": "sha256:35d7b6a1c84705e6360c976c683753d8500b9788b24bdf1932292969c0185fa6",
@@ -124,7 +124,7 @@
     "react-dom/server": 1285652,
     "drizzle-orm": 186646,
     "better-auth": 2199578,
-    "hono": 62193,
+    "hono": 68913,
     "zod": 523007
   },
   "sizesGzip": {
@@ -134,7 +134,7 @@
     "react-dom-server.js": 228957,
     "drizzle-orm.js": 35924,
     "better-auth.js": 348459,
-    "hono.js": 15184,
+    "hono.js": 16962,
     "zod.js": 76887
   },
   "clientSizesRaw": {
@@ -164,12 +164,12 @@
     "better-auth-client.js": 19835
   },
   "totals": {
-    "raw": 5968125,
-    "gzip": 1023926,
+    "raw": 5974845,
+    "gzip": 1025704,
     "typesGzip": 1198775,
     "cssGzip": 13148,
     "clientGzip": 294822,
-    "hostBakeGzip": 2235849
+    "hostBakeGzip": 2237627
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,

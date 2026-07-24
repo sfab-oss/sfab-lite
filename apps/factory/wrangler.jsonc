@@ -1,0 +1,32 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "sfab-lite-factory",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "worker_loaders": [{ "binding": "LOADER" }],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "APP_DO",
+        "class_name": "AppDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AppDO"]
+    }
+  ],
+  "services": [
+    {
+      "binding": "CHECK",
+      "service": "sfab-lite-check"
+    },
+    {
+      "binding": "LINT",
+      "service": "sfab-lite-lint"
+    }
+  ]
+}
