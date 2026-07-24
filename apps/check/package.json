@@ -7,9 +7,16 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "wrangler dev --port 8802"
+  },
+  "dependencies": {
+    "@sfab-lite/core": "workspace:*",
+    "@sfab-lite/kernel": "workspace:*",
+    "typescript": "6.0.3"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@cloudflare/workers-types": "5.20260721.1",
+    "wrangler": "4.113.0"
   }
 }
