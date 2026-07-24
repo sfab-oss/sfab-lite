@@ -8,11 +8,6 @@ packages:
 # pnpm 11 verifies EVERY lockfile entry against this on install, not just newly
 # resolved versions. Requires pnpm >= 10.16 (we pin pnpm 11 via packageManager).
 minimumReleaseAge: 2880 # 2 days. Raise (10080 = 7d, 43200 = 30d) for more cushion.
-# brace-expansion@5.0.8 published 2026-07-23T11:39Z — under the 2d gate until
-# ~2026-07-25T11:39Z. Version-scoped exclude so the current lockfile can land;
-# remove after maturity.
-minimumReleaseAgeExclude:
-  - "brace-expansion@5.0.8"
 
 # Build-script (postinstall) policy — supply-chain hardening. A malicious
 # postinstall is the classic npm infection vector, so pnpm blocks dependency
@@ -30,3 +25,8 @@ allowBuilds:
   prisma: false
   sharp: false
   workerd: false
+
+# Pin brace-expansion below 5.0.8 (published 2026-07-23, under the 2d age gate).
+# Retire once 5.0.8 (or later) has matured past minimumReleaseAge.
+overrides:
+  brace-expansion: "5.0.7"
