@@ -2,7 +2,7 @@
  * @sfab-lite/lint — Biome WASM lint worker.
  *
  * Stateless Worker: POST /lint with app sources, get diagnostics + optional
- * format. Applies `APP_BIOME_CONFIG` from `@sfab-lite/core` on every call.
+ * format. Applies `APP_BIOME_CONFIG` from `@sfab-lite/core` once at cold boot.
  */
 import type { LintRequest } from "@sfab-lite/core";
 import { bootBiome, runLint } from "./run-lint.js";

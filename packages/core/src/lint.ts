@@ -23,7 +23,10 @@ export interface LintFileResult {
   path: string;
   formatChanged: boolean | null;
   formatted: string | null;
+  /** Total diagnostics Biome produced for this file (before any cap). */
   diagnosticCount: number;
+  /** True when `diagnostics` was truncated to the response cap. */
+  truncated: boolean;
   diagnostics: LintDiagnostic[];
   error: string | null;
   ms: number;
@@ -32,17 +35,13 @@ export interface LintFileResult {
 export interface LintVersions {
   jsApi: string;
   wasmWeb: string;
-  wranglerPin: string;
 }
 
 export interface LintResult {
   ok: boolean;
   appId: string;
-  projectKey: number;
   coldBootMs: number;
   totalMs: number;
-  configApplied: boolean;
-  configError: string | null;
   fileCount: number;
   files: LintFileResult[];
   versions: LintVersions;

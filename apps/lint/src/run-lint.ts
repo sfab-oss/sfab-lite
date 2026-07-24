@@ -1,9 +1,10 @@
 /**
  * Biome WASM boot + per-request lint/format.
  *
- * Config comes only from `APP_BIOME_CONFIG` in `@sfab-lite/core` — the same
- * object `pnpm check:app-lint` validates the seed against. Callers do not
- * pass a config; the worker owns the rules.
+ * One Biome project is opened at cold boot with `APP_BIOME_CONFIG` applied
+ * once. Per-request work only passes `filePath` into lint/format — there is
+ * no per-app project (and no `closeProject` in `@biomejs/js-api@6` to reclaim
+ * one anyway). Response `path` values are the request keys, not Biome roots.
  */
 import { Biome, type Configuration } from "@biomejs/js-api/web";
 import { initSync } from "@biomejs/wasm-web";
@@ -16,27 +17,37 @@ import {
   type LintResult,
   type LintVersions,
 } from "@sfab-lite/core";
+import pkg from "../package.json" with { type: "json" };
+
+const MAX_REPORTED_DIAGNOSTICS = 20;
 
 const LINT_VERSIONS: LintVersions = {
-  jsApi: "6.0.0",
-  wasmWeb: "2.5.5",
-  wranglerPin: "4.113.0",
+  jsApi: pkg.dependencies["@biomejs/js-api"],
+  wasmWeb: pkg.dependencies["@biomejs/wasm-web"],
 };
 
-let biomeReady: Biome | null = null;
+interface BiomeSession {
+  biome: Biome;
+  projectKey: number;
+}
+
+let session: BiomeSession | null = null;
 let coldBootMs: number | null = null;
 
-function ensureBiome(): { biome: Biome; coldBootMs: number } {
-  if (biomeReady && coldBootMs != null) {
-    return { biome: biomeReady, coldBootMs: 0 };
+function ensureBiome(): { session: BiomeSession; coldBootMs: number } {
+  if (session && coldBootMs != null) {
+    return { session, coldBootMs: 0 };
   }
   // Date.now(): performance.now() deltas were observed as 0 on this Worker.
   const t0 = Date.now();
   initSync({ module: biomeWasm });
   const biome = new Biome();
+  const { projectKey } = biome.openProject("/");
+  // JSON import widens string enums; runtime shape matches Configuration.
+  biome.applyConfiguration(projectKey, APP_BIOME_CONFIG as Configuration);
   coldBootMs = Date.now() - t0;
-  biomeReady = biome;
-  return { biome, coldBootMs };
+  session = { biome, projectKey };
+  return { session, coldBootMs };
 }
 
 function diagnosticMessage(d: { message?: unknown }): string {
@@ -74,23 +85,10 @@ export function runLint(body: LintRequest): LintResult {
   const appId = body.appId;
   const files = body.files;
   const t0 = Date.now();
-  const { biome, coldBootMs: cold } = ensureBiome();
-
-  // Per-app project root — isolation key for concurrent / sequential calls.
-  const { projectKey } = biome.openProject(`/apps/${appId}`);
-
-  let configApplied = true;
-  let configError: string | null = null;
-  try {
-    biome.applyConfiguration(
-      projectKey,
-      // JSON import widens string enums; runtime shape matches Configuration.
-      APP_BIOME_CONFIG as Configuration
-    );
-  } catch (e) {
-    configApplied = false;
-    configError = e instanceof Error ? e.message : String(e);
-  }
+  const {
+    session: { biome, projectKey },
+    coldBootMs: cold,
+  } = ensureBiome();
 
   const results: LintFileResult[] = [];
   for (const [path, content] of Object.entries(files)) {
@@ -98,6 +96,8 @@ export function runLint(body: LintRequest): LintResult {
     let formatted: string | null = null;
     let formatChanged: boolean | null = null;
     let diagnostics: LintFileResult["diagnostics"] = [];
+    let diagnosticCount = 0;
+    let truncated = false;
     let error: string | null = null;
     try {
       if (mode === "format" || mode === "both") {
@@ -107,7 +107,10 @@ export function runLint(body: LintRequest): LintResult {
       }
       if (mode === "lint" || mode === "both") {
         const lr = biome.lintContent(projectKey, content, { filePath: path });
-        diagnostics = (lr.diagnostics ?? []).slice(0, 20).map((d) => ({
+        const all = lr.diagnostics ?? [];
+        diagnosticCount = all.length;
+        truncated = diagnosticCount > MAX_REPORTED_DIAGNOSTICS;
+        diagnostics = all.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => ({
           category: d.category,
           severity: d.severity,
           message: diagnosticMessage(d),
@@ -120,7 +123,8 @@ export function runLint(body: LintRequest): LintResult {
       path,
       formatChanged,
       formatted,
-      diagnosticCount: diagnostics.length,
+      diagnosticCount,
+      truncated,
       diagnostics,
       error,
       ms: Date.now() - ft0,
@@ -128,13 +132,10 @@ export function runLint(body: LintRequest): LintResult {
   }
 
   return {
-    ok: configApplied && results.every((r) => !r.error),
+    ok: results.every((r) => !r.error),
     appId,
-    projectKey,
     coldBootMs: cold,
     totalMs: Date.now() - t0,
-    configApplied,
-    configError,
     fileCount: results.length,
     files: results,
     versions: { ...LINT_VERSIONS },
@@ -144,13 +145,11 @@ export function runLint(body: LintRequest): LintResult {
 export function bootBiome() {
   const t0 = Date.now();
   try {
-    const { biome, coldBootMs: cold } = ensureBiome();
-    const { projectKey } = biome.openProject("/");
+    const { coldBootMs: cold } = ensureBiome();
     return {
       ok: true as const,
       path: "wasm-web-initSync" as const,
       bootMs: cold > 0 ? cold : Date.now() - t0,
-      projectKey,
       versions: { ...LINT_VERSIONS },
     };
   } catch (e) {
