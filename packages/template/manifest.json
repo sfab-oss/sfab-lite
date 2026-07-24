@@ -1,0 +1,19 @@
+{
+  "root": "app",
+  "server": {
+    "entry": "src/hono/index.ts",
+    "exportName": "app"
+  },
+  "client": {
+    "entry": "src/ui/main.tsx",
+    "styles": "src/ui/styles.css"
+  },
+  "safelist": "safelist.txt",
+  "migrations": "migrations",
+  "source": {
+    "dirs": ["src"],
+    "extensions": [".ts", ".tsx", ".css"],
+    "files": ["safelist.txt"],
+    "exclude": ["src/worker.ts"]
+  }
+}

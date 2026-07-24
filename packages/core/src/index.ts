@@ -1,5 +1,10 @@
 /**
- * @sfab-lite/core — shared contracts: app/version types, ScopedSql, check/lint results, tasks-lite model
- * Scaffold only (S0). Real implementation lands in later stages.
+ * @sfab-lite/core — shared contracts: app/version types, ScopedSql,
+ * check/lint results, tasks-lite model.
+ *
+ * Filled in stage by stage. Today it holds the two pieces the template port
+ * needed to have a single owner: the app-facing Biome config, and the
+ * Cloudflare ambient surface (`cloudflare-ambient.d.ts`, referenced by
+ * tsconfig rather than imported).
  */
-export const packageName = "@sfab-lite/core" as const;
+export { APP_BIOME_CONFIG } from "./app-biome-config.js";

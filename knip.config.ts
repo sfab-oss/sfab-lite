@@ -18,8 +18,21 @@ const config: KnipConfig = {
     "apps/lint": {
       project: ["src/**/*.ts"],
     },
+    // Two trees with different rules. `src` is the package the factory
+    // imports; `app` is the seed payload, whose reachability roots are its
+    // own entry points — anything unreachable from those would ship as dead
+    // code inside every app created from the template.
     "packages/template": {
-      project: ["src/**/*.ts"],
+      // The payload's own entries (`app/src/worker.ts` from wrangler.jsonc,
+      // `app/src/ui/main.tsx` from index.html) are detected; only the pack
+      // script has to be declared.
+      entry: ["scripts/*.mjs"],
+      project: ["src/**/*.ts", "scripts/**/*.mjs", "app/src/**/*.{ts,tsx}"],
+      // Loaded by @tailwindcss/vite and by `@import "tailwindcss"` in
+      // styles.css, neither of which knip follows. The version is also a
+      // kernel pin, so it must stay explicit here rather than float as a
+      // transitive dep.
+      ignoreDependencies: ["tailwindcss"],
     },
     "packages/kernel": {
       project: ["src/**/*.ts"],

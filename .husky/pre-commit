@@ -2,6 +2,7 @@
 
 pnpm exec lint-staged
 pnpm check:workspace
+pnpm check:app-lint
 pnpm typecheck
 pnpm check:cycles
 pnpm check:dead-code

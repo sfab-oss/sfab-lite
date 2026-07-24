@@ -18,6 +18,11 @@ minimumReleaseAge: 2880 # 2 days. Raise (10080 = 7d, 43200 = 30d) for more cushi
 allowBuilds:
   "@mongodb-js/zstd": false
   "@prisma/engines": false
+  # Tailwind 4's native engine. Prebuilt per-platform binaries arrive as
+  # optional deps (darwin-arm64 locally, linux-x64 in CI), so its fallback
+  # build script is not needed. Note the version is a kernel pin — do not
+  # bump tailwind to silence pnpm; the template must match `kernel.json`.
+  "@tailwindcss/oxide": false
   better-sqlite3: false
   core-js-pure: false
   esbuild: false

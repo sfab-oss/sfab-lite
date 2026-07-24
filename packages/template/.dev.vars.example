@@ -1,0 +1,6 @@
+# Local secrets for `wrangler dev` — copy to .dev.vars (gitignored).
+BETTER_AUTH_SECRET=dev-secret-change-me-min-32-chars!!
+
+# Optional: pin the auth base URL. In the factory the host sets this per app.
+# Leave unset for standalone dev and the request origin is used (allowlisted).
+# BETTER_AUTH_URL=http://127.0.0.1:5173

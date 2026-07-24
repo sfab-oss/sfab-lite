@@ -13,18 +13,19 @@
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:cycles": "madge --circular --extensions ts,tsx packages apps",
     "check:dead-code": "knip",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:app-lint": "biome check --config-path=packages/core/app-biome.json packages/template/app/src"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.2",
     "@sfab-lite/biome-config": "workspace:*",
     "@sfab-lite/tsconfig": "workspace:*",
     "husky": "^9.1.7",
-    "knip": "5",
+    "knip": "^6.27.0",
     "lint-staged": "^16.4.0",
     "madge": "^8.0.0",
     "turbo": "^2.7.4",
-    "typescript": "^5.9.3"
+    "typescript": "7.0.2"
   },
   "packageManager": "pnpm@11.5.2",
   "lint-staged": {
