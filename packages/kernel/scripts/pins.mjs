@@ -63,3 +63,16 @@ export const PINS = {
   "@base-ui/react": templatePin("@base-ui/react"),
   zod: templatePin("zod"),
 };
+
+/**
+ * Direct deps installed into packages/kernel/universe but not listed in
+ * kernel.json pins (client chunks / JSX types). Versions must stay exact.
+ * @cloudflare/workers-types is intentionally absent — see README.md.
+ */
+export const UNIVERSE_EXTRA_PINS = {
+  "@types/react": templatePin("@types/react"),
+  "@types/react-dom": templatePin("@types/react-dom"),
+  clsx: templatePin("clsx"),
+  "class-variance-authority": templatePin("class-variance-authority"),
+  "tailwind-merge": templatePin("tailwind-merge"),
+};

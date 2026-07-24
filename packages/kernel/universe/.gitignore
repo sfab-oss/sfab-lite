@@ -1,0 +1,3 @@
+# Isolated kernel universe — not part of the pnpm workspace.
+# Installed via: pnpm --filter @sfab-lite/kernel install-universe
+node_modules/

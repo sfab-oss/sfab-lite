@@ -95,3 +95,21 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm check:dead-code
+
+  kernel:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Rebuilds from packages/kernel/universe (isolated lockfile) and fails
+      # if any committed vendor / generated / kernel.json byte changed.
+      - run: pnpm check:kernel

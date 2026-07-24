@@ -17,8 +17,8 @@ factory tooling. Architecture:
 ## Commands
 
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
-`pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:cycles`,
-`pnpm check:dead-code`.
+`pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
+`pnpm check:cycles`, `pnpm check:dead-code`.
 
 `check:app-lint` is the odd one: it checks `packages/template/app/src` —
 the seed payload — against `packages/core/app-biome.json`, the config the
@@ -26,6 +26,10 @@ factory's lint worker applies to app sources. That config cannot `extends`
 the shared preset (the worker runs Biome in WASM, which has no package
 resolution), so this gate is what keeps the two from drifting and a
 freshly seeded app from lighting up on code its owner never touched.
+
+`check:kernel` rebuilds `@sfab-lite/kernel` from its isolated
+`packages/kernel/universe` install and fails if committed vendor /
+generated / `kernel.json` artifacts drift.
 
 ## Layout
 
@@ -62,8 +66,8 @@ freshly seeded app from lighting up on code its owner never touched.
 
 pnpm workspace + Turbo; shared `@sfab-lite/tsconfig` and
 `@sfab-lite/biome-config`. Pre-commit: lint-staged → workspace → app-lint →
-typecheck → cycles → knip. Pre-push blocks `main`. CI on Blacksmith runs the
-same gates.
+typecheck → cycles → knip → kernel. Pre-push blocks `main`. CI on Blacksmith
+runs the same gates.
 
 ## License
 

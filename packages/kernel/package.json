@@ -7,27 +7,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "node scripts/prebuild.mjs",
+    "install-universe": "node scripts/ensure-universe.mjs",
+    "build": "node scripts/ensure-universe.mjs && node scripts/prebuild.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "@base-ui/react": "1.6.0",
-    "@sfab-lite/tsconfig": "workspace:*",
-    "@tanstack/react-query": "5.83.0",
-    "@tanstack/react-router": "1.129.0",
-    "@types/react": "19.1.8",
-    "@types/react-dom": "19.1.6",
-    "better-auth": "1.6.19",
-    "class-variance-authority": "0.7.1",
-    "clsx": "2.1.1",
-    "drizzle-orm": "0.45.2",
-    "esbuild": "0.28.1",
-    "hono": "4.12.31",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "tailwind-merge": "3.3.1",
-    "tailwindcss": "4.1.11",
-    "typescript": "6.0.3",
-    "zod": "4.3.5"
+    "@sfab-lite/tsconfig": "workspace:*"
   }
 }

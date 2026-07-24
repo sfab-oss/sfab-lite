@@ -7,19 +7,19 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import * as esbuild from "esbuild";
 import { KERNEL_VERSION, PINS } from "./pins.mjs";
+import { getUniverseRequire, universeResolvePlugin } from "./universe.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 const vendorDir = join(root, "vendor");
 const shimDir = join(root, "scripts", ".shims");
 const generatedDir = join(root, "src", "generated");
-const require = createRequire(import.meta.url);
+const require = getUniverseRequire();
+const esbuild = require("esbuild");
 
 mkdirSync(vendorDir, { recursive: true });
 mkdirSync(shimDir, { recursive: true });
@@ -234,6 +234,7 @@ for (const chunk of reactChunks) {
     target: "es2022",
     external: chunk.external ?? [],
     logLevel: "info",
+    plugins: [universeResolvePlugin()],
   });
   let source = readFileSync(chunk.outfile, "utf8");
   source = rewriteExternalRequiresToEsm(source, chunk.external ?? []);
@@ -256,6 +257,7 @@ const vendorShared = {
   mainFields: ["module", "browser", "main"],
   logLevel: "info",
   external: NODE_EXTERNALS,
+  plugins: [universeResolvePlugin()],
 };
 
 const drizzleEntry = join(root, "scripts", "vendor-entries", "drizzle.mjs");
@@ -281,6 +283,7 @@ await esbuild.build({
   entryPoints: [authEntry],
   outfile: join(vendorDir, "better-auth.js"),
   external: [...NODE_EXTERNALS, "drizzle-orm", "drizzle-orm/*"],
+  // Flat-vendor plugin must run before universe resolve so drizzle stays external.
   plugins: [
     {
       name: "drizzle-to-flat-vendor",
@@ -291,6 +294,7 @@ await esbuild.build({
         }));
       },
     },
+    universeResolvePlugin(),
   ],
 });
 {

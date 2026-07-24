@@ -5,6 +5,10 @@
  * checker actually pulls), not whole-package .d.ts dumps. Keeps DOM/ES
  * libs + Cloudflare ambient from @sfab-lite/core.
  *
+ * Module resolution for bare specifiers is forced through the isolated
+ * kernel universe (packages/kernel/universe) so workspace peers cannot
+ * leak into the VFS.
+ *
  * Emits src/generated/types-vfs.js + results/types-vfs-sizes.json.
  * Export shape is a contract for apps/check: TYPES_VFS + TYPES_VFS_MANIFEST.
  */
@@ -16,18 +20,23 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { PINS } from "./pins.mjs";
+import {
+  getUniverseRequire,
+  universeNodeModules,
+  universeResolveContainingFile,
+  universeRoot,
+} from "./universe.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const templatePkg = join(root, "..", "template");
 const templateAppSrc = join(templatePkg, "app", "src");
 const coreAmbient = join(root, "..", "core", "src", "cloudflare-ambient.d.ts");
 const generatedDir = join(root, "src", "generated");
-const require = createRequire(import.meta.url);
+const require = getUniverseRequire();
 const ts = require("typescript");
 
 mkdirSync(join(root, "results"), { recursive: true });
@@ -124,6 +133,7 @@ function listTemplateRoots() {
 
 /**
  * Map an absolute node_modules file to a VFS path `/node_modules/...`.
+ * pnpm realpaths land under universe/node_modules/.pnpm/.../node_modules/pkg.
  * @param {string} abs
  */
 function toNodeModulesVfsPath(abs) {
@@ -133,6 +143,12 @@ function toNodeModulesVfsPath(abs) {
     return null;
   }
   return norm.slice(idx);
+}
+
+/** Absolute path under universe for a `/node_modules/...` VFS key. */
+function universeAbsFromVfs(vfsPath) {
+  const rel = vfsPath.replace(/^\/node_modules\//, "");
+  return join(universeNodeModules, ...rel.split("/"));
 }
 
 /**
@@ -145,15 +161,9 @@ function ensurePackageJsons(pkgs) {
     if (vfs[vfsKey]) {
       continue;
     }
-    const candidates = [
-      join(templatePkg, "node_modules", ...pkg.split("/"), "package.json"),
-      join(root, "node_modules", ...pkg.split("/"), "package.json"),
-    ];
-    for (const abs of candidates) {
-      if (existsSync(abs)) {
-        putFile(vfsKey, abs);
-        break;
-      }
+    const abs = join(universeNodeModules, ...pkg.split("/"), "package.json");
+    if (existsSync(abs)) {
+      putFile(vfsKey, abs);
     }
   }
 }
@@ -180,20 +190,12 @@ function ensureDualDeclSiblings() {
     if (!sibling || vfs[sibling]) {
       continue;
     }
-    const m = sibling.match(/^\/node_modules\/((?:@[^/]+\/)?[^/]+)\/(.+)$/);
-    if (!m) {
-      continue;
-    }
-    const [, pkg, rel] = m;
-    const candidates = [
-      join(templatePkg, "node_modules", ...pkg.split("/"), rel),
-      join(root, "node_modules", ...pkg.split("/"), rel),
-    ];
-    for (const abs of candidates) {
-      if (existsSync(abs)) {
-        putFile(sibling, abs);
-        packageTypeCounts[pkg] = (packageTypeCounts[pkg] ?? 0) + 1;
-        break;
+    const abs = universeAbsFromVfs(sibling);
+    if (existsSync(abs)) {
+      putFile(sibling, abs);
+      const m = sibling.match(/^\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
+      if (m) {
+        packageTypeCounts[m[1]] = (packageTypeCounts[m[1]] ?? 0) + 1;
       }
     }
   }
@@ -224,18 +226,18 @@ function ensureRootTypesField(pkgs) {
     if (vfs[vfsPath]) {
       continue;
     }
-    const candidates = [
-      join(templatePkg, "node_modules", ...pkg.split("/"), cleaned),
-      join(root, "node_modules", ...pkg.split("/"), cleaned),
-    ];
-    for (const abs of candidates) {
-      if (existsSync(abs)) {
-        putFile(vfsPath, abs);
-        packageTypeCounts[pkg] = (packageTypeCounts[pkg] ?? 0) + 1;
-        break;
-      }
+    const abs = join(universeNodeModules, ...pkg.split("/"), cleaned);
+    if (existsSync(abs)) {
+      putFile(vfsPath, abs);
+      packageTypeCounts[pkg] = (packageTypeCounts[pkg] ?? 0) + 1;
     }
   }
+}
+
+function isUnderUniverse(abs) {
+  const norm = abs.replaceAll("\\", "/");
+  const uni = universeRoot.replaceAll("\\", "/");
+  return norm === uni || norm.startsWith(`${uni}/`);
 }
 
 function buildClosureFromTemplateProgram() {
@@ -251,11 +253,51 @@ function buildClosureFromTemplateProgram() {
     esModuleInterop: true,
     isolatedModules: true,
     lib: ["ES2022", "DOM", "DOM.Iterable"],
+    // No ambient @types from the workspace — only what the universe installs.
+    types: [],
+    typeRoots: [],
   };
+  const baseHost = ts.createCompilerHost(options);
   const host = {
-    ...ts.createCompilerHost(options),
+    ...baseHost,
     getCurrentDirectory: () => templatePkg,
+    resolveModuleNameLiterals(
+      moduleLiterals,
+      containingFile,
+      redirectedReference,
+      compilerOptions
+    ) {
+      return moduleLiterals.map((literal) => {
+        const name = literal.text;
+        const isRelative =
+          name.startsWith("./") ||
+          name.startsWith("../") ||
+          name.startsWith("/");
+        // Template sources live outside the universe — force bare specs to
+        // resolve from universe/. Files already under universe/node_modules
+        // must keep their real containingFile so pnpm nested deps resolve.
+        let resolveFrom = containingFile;
+        if (!(isRelative || isUnderUniverse(containingFile))) {
+          resolveFrom = universeResolveContainingFile;
+        }
+        const { resolvedModule } = ts.resolveModuleName(
+          name,
+          resolveFrom,
+          compilerOptions,
+          host,
+          undefined,
+          redirectedReference
+        );
+        return {
+          resolvedModule,
+          failedLookupLocations: [],
+          affectingLocations: [],
+          resolutionDiagnostics: [],
+        };
+      });
+    },
   };
+
   const program = ts.createProgram({
     rootNames: roots,
     options,
@@ -265,6 +307,8 @@ function buildClosureFromTemplateProgram() {
   /** @type {Set<string>} */
   const pkgs = new Set();
   let nmFiles = 0;
+  /** @type {string[]} */
+  const leaked = [];
 
   for (const sf of program.getSourceFiles()) {
     const abs = sf.fileName.replaceAll("\\", "/");
@@ -274,8 +318,13 @@ function buildClosureFromTemplateProgram() {
     if (!abs.includes("/node_modules/")) {
       continue;
     }
+    if (!isUnderUniverse(abs)) {
+      leaked.push(abs);
+      continue;
+    }
     const vfsPath = toNodeModulesVfsPath(abs);
     if (!vfsPath) {
+      leaked.push(abs);
       continue;
     }
     if (
@@ -295,6 +344,18 @@ function buildClosureFromTemplateProgram() {
       pkgs.add(m[1]);
       packageTypeCounts[m[1]] = (packageTypeCounts[m[1]] ?? 0) + 1;
     }
+  }
+
+  if (leaked.length) {
+    throw new Error(
+      `types VFS resolved ${leaked.length} node_modules file(s) outside the isolated universe (first: ${leaked[0]})`
+    );
+  }
+
+  if (pkgs.has("@cloudflare/workers-types")) {
+    throw new Error(
+      "types VFS picked up @cloudflare/workers-types — universe isolation failed (must stay out; see README)"
+    );
   }
 
   ensurePackageJsons(pkgs);
@@ -345,9 +406,9 @@ const manifest = {
     templateRootCount: closure.templateRootCount,
     nodeModulesFiles: closure.nodeModulesFiles,
     packages: closure.packages,
-    note: "Only .d.ts (and package.json) reachable from packages/template/app/src via TS program resolution.",
+    note: "Only .d.ts (and package.json) reachable from packages/template/app/src via TS program resolution against packages/kernel/universe.",
   },
-  note: "Pruned types VFS — template app program closure.",
+  note: "Pruned types VFS — template app program closure (isolated universe).",
 };
 
 writeFileSync(
