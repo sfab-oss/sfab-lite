@@ -368,7 +368,78 @@ function buildClosureFromTemplateProgram() {
   };
 }
 
+/**
+ * Include every .d.ts and package.json under a package in the isolated
+ * universe, not only what the template program closure reached.
+ * Deliberate per-package exception: the client kernel vendors the full
+ * @base-ui/react surface, so the types VFS must advertise the same vocabulary
+ * or apps that import e.g. dialog would fail the check worker.
+ *
+ * Only `.d.ts` (not sibling `.d.mts`) — base-ui ships both for every file;
+ * pulling both would roughly double the package for no resolution gain when
+ * the `.d.ts` side is present.
+ */
+/** @param {string} vfsPath */
+function recordPackageTypeFromVfsPath(vfsPath) {
+  const m = vfsPath.match(/^\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
+  if (m) {
+    packageTypeCounts[m[1]] = (packageTypeCounts[m[1]] ?? 0) + 1;
+  }
+}
+
+/** @param {string} vfsPath */
+function isFullPackageTypesFile(vfsPath) {
+  return vfsPath.endsWith(".d.ts") || vfsPath.endsWith("package.json");
+}
+
+/**
+ * Add one universe file to the VFS when it is a new .d.ts or package.json.
+ * @param {string} abs
+ * @returns {boolean} true when a file was added
+ */
+function tryAddFullPackageTypesFile(abs) {
+  const vfsPath = toNodeModulesVfsPath(abs);
+  if (!(vfsPath && isFullPackageTypesFile(vfsPath)) || vfs[vfsPath]) {
+    return false;
+  }
+  putFile(vfsPath, abs);
+  recordPackageTypeFromVfsPath(vfsPath);
+  return true;
+}
+
+/**
+ * @param {string} pkgName
+ */
+function includeFullPackageTypes(pkgName) {
+  const pkgRoot = join(universeNodeModules, ...pkgName.split("/"));
+  if (!existsSync(pkgRoot)) {
+    throw new Error(`includeFullPackageTypes: missing ${pkgRoot}`);
+  }
+  let added = 0;
+  /** @param {string} dir */
+  function walk(dir) {
+    for (const name of readdirSync(dir).sort()) {
+      if (name === "node_modules") {
+        continue;
+      }
+      const abs = join(dir, name);
+      if (statSync(abs).isDirectory()) {
+        walk(abs);
+        continue;
+      }
+      if (tryAddFullPackageTypesFile(abs)) {
+        added++;
+      }
+    }
+  }
+  walk(pkgRoot);
+  ensurePackageJsons(new Set([pkgName]));
+  ensureRootTypesField(new Set([pkgName]));
+  return added;
+}
+
 const closure = buildClosureFromTemplateProgram();
+const baseUiExtraFiles = includeFullPackageTypes("@base-ui/react");
 
 if (!existsSync(coreAmbient)) {
   throw new Error(`cloudflare ambient missing: ${coreAmbient}`);
@@ -407,8 +478,14 @@ const manifest = {
     nodeModulesFiles: closure.nodeModulesFiles,
     packages: closure.packages,
     note: "Only .d.ts (and package.json) reachable from packages/template/app/src via TS program resolution against packages/kernel/universe.",
+    fullPackageExceptions: {
+      "@base-ui/react": {
+        extraFiles: baseUiExtraFiles,
+        note: "Whole package included so types match the fully-vendored client kernel surface.",
+      },
+    },
   },
-  note: "Pruned types VFS — template app program closure (isolated universe).",
+  note: "Pruned types VFS — template app program closure (isolated universe), plus full @base-ui/react.",
 };
 
 writeFileSync(

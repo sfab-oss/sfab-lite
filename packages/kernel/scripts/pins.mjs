@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const KERNEL_VERSION = "0.2.0";
+export const KERNEL_VERSION = "0.3.0";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const templatePkg = JSON.parse(

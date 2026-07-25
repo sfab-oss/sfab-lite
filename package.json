@@ -12,6 +12,7 @@
     "lint:fix": "biome check --write .",
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:kernel": "node scripts/check-kernel.mjs",
+    "check:export-agreement": "node scripts/check-export-agreement.mjs",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "check:cycles": "madge --circular --extensions ts,tsx --exclude 'generated|vendor|results|\\\\.shims|universe' packages apps",
     "check:dead-code": "knip",

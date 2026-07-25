@@ -1871,7 +1871,7 @@ function createDynamicPathProxy(routes, client, knownPathMethods, atoms, atomLis
 }
 
 // universe/node_modules/.pnpm/better-auth@1.6.19_drizzle-orm@0.45.2_kysely@0.29.4__react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/better-auth/dist/client/react/react-store.mjs
-import { useCallback, useRef, useSyncExternalStore } from "react.js";
+import { useCallback, useRef, useSyncExternalStore } from "./react.js";
 function useStore(store, options = {}) {
   const snapshotRef = useRef(store.get());
   const { keys, deps = [store, keys] } = options;

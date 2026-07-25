@@ -1,4 +1,4 @@
-import __ext_react from "react.js";
+import __ext_react from "./react.js";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -6,7 +6,7 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 function __require(x) {
-  if (x === "react") return __ext_react?.default ?? __ext_react;
+  if (x === "react" || x === "react.js" || x === "./react.js") return __ext_react?.default ?? __ext_react;
   throw Error('Dynamic require of "' + x + '" is not supported');
 }
 var __commonJS = (cb, mod) => function __require2() {

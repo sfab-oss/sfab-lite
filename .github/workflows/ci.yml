@@ -78,6 +78,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:kernel
 
+      # Types VFS export names must be a subset of the matching vendor chunk's
+      # esbuild metafile exports. Catches "typechecks clean, throws at
+      # runtime" kernel skew (hono/validator, @base-ui/react bailout).
+      - name: export-agreement
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:export-agreement
+
       # Factory assets (`ui/dist`) are gitignored. wrangler deploy --dry-run
       # fails if assets.directory is missing, so build the console before the
       # bundle-size gate that proves the assets wiring deploys.

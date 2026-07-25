@@ -1,6 +1,5 @@
 /**
  * In-worker client compile against import-map kernel chunks (option A).
- * @base-ui is intentionally bundled into the app chunk (per-dep B bailout).
  * Client entry comes from TEMPLATE_MANIFEST — never a hardcoded path.
  */
 import { createWorker } from "@cloudflare/worker-bundler";
@@ -109,7 +108,9 @@ export async function compileClient(
     bundle: true,
     externals,
     virtualModules,
-    jsx: "transform",
+    // Automatic runtime — template sources do not import React for JSX, so
+    // classic "transform" leaves React.createElement unbound at runtime.
+    jsx: "automatic",
     conditions: ["import", "module", "browser", "default"],
   });
   const compileMs = performance.now() - t0;
@@ -130,7 +131,12 @@ function buildImportMap(kernelVersion: string): Record<string, string> {
   for (const [bare, rel] of Object.entries(CLIENT_IMPORT_MAP)) {
     const flat = rel.replace(RELATIVE_PATH_PREFIX_RE, "");
     if (flat in CLIENT_KERNEL_FILES) {
-      map[bare] = `${base}/${flat}`;
+      const url = `${base}/${flat}`;
+      map[bare] = url;
+      // Kernel chunks import each other as bare flat filenames (`react.js`).
+      // Those are not package names — map them too or the browser throws
+      // "Failed to resolve module specifier" and #root stays empty.
+      map[flat] = url;
     }
   }
   return map;

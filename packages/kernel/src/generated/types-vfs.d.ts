@@ -15,6 +15,9 @@ export const TYPES_VFS_MANIFEST: {
     readonly nodeModulesFiles: number;
     readonly packages: readonly string[];
     readonly note: string;
+    readonly fullPackageExceptions?: Readonly<
+      Record<string, { readonly extraFiles: number; readonly note: string }>
+    >;
   };
   readonly note: string;
 };

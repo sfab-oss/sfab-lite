@@ -2319,6 +2319,7 @@ var validator = (target, validationFunc) => {
 };
 export {
   Context,
+  Factory,
   Hono2 as Hono,
   createFactory,
   createMiddleware,

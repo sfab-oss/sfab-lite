@@ -97,20 +97,40 @@ The two halves of the frozen kernel come from **different sources**:
 - The runtime bundles come from **hand-written entry files** in
   `packages/kernel/scripts/vendor-entries/*.mjs`.
 
-Nothing verifies that the runtime exports everything the types advertise.
-When it doesn't, app code **typechecks clean, passes the publish gate, and
-throws at runtime** — the one failure the check worker exists to prevent.
+Nothing *used* to verify that the runtime exports everything the types
+advertise. When it didn't, app code **typechecked clean, passed the publish
+gate, and threw at runtime** — the one failure the check worker exists to
+prevent.
 
 Found this way (2026-07-24, S2d): `vendor-entries/hono.mjs` was
 `export * from "hono"`, so `hono.js` exported only `Hono` — while the VFS
 shipped hono's full `validator` and `factory` types. `validator("query", …)`
 typechecked clean and threw when the route was hit. Fixed by adding the
-subpath exports to the entry, but **no gate prevents the next one**. A gate
-comparing advertised type exports against bundle exports is the durable
-fix and does not exist yet.
+subpath exports to the entry. Found again (2026-07-25, S3.1):
+`@base-ui/react` was on `CLIENT_BAILOUTS` while the types VFS still
+advertised it — apps importing button/input typechecked and rendered a blank
+`#root`.
+
+`pnpm check:export-agreement` (wired into CI) now catches that class for
+kernel import-map keys: every **value** export name
+(`ts.SymbolFlags.Value`) the types VFS advertises for a mapped specifier
+must appear in the matching vendor chunk's esbuild metafile exports (one
+direction — types ⊆ runtime; extra runtime names are fine). For packages in
+`TYPES_VFS_MANIFEST.prune.fullPackageExceptions` (today: `@base-ui/react`),
+it drives from every advertised public subpath and requires each on the
+side-appropriate import map. A non-empty `CLIENT_BAILOUTS` entry for a
+package the VFS still types fails the gate.
+
+What it does **not** check: export signatures/typeshape, type-only exports,
+whether the chunk file an import-map entry points at actually exists on
+disk, or anything about the runtime module graph (CJS `__require` stub
+rewriting, JSX transform, router `basepath`, …). Those fail open or closed
+elsewhere — do not treat a green export-agreement run as "the app will
+render".
 
 If you add a package to the kernel, or an app hits "X is not exported",
-suspect this first.
+suspect export agreement first; if the page is blank with a clean console
+for module resolution, suspect the graph class next.
 
 ### Apps cannot add dependencies
 
@@ -127,6 +147,12 @@ Deliberate. One live version per app, single-parent `parent_id` chain, and
 Moving it back would create divergence, which needs a merge rule, which is
 branching — a product this does not have. Versions are append-only rows in
 the app's Durable Object: no per-app git repo, no per-app CI.
+
+When the host's `KERNEL_VERSION` advances (see
+`packages/kernel/scripts/pins.mjs`), every app still on the previous
+version gets **HTTP 409** `kernel_version_mismatch` on serve — not a blank
+page. **Republish the app** against the new host kernel; until then it
+will not render.
 
 ### A commit costs 10–25 seconds of work — but you do not wait for it
 

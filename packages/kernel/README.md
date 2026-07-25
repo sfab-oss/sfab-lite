@@ -81,3 +81,15 @@ that declares a different one, so the universe is the single source of
 truth for the compiler version. **TypeScript 7 is not used in this
 repo.** Bumping the universe pin is therefore a repo-wide change: update
 every package in the same commit and rebuild the kernel.
+
+## `KERNEL_VERSION` bumps (operator consequence)
+
+`scripts/pins.mjs` exports `KERNEL_VERSION`, which is baked into every
+published app version and into the host's served kernel. When the host's
+version and an app's `version.kernelVersion` differ, `serve.ts` /
+`serve-kernel.ts` respond with **HTTP 409** and
+`error: "kernel_version_mismatch"` instead of serving a blank page.
+
+**Existing live apps must be republished** after a host kernel bump. Until
+they are, every `/a/:appId` and `/preview` request for that app returns
+409. There is no automatic migration — republish is the fix.

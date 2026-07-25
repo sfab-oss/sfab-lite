@@ -5,11 +5,14 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
+import { publicBase } from "./lib/public-base";
 import { loadSession } from "./lib/session";
 import { DashboardPage } from "./routes/dashboard";
 import { OnboardingPage } from "./routes/onboarding";
 import { SignInPage } from "./routes/sign-in";
 import { SignUpPage } from "./routes/sign-up";
+
+const TRAILING_SLASH = /\/$/;
 
 /**
  * Routes are declared in code (no file-based route generation), so this file
@@ -92,7 +95,27 @@ const routeTree = rootRoute.addChildren([
   appRoute,
 ]);
 
-export const router = createRouter({ routeTree });
+/**
+ * When the factory serves under `/a/:appId`, `__SFAB_PUBLIC_BASE__` is the
+ * mount URL. TanStack Router must strip that prefix or every path looks like
+ * `/a/…/sign-in` and the tree reports Not Found.
+ */
+function routerBasepath(): string {
+  if (!publicBase) {
+    return "/";
+  }
+  try {
+    const path = new URL(publicBase).pathname.replace(TRAILING_SLASH, "");
+    return path.length > 0 ? path : "/";
+  } catch {
+    return "/";
+  }
+}
+
+export const router = createRouter({
+  routeTree,
+  basepath: routerBasepath(),
+});
 
 declare module "@tanstack/react-router" {
   interface Register {
