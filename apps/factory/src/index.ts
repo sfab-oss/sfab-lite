@@ -21,7 +21,7 @@
  * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
 import { dispatchAdmin } from "./admin.js";
-import { createAuth, passwordAuthEnabled } from "./auth.js";
+import { createAuth, githubAuthEnabled, passwordAuthEnabled } from "./auth.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute, NOT_FOUND_BODY } from "./routes.js";
 import { serveSubApp } from "./serve.js";
@@ -34,14 +34,21 @@ const RE_KERNEL = /^\/kernel\/(.+)$/;
 const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
 
 /**
- * Public factory config for the sign-in UI. Unauthenticated on purpose:
- * better-auth does not unregister email/password routes when disabled — it
- * returns 400 at handler entry — so a UI cannot probe for a 404 and must be
- * told the flag by the server. Do not re-read env client-side.
+ * Public factory config for the sign-in UI. Unauthenticated on purpose: the
+ * screen has to render before anyone is signed in, and both flags describe
+ * the server's own configuration, not any user's data.
+ *
+ * The UI must be *told* which methods exist rather than probing, because the
+ * two fail differently and neither signal generalises (both observed against
+ * better-auth 1.6.19): disabled email/password stays mounted and returns
+ * **400** at handler entry, while an unregistered GitHub provider is a real
+ * **404 PROVIDER_NOT_FOUND**. Inferring "off" from either status would be
+ * wrong about the other method. Do not re-read env client-side.
  */
 function handleApiConfig(rc: RouteCtx): Response {
   return Response.json({
     passwordAuth: passwordAuthEnabled(rc.env),
+    githubAuth: githubAuthEnabled(rc.env),
   });
 }
 

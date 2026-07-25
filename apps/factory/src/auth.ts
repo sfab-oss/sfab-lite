@@ -23,6 +23,40 @@ export function passwordAuthEnabled(env: Env): boolean {
 }
 
 /**
+ * The factory's GitHub credentials, or `null` if it has none.
+ *
+ * Returning the pair rather than a boolean keeps "both are present" in one
+ * place and lets the caller use the narrowed strings — a separate predicate
+ * plus a cast at the use site would state the same invariant twice and let
+ * them drift.
+ */
+function githubCredentials(
+  env: Env
+): { clientId: string; clientSecret: string } | null {
+  const clientId = env.GITHUB_CLIENT_ID;
+  const clientSecret = env.GITHUB_CLIENT_SECRET;
+  return clientId && clientSecret ? { clientId, clientSecret } : null;
+}
+
+/**
+ * GitHub sign-in is on exactly when both credentials are present.
+ *
+ * No separate flag: one that only mirrored "are the secrets set" could
+ * disagree with reality, and the disagreement would surface as a button that
+ * posts to a guaranteed failure. Deriving it means the UI is told the truth.
+ */
+export function githubAuthEnabled(env: Env): boolean {
+  return githubCredentials(env) !== null;
+}
+
+/**
+ * Half-configured credentials are a deploy mistake, not a mode — but the
+ * place to surface that is `/admin/health`, which reports each secret's
+ * presence separately, not a per-request `console.warn` that would repeat on
+ * every auth call and still be invisible to whoever is looking for it.
+ */
+
+/**
  * Collision-safe org slug derived from the user id (UNIQUE column). Display
  * names are not unique — two users named "Alex" must not collide.
  */
@@ -113,6 +147,8 @@ async function provisionOwnerOrganization(
  *   org the product expects; a user-facing create path would produce orgs
  *   nothing can render.
  * - `emailAndPassword.enabled` follows `PASSWORD_AUTH` (default off).
+ * - GitHub is registered only when both credentials are set — the intended
+ *   production front door, where password auth is the local convenience.
  * - On sign-up, `user.create.after` inserts the org + owner membership so
  *   the session hook has a row to stamp.
  */
@@ -125,11 +161,16 @@ export function createAuth(env: Env, baseURL: string) {
   }
 
   const db = createDb(env);
+  const github = githubCredentials(env);
 
   return betterAuth({
     baseURL,
     basePath: "/api/auth",
     secret,
+    // Spread rather than always passing a `github` key: registering the
+    // provider with empty strings would mount a sign-in path that fails at
+    // the token exchange instead of simply not existing.
+    ...(github ? { socialProviders: { github } } : {}),
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema,

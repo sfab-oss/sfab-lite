@@ -10,3 +10,11 @@ PASSWORD_AUTH=true
 # so leaving this unset no longer opens the surface, it just means curl gets
 # a 401 and you have to drive the API with a session cookie.
 ADMIN_TOKEN=dev-admin-token
+# Factory GitHub sign-in. Registered only when BOTH are set — there is no
+# separate on/off flag. We use a **GitHub App** (not an OAuth App), whose
+# callback URL must be http://localhost:8790/api/auth/callback/github and
+# which must grant the "Email addresses" account permission: GitHub Apps
+# ignore OAuth scopes, and better-auth needs an email for a NOT NULL column.
+# Use the app's Client ID (Iv23…), not its App ID or private key.
+# GITHUB_CLIENT_ID=
+# GITHUB_CLIENT_SECRET=
