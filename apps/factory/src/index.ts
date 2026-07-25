@@ -1,15 +1,26 @@
 /**
- * @sfab-lite/factory — host worker (S2d).
+ * @sfab-lite/factory — host worker (S2.6).
  *
- * Commit blocks on check (option 1). A version only exists if checks
- * passed, and on creation it is live. Revert appends a new version.
+ * Commit is **asynchronous in transport, synchronous in semantics**: check is
+ * still the gate, no version exists without a pass, and a version is live the
+ * moment it exists. Only the waiting moved off the HTTP request, because a
+ * commit costs 10–24s in production (measured, S2.5).
+ *
+ * `POST .../commit` and `POST /admin/apps` return `202` with an `attemptId`;
+ * poll `GET .../attempts/:attemptId`. Revert stays synchronous — it restores
+ * an already-checked version, so there is nothing to wait for.
  *
  * Admin: ungated when ADMIN_TOKEN unset (local). When set, every
  * `/admin/*` requires matching X-Admin-Token.
  */
 import type { CheckResult, LintResult } from "@sfab-lite/core";
 import { mergeSources } from "@sfab-lite/core";
-import type { VersionRecord } from "./app-do.js";
+import type {
+  AttemptKind,
+  AttemptRecord,
+  PutVersionInput,
+  VersionRecord,
+} from "./app-do.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
@@ -52,6 +63,7 @@ interface AppStub {
     | {
         ok: true;
         id: string;
+        attemptId: string;
         liveVersionId: string;
         parentId: string;
         restoredFrom: string;
@@ -79,18 +91,34 @@ interface AppStub {
     liveVersionId: string | null;
     version: VersionRecord | null;
   }>;
-  setCheckStatus: (
-    versionId: string,
-    status: "pending" | "pass" | "fail" | "error",
+  startAttempt: (
+    kind: AttemptKind,
+    parentId: string | null
+  ) => Promise<
+    | { ok: true; attemptId: string }
+    | { ok: false; error: "attempt_in_flight"; attemptId: string }
+  >;
+  failAttempt: (
+    attemptId: string,
+    status: "fail" | "error",
     payload?: unknown
-  ) => Promise<{ ok: true; versionId: string; status: string }>;
-  getCheckStatus: (versionId: string) => Promise<{
+  ) => Promise<{ ok: true; attemptId: string; status: string }>;
+  completeAttempt: (
+    attemptId: string,
+    input: PutVersionInput,
+    payload?: unknown
+  ) => Promise<{
     ok: true;
-    versionId: string;
-    status: "pending" | "pass" | "fail" | "error" | "missing";
-    updatedAt: number | null;
-    payload: unknown;
+    id: string;
+    liveVersionId: string;
+    parentId: string | null;
   }>;
+  getAttempt: (
+    attemptId: string
+  ) => Promise<{ ok: true; attempt: AttemptRecord | null }>;
+  listAttempts: (
+    limit?: number
+  ) => Promise<{ ok: true; attempts: AttemptRecord[] }>;
 }
 
 function appStub(env: Env, appId: string): AppStub {
@@ -217,124 +245,162 @@ async function compileAll(files: Record<string, string>) {
 }
 
 /**
- * Lint + compile + check (blocking). On pass, append a live version.
- * On fail, no version row is written.
+ * The work half of a commit: lint → compile → check → version.
+ *
+ * Runs under `ctx.waitUntil`, after the response has already gone out, so it
+ * has no caller to throw to. Every exit path must therefore write a terminal
+ * attempt status — that is the entire reliability contract, because a poller
+ * can only distinguish "still working" from "finished badly" if this function
+ * never simply stops.
+ *
+ * `fail` means the submitted code did not pass the gate; `error` means we
+ * broke. The distinction is what tells an agent whether to fix its diff or
+ * retry the same one.
  */
-async function commitSources(
+async function runCommitAttempt(
   env: Env,
   appId: string,
+  attemptId: string,
   files: Record<string, string>,
   parentId: string | null,
   opts?: { forceColdCheck?: boolean }
-): Promise<Response> {
+): Promise<void> {
   const stub = appStub(env, appId);
   const tAll0 = Date.now();
 
-  const lint = await callLint(env, appId, files);
-  if (lint.http >= 500 || lint.body?.ok === false) {
-    return Response.json(
-      {
-        ok: false,
+  try {
+    const lint = await callLint(env, appId, files);
+    if (lint.http >= 500 || lint.body?.ok === false) {
+      await stub.failAttempt(attemptId, "error", {
         error: "lint_failed",
-        appId,
-        parentId,
         lintHttp: lint.http,
         lintWallMs: lint.wallMs,
         lint: lint.body,
-      },
-      { status: 502 }
-    );
-  }
+      });
+      return;
+    }
 
-  let compiled: Awaited<ReturnType<typeof compileAll>>;
-  try {
-    compiled = await compileAll(files);
-  } catch (e) {
-    return Response.json(
-      {
-        ok: false,
+    let compiled: Awaited<ReturnType<typeof compileAll>>;
+    try {
+      compiled = await compileAll(files);
+    } catch (e) {
+      await stub.failAttempt(attemptId, "error", {
         error: "compile_failed",
-        appId,
-        parentId,
         message: e instanceof Error ? e.message : String(e),
         stack: e instanceof Error ? e.stack : undefined,
-      },
-      { status: 500 }
-    );
-  }
+      });
+      return;
+    }
 
-  const check = await callCheck(
-    env,
-    appId,
-    files,
-    opts?.forceColdCheck ?? false
-  );
-  const pass = check.http < 500 && checkPasses(check.body);
-  if (!pass) {
-    return Response.json(
-      {
-        ok: false,
+    const check = await callCheck(
+      env,
+      appId,
+      files,
+      opts?.forceColdCheck ?? false
+    );
+    if (!(check.http < 500 && checkPasses(check.body))) {
+      await stub.failAttempt(attemptId, "fail", {
         error: "check_failed",
-        appId,
-        parentId,
-        lintWallMs: lint.wallMs,
         checkHttp: check.http,
         checkWallMs: check.wallMs,
         check: check.body,
         publishGate: false,
         totalMs: Date.now() - tAll0,
+      });
+      return;
+    }
+
+    const lintDiagCount = (lint.body?.files ?? []).reduce(
+      (n, f) => n + (f.diagnosticCount ?? 0),
+      0
+    );
+
+    await stub.completeAttempt(
+      attemptId,
+      {
+        parentId,
+        sourceFiles: files,
+        serverBundle: compiled.compiled.serverBundle,
+        assets: compiled.assets,
+        kernelVersion: compiled.compiled.kernelVersion,
       },
-      { status: 422 }
+      {
+        live: true,
+        lintHttp: lint.http,
+        lintWallMs: lint.wallMs,
+        lintDiagnosticCount: lintDiagCount,
+        lintFileCount: lint.body?.fileCount ?? null,
+        checkHttp: check.http,
+        checkWallMs: check.wallMs,
+        checkMs: check.body?.checkMs ?? null,
+        checkPass: check.body?.pass ?? null,
+        lsReused: check.body?.lsReused ?? null,
+        compileMs: compiled.compiled.compileMs,
+        clientCompileMs: compiled.client.compileMs,
+        cssCompileMs: compiled.css.compileMs + compiled.css.buildMs,
+        totalCommitMs: Date.now() - tAll0,
+        serverBundleBytes: compiled.compiled.serverBundle.length,
+        clientBytes: compiled.client.js.length,
+        cssBytes: compiled.css.css.length,
+        cssCandidates: compiled.css.candidateCount,
+        kernelVersion: compiled.compiled.kernelVersion,
+        clientBailouts: compiled.client.bailouts,
+        warnings: compiled.compiled.warnings,
+      }
+    );
+  } catch (e) {
+    // Last resort. If even this write fails there is nothing left to record
+    // with — the stale sweep in the AppDO is the backstop for that case.
+    await stub
+      .failAttempt(attemptId, "error", {
+        error: "attempt_crashed",
+        message: e instanceof Error ? e.message : String(e),
+        totalMs: Date.now() - tAll0,
+      })
+      .catch(() => undefined);
+  }
+}
+
+/**
+ * Open an attempt and hand the work to `waitUntil`.
+ *
+ * Returns in milliseconds; the commit itself takes 10–24s (measured in
+ * production, S2.5). The guarantee is unchanged — check is still the gate and
+ * no version exists without a pass. Only the waiting moved off the request.
+ */
+async function enqueueCommit(
+  env: Env,
+  ctx: ExecutionContext,
+  appId: string,
+  kind: AttemptKind,
+  files: Record<string, string>,
+  parentId: string | null,
+  opts?: { forceColdCheck?: boolean }
+): Promise<Response> {
+  const start = await appStub(env, appId).startAttempt(kind, parentId);
+  if (!start.ok) {
+    return Response.json(
+      { ok: false, error: start.error, appId, attemptId: start.attemptId },
+      { status: 409 }
     );
   }
 
-  const put = await stub.putVersion({
-    parentId,
-    sourceFiles: files,
-    serverBundle: compiled.compiled.serverBundle,
-    assets: compiled.assets,
-    kernelVersion: compiled.compiled.kernelVersion,
-  });
-  await stub.setCheckStatus(put.id, "pass", {
-    ...(check.body ?? {}),
-    http: check.http,
-    wallMs: check.wallMs,
-    publishGate: true,
-  });
-
-  const lintDiagCount = (lint.body?.files ?? []).reduce(
-    (n, f) => n + (f.diagnosticCount ?? 0),
-    0
+  ctx.waitUntil(
+    runCommitAttempt(env, appId, start.attemptId, files, parentId, opts)
   );
 
-  return Response.json({
-    ok: true,
-    appId,
-    versionId: put.id,
-    parentId,
-    liveVersionId: put.liveVersionId,
-    live: true,
-    lintHttp: lint.http,
-    lintWallMs: lint.wallMs,
-    lintDiagnosticCount: lintDiagCount,
-    lintFileCount: lint.body?.fileCount ?? null,
-    checkHttp: check.http,
-    checkWallMs: check.wallMs,
-    checkMs: check.body?.checkMs ?? null,
-    checkPass: check.body?.pass ?? null,
-    lsReused: check.body?.lsReused ?? null,
-    compileMs: compiled.compiled.compileMs,
-    clientCompileMs: compiled.client.compileMs,
-    cssCompileMs: compiled.css.compileMs + compiled.css.buildMs,
-    totalCommitMs: Date.now() - tAll0,
-    serverBundleBytes: compiled.compiled.serverBundle.length,
-    clientBytes: compiled.client.js.length,
-    cssBytes: compiled.css.css.length,
-    cssCandidates: compiled.css.candidateCount,
-    kernelVersion: compiled.compiled.kernelVersion,
-    clientBailouts: compiled.client.bailouts,
-    warnings: compiled.compiled.warnings,
-  });
+  return Response.json(
+    {
+      ok: true,
+      appId,
+      kind,
+      attemptId: start.attemptId,
+      parentId,
+      status: "pending",
+      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${start.attemptId}`,
+    },
+    { status: 202 }
+  );
 }
 
 // --- Module-scope route patterns (compiled once) ---
@@ -344,7 +410,8 @@ const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
 const RE_ADMIN_TOUCH = /^\/admin\/apps\/([^/]+)\/touch$/;
 const RE_ADMIN_SQL = /^\/admin\/apps\/([^/]+)\/sql$/;
 const RE_ADMIN_VERSIONS = /^\/admin\/apps\/([^/]+)\/versions$/;
-const RE_ADMIN_CHECK_STATUS = /^\/admin\/apps\/([^/]+)\/check-status$/;
+const RE_ADMIN_ATTEMPTS = /^\/admin\/apps\/([^/]+)\/attempts$/;
+const RE_ADMIN_ATTEMPT = /^\/admin\/apps\/([^/]+)\/attempts\/([^/]+)$/;
 const RE_ADMIN_CHECK = /^\/admin\/apps\/([^/]+)\/check$/;
 const RE_ADMIN_COMMIT = /^\/admin\/apps\/([^/]+)\/commit$/;
 const RE_ADMIN_REVERT = /^\/admin\/apps\/([^/]+)\/revert$/;
@@ -396,28 +463,18 @@ async function handleCreateApp(rc: RouteCtx): Promise<Response> {
     });
   }
 
-  const seedCommit = await commitSources(
+  // Creation *is* a commit — the seed goes through the same gate — so it gets
+  // the same attempt and the same 202. Cold create measured 18.5s in
+  // production (S2.5); holding the request open for it was the worst case.
+  return enqueueCommit(
     rc.env,
+    rc.ctx,
     appId,
+    "create",
     TEMPLATE_SEED.sourceFiles,
     null,
     { forceColdCheck: true }
   );
-  const seedBody = (await seedCommit.json()) as Record<string, unknown>;
-  if (!seedCommit.ok) {
-    return Response.json(
-      { ok: false, error: "seed_failed", appId, ...seedBody },
-      { status: seedCommit.status }
-    );
-  }
-  const touch = await stub.touch();
-  return Response.json({
-    ok: true,
-    appId,
-    seeded: true,
-    touch,
-    ...seedBody,
-  });
 }
 
 async function handleTouch(rc: RouteCtx): Promise<Response> {
@@ -450,21 +507,23 @@ async function handleListVersions(rc: RouteCtx): Promise<Response> {
   return Response.json({ appId, ...listed });
 }
 
-async function handleCheckStatus(rc: RouteCtx): Promise<Response> {
+async function handleGetAttempt(rc: RouteCtx): Promise<Response> {
   const appId = decodeURIComponent(rc.match[1] ?? "");
-  const versionId = rc.url.searchParams.get("versionId")?.trim();
-  if (!versionId) {
-    return jsonError("versionId query required");
+  const attemptId = decodeURIComponent(rc.match[2] ?? "");
+  const { attempt } = await appStub(rc.env, appId).getAttempt(attemptId);
+  if (!attempt) {
+    return jsonError("attempt_not_found", 404);
   }
-  const st = await appStub(rc.env, appId).getCheckStatus(versionId);
-  return Response.json({
-    ok: true,
-    appId,
-    versionId: st.versionId,
-    status: st.status,
-    updatedAt: st.updatedAt,
-    payload: st.payload,
-  });
+  return Response.json({ ok: true, appId, attempt });
+}
+
+async function handleListAttempts(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const raw = Number(rc.url.searchParams.get("limit"));
+  const { attempts } = await appStub(rc.env, appId).listAttempts(
+    Number.isFinite(raw) && raw > 0 ? raw : undefined
+  );
+  return Response.json({ ok: true, appId, attempts });
 }
 
 async function handleCheck(rc: RouteCtx): Promise<Response> {
@@ -485,19 +544,10 @@ async function handleCheck(rc: RouteCtx): Promise<Response> {
     files,
     body?.forceCold !== false
   );
+  // Records nothing. This is a dry-run probe against the latest version, not
+  // a commit — it mints no version, so there is no attempt to attach a result
+  // to. Persisting it would put a status in the log that never gated anything.
   const pass = checkPasses(check.body);
-  if (check.body && check.http < 500) {
-    await appStub(rc.env, appId).setCheckStatus(
-      latest.version.id,
-      pass ? "pass" : "fail",
-      {
-        ...(check.body ?? {}),
-        http: check.http,
-        wallMs: check.wallMs,
-        publishGate: pass,
-      }
-    );
-  }
   return Response.json({
     ok: check.http < 500 && Boolean(check.body?.ok),
     appId,
@@ -522,7 +572,14 @@ async function handleCommit(rc: RouteCtx): Promise<Response> {
     return jsonError("no_live_version", 404);
   }
   const files = mergeSources(live.version.sourceFiles, body.files);
-  return commitSources(rc.env, appId, files, live.liveVersionId);
+  return enqueueCommit(
+    rc.env,
+    rc.ctx,
+    appId,
+    "commit",
+    files,
+    live.liveVersionId
+  );
 }
 
 async function handleRevert(rc: RouteCtx): Promise<Response> {
@@ -533,15 +590,16 @@ async function handleRevert(rc: RouteCtx): Promise<Response> {
   if (!body?.versionId) {
     return jsonError("versionId required");
   }
+  // Stays synchronous: revert restores an already-checked version, so there is
+  // nothing to wait on. It still records an attempt (see `AppDO.revertTo`),
+  // which is why no status write happens here.
   const result = await appStub(rc.env, appId).revertTo(body.versionId);
   if (!result.ok) {
-    return Response.json({ appId, ...result }, { status: 404 });
+    return Response.json(
+      { appId, ...result },
+      { status: result.error === "attempt_in_flight" ? 409 : 404 }
+    );
   }
-  await appStub(rc.env, appId).setCheckStatus(result.id, "pass", {
-    source: "revert",
-    restoredFrom: result.restoredFrom,
-    trusted: true,
-  });
   return Response.json({ appId, action: "revert", ...result });
 }
 
@@ -585,11 +643,8 @@ const ROUTES: Route[] = [
   { method: "GET", pattern: RE_ADMIN_TOUCH, handler: handleTouch },
   { method: "POST", pattern: RE_ADMIN_SQL, handler: handleSql },
   { method: "GET", pattern: RE_ADMIN_VERSIONS, handler: handleListVersions },
-  {
-    method: "GET",
-    pattern: RE_ADMIN_CHECK_STATUS,
-    handler: handleCheckStatus,
-  },
+  { method: "GET", pattern: RE_ADMIN_ATTEMPT, handler: handleGetAttempt },
+  { method: "GET", pattern: RE_ADMIN_ATTEMPTS, handler: handleListAttempts },
   { method: "POST", pattern: RE_ADMIN_CHECK, handler: handleCheck },
   { method: "POST", pattern: RE_ADMIN_COMMIT, handler: handleCommit },
   { method: "POST", pattern: RE_ADMIN_REVERT, handler: handleRevert },
@@ -638,7 +693,7 @@ export default {
     }
 
     return new Response(
-      "sfab-lite factory: /admin/health | /admin/apps | .../commit | .../check | .../revert\n",
+      "sfab-lite factory: /admin/health | /admin/apps | .../commit | .../check | .../revert | .../attempts\n",
       { status: 404 }
     );
   },
