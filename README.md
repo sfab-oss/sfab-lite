@@ -41,6 +41,46 @@ Each worker has its own `dev` script and runs standalone under
 `wrangler dev` — e.g. `pnpm --filter @sfab-lite/check dev` (8802),
 `pnpm --filter @sfab-lite/lint dev` (8803).
 
+### Factory console UI
+
+The console lives in `apps/factory/ui/` (same package as the worker). Build
+output is `apps/factory/ui/dist` and is served by wrangler `assets` with
+worker-first routing.
+
+**Full stack (worker serves the built SPA):**
+
+```bash
+# once: copy apps/factory/.dev.vars.example → apps/factory/.dev.vars
+# once: create the local D1 tables (see below — skipping this is a 500)
+cd apps/factory && pnpm exec wrangler d1 migrations apply sfab-lite-factory --local
+
+pnpm --filter @sfab-lite/factory build:ui
+pnpm --filter @sfab-lite/factory dev   # http://localhost:8790
+```
+
+**The migrate step is not optional and its failure does not look like a
+setup problem.** Local D1 starts empty, so without it the console renders
+perfectly, the sign-up form submits, and `POST /api/auth/sign-up/email`
+returns **500** with `no such table: user` — visible only in the worker log.
+The UI shows "sign-up failed". Each worktree has its own `.wrangler/` state,
+so every new worktree needs this again.
+
+**UI hot-reload (Vite proxies API routes to the worker):**
+
+```bash
+# terminal 1 — worker
+pnpm --filter @sfab-lite/factory dev   # :8790
+
+# terminal 2 — Vite
+pnpm --filter @sfab-lite/factory dev:ui   # :5173
+```
+
+Vite proxies `/api`, `/admin`, `^/a/`, and `/kernel` to
+`http://localhost:8790`. The sub-app proxy is the regex `^/a/` rather than the
+string `/a`, because Vite matches a plain string context with
+`url.startsWith(context)` — `/a` would also capture the console's own `/apps`
+and `/assets/*`.
+
 ## Known limitations
 
 Surprises worth knowing before they bite again, and the things "lite"
@@ -260,9 +300,10 @@ because I/O advances the clock. **Trust client-side walls.**
 
 ### Not built yet (staged, not cut)
 
-Factory UI, auth, organizations, tasks-lite, the agent, and diffs are S3+.
-See [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for
-what lands where.
+Tasks-lite, the agent, and diffs are S3+. Auth, organizations, the app
+registry, and the factory console (S3d) are in. See
+[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for what
+lands where.
 
 ## Docs
 

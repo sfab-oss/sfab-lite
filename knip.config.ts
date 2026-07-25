@@ -14,8 +14,16 @@ const config: KnipConfig = {
       ignoreBinaries: ["wrangler"],
     },
     "apps/factory": {
-      entry: ["src/index.ts", "scripts/*.mjs"],
-      project: ["src/**/*.ts", "scripts/**/*.mjs"],
+      // Worker entry + Vite console UI. UI sources stay in `project` so unused
+      // exports inside `ui/src` still surface; React deps are reached from
+      // `ui/index.html` → `ui/src/main.tsx`.
+      entry: ["src/index.ts", "scripts/*.mjs", "ui/index.html"],
+      project: [
+        "src/**/*.ts",
+        "scripts/**/*.mjs",
+        "ui/src/**/*.{ts,tsx}",
+        "ui/vite.config.ts",
+      ],
       // `cloudflare:workers` is a workerd built-in, not an npm package.
       ignoreDependencies: ["cloudflare"],
     },

@@ -7,8 +7,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.ui.json",
+    "build": "pnpm build:ui",
+    "build:ui": "vite build --config ui/vite.config.ts",
     "dev": "wrangler dev -c wrangler.jsonc -c ../check/wrangler.jsonc -c ../lint/wrangler.jsonc --port 8790",
+    "dev:ui": "vite --config ui/vite.config.ts",
     "deploy": "wrangler deploy",
     "bake-seed": "node scripts/bake-seed.mjs"
   },
@@ -19,12 +22,20 @@
     "@sfab-lite/template": "workspace:*",
     "better-auth": "1.6.19",
     "drizzle-orm": "0.45.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "tailwindcss": "4.1.11",
     "ulid": "3.0.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260721.1",
+    "@sfab-lite/tsconfig": "workspace:*",
+    "@tailwindcss/vite": "4.1.11",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
+    "@vitejs/plugin-react": "4.7.0",
     "typescript": "6.0.3",
+    "vite": "7.0.6",
     "wrangler": "4.113.0"
   }
 }

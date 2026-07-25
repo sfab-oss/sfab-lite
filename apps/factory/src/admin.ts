@@ -330,7 +330,7 @@ function handleHealth(rc: RouteCtx): Response {
   return Response.json({
     ok: true,
     service: "sfab-lite-factory",
-    phase: "s2d",
+    phase: "s3d",
     bindings: {
       check: Boolean(rc.env.CHECK),
       lint: Boolean(rc.env.LINT),
