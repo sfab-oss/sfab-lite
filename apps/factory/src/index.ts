@@ -7,8 +7,10 @@
  * commit costs 10–24s in production (measured, S2.5).
  *
  * `POST .../commit` and `POST /admin/apps` return `202` with an `attemptId`;
- * poll `GET .../attempts/:attemptId`. Revert stays synchronous — it restores
- * an already-checked version, so there is nothing to wait for.
+ * poll `GET .../attempts/:attemptId`. Create also writes a D1 registry row
+ * (`creating` → `ready`|`failed`) so apps are enumerable. Revert stays
+ * synchronous — it restores an already-checked version, so there is nothing
+ * to wait for.
  *
  * Admin: ungated when ADMIN_TOKEN unset (local). When set, every
  * `/admin/*` requires matching X-Admin-Token.
@@ -25,7 +27,17 @@ import { createAuth, passwordAuthEnabled } from "./auth.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
+import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
+import {
+  getApp,
+  insertCreatingApp,
+  listAppsForOrganization,
+  markCreateFailed,
+  organizationExists,
+  setCreateAttemptId,
+  settleCreateApp,
+} from "./registry.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
@@ -441,41 +453,127 @@ function methodMatches(
   return allowed.includes(method);
 }
 
+/**
+ * Create an app: D1 row first (`creating`), then bootstrap + async seed.
+ *
+ * App ids are server-minted (`app_…`). The old caller-supplied id path also
+ * returned `alreadySeeded: true` on collision — with owning organizations that
+ * was a tenancy hole (silently attach to whoever already held the name). Gone.
+ *
+ * `organizationId` is request input today — the session swap point. When auth
+ * lands, read `session.activeOrganizationId` here instead of the body and
+ * leave `registry.ts` alone.
+ */
 async function handleCreateApp(rc: RouteCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
-    appId?: string;
+    organizationId?: string;
+    name?: string;
   } | null;
-  const appId = body?.appId?.trim();
-  if (!appId) {
-    return jsonError("appId required");
+  const organizationId = body?.organizationId?.trim();
+  const name = body?.name?.trim();
+  if (!organizationId) {
+    return jsonError("organizationId required");
+  }
+  if (!name) {
+    return jsonError("name required");
   }
 
+  const db = createDb(rc.env);
+  if (!(await organizationExists(db, organizationId))) {
+    return jsonError("organization_not_found", 404);
+  }
+
+  // Row before DO work: the UI needs something to poll during the ~18–25s seed.
+  const created = await insertCreatingApp(db, { organizationId, name });
+  const appId = created.id;
   const stub = appStub(rc.env, appId);
-  await stub.bootstrap(TEMPLATE_SEED.migrations);
-  const live = await stub.getLive();
-  if (live.liveVersionId) {
-    const touch = await stub.touch();
-    return Response.json({
+
+  try {
+    await stub.bootstrap(TEMPLATE_SEED.migrations);
+  } catch (e) {
+    await markCreateFailed(db, appId);
+    return jsonError(e instanceof Error ? e.message : "bootstrap_failed", 500);
+  }
+
+  // Creation *is* a commit — same gate, same 202 — but the registry must
+  // settle when the attempt does. That transition lives in the waitUntil
+  // chain below (not inside `runCommitAttempt`) so ordinary commits stay
+  // unaware of D1.
+  const start = await stub.startAttempt("create", null);
+  if (!start.ok) {
+    await markCreateFailed(db, appId);
+    return Response.json(
+      {
+        ok: false,
+        error: start.error,
+        appId,
+        attemptId: start.attemptId,
+      },
+      { status: 409 }
+    );
+  }
+
+  await setCreateAttemptId(db, appId, start.attemptId);
+
+  rc.ctx.waitUntil(
+    (async () => {
+      await runCommitAttempt(
+        rc.env,
+        appId,
+        start.attemptId,
+        TEMPLATE_SEED.sourceFiles,
+        null,
+        { forceColdCheck: true }
+      );
+      const { attempt } = await stub.getAttempt(start.attemptId);
+      if (
+        attempt &&
+        (attempt.status === "pass" ||
+          attempt.status === "fail" ||
+          attempt.status === "error")
+      ) {
+        await settleCreateApp(createDb(rc.env), appId, attempt.status);
+      }
+    })()
+  );
+
+  return Response.json(
+    {
       ok: true,
       appId,
-      alreadySeeded: true,
-      liveVersionId: live.liveVersionId,
-      touch,
-    });
-  }
-
-  // Creation *is* a commit — the seed goes through the same gate — so it gets
-  // the same attempt and the same 202. Cold create measured 18.5s in
-  // production (S2.5); holding the request open for it was the worst case.
-  return enqueueCommit(
-    rc.env,
-    rc.ctx,
-    appId,
-    "create",
-    TEMPLATE_SEED.sourceFiles,
-    null,
-    { forceColdCheck: true }
+      organizationId,
+      name,
+      kind: "create",
+      attemptId: start.attemptId,
+      status: "pending",
+      appStatus: "creating",
+      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${start.attemptId}`,
+    },
+    { status: 202 }
   );
+}
+
+async function handleListApps(rc: RouteCtx): Promise<Response> {
+  // Session swap point (list): `organizationId` query → active org on session.
+  const organizationId = rc.url.searchParams.get("organizationId")?.trim();
+  if (!organizationId) {
+    return jsonError("organizationId required");
+  }
+  const db = createDb(rc.env);
+  if (!(await organizationExists(db, organizationId))) {
+    return jsonError("organization_not_found", 404);
+  }
+  const apps = await listAppsForOrganization(db, organizationId);
+  return Response.json({ ok: true, organizationId, apps });
+}
+
+async function handleGetApp(rc: RouteCtx): Promise<Response> {
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const record = await getApp(createDb(rc.env), appId);
+  if (!record) {
+    return jsonError("app_not_found", 404);
+  }
+  return Response.json({ ok: true, app: record });
 }
 
 async function handleTouch(rc: RouteCtx): Promise<Response> {
@@ -657,6 +755,8 @@ function handleSubApp(rc: RouteCtx): Promise<Response> {
   return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, mode);
 }
 
+const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
+
 const ROUTES: Route[] = [
   { method: "GET", pattern: /^\/admin\/health$/, handler: handleHealth },
   // Public — must stay outside the /admin token gate (see fetch below).
@@ -664,6 +764,7 @@ const ROUTES: Route[] = [
   { method: "*", pattern: /^\/api\/auth(?:\/.*)?$/, handler: handleAuth },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
+  { method: "GET", pattern: /^\/admin\/apps$/, handler: handleListApps },
   { method: "POST", pattern: /^\/admin\/apps$/, handler: handleCreateApp },
   { method: "GET", pattern: RE_ADMIN_TOUCH, handler: handleTouch },
   { method: "POST", pattern: RE_ADMIN_SQL, handler: handleSql },
@@ -673,6 +774,8 @@ const ROUTES: Route[] = [
   { method: "POST", pattern: RE_ADMIN_CHECK, handler: handleCheck },
   { method: "POST", pattern: RE_ADMIN_COMMIT, handler: handleCommit },
   { method: "POST", pattern: RE_ADMIN_REVERT, handler: handleRevert },
+  // After `/admin/apps/:id/…` routes so a looser pattern cannot steal them.
+  { method: "GET", pattern: RE_ADMIN_APP, handler: handleGetApp },
 ];
 
 function matchRoute(
