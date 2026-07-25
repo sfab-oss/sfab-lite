@@ -7,7 +7,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import type { MockThread } from "../lib/mock-threads";
+import type { Thread } from "../model/types";
 import { ThreadBindingBadge } from "./thread-binding-badge";
 
 /** Counts up while a thread runs, so a live row reads as live at a glance. */
@@ -28,7 +28,7 @@ function ElapsedClock({ startedMinutesAgo }: { startedMinutesAgo: number }) {
   );
 }
 
-function statusPrefix(thread: MockThread): string | null {
+function statusPrefix(thread: Thread): string | null {
   if (thread.status === "running") {
     return "Running · ";
   }
@@ -42,7 +42,7 @@ function statusPrefix(thread: MockThread): string | null {
  * Quiet icon-rail row: one neutral chat glyph + optional status dot.
  * No binding colors, no rings — active state is the menu button only.
  */
-function ThreadQuietGlyph({ thread }: { thread: MockThread }) {
+function ThreadQuietGlyph({ thread }: { thread: Thread }) {
   const live = thread.status === "running" || thread.status === "needs-you";
 
   return (
@@ -63,12 +63,6 @@ function ThreadQuietGlyph({ thread }: { thread: MockThread }) {
   );
 }
 
-/**
- * Active rows: title + binding badge + headline. Threads: title + badge +
- * relative time. Binding color encodes task / review PR / org user chat.
- *
- * `quiet` = icon-rail: neutral glyph + status dot (no binding colors / rings).
- */
 export function ThreadMenuItem({
   thread,
   active,
@@ -77,12 +71,10 @@ export function ThreadMenuItem({
   quiet = false,
 }: {
   active: boolean;
-  /** Active list: title + headline. Threads stays single-line. */
   dense?: boolean;
   onSelect: () => void;
-  /** Compact icon-rail treatment (no text badges). */
   quiet?: boolean;
-  thread: MockThread;
+  thread: Thread;
 }) {
   const showHeadline = !dense && Boolean(thread.headline);
   const trailing =

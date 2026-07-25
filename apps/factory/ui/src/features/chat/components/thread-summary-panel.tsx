@@ -19,22 +19,25 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import {
-  listThreadAttachedFiles,
-  type ThreadAttachedFile,
-} from "../lib/mock-chat";
-import { listThreadSubagents, type MockSubagent } from "../lib/mock-subagents";
-import type { MockThread } from "../lib/mock-threads";
+import { useChatData } from "../data/chat-data-context";
+import type { AttachedFile, Subagent, Thread } from "../model/types";
 
 export function ThreadSummaryPanel({
   thread,
   onOpenAgentRun,
 }: {
   onOpenAgentRun: (runId: string) => void;
-  thread: MockThread;
+  thread: Thread;
 }) {
-  const files = useMemo(() => listThreadAttachedFiles(thread.id), [thread.id]);
-  const subagents = useMemo(() => listThreadSubagents(thread.id), [thread.id]);
+  const data = useChatData();
+  const files = useMemo(
+    () => data.listAttachedFiles(thread.id),
+    [data, thread.id]
+  );
+  const subagents = useMemo(
+    () => data.listSubagents(thread.id),
+    [data, thread.id]
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-muted">
@@ -56,7 +59,7 @@ export function ThreadSummaryPanel({
   );
 }
 
-function FilesSection({ files }: { files: ThreadAttachedFile[] }) {
+function FilesSection({ files }: { files: AttachedFile[] }) {
   if (files.length === 0) {
     return (
       <SummarySection
@@ -114,7 +117,7 @@ function SubagentsSection({
   onOpen,
 }: {
   onOpen: (runId: string) => void;
-  subagents: MockSubagent[];
+  subagents: Subagent[];
 }) {
   if (subagents.length === 0) {
     return (
@@ -186,7 +189,7 @@ function SubagentsSection({
   );
 }
 
-function SubagentStatusLabel({ status }: { status: MockSubagent["status"] }) {
+function SubagentStatusLabel({ status }: { status: Subagent["status"] }) {
   if (status === "running") {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -201,7 +204,7 @@ function SubagentStatusLabel({ status }: { status: MockSubagent["status"] }) {
   return <span className="text-[11px] text-muted-foreground">Done</span>;
 }
 
-function SummaryFileAttachment({ file }: { file: ThreadAttachedFile }) {
+function SummaryFileAttachment({ file }: { file: AttachedFile }) {
   const isImage = Boolean(file.mediaType?.startsWith("image/") && file.url);
   let icon = <PaperclipIcon />;
   if (isImage && file.url) {

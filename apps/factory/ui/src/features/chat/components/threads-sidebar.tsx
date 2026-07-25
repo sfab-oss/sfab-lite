@@ -1,4 +1,4 @@
-import { Home, Plus } from "lucide-react";
+import { AppWindow, Home, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { LogoDots } from "@/components/icons/logo-dots";
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,14 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useRouter } from "@/router";
 import {
   groupInactiveByApp,
   isActiveThread,
-  type MockThread,
   searchThreads,
   sortByLiveness,
-} from "../lib/mock-threads";
+} from "../model/thread-list";
+import type { Thread } from "../model/types";
 import { ThreadMenuItem, useIconCollapsed } from "./thread-menu-item";
 import { ThreadSearch } from "./thread-search";
 import { ThreadsSidebarFooter } from "./threads-sidebar-footer";
@@ -39,7 +40,7 @@ export interface SessionThreadsSidebarProps {
   search: string;
   showCollapseTrigger?: boolean;
   showRail?: boolean;
-  threads: MockThread[];
+  threads: Thread[];
 }
 
 export function SessionThreadsSidebar({
@@ -57,6 +58,7 @@ export function SessionThreadsSidebar({
   showCollapseTrigger = true,
 }: SessionThreadsSidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar();
+  const { navigate } = useRouter();
   const quietRows = useIconCollapsed();
 
   const visible = useMemo(
@@ -83,6 +85,13 @@ export function SessionThreadsSidebar({
 
   const goHome = () => {
     onGoHome();
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  const goApps = () => {
+    navigate({ name: "apps" });
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -122,6 +131,12 @@ export function SessionThreadsSidebar({
               >
                 <Home className="size-4" />
                 <span>Home</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={goApps} tooltip="Apps" type="button">
+                <AppWindow className="size-4" />
+                <span>Apps</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -205,7 +220,7 @@ function AppBucket({
   label: string;
   onSelectThread: (threadId: string) => void;
   quiet?: boolean;
-  threads: MockThread[];
+  threads: Thread[];
 }) {
   if (threads.length === 0) {
     return null;

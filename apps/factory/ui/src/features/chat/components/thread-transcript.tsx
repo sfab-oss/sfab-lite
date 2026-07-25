@@ -20,8 +20,8 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
-import { createThreadChat, createThreadTransport } from "../lib/mock-chat";
-import type { MockThread } from "../lib/mock-threads";
+import { useChatData } from "../data/chat-data-context";
+import type { Thread } from "../model/types";
 import { MessageParts } from "./chat/message-parts";
 import { NestedRunOpenProvider } from "./chat/nested-run-open-context";
 import { ThreadComposer } from "./thread-composer";
@@ -37,12 +37,16 @@ export function ThreadTranscript({
   initialMessage?: string;
   onInitialConsumed?: () => void;
   onOpenAgentRun?: (runId: string) => void;
-  thread: MockThread;
+  thread: Thread;
 }) {
-  const chat = useMemo(() => createThreadChat(thread.id), [thread.id]);
-  const { messages, sendMessage, status, stop } = useChat<ThreadUIMessage>({
+  const data = useChatData();
+  const chat = useMemo(
+    () => data.createThreadChat(thread.id),
+    [data, thread.id]
+  );
+  const { messages, sendMessage, status, stop } = useChat({
     messages: chat.get(),
-    transport: useMemo(() => createThreadTransport(chat), [chat]),
+    transport: useMemo(() => data.createThreadTransport(chat), [chat, data]),
   });
   const running = status === "submitted" || status === "streaming";
   const sentInitial = useRef(false);

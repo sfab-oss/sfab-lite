@@ -1,66 +1,6 @@
-type ThreadStatus = "done" | "idle" | "needs-you" | "running";
+import type { SlashCommand, Thread } from "../../model/types";
 
-export interface MockCommand {
-  description: string;
-  id: string;
-  name: string;
-}
-
-export interface MockThread {
-  appId: string | null;
-  appName: string | null;
-  headline?: string;
-  id: string;
-  readOnly: boolean;
-  startedLabel: string;
-  startedMinutesAgo?: number;
-  status: ThreadStatus;
-  title: string;
-  updatedLabel: string;
-  updatedMinutesAgo: number;
-}
-
-const MINUTES_PER_DAY = 24 * 60;
-
-export function groupInactiveByApp(threads: MockThread[]): {
-  appId: string;
-  appName: string;
-  threads: MockThread[];
-}[] {
-  const inactive = threads.filter((thread) => !isActiveThread(thread));
-  const byApp = new Map<
-    string,
-    { appId: string; appName: string; threads: MockThread[] }
-  >();
-
-  for (const thread of sortByUpdated(inactive)) {
-    if (!(thread.appId && thread.appName)) {
-      continue;
-    }
-    const existing = byApp.get(thread.appId);
-    if (existing) {
-      existing.threads.push(thread);
-      continue;
-    }
-    byApp.set(thread.appId, {
-      appId: thread.appId,
-      appName: thread.appName,
-      threads: [thread],
-    });
-  }
-
-  return [...byApp.values()].sort((left, right) =>
-    left.appName.localeCompare(right.appName)
-  );
-}
-
-function sortByUpdated(threads: MockThread[]): MockThread[] {
-  return [...threads].sort(
-    (left, right) => left.updatedMinutesAgo - right.updatedMinutesAgo
-  );
-}
-
-export const MOCK_COMMANDS: MockCommand[] = [
+export const MOCK_COMMANDS: SlashCommand[] = [
   {
     id: "clear",
     name: "clear",
@@ -73,15 +13,13 @@ export const MOCK_COMMANDS: MockCommand[] = [
   },
 ];
 
-export function isActiveThread(thread: MockThread): boolean {
-  return thread.status === "running" || thread.status === "needs-you";
-}
+const MINUTES_PER_DAY = 24 * 60;
 
 const BILLING = { appId: "app_billing", appName: "Billing" } as const;
 const WEBSITE = { appId: "app_website", appName: "Website" } as const;
 const NOTES = { appId: "app_notes", appName: "Notes" } as const;
 
-export const MOCK_THREADS: MockThread[] = [
+export const MOCK_THREADS: Thread[] = [
   {
     id: "thr_csv_export",
     ...BILLING,
@@ -189,32 +127,3 @@ export const MOCK_THREADS: MockThread[] = [
     updatedMinutesAgo: 45 * MINUTES_PER_DAY,
   },
 ];
-
-const STATUS_RANK: Record<ThreadStatus, number> = {
-  done: 3,
-  idle: 2,
-  "needs-you": 1,
-  running: 0,
-};
-
-export function searchThreads(
-  threads: MockThread[],
-  search: string
-): MockThread[] {
-  const query = search.trim().toLowerCase();
-  if (!query) {
-    return threads;
-  }
-  return threads.filter(
-    (thread) =>
-      thread.title.toLowerCase().includes(query) ||
-      thread.headline?.toLowerCase().includes(query) ||
-      thread.appName?.toLowerCase().includes(query)
-  );
-}
-
-export function sortByLiveness(threads: MockThread[]): MockThread[] {
-  return [...threads].sort(
-    (left, right) => STATUS_RANK[left.status] - STATUS_RANK[right.status]
-  );
-}

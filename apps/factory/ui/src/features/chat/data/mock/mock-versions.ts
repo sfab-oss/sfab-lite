@@ -1,11 +1,6 @@
-export interface MockVersion {
-  createdAt: string;
-  id: string;
-  live: boolean;
-  label: string;
-}
+import type { AppVersion } from "../../model/types";
 
-export const MOCK_VERSIONS: MockVersion[] = [
+export const MOCK_VERSIONS: AppVersion[] = [
   {
     id: "ver_live",
     label: "v12",

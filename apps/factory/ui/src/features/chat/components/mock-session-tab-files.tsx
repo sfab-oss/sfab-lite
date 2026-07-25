@@ -20,12 +20,8 @@ import {
 } from "@/components/ui/resizable";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import {
-  getMockDir,
-  getMockFile,
-  type MockFileContent,
-  type MockFileEntry,
-} from "../lib/mock-workspace-files";
+import { useChatData } from "../data/chat-data-context";
+import type { WorkspaceFileContent, WorkspaceFileEntry } from "../model/types";
 import { MockFileCodeView } from "./mock-file-code-view";
 
 const INDENT_STEP = 12;
@@ -125,7 +121,8 @@ function TreeLevel({
   activePath: string | null;
   onSelectPath: (path: string) => void;
 }) {
-  const entries = getMockDir(path).entries;
+  const data = useChatData();
+  const entries = data.getWorkspaceDir(path).entries;
 
   if (entries.length === 0) {
     return (
@@ -169,7 +166,7 @@ function DirNode({
   activePath,
   onSelectPath,
 }: {
-  entry: MockFileEntry;
+  entry: WorkspaceFileEntry;
   depth: number;
   activePath: string | null;
   onSelectPath: (path: string) => void;
@@ -211,7 +208,7 @@ function FileNode({
   active,
   onSelectPath,
 }: {
-  entry: MockFileEntry;
+  entry: WorkspaceFileEntry;
   depth: number;
   active: boolean;
   onSelectPath: (path: string) => void;
@@ -240,7 +237,8 @@ function MockSessionFileViewer({
   path: string;
   onBack?: () => void;
 }) {
-  const file = getMockFile(path);
+  const data = useChatData();
+  const file = data.getWorkspaceFile(path);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -282,7 +280,7 @@ function MockSessionFileViewer({
   );
 }
 
-function renderFileBody(file: MockFileContent, path: string) {
+function renderFileBody(file: WorkspaceFileContent, path: string) {
   if (file.encoding === "too-large") {
     return (
       <FileNotice>

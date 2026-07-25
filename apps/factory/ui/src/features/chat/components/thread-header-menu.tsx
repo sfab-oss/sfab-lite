@@ -15,11 +15,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useWorkspaceTabsStore } from "../lib/workspace-tabs-store";
 
-/**
- * Thread overflow next to the title. Rename / archive / delete are inert lab
- * chrome; "Clear local storage" resets the persisted workspace tabs store so
- * iteration can start from a clean slate without a hard refresh dance.
- */
 export function ThreadHeaderMenu() {
   const resetLocalState = useWorkspaceTabsStore((s) => s.resetLocalState);
 

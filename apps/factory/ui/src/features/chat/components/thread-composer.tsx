@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { MOCK_COMMANDS, type MockCommand } from "../lib/mock-threads";
+import { useChatData } from "../data/chat-data-context";
+import type { SlashCommand } from "../model/types";
 
 interface TriggerState {
   mode: "command";
@@ -80,6 +81,8 @@ export function ThreadComposer({
   running: boolean;
 }) {
   const isMobile = useIsMobile();
+  const data = useChatData();
+  const commands = data.listCommands();
   const [text, setText] = useState("");
   const [cursor, setCursor] = useState(0);
   const [isComposing, setIsComposing] = useState(false);
@@ -92,10 +95,8 @@ export function ThreadComposer({
       return [];
     }
     const q = trigger.query.toLowerCase();
-    return MOCK_COMMANDS.filter((item) =>
-      item.name.toLowerCase().startsWith(q)
-    );
-  }, [trigger]);
+    return commands.filter((item) => item.name.toLowerCase().startsWith(q));
+  }, [commands, trigger]);
 
   const open = trigger !== null && commandItems.length > 0;
 
@@ -122,7 +123,7 @@ export function ThreadComposer({
   );
 
   const applyCommand = useCallback(
-    (command: MockCommand, fromTrigger?: TriggerState) => {
+    (command: SlashCommand, fromTrigger?: TriggerState) => {
       if (fromTrigger) {
         stripTrigger(fromTrigger);
       }
@@ -132,13 +133,13 @@ export function ThreadComposer({
         return;
       }
       if (command.id === "help") {
-        const help = MOCK_COMMANDS.map(
-          (item) => `/${item.name} — ${item.description}`
-        ).join("\n");
+        const help = commands
+          .map((item) => `/${item.name} — ${item.description}`)
+          .join("\n");
         onSubmit(`Help\n${help}`);
       }
     },
-    [onSubmit, stripTrigger]
+    [commands, onSubmit, stripTrigger]
   );
 
   const submit = useCallback(() => {
@@ -248,7 +249,7 @@ export function ThreadComposer({
                         Commands
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent className="w-52">
-                        {MOCK_COMMANDS.map((command) => (
+                        {commands.map((command) => (
                           <DropdownMenuItem
                             key={command.id}
                             onClick={() => applyCommand(command)}

@@ -1,27 +1,9 @@
 import type { DynamicToolUIPart, UIMessage } from "ai";
-
-type MockSubagentStatus = "done" | "failed" | "running";
-
-interface MockSubagentStep {
-  detail?: string;
-  kind: "reasoning" | "text" | "tool";
-  label: string;
-}
-
-export interface MockSubagent {
-  agentType: string;
-  durationMs?: number;
-  id: string;
-  prompt: string;
-  seed: string;
-  status: MockSubagentStatus;
-  steps: MockSubagentStep[];
-  title: string;
-}
+import type { Subagent, SubagentStep } from "../../model/types";
 
 export type NestedRunUIMessage = UIMessage;
 
-const BY_THREAD: Record<string, MockSubagent[]> = {
+const BY_THREAD: Record<string, Subagent[]> = {
   thr_csv_export: [
     {
       id: "run_explore_filters",
@@ -172,18 +154,18 @@ const BY_THREAD: Record<string, MockSubagent[]> = {
   ],
 };
 
-export function listThreadSubagents(threadId: string): MockSubagent[] {
+export function listThreadSubagents(threadId: string): Subagent[] {
   return BY_THREAD[threadId] ?? [];
 }
 
 export function lookupSubagent(
   threadId: string,
   runId: string
-): MockSubagent | undefined {
+): Subagent | undefined {
   return listThreadSubagents(threadId).find((run) => run.id === runId);
 }
 
-export function nestedRunToMessages(run: MockSubagent): NestedRunUIMessage[] {
+export function nestedRunToMessages(run: Subagent): NestedRunUIMessage[] {
   const assistantParts = run.steps.map((step, index) =>
     stepToPart(step, run, index)
   );
@@ -203,8 +185,8 @@ export function nestedRunToMessages(run: MockSubagent): NestedRunUIMessage[] {
 }
 
 function stepToPart(
-  step: MockSubagentStep,
-  run: MockSubagent,
+  step: SubagentStep,
+  run: Subagent,
   index: number
 ): NestedRunUIMessage["parts"][number] {
   if (step.kind === "reasoning") {

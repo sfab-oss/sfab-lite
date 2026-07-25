@@ -1,23 +1,11 @@
-type MockFileEntryType = "directory" | "file";
+import type {
+  WorkspaceFileContent,
+  WorkspaceFileEntry,
+} from "../../model/types";
 
-export interface MockFileEntry {
-  name: string;
-  path: string;
-  type: MockFileEntryType;
-}
+const EMPTY_DIR: WorkspaceFileEntry[] = [];
 
-type MockFileEncoding = "binary" | "text" | "too-large";
-
-export interface MockFileContent {
-  content: string;
-  encoding: MockFileEncoding;
-  mimeType: string;
-  size: number;
-}
-
-const EMPTY_DIR: MockFileEntry[] = [];
-
-const DIRS: Record<string, MockFileEntry[]> = {
+const DIRS: Record<string, WorkspaceFileEntry[]> = {
   "": [
     { name: "package.json", path: "package.json", type: "file" },
     { name: "src", path: "src", type: "directory" },
@@ -76,7 +64,7 @@ const DIRS: Record<string, MockFileEntry[]> = {
   assets: [{ name: "logo.png", path: "assets/logo.png", type: "file" }],
 };
 
-const FILE_BODIES: Record<string, MockFileContent> = {
+const FILE_BODIES: Record<string, WorkspaceFileContent> = {
   "package.json": {
     encoding: "text",
     mimeType: "application/json",
@@ -211,12 +199,12 @@ export function toMinor(amount: number): MinorUnits {
 };
 
 export function getMockDir(path: string): {
-  entries: MockFileEntry[];
+  entries: WorkspaceFileEntry[];
   path: string;
 } {
   return { path, entries: DIRS[path] ?? EMPTY_DIR };
 }
 
-export function getMockFile(path: string): MockFileContent | null {
+export function getMockFile(path: string): WorkspaceFileContent | null {
   return FILE_BODIES[path] ?? null;
 }

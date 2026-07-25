@@ -1,5 +1,5 @@
 import { Message, MessageContent } from "@/components/ui/message";
-import { lookupSubagent, nestedRunToMessages } from "../lib/mock-subagents";
+import { useChatData } from "../data/chat-data-context";
 import { MessageParts } from "./chat/message-parts";
 
 export function MockAgentRunPanel({
@@ -9,7 +9,8 @@ export function MockAgentRunPanel({
   runId: string;
   threadId: string;
 }) {
-  const run = lookupSubagent(threadId, runId);
+  const data = useChatData();
+  const run = data.lookupSubagent(threadId, runId);
 
   if (!run) {
     return (
@@ -19,7 +20,7 @@ export function MockAgentRunPanel({
     );
   }
 
-  const messages = nestedRunToMessages(run);
+  const messages = data.nestedRunToMessages(run);
   const turnBusy = run.status === "running";
 
   return (

@@ -28,6 +28,13 @@ export function ConsoleChrome({
             >
               sfab-lite
             </Link>
+            <span className="mx-1.5 text-[var(--line)]">/</span>
+            <Link
+              to={{ name: "apps" }}
+              className="text-[var(--muted-foreground)] no-underline"
+            >
+              Apps
+            </Link>
           </p>
           <h1 className="m-0 mt-1 font-semibold text-2xl tracking-tight">
             {title}

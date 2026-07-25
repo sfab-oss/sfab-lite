@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect } from "react";
 import { authClient } from "./auth-client";
-import { ChatScreen } from "./features/chat/page";
 import { useRouter } from "./router";
+import { AppDetailScreen } from "./screens/app-detail";
+import { AppsListScreen } from "./screens/apps-list";
 import { CreateAppScreen } from "./screens/create-app";
 import { SignInScreen } from "./screens/sign-in";
 
@@ -10,6 +11,16 @@ const UiKitScreen = import.meta.env.DEV
       import("./screens/ui-kit").then((m) => ({ default: m.UiKitScreen }))
     )
   : null;
+
+const ChatScreen = lazy(() =>
+  import("./features/chat/page").then((m) => ({ default: m.ChatScreen }))
+);
+
+function ChatFallback() {
+  return (
+    <main className="px-6 py-16 text-muted-foreground">Loading chat…</main>
+  );
+}
 
 export function App() {
   const { route, navigate } = useRouter();
@@ -41,7 +52,11 @@ export function App() {
   }
 
   if (devChat) {
-    return <ChatScreen />;
+    return (
+      <Suspense fallback={<ChatFallback />}>
+        <ChatScreen />
+      </Suspense>
+    );
   }
 
   if (isPending) {
@@ -58,5 +73,17 @@ export function App() {
     return <CreateAppScreen />;
   }
 
-  return <ChatScreen />;
+  if (route.name === "apps") {
+    return <AppsListScreen />;
+  }
+
+  if (route.name === "app") {
+    return <AppDetailScreen appId={route.appId} />;
+  }
+
+  return (
+    <Suspense fallback={<ChatFallback />}>
+      <ChatScreen />
+    </Suspense>
+  );
 }

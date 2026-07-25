@@ -18,8 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { lookupSubagent } from "../lib/mock-subagents";
-import { MOCK_VERSIONS } from "../lib/mock-versions";
+import { useChatData } from "../data/chat-data-context";
 import {
   type OpenTab,
   useThreadTabs,
@@ -46,17 +45,12 @@ const WORKSPACE_KINDS: WorkspaceKind[] = [
   "versions",
 ];
 
-const MOCK_TERMINAL_LINES = [
-  "pnpm test invoices",
-  "",
-  " ✓ src/features/invoices/__tests__/export.test.ts (7)",
-  " ✓ src/features/invoices/__tests__/filters.test.ts (5)",
-  "",
-  " Test Files  2 passed (2)",
-  "      Tests  12 passed (12)",
-];
-
-function tabLabel(tab: OpenTab, threadId: string, peers: OpenTab[]): string {
+function tabLabel(
+  tab: OpenTab,
+  threadId: string,
+  peers: OpenTab[],
+  lookupSubagent: ReturnType<typeof useChatData>["lookupSubagent"]
+): string {
   if (tab.kind === "agent-run" && tab.agentRunId) {
     return lookupSubagent(threadId, tab.agentRunId)?.title ?? "Agent run";
   }
@@ -83,8 +77,9 @@ function WorkspaceTabIcon({
   tab: OpenTab;
   threadId: string;
 }) {
+  const data = useChatData();
   if (tab.kind === "agent-run" && tab.agentRunId) {
-    const seed = lookupSubagent(threadId, tab.agentRunId)?.seed;
+    const seed = data.lookupSubagent(threadId, tab.agentRunId)?.seed;
     if (seed) {
       return (
         <AgentSigil className="size-3.5 shrink-0 text-foreground" id={seed} />
@@ -100,9 +95,10 @@ function WorkspaceTabIcon({
 }
 
 function VersionsBody() {
+  const data = useChatData();
   return (
     <ul className="flex h-full flex-col gap-1 overflow-auto p-3">
-      {MOCK_VERSIONS.map((version) => (
+      {data.listVersions().map((version) => (
         <li
           className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2"
           key={version.id}
@@ -123,13 +119,14 @@ function VersionsBody() {
 }
 
 function TabBody({ tab, threadId }: { tab: OpenTab; threadId: string }) {
+  const data = useChatData();
   if (tab.kind === "files") {
     return <MockSessionTabFiles />;
   }
   if (tab.kind === "terminal") {
     return (
       <pre className="h-full overflow-auto p-3 font-mono text-muted-foreground text-xs">
-        {MOCK_TERMINAL_LINES.join("\n")}
+        {data.listTerminalLines().join("\n")}
       </pre>
     );
   }
@@ -221,6 +218,7 @@ export function SessionWorkspacePanel({
   onDismiss?: () => void;
   threadId: string;
 }) {
+  const data = useChatData();
   const { tabs, activeId } = useThreadTabs(threadId);
   const openTab = useWorkspaceTabsStore((s) => s.openTab);
   const closeTab = useWorkspaceTabsStore((s) => s.closeTab);
@@ -247,7 +245,7 @@ export function SessionWorkspacePanel({
         ) : null}
         <TabsList className="h-9 min-w-0 flex-1 justify-start gap-1 overflow-x-auto bg-transparent p-0">
           {tabs.map((tab) => {
-            const label = tabLabel(tab, threadId, tabs);
+            const label = tabLabel(tab, threadId, tabs, data.lookupSubagent);
             return (
               <div className="relative flex shrink-0 items-center" key={tab.id}>
                 <TabsTrigger

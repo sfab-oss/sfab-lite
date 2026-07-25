@@ -106,7 +106,7 @@ export function AppDetailScreen({ appId }: { appId: string }) {
   return (
     <ConsoleChrome title={app?.name ?? "App"}>
       <p className="mt-0 mb-6">
-        <Link to={{ name: "chat" }} className="text-sm">
+        <Link to={{ name: "apps" }} className="text-sm">
           ← Apps
         </Link>
       </p>

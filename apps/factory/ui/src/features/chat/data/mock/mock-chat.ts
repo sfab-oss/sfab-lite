@@ -1,5 +1,6 @@
 import { type AiSdkChat, createChat } from "@shadcn/helpers/ai-sdk";
-import { listThreadSubagents, type MockSubagent } from "./mock-subagents";
+import type { AttachedFile, Subagent } from "../../model/types";
+import { listThreadSubagents } from "./mock-subagents";
 
 const DELTA_DELAY_MS = 35;
 const TOOL_RUN_MS = 700;
@@ -29,7 +30,7 @@ interface ChatWriter {
   };
 }
 
-function writeTaskTool(writer: ChatWriter, run: MockSubagent) {
+function writeTaskTool(writer: ChatWriter, run: Subagent) {
   const handle = writer.tool("task", {
     toolCallId: run.id,
     input: {
@@ -65,7 +66,7 @@ function writeThreadTasks(writer: ChatWriter, threadId: string) {
   }
 }
 
-function requireSubagent(threadId: string, runId: string): MockSubagent {
+function requireSubagent(threadId: string, runId: string): Subagent {
   const run = listThreadSubagents(threadId).find((entry) => entry.id === runId);
   if (!run) {
     throw new Error(`Missing mock subagent ${runId} on ${threadId}`);
@@ -650,18 +651,10 @@ export function createThreadChat(threadId: string): MockChat {
   return script ? script() : createChat();
 }
 
-export interface ThreadAttachedFile {
-  filename: string;
-  mediaType?: string;
-  url?: string;
-}
-
-export function listThreadAttachedFiles(
-  threadId: string
-): ThreadAttachedFile[] {
+export function listThreadAttachedFiles(threadId: string): AttachedFile[] {
   const messages = createThreadChat(threadId).get();
   const seen = new Set<string>();
-  const files: ThreadAttachedFile[] = [];
+  const files: AttachedFile[] = [];
 
   for (const message of messages) {
     for (const part of message.parts) {

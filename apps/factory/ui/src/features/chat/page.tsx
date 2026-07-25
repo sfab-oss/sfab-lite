@@ -32,10 +32,13 @@ import { ThreadHeaderMenu } from "./components/thread-header-menu";
 import { ThreadSummaryPanel } from "./components/thread-summary-panel";
 import { ThreadTranscript } from "./components/thread-transcript";
 import { SessionThreadsSidebar } from "./components/threads-sidebar";
-import { MOCK_THREADS, type MockThread } from "./lib/mock-threads";
+import { ChatDataProvider } from "./data/chat-data-context";
+import { createMockChatData } from "./data/mock/create-mock-chat-data";
 import { useWorkspaceTabsStore } from "./lib/workspace-tabs-store";
+import type { Thread } from "./model/types";
 
 const TITLE_FIRST_LINE = /\n/;
+const chatData = createMockChatData();
 
 function titleFromText(text: string): string {
   const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "New thread";
@@ -43,10 +46,20 @@ function titleFromText(text: string): string {
 }
 
 export function ChatScreen() {
+  return (
+    <ChatDataProvider value={chatData}>
+      <ChatScreenInner />
+    </ChatDataProvider>
+  );
+}
+
+function ChatScreenInner() {
   const isMobile = useIsMobile();
   const { route, navigate } = useRouter();
   const [search, setSearch] = useState("");
-  const [threads, setThreads] = useState<MockThread[]>(MOCK_THREADS);
+  const [threads, setThreads] = useState<Thread[]>(() =>
+    chatData.listThreads()
+  );
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [seedByThread, setSeedByThread] = useState<Record<string, string>>({});
   const [scopeAppId, setScopeAppId] = useState<string | null>(null);
@@ -67,16 +80,10 @@ export function ChatScreen() {
       );
       return;
     }
-    if (route.name === "app") {
-      setScopeAppId(route.appId);
-      setActiveThreadId(null);
-      navigate({ name: "chat" }, true);
-      return;
-    }
-    if (route.name === "chat" || route.name === "apps") {
+    if (route.name === "chat") {
       setActiveThreadId(null);
     }
-  }, [navigate, route]);
+  }, [route]);
 
   const goChatHome = useCallback(() => {
     if (import.meta.env.DEV && route.name === "dev-chat") {
@@ -156,7 +163,7 @@ export function ChatScreen() {
       const appId =
         scopedApp?.appId ?? `app_${crypto.randomUUID().slice(0, 8)}`;
       const appName = scopedApp?.appName ?? titleFromText(text);
-      const thread: MockThread = {
+      const thread: Thread = {
         id,
         appId,
         appName,
@@ -217,7 +224,6 @@ export function ChatScreen() {
             homeActive={
               activeThreadId === null &&
               (route.name === "chat" ||
-                route.name === "apps" ||
                 (route.name === "dev-chat" && !route.threadId))
             }
             onGoHome={goHome}
@@ -273,7 +279,7 @@ export function ChatScreen() {
 }
 
 interface ChatChromeProps {
-  activeThread: MockThread | null;
+  activeThread: Thread | null;
   canDock: boolean;
   onBlankSubmit: (text: string) => void;
   onCloseRail: () => void;
@@ -421,7 +427,7 @@ function ThreadHeader({
   summaryOpen,
   workspaceOpen,
 }: {
-  activeThread: MockThread | null;
+  activeThread: Thread | null;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   summaryOpen: boolean;

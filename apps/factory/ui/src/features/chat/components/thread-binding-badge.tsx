@@ -5,7 +5,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { MockThread } from "../lib/mock-threads";
+import type { Thread } from "../model/types";
 
 export function ThreadBindingBadge({
   thread,
@@ -14,7 +14,7 @@ export function ThreadBindingBadge({
 }: {
   className?: string;
   size?: "default" | "sm";
-  thread: MockThread;
+  thread: Thread;
 }) {
   if (!thread.appName) {
     return null;
