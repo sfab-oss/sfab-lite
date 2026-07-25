@@ -150,10 +150,10 @@ export function resolveOrganization(
  * routes take an app id and nothing else, and the app id is the only thing
  * standing between two tenants.
  *
- * Uses `appBelongsToOrganization` rather than `getApp` deliberately: `getApp`
- * runs the stale-`creating` sweep, and this check sits on the attempt-polling
- * path the UI hits every couple of seconds. An ownership test must be one
- * indexed read, not a reconciliation pass.
+ * Uses `appBelongsToOrganization` rather than `getAppUnscoped` deliberately:
+ * `getAppUnscoped` runs the stale-`creating` sweep, and this check sits on the
+ * attempt-polling path the UI hits every couple of seconds. An ownership test
+ * must be one indexed read, not a reconciliation pass.
  */
 export async function requireAppAccess(
   db: Db,

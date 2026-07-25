@@ -20,7 +20,7 @@ import {
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
 import {
-  getApp,
+  getAppUnscoped,
   insertCreatingApp,
   listAppsForOrganization,
   markCreateFailed,
@@ -98,8 +98,15 @@ const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
  */
 async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
+    organizationId?: unknown;
     name?: string;
   } | null;
+  // Body `organizationId` moved to `?organizationId=` (S3c.2). Reject the
+  // legacy field so a session cannot silently ignore a named-other-org and a
+  // token/session do not disagree on the same request shape.
+  if (body != null && Object.hasOwn(body, "organizationId")) {
+    return jsonError("organizationId_must_be_query_param");
+  }
   const { organizationId } = rc;
   const name = body?.name?.trim();
   if (!name) {
@@ -178,7 +185,7 @@ async function handleListApps(rc: OrgCtx): Promise<Response> {
  * here because a status poll is when reconciling matters.
  */
 async function handleGetApp(rc: AppCtx): Promise<Response> {
-  const record = await getApp(
+  const record = await getAppUnscoped(
     createDb(rc.env),
     rc.appId,
     attemptResolver(rc.env)

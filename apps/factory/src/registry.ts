@@ -4,7 +4,7 @@
  * Durable Objects cannot be listed (`idFromName` is a hash), so every created
  * app must land a row here before its AppDO is seeded. Create/list take an
  * `organizationId` from the dispatcher (`OrgCtx`); app-scoped reads
- * (`getApp`) are by id alone after `requireAppAccess`.
+ * (`getAppUnscoped`) are by id alone after `requireAppAccess`.
  */
 import { and, desc, eq, lt } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
@@ -57,9 +57,9 @@ export async function organizationExists(
 /**
  * Ownership test for app-scoped admin routes — one indexed read, nothing else.
  *
- * Kept separate from `getApp` on purpose: `getApp` runs the stale-`creating`
- * sweep, which is right for a status read and wrong for an authorization check
- * that sits on the attempt-polling hot path.
+ * Kept separate from `getAppUnscoped` on purpose: `getAppUnscoped` runs the
+ * stale-`creating` sweep, which is right for a status read and wrong for an
+ * authorization check that sits on the attempt-polling hot path.
  */
 export async function appBelongsToOrganization(
   db: Db,
@@ -211,13 +211,14 @@ export async function listAppsForOrganization(
 }
 
 /**
- * Fetch one app by id, after the dispatcher has already authorized access.
+ * Fetch one app by id with **no organization filter**.
  *
- * Ownership is not re-checked here — `requireAppAccess` on the route is the
- * gate. This function exists so a status poll can also run the stale-
- * `creating` sweep. Absent means 404 to the handler.
+ * Unscoped on purpose — the name is the warning. The caller must already have
+ * authorized access to this `appId` (today: `requireAppAccess` in
+ * `dispatchAdmin`). Calling this outside that gate is a silent cross-tenant
+ * read. Also runs the stale-`creating` sweep so a status poll can reconcile.
  */
-export async function getApp(
+export async function getAppUnscoped(
   db: Db,
   appId: string,
   resolveAttempt: AttemptResolver

@@ -13,7 +13,8 @@
  * to wait for.
  *
  * Admin (S3c): every `/admin/*` request needs a credential — a matching
- * `X-Admin-Token` (root, must name its `organizationId`) or a signed-in
+ * `X-Admin-Token` (root: must pass `organizationId` as a query param on
+ * organization-scoped routes; app-scoped routes need none) or a signed-in
  * session (scoped to its own organization). No credential is 401 whatever the
  * config says; a missing `ADMIN_TOKEN` no longer opens the surface. See
  * `tenancy.ts`. Admin handlers and dispatch live in `admin.ts`; commit
