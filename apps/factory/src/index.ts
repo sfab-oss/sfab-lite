@@ -21,6 +21,7 @@ import type {
   PutVersionInput,
   VersionRecord,
 } from "./app-do.js";
+import { createAuth, passwordAuthEnabled } from "./auth.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
@@ -603,19 +604,40 @@ async function handleRevert(rc: RouteCtx): Promise<Response> {
   return Response.json({ appId, action: "revert", ...result });
 }
 
-function handleHealth(_rc: RouteCtx): Response {
+function handleHealth(rc: RouteCtx): Response {
   return Response.json({
     ok: true,
     service: "sfab-lite-factory",
     phase: "s2d",
     bindings: {
-      check: Boolean(_rc.env.CHECK),
-      lint: Boolean(_rc.env.LINT),
-      loader: Boolean(_rc.env.LOADER),
+      check: Boolean(rc.env.CHECK),
+      lint: Boolean(rc.env.LINT),
+      loader: Boolean(rc.env.LOADER),
     },
     seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
     seedMigrations: TEMPLATE_SEED.migrations.length,
+    // better-auth does not unregister email/password routes when disabled —
+    // it returns 400 at handler entry — so a UI cannot probe for a 404 and
+    // must be told the flag by the server.
+    passwordAuth: passwordAuthEnabled(rc.env),
   });
+}
+
+/**
+ * Public factory config for the sign-in UI. Unauthenticated on purpose:
+ * better-auth does not unregister email/password routes when disabled — it
+ * returns 400 at handler entry — so a UI cannot probe for a 404 and must be
+ * told the flag by the server. Do not re-read env client-side.
+ */
+function handleApiConfig(rc: RouteCtx): Response {
+  return Response.json({
+    passwordAuth: passwordAuthEnabled(rc.env),
+  });
+}
+
+function handleAuth(rc: RouteCtx): Promise<Response> | Response {
+  const auth = createAuth(rc.env, rc.url.origin);
+  return auth.handler(rc.request);
 }
 
 function handleKernel(rc: RouteCtx): Response {
@@ -637,6 +659,9 @@ function handleSubApp(rc: RouteCtx): Promise<Response> {
 
 const ROUTES: Route[] = [
   { method: "GET", pattern: /^\/admin\/health$/, handler: handleHealth },
+  // Public — must stay outside the /admin token gate (see fetch below).
+  { method: "GET", pattern: /^\/api\/config$/, handler: handleApiConfig },
+  { method: "*", pattern: /^\/api\/auth(?:\/.*)?$/, handler: handleAuth },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
   { method: "POST", pattern: /^\/admin\/apps$/, handler: handleCreateApp },
