@@ -12,18 +12,24 @@ concurrency:
 
 # One job, one install, every gate as its own named step.
 #
-# These gates run 0-4s each — about 9s for all seven — against ~16s of
-# per-job setup (runner, checkout, pnpm, node, install). Splitting them
-# across six jobs paid that 16s six times to buy parallelism the runner
-# pool does not actually grant: only four runners are assigned at once, so
-# six jobs already ran in two waves.
+# Most of these gates run 0-4s against ~16s of per-job setup (runner,
+# checkout, pnpm, node, install). Splitting them across six jobs paid that
+# setup six times over. On GitHub-hosted runners the case is stronger still,
+# since billing rounds each job up to a whole minute — six jobs would bill
+# six minutes to do about one minute of work.
 #
 # Per-gate attribution was the real reason to split, and it survives: each
 # gate carries an `if:` so one failure does not skip the rest. A red run
 # still names every gate that failed, in one log instead of six.
+# Runner: GitHub-hosted, matching sfab-starter (#92). Blacksmith serves the
+# older repos instantly but consistently made this one wait ~13 minutes for a
+# runner to execute ~32 seconds of gates — apparently because a day-old repo
+# has no warm capacity there. The queue cost dwarfed any speed advantage.
+# This repo is private, so these minutes draw on the monthly private-repo
+# allowance rather than being free as they are for the public starter.
 jobs:
   gates:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
 
