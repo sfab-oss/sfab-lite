@@ -82,10 +82,22 @@ async function provisionOwnerOrganization(
       // Prefer a failed sign-up over an org-less user the session hook
       // cannot activate. Cascade clears account/session rows that auto
       // sign-in may already have written.
-      await db
-        .delete(user)
-        .where(eq(user.id, createdUser.id))
-        .catch(() => undefined);
+      //
+      // Deliberately NOT swallowed. The adapter runs with `transaction:
+      // false`, so the user row is already committed by the time this hook
+      // runs — this delete is a compensating action, not a rollback, and it
+      // is the only thing standing between a failed provision and an
+      // org-less account whose email is now permanently taken. If it fails,
+      // that is the loudest fact available and it must reach the caller.
+      try {
+        await db.delete(user).where(eq(user.id, createdUser.id));
+      } catch (cleanupFailed) {
+        const why = second instanceof Error ? second.message : String(second);
+        throw new Error(
+          `sign-up could not provision an organization for user ${createdUser.id} (${why}), and the compensating delete of that user ALSO failed — an org-less account remains and its email is now taken`,
+          { cause: cleanupFailed }
+        );
+      }
       throw second instanceof Error ? second : first;
     }
   }

@@ -37,9 +37,15 @@ declare global {
      */
     APP_BETTER_AUTH_SECRET: string;
     /**
-     * Enables email+password on the **factory's** sign-in. Default off, so a
-     * deploy that sets nothing gets GitHub-only — the intended production
-     * shape. Fail-safe beats fail-open for an auth toggle.
+     * Enables email+password on the **factory's** sign-in. Default off:
+     * fail-safe beats fail-open for an auth toggle.
+     *
+     * ⚠ Today "off" means **no sign-in at all**, not "GitHub only". The
+     * intended production shape is GitHub OAuth, but no social provider is
+     * wired yet — registering the OAuth app is an owner prerequisite. Until
+     * that lands, a deploy with this unset mounts `/api/auth/*` and every
+     * sign-in attempt 400s. Do not read this flag as "the safe production
+     * default" before checking that a provider actually exists.
      *
      * Real enforcement, but not route removal: better-auth checks the option
      * at handler entry and returns 400, so the endpoints stay mounted. The UI

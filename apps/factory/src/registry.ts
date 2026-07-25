@@ -131,25 +131,61 @@ export async function markCreateFailed(db: Db, appId: string): Promise<void> {
 }
 
 /**
- * Sweep `creating` rows older than `STALE_ATTEMPT_MS`.
+ * Resolve a seed attempt's real status from the AppDO.
  *
- * Same reasoning as `AppDO.#sweepStaleAttempts`: a crash between the D1
- * insert and a terminal attempt status would otherwise leave the row stuck
- * forever. Same constant so the two backstops cannot disagree about "dead".
+ * A callback rather than a direct stub call: `registry.ts` must not import the
+ * host worker's plumbing, and the Durable Object is the authority here — D1
+ * only mirrors it.
  */
-async function sweepStaleCreating(db: Db): Promise<void> {
+export type AttemptResolver = (
+  appId: string,
+  attemptId: string
+) => Promise<"pass" | "fail" | "error" | "pending" | "missing">;
+
+/**
+ * Reconcile `creating` rows older than `STALE_ATTEMPT_MS` against the AppDO.
+ *
+ * Same trigger as `AppDO.#sweepStaleAttempts` — a dropped `waitUntil` between
+ * the D1 insert and a terminal status — and the same constant, so the two
+ * backstops cannot disagree about what "dead" means.
+ *
+ * It must **ask** rather than assume. Blindly failing every stale row would
+ * mislabel the one case that matters: a seed that actually passed, whose
+ * settle never ran. That app is live and serving at `/a/:appId` and its
+ * attempt reads `pass`, while the registry would call it `failed` forever —
+ * a worse outcome than the stuck `creating` row this sweep exists to clear.
+ */
+async function sweepStaleCreating(
+  db: Db,
+  resolveAttempt: AttemptResolver
+): Promise<void> {
   const cutoff = new Date(Date.now() - STALE_ATTEMPT_MS);
-  await db
-    .update(app)
-    .set({ status: "failed" })
-    .where(and(eq(app.status, "creating"), lt(app.createdAt, cutoff)));
+  const stale = await db.query.app.findMany({
+    where: and(eq(app.status, "creating"), lt(app.createdAt, cutoff)),
+    columns: { id: true, createAttemptId: true },
+  });
+
+  for (const row of stale) {
+    // No attempt id means creation died before it ever opened one. Nothing to
+    // ask, and nothing can have been seeded — unambiguously failed.
+    if (!row.createAttemptId) {
+      await markCreateFailed(db, row.id);
+      continue;
+    }
+    // The AppDO is the authority on whether the seed passed; D1 only mirrors
+    // it. `pending` cannot survive here — the DO's own sweep uses the same
+    // ceiling and will already have moved it to `error`.
+    const status = await resolveAttempt(row.id, row.createAttemptId);
+    await settleCreateApp(db, row.id, status === "pass" ? "pass" : "fail");
+  }
 }
 
 export async function listAppsForOrganization(
   db: Db,
-  organizationId: string
+  organizationId: string,
+  resolveAttempt: AttemptResolver
 ): Promise<AppRecord[]> {
-  await sweepStaleCreating(db);
+  await sweepStaleCreating(db, resolveAttempt);
   const rows = await db.query.app.findMany({
     where: eq(app.organizationId, organizationId),
     orderBy: [desc(app.createdAt)],
@@ -169,9 +205,10 @@ export async function listAppsForOrganization(
 export async function getApp(
   db: Db,
   organizationId: string,
-  appId: string
+  appId: string,
+  resolveAttempt: AttemptResolver
 ): Promise<AppRecord | null> {
-  await sweepStaleCreating(db);
+  await sweepStaleCreating(db, resolveAttempt);
   const row = await db.query.app.findFirst({
     where: and(eq(app.id, appId), eq(app.organizationId, organizationId)),
   });

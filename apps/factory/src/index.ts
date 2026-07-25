@@ -29,6 +29,7 @@ import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
+import type { AttemptResolver } from "./registry.js";
 import {
   getApp,
   insertCreatingApp,
@@ -555,6 +556,18 @@ async function handleCreateApp(rc: RouteCtx): Promise<Response> {
   });
 }
 
+/**
+ * How the registry asks the AppDO what really happened to a seed attempt.
+ * Passed in rather than imported by `registry.ts`, which must not reach into
+ * the host worker's plumbing.
+ */
+function attemptResolver(env: Env): AttemptResolver {
+  return async (appId, attemptId) => {
+    const { attempt } = await appStub(env, appId).getAttempt(attemptId);
+    return attempt ? attempt.status : "missing";
+  };
+}
+
 async function handleListApps(rc: RouteCtx): Promise<Response> {
   // Session swap point (list): `organizationId` query → active org on session.
   const organizationId = rc.url.searchParams.get("organizationId")?.trim();
@@ -565,7 +578,11 @@ async function handleListApps(rc: RouteCtx): Promise<Response> {
   if (!(await organizationExists(db, organizationId))) {
     return jsonError("organization_not_found", 404);
   }
-  const apps = await listAppsForOrganization(db, organizationId);
+  const apps = await listAppsForOrganization(
+    db,
+    organizationId,
+    attemptResolver(rc.env)
+  );
   return Response.json({ ok: true, organizationId, apps });
 }
 
@@ -576,7 +593,12 @@ async function handleGetApp(rc: RouteCtx): Promise<Response> {
     return jsonError("organizationId required");
   }
   const appId = decodeURIComponent(rc.match[1] ?? "");
-  const record = await getApp(createDb(rc.env), organizationId, appId);
+  const record = await getApp(
+    createDb(rc.env),
+    organizationId,
+    appId,
+    attemptResolver(rc.env)
+  );
   if (!record) {
     // Deliberately the same answer for "no such app" and "not your app".
     return jsonError("app_not_found", 404);
