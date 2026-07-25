@@ -32,6 +32,7 @@ import type {
   AdminCtx,
   AdminRoute,
   AppCtx,
+  OrgCtx,
   RequestCtx,
   RouteCtx,
 } from "./routes.js";
@@ -90,20 +91,16 @@ const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
  * returned `alreadySeeded: true` on collision — with owning organizations that
  * was a tenancy hole (silently attach to whoever already held the name). Gone.
  *
- * The owning organization comes from the actor (S3c): a session acts on its
- * own, a token must name one. `registry.ts` was written to take it as an
- * argument and needed no change.
+ * The owning organization comes from the dispatcher (S3c.2): a session acts
+ * on its own, a token must name one via `?organizationId=`. The body carries
+ * only `name`. `registry.ts` was written to take the org as an argument and
+ * needed no change.
  */
-async function handleCreateApp(rc: AdminCtx): Promise<Response> {
+async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
-    organizationId?: string;
     name?: string;
   } | null;
-  const scope = resolveOrganization(rc.actor, body?.organizationId);
-  if (scope instanceof Response) {
-    return scope;
-  }
-  const { organizationId } = scope;
+  const { organizationId } = rc;
   const name = body?.name?.trim();
   if (!name) {
     return jsonError("name required");
@@ -159,15 +156,8 @@ async function handleCreateApp(rc: AdminCtx): Promise<Response> {
   });
 }
 
-async function handleListApps(rc: AdminCtx): Promise<Response> {
-  const scope = resolveOrganization(
-    rc.actor,
-    rc.url.searchParams.get("organizationId") ?? undefined
-  );
-  if (scope instanceof Response) {
-    return scope;
-  }
-  const { organizationId } = scope;
+async function handleListApps(rc: OrgCtx): Promise<Response> {
+  const { organizationId } = rc;
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
     return jsonError("organization_not_found", 404);
@@ -188,6 +178,11 @@ async function handleListApps(rc: AdminCtx): Promise<Response> {
  * this route is also where the stale-`creating` sweep belongs (a status poll
  * is exactly when reconciling matters), and "every `/admin/apps/:id…` route is
  * access-checked, no exceptions" is worth more than saving a read.
+ *
+ * Still calls `resolveOrganization` itself on purpose. This is `scope: "app"`,
+ * and app-scoped routes must NOT require a token caller to name an
+ * organization — root addressing by app id alone is deliberate and
+ * pre-existing. Do not hoist this into the dispatcher.
  */
 async function handleGetApp(rc: AppCtx): Promise<Response> {
   const scope = resolveOrganization(
@@ -359,19 +354,19 @@ const ADMIN_ROUTES: AdminRoute[] = [
   {
     method: "GET",
     pattern: /^\/admin\/health$/,
-    scope: "factory",
+    scope: "none",
     handler: handleHealth,
   },
   {
     method: "GET",
     pattern: /^\/admin\/apps$/,
-    scope: "factory",
+    scope: "organization",
     handler: handleListApps,
   },
   {
     method: "POST",
     pattern: /^\/admin\/apps$/,
-    scope: "factory",
+    scope: "organization",
     handler: handleCreateApp,
   },
   {
@@ -427,6 +422,9 @@ const ADMIN_ROUTES: AdminRoute[] = [
  * Credential first, route second — deliberately. Resolving the actor before
  * matching means an unknown `/admin/…` path answers 401 rather than 404 to an
  * anonymous caller, so the admin surface is not enumerable by probing.
+ *
+ * For `scope: "organization"` routes the dispatcher also resolves the org
+ * from `?organizationId=` before the handler runs.
  */
 export async function dispatchAdmin(rc: RequestCtx): Promise<Response> {
   const db = createDb(rc.env);
@@ -441,8 +439,22 @@ export async function dispatchAdmin(rc: RequestCtx): Promise<Response> {
   }
 
   const base: AdminCtx = { ...rc, match: hit.match, actor };
-  if (hit.route.scope === "factory") {
+  if (hit.route.scope === "none") {
     return await hit.route.handler(base);
+  }
+
+  if (hit.route.scope === "organization") {
+    const scope = resolveOrganization(
+      actor,
+      rc.url.searchParams.get("organizationId") ?? undefined
+    );
+    if (scope instanceof Response) {
+      return scope;
+    }
+    return await hit.route.handler({
+      ...base,
+      organizationId: scope.organizationId,
+    });
   }
 
   const appId = decodeURIComponent(hit.match[1] ?? "");

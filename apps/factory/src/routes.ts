@@ -25,6 +25,15 @@ export interface AdminCtx extends RouteCtx {
 }
 
 /**
+ * An admin request whose organization has already been resolved by the
+ * dispatcher. `organizationId` is always derived from the query param (or
+ * the session); handlers never read it from a JSON body.
+ */
+export interface OrgCtx extends AdminCtx {
+  organizationId: string;
+}
+
+/**
  * An admin request for one specific app, already checked to belong to the
  * actor. `appId` arrives decoded because the dispatcher had to decode it to
  * run that check — handlers no longer parse `match[1]` themselves.
@@ -42,18 +51,25 @@ export interface PublicRoute {
 /**
  * Admin routes declare their scope, and the scope *is* the authorization.
  *
- * `"app"` routes take an app id in `match[1]`; the dispatcher runs
- * `requireAppAccess` and hands the handler an `AppCtx`. A new app-scoped route
- * cannot silently skip the ownership check, because the only way to receive an
- * `appId` is to ask for the scope that checks it.
+ * - `"none"` — no organization needed (only `/admin/health`).
+ * - `"organization"` — dispatcher resolves org from the query param and
+ *   hands the handler an `OrgCtx`.
+ * - `"app"` — dispatcher decodes the app id, runs `requireAppAccess`, and
+ *   hands the handler an `AppCtx`. A new app-scoped route cannot silently
+ *   skip the ownership check, because the only way to receive an `appId` is
+ *   to ask for the scope that checks it.
  */
 export type AdminRoute = {
   method: string | readonly string[];
   pattern: RegExp;
 } & (
   | {
-      scope: "factory";
+      scope: "none";
       handler: (rc: AdminCtx) => Promise<Response> | Response;
+    }
+  | {
+      scope: "organization";
+      handler: (rc: OrgCtx) => Promise<Response> | Response;
     }
   | { scope: "app"; handler: (rc: AppCtx) => Promise<Response> | Response }
 );
