@@ -50,10 +50,12 @@ const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
  * **404 PROVIDER_NOT_FOUND**. Inferring "off" from either status would be
  * wrong about the other method. Do not re-read env client-side.
  *
- * `no-store`: the console fetches this once at mount with no cache-buster, so
- * an edge-cached response is stale for the life of the page — this has
- * already produced a correct deploy that looked broken and a console that
- * rendered the wrong auth config.
+ * `no-store` is precautionary, not a fix for an observed bug: nothing caches
+ * this today (measured — no `cf-cache-status` on the response), and the
+ * staleness we chased was secret propagation after `wrangler secret put`,
+ * which no header affects. It is here because the console reads this once at
+ * mount, so anything that ever did cache it would pin the wrong auth config
+ * for the life of the page.
  */
 function handleApiConfig(rc: RouteCtx): Response {
   return Response.json(
