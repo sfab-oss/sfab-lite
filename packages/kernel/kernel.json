@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0",
   "pins": {
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -219,5 +219,5 @@
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,
-  "note": "kernel@0.2.0 — server + types VFS + client chunks + CSS VFS"
+  "note": "kernel@0.3.0 — server + types VFS + client chunks + CSS VFS"
 }
