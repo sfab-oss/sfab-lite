@@ -35,7 +35,7 @@ export function CreateAppScreen() {
 
   return (
     <ConsoleChrome title="New app">
-      <p className="mt-0 text-[var(--muted)] text-sm">
+      <p className="mt-0 text-[var(--muted-foreground)] text-sm">
         Creates a registry row and seeds the starter template. The request
         returns immediately; the app stays <code>creating</code> while check
         runs, then becomes <code>ready</code> on its own.

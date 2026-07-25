@@ -21,10 +21,10 @@ export function ConsoleChrome({
     <div className="mx-auto min-h-screen max-w-3xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-[var(--line)] border-b pb-4">
         <div>
-          <p className="m-0 font-medium text-[var(--muted)] text-xs uppercase tracking-wide">
+          <p className="m-0 font-medium text-[var(--muted-foreground)] text-xs uppercase tracking-wide">
             <Link
               to={{ name: "apps" }}
-              className="text-[var(--muted)] no-underline"
+              className="text-[var(--muted-foreground)] no-underline"
             >
               sfab-lite
             </Link>
@@ -35,7 +35,9 @@ export function ConsoleChrome({
         </div>
         <div className="flex items-center gap-3 text-sm">
           {session?.user?.email ? (
-            <span className="text-[var(--muted)]">{session.user.email}</span>
+            <span className="text-[var(--muted-foreground)]">
+              {session.user.email}
+            </span>
           ) : null}
           <button
             type="button"

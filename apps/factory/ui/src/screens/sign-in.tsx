@@ -42,7 +42,7 @@ export function SignInScreen() {
   if (sessionPending || !(config || configError)) {
     return (
       <Shell>
-        <p className="text-[var(--muted)]">Loading…</p>
+        <p className="text-[var(--muted-foreground)]">Loading…</p>
       </Shell>
     );
   }
@@ -51,7 +51,9 @@ export function SignInScreen() {
     return (
       <Shell>
         <p className="text-[var(--danger)]">Could not load sign-in config.</p>
-        <p className="mt-2 text-[var(--muted)] text-sm">{configError}</p>
+        <p className="mt-2 text-[var(--muted-foreground)] text-sm">
+          {configError}
+        </p>
       </Shell>
     );
   }
@@ -67,7 +69,7 @@ export function SignInScreen() {
       <h1 className="m-0 font-semibold text-2xl tracking-tight">
         {mode === "signup" ? "Create account" : "Sign in"}
       </h1>
-      <p className="mt-2 text-[var(--muted)] text-sm">
+      <p className="mt-2 text-[var(--muted-foreground)] text-sm">
         Factory console — manage apps for your organization.
       </p>
       <SignInBody
@@ -152,7 +154,9 @@ function SignInBody({
       ) : null}
 
       {config.passwordAuth && config.githubAuth ? (
-        <p className="m-0 text-center text-[var(--muted)] text-xs">or</p>
+        <p className="m-0 text-center text-[var(--muted-foreground)] text-xs">
+          or
+        </p>
       ) : null}
 
       {config.passwordAuth ? (
@@ -210,7 +214,7 @@ function SignInBody({
                 setMode(mode === "signin" ? "signup" : "signin");
                 setError(null);
               }}
-              className="border-0 bg-transparent p-0 text-left text-[var(--accent)] text-sm underline"
+              className="border-0 bg-transparent p-0 text-left text-[var(--brand)] text-sm underline"
             >
               {mode === "signin"
                 ? "Need an account? Sign up"
@@ -252,7 +256,7 @@ function NoAuthConfigured() {
       <p className="m-0 font-medium text-[var(--danger)]">
         No sign-in method configured on this deploy
       </p>
-      <p className="mt-2 mb-0 text-[var(--muted)] text-sm">
+      <p className="mt-2 mb-0 text-[var(--muted-foreground)] text-sm">
         Set <code>PASSWORD_AUTH=true</code> (local) and/or both{" "}
         <code>GITHUB_CLIENT_ID</code> and <code>GITHUB_CLIENT_SECRET</code>{" "}
         (production). Until then there is no way to authenticate.
@@ -271,7 +275,7 @@ function submitLabel(busy: boolean, mode: AuthMode): string {
 function Shell({ children }: { children: ReactNode }) {
   return (
     <main className="mx-auto max-w-lg px-6 py-16">
-      <p className="m-0 mb-8 font-medium text-[var(--muted)] text-sm uppercase tracking-wide">
+      <p className="m-0 mb-8 font-medium text-[var(--muted-foreground)] text-sm uppercase tracking-wide">
         sfab-lite
       </p>
       {children}

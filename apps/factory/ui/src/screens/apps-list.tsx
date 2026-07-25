@@ -81,10 +81,10 @@ export function AppsListScreen() {
   if (error && apps === null) {
     body = <p className="text-[var(--danger)]">{error}</p>;
   } else if (apps === null) {
-    body = <p className="text-[var(--muted)]">Loading apps…</p>;
+    body = <p className="text-[var(--muted-foreground)]">Loading apps…</p>;
   } else if (apps.length === 0) {
     body = (
-      <p className="text-[var(--muted)]">
+      <p className="text-[var(--muted-foreground)]">
         No apps yet. Create one to seed the starter template.
       </p>
     );
@@ -105,7 +105,7 @@ export function AppsListScreen() {
             >
               <span>
                 <span className="font-medium">{app.name}</span>
-                <span className="mt-0.5 block font-mono text-[var(--muted)] text-xs">
+                <span className="mt-0.5 block font-mono text-[var(--muted-foreground)] text-xs">
                   {app.id}
                 </span>
               </span>
@@ -129,7 +129,7 @@ export function AppsListScreen() {
     <ConsoleChrome title="Apps">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <p className="m-0 text-[var(--muted)] text-sm">
+          <p className="m-0 text-[var(--muted-foreground)] text-sm">
             Organization{" "}
             <code className="text-[var(--ink)]">{organizationId ?? "…"}</code>
           </p>
@@ -195,7 +195,7 @@ function DeleteAppButton({
         type="button"
         onClick={() => setArmed(true)}
         aria-label={`Delete ${app.name}`}
-        className="border-0 bg-transparent px-3 py-3 text-[var(--muted)] text-xs hover:text-[var(--danger)]"
+        className="border-0 bg-transparent px-3 py-3 text-[var(--muted-foreground)] text-xs hover:text-[var(--danger)]"
       >
         Delete
       </button>
@@ -216,7 +216,7 @@ function DeleteAppButton({
         type="button"
         disabled={busy}
         onClick={() => setArmed(false)}
-        className="border-0 bg-transparent p-0 text-[var(--muted)] disabled:opacity-50"
+        className="border-0 bg-transparent p-0 text-[var(--muted-foreground)] disabled:opacity-50"
       >
         Cancel
       </button>

@@ -1,11 +1,16 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { authClient } from "./auth-client";
 import { useRouter } from "./router";
 import { AppDetailScreen } from "./screens/app-detail";
 import { AppsListScreen } from "./screens/apps-list";
 import { CreateAppScreen } from "./screens/create-app";
 import { SignInScreen } from "./screens/sign-in";
-import { UiKitScreen } from "./screens/ui-kit";
+
+const UiKitScreen = import.meta.env.DEV
+  ? lazy(() =>
+      import("./screens/ui-kit").then((m) => ({ default: m.UiKitScreen }))
+    )
+  : null;
 
 export function App() {
   const { route, navigate } = useRouter();
@@ -16,19 +21,27 @@ export function App() {
     if (
       !(isPending || signedIn) &&
       route.name !== "sign-in" &&
-      route.name !== "ui-kit"
+      !(import.meta.env.DEV && route.name === "ui-kit")
     ) {
       navigate({ name: "sign-in" }, true);
     }
   }, [isPending, signedIn, route.name, navigate]);
 
-  if (route.name === "ui-kit") {
-    return <UiKitScreen />;
+  if (import.meta.env.DEV && route.name === "ui-kit" && UiKitScreen) {
+    return (
+      <Suspense
+        fallback={
+          <main className="px-6 py-16 text-muted-foreground">Loading…</main>
+        }
+      >
+        <UiKitScreen />
+      </Suspense>
+    );
   }
 
   if (isPending) {
     return (
-      <main className="px-6 py-16 text-[var(--muted)]">Loading session…</main>
+      <main className="px-6 py-16 text-muted-foreground">Loading session…</main>
     );
   }
 

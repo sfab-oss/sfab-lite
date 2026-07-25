@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 
 export type MarkdownProps = ComponentProps<typeof Streamdown>;
 
-/** Streamdown markdown body shared by chat + leftover markdown surfaces. */
 export const Markdown = memo(
   ({ className, ...props }: MarkdownProps) => (
     <Streamdown

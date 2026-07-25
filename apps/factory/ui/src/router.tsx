@@ -21,7 +21,7 @@ function parsePath(pathname: string): Route {
   if (path === "/signin" || path === "/sign-in") {
     return { name: "sign-in" };
   }
-  if (path === "/dev/ui") {
+  if (import.meta.env.DEV && path === "/dev/ui") {
     return { name: "ui-kit" };
   }
   if (path === "/apps/new" || path === "/create") {
