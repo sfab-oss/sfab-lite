@@ -17,7 +17,14 @@ const config: KnipConfig = {
       // Worker entry + Vite console UI. UI sources stay in `project` so unused
       // exports inside `ui/src` still surface; React deps are reached from
       // `ui/index.html` → `ui/src/main.tsx`.
-      entry: ["src/index.ts", "scripts/*.mjs", "ui/index.html"],
+      // `ui/src/components/ui/index.ts` is the ported primitive public API —
+      // entry so knip treats its re-exports as the library surface, not dead.
+      entry: [
+        "src/index.ts",
+        "scripts/*.mjs",
+        "ui/index.html",
+        "ui/src/components/ui/index.ts",
+      ],
       project: [
         "src/**/*.ts",
         "scripts/**/*.mjs",
@@ -25,7 +32,8 @@ const config: KnipConfig = {
         "ui/vite.config.ts",
       ],
       // `cloudflare:workers` is a workerd built-in, not an npm package.
-      ignoreDependencies: ["cloudflare"],
+      // `tw-animate-css` is pulled only via `@import` in styles.css.
+      ignoreDependencies: ["cloudflare", "tw-animate-css"],
     },
     "apps/check": {
       project: ["src/**/*.ts"],

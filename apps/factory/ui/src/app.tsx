@@ -5,6 +5,7 @@ import { AppDetailScreen } from "./screens/app-detail";
 import { AppsListScreen } from "./screens/apps-list";
 import { CreateAppScreen } from "./screens/create-app";
 import { SignInScreen } from "./screens/sign-in";
+import { UiKitScreen } from "./screens/ui-kit";
 
 export function App() {
   const { route, navigate } = useRouter();
@@ -12,10 +13,18 @@ export function App() {
   const signedIn = Boolean(session?.user);
 
   useEffect(() => {
-    if (!(isPending || signedIn) && route.name !== "sign-in") {
+    if (
+      !(isPending || signedIn) &&
+      route.name !== "sign-in" &&
+      route.name !== "ui-kit"
+    ) {
       navigate({ name: "sign-in" }, true);
     }
   }, [isPending, signedIn, route.name, navigate]);
+
+  if (route.name === "ui-kit") {
+    return <UiKitScreen />;
+  }
 
   if (isPending) {
     return (
