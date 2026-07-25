@@ -943,7 +943,8 @@ const NOT_FOUND_BODY =
  * anonymous caller, so the admin surface is not enumerable by probing.
  */
 async function dispatchAdmin(rc: RequestCtx): Promise<Response> {
-  const actor = await resolveActor(rc.env, rc.request, rc.url.origin);
+  const db = createDb(rc.env);
+  const actor = await resolveActor(rc.env, db, rc.request, rc.url.origin);
   if (actor instanceof Response) {
     return actor;
   }
@@ -959,7 +960,7 @@ async function dispatchAdmin(rc: RequestCtx): Promise<Response> {
   }
 
   const appId = decodeURIComponent(hit.match[1] ?? "");
-  const denied = await requireAppAccess(createDb(rc.env), actor, appId);
+  const denied = await requireAppAccess(db, actor, appId);
   if (denied) {
     return denied;
   }

@@ -152,9 +152,18 @@ Since S3c every admin request needs one of:
 | A signed-in session | that user's one organization | derived; naming a *different* one is `403` |
 
 A token belongs to no organization, so it cannot have an active one — that
-asymmetry is the whole reason the two paths differ. Everything downstream of
-the credential consumes a resolved organization id, so handlers have a single
-code path.
+asymmetry is the whole reason the two paths differ. No handler branches on
+which credential arrived; each consumes a resolved organization id. (Three
+handlers still call the resolver themselves, because one reads the explicit
+id from a JSON body and the others from the query string. Hoisting that into
+the dispatcher is a follow-up.)
+
+**A session's `activeOrganizationId` is a hint, not a grant.** Authorization
+checks the `member` table on every request. better-auth does not keep that
+column in sync with membership: `remove-member` clears it only when the
+remover *is* the removed user, and `leave-organization` clears it only for the
+current session token. Trusting the column would let a removed member keep
+committing to the org's apps until their cookie expired.
 
 Two consequences worth stating plainly:
 

@@ -14,8 +14,12 @@
  *   name an organization would be handing a signed-in user a way to name
  *   someone else's.
  *
- * Everything downstream consumes a resolved organization id, never the
- * credential itself, so the handlers keep one code path.
+ * No handler branches on which credential arrived — they consume a resolved
+ * organization id. They do still each *call* the resolver (`handleListApps`,
+ * `handleCreateApp`, `handleGetApp`), because one takes the explicit id from
+ * a JSON body and the others from the query string, and a request body can
+ * only be read once. Hoisting that into the dispatcher is a known follow-up,
+ * not a claim this module already delivers.
  *
  * Note what is NOT here: `/a/:appId/*` is addressed by app id alone and stays
  * that way. That route serves a generated app to *its own* end users, who are
@@ -23,8 +27,10 @@
  * tenancy would be a category error. Its access control is the app's own
  * better-auth, and app ids are unguessable ULIDs rather than names.
  */
+import { and, eq } from "drizzle-orm";
 import { createAuth } from "./auth.js";
 import type { Db } from "./db/index.js";
+import { member } from "./db/schema.js";
 import { appBelongsToOrganization } from "./registry.js";
 
 export type Actor =
@@ -47,6 +53,7 @@ function unauthorized(): Response {
  */
 export async function resolveActor(
   env: Env,
+  db: Db,
   request: Request,
   origin: string
 ): Promise<Actor | Response> {
@@ -64,6 +71,31 @@ export async function resolveActor(
     // product has no org-less state a user could legitimately act from —
     // `user.create.after` provisions one at sign-up. Treat it as no
     // credential rather than inventing a tenant for it.
+    return unauthorized();
+  }
+
+  // `activeOrganizationId` is a denormalised *hint on the session row*, not a
+  // grant, and better-auth does not keep it in sync with membership:
+  //
+  // - `remove-member` deletes the `member` row and only clears the column when
+  //   the remover happens to BE the removed user (`crud-members.mjs:203`).
+  //   Remove anyone else and their live sessions keep pointing at the org.
+  // - `leave-organization` clears it for the *current session token only*
+  //   (`:414`), so a user signed in twice keeps the stale value on the other
+  //   session.
+  //
+  // Authorizing off that column would therefore let a removed member keep
+  // committing, reverting, and running SQL against the org's apps until their
+  // cookie expired. `member` is the authority; the column only selects which
+  // membership is active.
+  const membership = await db.query.member.findFirst({
+    where: and(
+      eq(member.userId, session.user.id),
+      eq(member.organizationId, organizationId)
+    ),
+    columns: { id: true },
+  });
+  if (!membership) {
     return unauthorized();
   }
 
