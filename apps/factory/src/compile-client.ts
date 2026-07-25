@@ -108,7 +108,9 @@ export async function compileClient(
     bundle: true,
     externals,
     virtualModules,
-    jsx: "transform",
+    // Automatic runtime — template sources do not import React for JSX, so
+    // classic "transform" leaves React.createElement unbound at runtime.
+    jsx: "automatic",
     conditions: ["import", "module", "browser", "default"],
   });
   const compileMs = performance.now() - t0;
