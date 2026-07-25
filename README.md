@@ -88,15 +88,16 @@ Moving it back would create divergence, which needs a merge rule, which is
 branching — a product this does not have. Versions are append-only rows in
 the app's Durable Object: no per-app git repo, no per-app CI.
 
-### A commit costs ~11 seconds in production
+### A commit costs 10–25 seconds of work — but you do not wait for it
 
-Measured on a real Cloudflare deploy (2026-07-24), against the full
-32-file template:
+Measured on real Cloudflare deploys, against the full 32-file template:
 
-| Operation | Total | check | lint |
+| Operation | Work takes | check | lint |
 | --- | --- | --- | --- |
-| Cold app create (32 files) | 18.5s | 16.7s | 0.6s |
-| Incremental commit (+1 file) | 10.6–19.9s | 10.1–24.2s | 0.14–1.8s |
+| Cold app create (32 files) | 18.5–25.2s | 16.7–23.0s | 0.6–2.2s |
+| Incremental commit (+1 file) | 10.6–21.3s | 10.1–24.2s | 0.14–1.9s |
+
+Since S2.6 the HTTP request does not wait for any of that — see below.
 
 Local numbers (~1.4s cold, ~4ms warm) do **not** predict this. The cause:
 plain Workers have no isolate affinity, so the check worker's per-isolate
@@ -108,13 +109,38 @@ Do not "fix" this by moving the LanguageService into a Durable Object.
 That was measured and refuted: DO warmth survives ~5s of idle but not
 30s, and full template checks inside a DO never stay warm at all.
 
-Commit is therefore **asynchronous**: the check still gates the commit and
-no version exists without a pass, but the wait happens off the request via
-`_sfab_check_status` rather than holding an HTTP connection open for tens
-of seconds.
+Commit is therefore **asynchronous in transport, synchronous in
+semantics** (S2.6). `POST /admin/apps/:appId/commit` and `POST /admin/apps`
+return **202 with an `attemptId`**; poll
+`GET /admin/apps/:appId/attempts/:attemptId`.
 
-Honest framing for anything user-facing: **seconds, not minutes.** Still
-far better than a CI runner; not "instant".
+| Operation | Request returns | Work still takes |
+| --- | --- | --- |
+| Cold create | **0.97s** | 25.2s |
+| Incremental commit | **0.16–0.25s** | 11.0–21.3s |
+
+Nothing about the guarantee moves: **check is still the gate, no version is
+minted without a pass, and a version is live the moment it exists.** Only
+the waiting moved off the request.
+
+Attempts live in `_sfab_commit_attempts` in the app's Durable Object, keyed
+by an attempt id rather than a version id — a pending commit has no version
+to be keyed by, which is exactly why the earlier `_sfab_check_status` table
+could not do this job. Three rules make it safe:
+
+- **At most one attempt in flight per app.** Two concurrent commits would
+  check against the same parent and both mint a version, silently breaking
+  linear history. The loser gets `409`.
+- **Every exit writes a terminal status.** `waitUntil` has no caller to
+  throw to, so a poller can only distinguish "working" from "died" if the
+  work half never simply stops. `fail` = your code; `error` = we broke.
+- **A stale sweep at 5 minutes** — the factory's `limits.cpu_ms` ceiling.
+  `waitUntil` is best-effort, and a dropped invocation would otherwise leave
+  an app permanently unable to commit.
+
+Honest framing for anything user-facing: the *response* is instant, the
+*commit* is **seconds, not minutes.** Still far better than a CI runner;
+the work itself is not instant and should not be sold as such.
 
 ### `apps/lint` is at ~91% of the Worker size ceiling
 
