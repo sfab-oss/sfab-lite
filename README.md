@@ -148,7 +148,7 @@ Since S3c every admin request needs one of:
 
 | Credential | Scope | How it names an organization |
 | --- | --- | --- |
-| `X-Admin-Token` | root — every app | must pass `organizationId` as a query param |
+| `X-Admin-Token` | root — every app | on organization-scoped routes, must pass `organizationId` as a query param; app-scoped routes need none |
 | A signed-in session | that user's one organization | derived; naming a *different* one is `403` |
 
 A token belongs to no organization, so it cannot have an active one — that

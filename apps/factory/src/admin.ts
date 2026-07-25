@@ -173,33 +173,17 @@ async function handleListApps(rc: OrgCtx): Promise<Response> {
 /**
  * Read one app's registry record.
  *
- * Dispatch already proved the actor may touch this app, so the org-scoped
- * `getApp` below repeats one indexed read for a session caller. Kept anyway:
- * this route is also where the stale-`creating` sweep belongs (a status poll
- * is exactly when reconciling matters), and "every `/admin/apps/:id…` route is
- * access-checked, no exceptions" is worth more than saving a read.
- *
- * Still calls `resolveOrganization` itself on purpose. This is `scope: "app"`,
- * and app-scoped routes must NOT require a token caller to name an
- * organization — root addressing by app id alone is deliberate and
- * pre-existing. Do not hoist this into the dispatcher.
+ * Dispatch already authorized this `appId`, so the read is by id alone —
+ * same as every other app-scoped route. The stale-`creating` sweep lives
+ * here because a status poll is when reconciling matters.
  */
 async function handleGetApp(rc: AppCtx): Promise<Response> {
-  const scope = resolveOrganization(
-    rc.actor,
-    rc.url.searchParams.get("organizationId") ?? undefined
-  );
-  if (scope instanceof Response) {
-    return scope;
-  }
   const record = await getApp(
     createDb(rc.env),
-    scope.organizationId,
     rc.appId,
     attemptResolver(rc.env)
   );
   if (!record) {
-    // Deliberately the same answer for "no such app" and "not your app".
     return jsonError("app_not_found", 404);
   }
   return Response.json({ ok: true, app: record });

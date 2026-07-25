@@ -6,8 +6,9 @@
  *
  * - **`ADMIN_TOKEN`** is a root credential. It belongs to no organization, so
  *   it cannot *have* an active one — a token caller that wants to act on a
- *   tenant must name it (`organizationId` as a query param). This is the
- *   ops/CI/verification path and its behaviour is deliberately unchanged.
+ *   tenant must name it (`organizationId` as a query param on organization-
+ *   scoped routes). App-scoped routes address by app id alone. This is the
+ *   ops/CI/verification path.
  * - **A session** belongs to a user, and in this product a user belongs to
  *   exactly one organization. It carries its own scope; letting it *also*
  *   name an organization would be handing a signed-in user a way to name
@@ -16,9 +17,8 @@
  * An explicit `organizationId` is always a query parameter — including on
  * `POST /admin/apps`. The dispatcher resolves it for `scope: "organization"`
  * routes (`handleListApps`, `handleCreateApp`) and puts the result on
- * `OrgCtx`. `handleGetApp` still calls the resolver itself: it is
- * `scope: "app"`, and app-scoped routes must not require a token caller to
- * name an organization — root addressing by app id alone is deliberate.
+ * `OrgCtx`. App-scoped routes never call the resolver: `requireAppAccess`
+ * is the gate, and root may address them by app id alone.
  *
  * Note what is NOT here: `/a/:appId/*` is addressed by app id alone and stays
  * that way. That route serves a generated app to *its own* end users, who are
