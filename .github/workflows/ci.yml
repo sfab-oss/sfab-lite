@@ -78,6 +78,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:kernel
 
+      # The seed is a committed build artifact. Without this, editing the
+      # template and forgetting to re-bake ships a factory that keeps seeding
+      # the old source, with every other gate green.
+      - name: seed
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:seed
+
       # Types VFS export names must be a subset of the matching vendor chunk's
       # esbuild metafile exports. Catches "typechecks clean, throws at
       # runtime" kernel skew (hono/validator, @base-ui/react bailout).
