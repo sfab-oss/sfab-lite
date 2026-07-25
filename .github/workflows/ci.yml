@@ -71,3 +71,12 @@ jobs:
       - name: kernel
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:kernel
+
+      # The only gate that inspects the *built* bundle rather than source.
+      # apps/lint ships Biome's WASM at ~91% of Cloudflare's 10 MB Worker
+      # limit, so a dependency bump can break deployability with nothing
+      # else in this file noticing. Slower than the others (three esbuild
+      # dry-run builds), hence last.
+      - name: bundle-size
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:bundle-size

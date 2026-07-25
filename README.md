@@ -88,21 +88,57 @@ Moving it back would create divergence, which needs a merge rule, which is
 branching — a product this does not have. Versions are append-only rows in
 the app's Durable Object: no per-app git repo, no per-app CI.
 
-### Commit blocks on check, and the remote number is unmeasured
+### A commit costs ~11 seconds in production
 
-Commit is gated on the check passing, so the check's latency is felt
-directly by the user. Measured through the service binding **locally**:
-~1.4s cold, ~4ms warm. The T5 exploration measured **~12.4s remote**, and
-that gap is not yet explained or re-measured on this port. If it holds
-remotely, the commit-blocks-on-check choice needs revisiting.
+Measured on a real Cloudflare deploy (2026-07-24), against the full
+32-file template:
 
-### `worker_loaders` is unproven for deploy
+| Operation | Total | check | lint |
+| --- | --- | --- | --- |
+| Cold app create (32 files) | 18.5s | 16.7s | 0.6s |
+| Incremental commit (+1 file) | 10.6–19.9s | 10.1–24.2s | 0.14–1.8s |
 
-The host serves sub-apps through the `LOADER` worker-loader binding.
-Verified working under local `workerd`, including loading and serving a
-dynamically created worker. **Not** verified for a real deploy: account
-access to the binding and whether the plan permits `limits.cpu_ms: 300000`
-on the check and lint workers are both still unknown.
+Local numbers (~1.4s cold, ~4ms warm) do **not** predict this. The cause:
+plain Workers have no isolate affinity, so the check worker's per-isolate
+LanguageService cache never hits — `lsReused` was `false` on 9 of 9
+production commits. Every check pays full cold construction over 1,289
+VFS files.
+
+Do not "fix" this by moving the LanguageService into a Durable Object.
+That was measured and refuted: DO warmth survives ~5s of idle but not
+30s, and full template checks inside a DO never stay warm at all.
+
+Commit is therefore **asynchronous**: the check still gates the commit and
+no version exists without a pass, but the wait happens off the request via
+`_sfab_check_status` rather than holding an HTTP connection open for tens
+of seconds.
+
+Honest framing for anything user-facing: **seconds, not minutes.** Still
+far better than a CI runner; not "instant".
+
+### `apps/lint` is at ~91% of the Worker size ceiling
+
+Gzipped bundle sizes, against Cloudflare's **10 MB** Paid-plan limit (Free
+is 3 MB, which this project cannot fit):
+
+| Worker | Gzipped |
+| --- | --- |
+| `sfab-lite-check` | 2.83 MiB |
+| `sfab-lite-factory` | 4.82 MiB |
+| `sfab-lite-lint` | **9.09 MiB** |
+
+Lint is the Biome WASM binary. **A Biome version bump can make it
+undeployable**, and no gate catches it — every check in this repo runs
+against source, never the built bundle. `pnpm check:bundle-size` exists
+for exactly this; keep it in CI.
+
+### Timing fields reported by the workers are always `0`
+
+`checkMs`, `wallMs`, `coldBootMs`, `totalMs` and per-file `ms` all return
+`0` in production. Workers freeze the clock across purely synchronous work
+as a side-channel defence, so a Worker cannot time itself. Fields measured
+around a `fetch` (`checkWallMs`, `lintWallMs` in the factory) are real,
+because I/O advances the clock. **Trust client-side walls.**
 
 ### Not built yet (staged, not cut)
 
