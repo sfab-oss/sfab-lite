@@ -49,16 +49,26 @@ const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
  * **400** at handler entry, while an unregistered GitHub provider is a real
  * **404 PROVIDER_NOT_FOUND**. Inferring "off" from either status would be
  * wrong about the other method. Do not re-read env client-side.
+ *
+ * `no-store` is precautionary, not a fix for an observed bug: nothing caches
+ * this today (measured — no `cf-cache-status` on the response), and the
+ * staleness we chased was secret propagation after `wrangler secret put`,
+ * which no header affects. It is here because the console reads this once at
+ * mount, so anything that ever did cache it would pin the wrong auth config
+ * for the life of the page.
  */
 function handleApiConfig(rc: RouteCtx): Response {
-  return Response.json({
-    passwordAuth: passwordAuthEnabled(rc.env),
-    githubAuth: githubAuthEnabled(rc.env),
-    // Whether the sign-up form should render at all. Same reasoning as the two
-    // above: closed sign-up does not 404, it fails at the end of a flow the
-    // user already committed to, so the screen has to be told rather than probe.
-    signUpOpen: signUpOpen(rc.env),
-  });
+  return Response.json(
+    {
+      passwordAuth: passwordAuthEnabled(rc.env),
+      githubAuth: githubAuthEnabled(rc.env),
+      // Whether the sign-up form should render at all. Same reasoning as the two
+      // above: closed sign-up does not 404, it fails at the end of a flow the
+      // user already committed to, so the screen has to be told rather than probe.
+      signUpOpen: signUpOpen(rc.env),
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 function handleAuth(rc: RouteCtx): Promise<Response> | Response {
