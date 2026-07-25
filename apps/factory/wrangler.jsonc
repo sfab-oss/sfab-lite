@@ -5,6 +5,11 @@
   "compatibility_date": "2026-07-23",
   "compatibility_flags": ["nodejs_compat"],
   "worker_loaders": [{ "binding": "LOADER" }],
+  // A commit awaits check (10-24s measured in production) and lint. The 30s
+  // default left almost no margin and correlated with intermittent 1101s.
+  "limits": {
+    "cpu_ms": 300000
+  },
   "durable_objects": {
     "bindings": [
       {

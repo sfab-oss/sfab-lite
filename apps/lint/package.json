@@ -8,7 +8,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "dev": "wrangler dev --port 8803"
+    "dev": "wrangler dev --port 8803",
+    "deploy": "wrangler deploy"
   },
   "dependencies": {
     "@biomejs/js-api": "6.0.0",

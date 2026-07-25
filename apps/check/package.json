@@ -9,6 +9,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "dev": "wrangler dev --port 8802",
+    "deploy": "wrangler deploy",
     "test:regression": "node scripts/regression-delete-readd-inprocess.mjs"
   },
   "dependencies": {

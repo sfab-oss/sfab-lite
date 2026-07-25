@@ -8,6 +8,10 @@ const config: KnipConfig = {
     ".": {
       entry: ["scripts/**/*.mjs!"],
       project: ["scripts/**/*.mjs"],
+      // check-bundle-size.mjs runs `pnpm exec wrangler` with cwd set to each
+      // app, so it resolves from that app's node_modules where wrangler is a
+      // real dependency. Declaring it at the root would be the wrong fix.
+      ignoreBinaries: ["wrangler"],
     },
     "apps/factory": {
       entry: ["src/index.ts", "scripts/*.mjs"],
