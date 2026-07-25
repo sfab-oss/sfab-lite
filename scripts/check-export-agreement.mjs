@@ -21,14 +21,17 @@ const ts = require("typescript");
 
 const kernelGen = join(repoRoot, "packages/kernel/src/generated");
 
-const { TYPES_VFS } = await import(
+const { TYPES_VFS, TYPES_VFS_MANIFEST } = await import(
   pathToFileURL(join(kernelGen, "types-vfs.js")).href
 );
-const { CLIENT_IMPORT_MAP } = await import(
+const { CLIENT_IMPORT_MAP, CLIENT_BAILOUTS } = await import(
   pathToFileURL(join(kernelGen, "client-kernel.js")).href
 );
 const { CLIENT_RUNTIME_EXPORTS, SERVER_RUNTIME_EXPORTS, SERVER_IMPORT_MAP } =
   await import(pathToFileURL(join(kernelGen, "runtime-exports.js")).href);
+const { PINS, UNIVERSE_EXTRA_PINS } = await import(
+  pathToFileURL(join(repoRoot, "packages/kernel/scripts/pins.mjs")).href
+);
 
 const D_TS_EXT_RE = /\.d\.[cm]?ts$/;
 const MJS_EXT_RE = /\.mjs$/;
@@ -36,6 +39,8 @@ const JS_EXT_RE = /\.js$/;
 const LEADING_DOT_SLASH_RE = /^\.\//;
 const D_TS_SUFFIX_RE = /\.d\.ts$/;
 const D_MTS_SUFFIX_RE = /\.d\.mts$/;
+const WHITESPACE_RE = /\s+/;
+const BAIL_STAR_SUFFIX_RE = /\/\*$/;
 
 /** @param {string} specifier */
 function splitSpecifier(specifier) {
@@ -366,23 +371,45 @@ function exportNamesFromModuleSymbol(checker, mod) {
 }
 
 /**
- * Package roots that the kernel intends to expose at runtime (pins + client
- * extras). Tooling pins (typescript, esbuild, tailwindcss) are excluded.
+ * Package roots the kernel intends to expose at runtime — derived from pins
+ * so a newly pinned surface package is not silently skipped by a stale list.
+ * Tooling pins and @types/* are not runtime import-map surface.
  */
+const TOOLING_PINS = new Set(["esbuild", "typescript", "tailwindcss"]);
+const TYPES_ONLY_PINS = new Set(["@types/react", "@types/react-dom"]);
 const KERNEL_SURFACE_PACKAGES = new Set([
-  "react",
-  "react-dom",
-  "better-auth",
-  "drizzle-orm",
-  "hono",
-  "@tanstack/react-router",
-  "@tanstack/react-query",
+  ...Object.keys(PINS).filter((k) => !TOOLING_PINS.has(k)),
+  ...Object.keys(UNIVERSE_EXTRA_PINS).filter((k) => !TYPES_ONLY_PINS.has(k)),
+]);
+
+/**
+ * Packages whose hosted runtime is only the client import map. Server map
+ * coverage does not count for these.
+ */
+const CLIENT_ONLY_PACKAGES = new Set([
   "@base-ui/react",
-  "zod",
-  "clsx",
+  "@tanstack/react-query",
+  "@tanstack/react-router",
   "class-variance-authority",
+  "clsx",
   "tailwind-merge",
 ]);
+
+/**
+ * Packages whose hosted runtime is only the server import map. Client map
+ * coverage does not count for these.
+ */
+const SERVER_ONLY_PACKAGES = new Set(["drizzle-orm", "zod"]);
+
+/**
+ * Packages where the types VFS intentionally ships the whole package so every
+ * advertised specifier must appear on the side-appropriate import map.
+ * Closure-pulled packages (drizzle, hono, …) advertise far more subpaths than
+ * the kernel maps; full covered===advertised there would false-red.
+ */
+const FULL_PARITY_PACKAGES = new Set(
+  Object.keys(TYPES_VFS_MANIFEST.prune?.fullPackageExceptions ?? {})
+);
 
 /**
  * Public export subpaths of a package that have a .d.ts present in TYPES_VFS.
@@ -422,6 +449,30 @@ function advertisedSpecifiersForPackage(pkg) {
   return specs.sort();
 }
 
+/** @param {string} specifier */
+function packageRootOf(specifier) {
+  return splitSpecifier(specifier).pkg;
+}
+
+/**
+ * Bailout entries are free-form strings from prebuild (package name, or a
+ * note like "@base-ui/react/* → bundle into app (B)"). Pull the package root.
+ * @param {string} bailout
+ * @returns {string | null}
+ */
+function packageRootFromBailout(bailout) {
+  const trimmed = bailout.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const token =
+    trimmed.split(WHITESPACE_RE)[0]?.replace(BAIL_STAR_SUFFIX_RE, "") ?? "";
+  if (!token || token === "→") {
+    return null;
+  }
+  return packageRootOf(token);
+}
+
 /** @type {string[]} */
 const failures = [];
 
@@ -447,46 +498,140 @@ function compare(half, spec, typeNames, runtimeNames) {
   }
 }
 
-// --- Client + server import-map keys ---
-for (const [spec, _rel] of Object.entries(CLIENT_IMPORT_MAP)) {
+/**
+ * Compare one import-map half for a specifier that is already known to be a
+ * map key (or is required to be one).
+ * @param {"client" | "server"} half
+ * @param {string} spec
+ * @param {Record<string, string[]>} runtimeExports
+ */
+function compareMappedSpecifier(half, spec, runtimeExports) {
   const dts = resolveTypesEntry(spec);
   if (!dts) {
     // No types in VFS for this runtime key — harmless (runtime ⊇ types).
-    continue;
+    return;
   }
   const typeNames = valueExportsFromDts(dts);
   if (typeNames.length === 0) {
-    continue;
+    return;
   }
-  compare("client", spec, typeNames, CLIENT_RUNTIME_EXPORTS[spec]);
+  compare(half, spec, typeNames, runtimeExports[spec]);
 }
 
-for (const [spec, _rel] of Object.entries(SERVER_IMPORT_MAP)) {
-  const dts = resolveTypesEntry(spec);
-  if (!dts) {
+// --- CLIENT_BAILOUTS must be empty for any package the VFS still types ---
+// A non-empty bailout with advertised types is the blank-page failure mode:
+// check accepts the import, the client import map does not serve it.
+for (const bailout of CLIENT_BAILOUTS) {
+  const pkg = packageRootFromBailout(bailout);
+  if (!pkg) {
+    failures.push(
+      `[bailout] unparseable CLIENT_BAILOUTS entry: ${JSON.stringify(bailout)}`
+    );
     continue;
   }
-  const typeNames = valueExportsFromDts(dts);
-  if (typeNames.length === 0) {
-    continue;
+  const advertised = advertisedSpecifiersForPackage(pkg);
+  if (advertised.length > 0) {
+    failures.push(
+      `[bailout] ${JSON.stringify(bailout)}: CLIENT_BAILOUTS is non-empty for ${pkg}, whose types the VFS still advertises (${advertised.length} specifier(s))`
+    );
   }
-  compare("server", spec, typeNames, SERVER_RUNTIME_EXPORTS[spec]);
 }
 
-// --- Orphan packages: types in VFS, zero runtime coverage ---
-// Catches @base-ui/react when it was bailed out of the client kernel while
-// the VFS still shipped its .d.ts (the blank-page failure mode).
-for (const pkg of [...KERNEL_SURFACE_PACKAGES].sort()) {
+// --- Full-parity packages: drive compare from advertised specifiers ---
+// Picked over a blanket covered.length !== advertised.length on every
+// KERNEL_SURFACE package: only fullPackageExceptions commit types⊆runtime
+// for every public subpath. Dropping 43/44 base-ui keys fails here.
+for (const pkg of [...FULL_PARITY_PACKAGES].sort()) {
   const advertised = advertisedSpecifiersForPackage(pkg);
   if (advertised.length === 0) {
     continue;
   }
-  const covered = advertised.filter(
-    (s) => s in CLIENT_IMPORT_MAP || s in SERVER_IMPORT_MAP
-  );
-  if (covered.length === 0) {
+  /** @type {"client" | "server" | null} */
+  let side = null;
+  if (CLIENT_ONLY_PACKAGES.has(pkg)) {
+    side = "client";
+  } else if (SERVER_ONLY_PACKAGES.has(pkg)) {
+    side = "server";
+  }
+  if (!side) {
     failures.push(
-      `[orphan] ${pkg}: types advertise ${advertised.length} specifier(s) (e.g. ${advertised.slice(0, 3).join(", ")}) but neither client nor server import map covers the package`
+      `[parity] ${pkg}: fullPackageException must be listed as client-only or server-only`
+    );
+    continue;
+  }
+  const map = side === "client" ? CLIENT_IMPORT_MAP : SERVER_IMPORT_MAP;
+  const runtime =
+    side === "client" ? CLIENT_RUNTIME_EXPORTS : SERVER_RUNTIME_EXPORTS;
+  const missing = advertised.filter((s) => !(s in map));
+  if (missing.length) {
+    failures.push(
+      `[${side}] ${pkg}: types advertise ${advertised.length} specifier(s) but ${side} import map covers ${advertised.length - missing.length}; missing: ${missing.join(", ")}`
+    );
+  }
+  for (const spec of advertised) {
+    if (!(spec in map)) {
+      continue;
+    }
+    compareMappedSpecifier(side, spec, runtime);
+  }
+}
+
+// --- Remaining import-map keys (skip full-parity pkgs; handled above) ---
+for (const [spec, _rel] of Object.entries(CLIENT_IMPORT_MAP)) {
+  if (FULL_PARITY_PACKAGES.has(packageRootOf(spec))) {
+    continue;
+  }
+  compareMappedSpecifier("client", spec, CLIENT_RUNTIME_EXPORTS);
+}
+
+for (const [spec, _rel] of Object.entries(SERVER_IMPORT_MAP)) {
+  if (FULL_PARITY_PACKAGES.has(packageRootOf(spec))) {
+    continue;
+  }
+  compareMappedSpecifier("server", spec, SERVER_RUNTIME_EXPORTS);
+}
+
+// --- Side-appropriate orphan: types in VFS, zero coverage on the right map ---
+for (const pkg of [...KERNEL_SURFACE_PACKAGES].sort()) {
+  if (FULL_PARITY_PACKAGES.has(pkg)) {
+    // Full-parity path above already requires covered === advertised.
+    continue;
+  }
+  const advertised = advertisedSpecifiersForPackage(pkg);
+  if (advertised.length === 0) {
+    continue;
+  }
+  if (CLIENT_ONLY_PACKAGES.has(pkg)) {
+    const covered = advertised.filter((s) => s in CLIENT_IMPORT_MAP);
+    if (covered.length === 0) {
+      failures.push(
+        `[orphan] ${pkg}: types advertise ${advertised.length} specifier(s) (e.g. ${advertised.slice(0, 3).join(", ")}) but the client import map covers none`
+      );
+    }
+    continue;
+  }
+  if (SERVER_ONLY_PACKAGES.has(pkg)) {
+    const covered = advertised.filter((s) => s in SERVER_IMPORT_MAP);
+    if (covered.length === 0) {
+      failures.push(
+        `[orphan] ${pkg}: types advertise ${advertised.length} specifier(s) (e.g. ${advertised.slice(0, 3).join(", ")}) but the server import map covers none`
+      );
+    }
+    continue;
+  }
+  // Dual-surface (react, hono, better-auth, …): need at least one key on
+  // each half that actually vendors the package. Server-only coverage does
+  // not satisfy the client half and vice versa.
+  const clientCovered = advertised.filter((s) => s in CLIENT_IMPORT_MAP);
+  const serverCovered = advertised.filter((s) => s in SERVER_IMPORT_MAP);
+  if (clientCovered.length === 0) {
+    failures.push(
+      `[orphan] ${pkg}: types advertise ${advertised.length} specifier(s) but the client import map covers none`
+    );
+  }
+  if (serverCovered.length === 0) {
+    failures.push(
+      `[orphan] ${pkg}: types advertise ${advertised.length} specifier(s) but the server import map covers none`
     );
   }
 }
