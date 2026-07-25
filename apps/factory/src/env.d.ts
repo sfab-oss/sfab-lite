@@ -2,6 +2,8 @@ import type { AppDO } from "./app-do.js";
 
 declare global {
   interface Env {
+    /** Static factory console (Vite build in `ui/dist`). */
+    ASSETS: Fetcher;
     LOADER: WorkerLoader;
     APP_DO: DurableObjectNamespace<AppDO>;
     /**

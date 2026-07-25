@@ -23,7 +23,7 @@
 import { dispatchAdmin } from "./admin.js";
 import { createAuth, githubAuthEnabled, passwordAuthEnabled } from "./auth.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
-import { matchRoute, NOT_FOUND_BODY } from "./routes.js";
+import { matchRoute } from "./routes.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
 
@@ -102,6 +102,8 @@ export default {
       return await dispatchAdmin(rc);
     }
 
-    return new Response(NOT_FOUND_BODY, { status: 404 });
+    // Worker-first: every request hits this fetch before assets. Unmatched
+    // paths fall through to the SPA (and SPA deep links) via ASSETS.
+    return await env.ASSETS.fetch(request);
   },
 };
