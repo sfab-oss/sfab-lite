@@ -23,10 +23,17 @@ export function ConsoleChrome({
         <div>
           <p className="m-0 font-medium text-[var(--muted-foreground)] text-xs uppercase tracking-wide">
             <Link
-              to={{ name: "apps" }}
+              to={{ name: "chat" }}
               className="text-[var(--muted-foreground)] no-underline"
             >
               sfab-lite
+            </Link>
+            <span className="mx-1.5 text-[var(--line)]">/</span>
+            <Link
+              to={{ name: "apps" }}
+              className="text-[var(--muted-foreground)] no-underline"
+            >
+              Apps
             </Link>
           </p>
           <h1 className="m-0 mt-1 font-semibold text-2xl tracking-tight">

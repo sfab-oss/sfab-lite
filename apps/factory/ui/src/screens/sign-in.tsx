@@ -50,7 +50,7 @@ export function SignInScreen() {
 
   useEffect(() => {
     if (!sessionPending && session?.user) {
-      navigate({ name: "apps" }, true);
+      navigate({ name: "chat" }, true);
     }
   }, [session, sessionPending, navigate]);
 
@@ -94,7 +94,7 @@ export function SignInScreen() {
           <SignInBody
             config={config}
             mode={mode}
-            onSignedIn={() => navigate({ name: "apps" }, true)}
+            onSignedIn={() => navigate({ name: "chat" }, true)}
             setMode={setMode}
           />
         </CardContent>

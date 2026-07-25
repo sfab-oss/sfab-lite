@@ -12,20 +12,32 @@ const UiKitScreen = import.meta.env.DEV
     )
   : null;
 
+const ChatScreen = lazy(() =>
+  import("./features/chat/page").then((m) => ({ default: m.ChatScreen }))
+);
+
+function ChatFallback() {
+  return (
+    <main className="px-6 py-16 text-muted-foreground">Loading chat…</main>
+  );
+}
+
 export function App() {
   const { route, navigate } = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const signedIn = Boolean(session?.user);
+  const devChat = import.meta.env.DEV && route.name === "dev-chat";
 
   useEffect(() => {
     if (
       !(isPending || signedIn) &&
       route.name !== "sign-in" &&
-      !(import.meta.env.DEV && route.name === "ui-kit")
+      !(import.meta.env.DEV && route.name === "ui-kit") &&
+      !devChat
     ) {
       navigate({ name: "sign-in" }, true);
     }
-  }, [isPending, signedIn, route.name, navigate]);
+  }, [isPending, signedIn, route.name, navigate, devChat]);
 
   if (import.meta.env.DEV && route.name === "ui-kit" && UiKitScreen) {
     return (
@@ -35,6 +47,14 @@ export function App() {
         }
       >
         <UiKitScreen />
+      </Suspense>
+    );
+  }
+
+  if (devChat) {
+    return (
+      <Suspense fallback={<ChatFallback />}>
+        <ChatScreen />
       </Suspense>
     );
   }
@@ -49,12 +69,21 @@ export function App() {
     return <SignInScreen />;
   }
 
-  switch (route.name) {
-    case "create":
-      return <CreateAppScreen />;
-    case "app":
-      return <AppDetailScreen appId={route.appId} />;
-    default:
-      return <AppsListScreen />;
+  if (route.name === "create") {
+    return <CreateAppScreen />;
   }
+
+  if (route.name === "apps") {
+    return <AppsListScreen />;
+  }
+
+  if (route.name === "app") {
+    return <AppDetailScreen appId={route.appId} />;
+  }
+
+  return (
+    <Suspense fallback={<ChatFallback />}>
+      <ChatScreen />
+    </Suspense>
+  );
 }

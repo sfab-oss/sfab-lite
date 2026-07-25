@@ -64,7 +64,7 @@ export function CreateAppScreen() {
             {busy ? "Creating…" : "Create"}
           </button>
           <Link
-            to={{ name: "apps" }}
+            to={{ name: "chat" }}
             className="border border-[var(--line)] px-3 py-2 text-[var(--ink)] no-underline"
           >
             Cancel
