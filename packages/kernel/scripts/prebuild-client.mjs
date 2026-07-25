@@ -178,18 +178,34 @@ function rewriteExternalRequires(source, external) {
       `  if (x === ${JSON.stringify(spec)} || x === ${JSON.stringify(flatBare)} || x === ${JSON.stringify(flatRel)}) return __ext_${id}?.default ?? __ext_${id};`
     );
   }
+  // Fail closed: if esbuild's stub text drifts, returning the unrewritten
+  // source would ship chunks whose __require("react") throws at runtime and
+  // blank every hosted app — with check:kernel still green.
+  const pureStubMarker = "var __require = /* @__PURE__ */";
+  if (!source.includes(pureStubMarker)) {
+    // Pure ESM chunk with externals and no CJS interop stub — nothing to rewrite.
+    return source;
+  }
   const stubRe =
     /var __require = \/\* @__PURE__ \*\/[\s\S]*?throw Error\('Dynamic require of "' \+ x \+ '" is not supported'\);\n\}\);/;
   if (!stubRe.test(source)) {
-    return source;
+    throw new Error(
+      `esbuild __require stub marker present but regex did not match (externals: ${external.join(", ")}); refusing to emit an unrewritten chunk`
+    );
   }
-  return `${imports.join("\n")}\n${source.replace(
+  const rewritten = `${imports.join("\n")}\n${source.replace(
     stubRe,
     `function __require(x) {
 ${map.join("\n")}
   throw Error('Dynamic require of "' + x + '" is not supported');
 }`
   )}`;
+  if (rewritten.includes(pureStubMarker)) {
+    throw new Error(
+      `esbuild __require stub survived rewrite (externals: ${external.join(", ")})`
+    );
+  }
+  return rewritten;
 }
 
 const browserShared = {

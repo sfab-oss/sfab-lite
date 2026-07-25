@@ -171,10 +171,18 @@ function rewriteExternalRequiresToEsm(source, external) {
       `  if (x === ${JSON.stringify(spec)}) return __ext_${id}?.default ?? __ext_${id};`
     );
   }
+  // Fail closed: stub-text drift must fail the prebuild, not ship unrewritten
+  // chunks that throw on __require("react") at runtime.
+  const pureStubMarker = "var __require = /* @__PURE__ */";
+  if (!source.includes(pureStubMarker)) {
+    return source;
+  }
   const stubRe =
     /var __require = \/\* @__PURE__ \*\/[\s\S]*?throw Error\('Dynamic require of "' \+ x \+ '" is not supported'\);\n\}\);/;
   if (!stubRe.test(source)) {
-    return source;
+    throw new Error(
+      `esbuild __require stub marker present but regex did not match (externals: ${external.join(", ")}); refusing to emit an unrewritten chunk`
+    );
   }
   const withHelper = source.replace(
     stubRe,
@@ -183,7 +191,13 @@ ${map.join("\n")}
   throw Error('Dynamic require of "' + x + '" is not supported');
 }`
   );
-  return `${imports.join("\n")}\n${withHelper}`;
+  const rewritten = `${imports.join("\n")}\n${withHelper}`;
+  if (rewritten.includes(pureStubMarker)) {
+    throw new Error(
+      `esbuild __require stub survived rewrite (externals: ${external.join(", ")})`
+    );
+  }
+  return rewritten;
 }
 
 /** @type {Array<{ name: string; exportName: string; entry: string; outfile: string; external?: string[] }>} */
