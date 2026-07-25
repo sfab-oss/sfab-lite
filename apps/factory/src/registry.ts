@@ -2,11 +2,9 @@
  * App registry — the D1 index that makes apps enumerable.
  *
  * Durable Objects cannot be listed (`idFromName` is a hash), so every created
- * app must land a row here before its AppDO is seeded. Callers pass
- * `organizationId` explicitly today; the swap point for session-backed
- * tenancy is the handlers in `index.ts` that read that id from the request
- * (body / query) — replace those reads with `session.activeOrganizationId`
- * and leave every function in this module unchanged.
+ * app must land a row here before its AppDO is seeded. Create/list take an
+ * `organizationId` from the dispatcher (`OrgCtx`); app-scoped reads
+ * (`getAppUnscoped`) are by id alone after `requireAppAccess`.
  */
 import { and, desc, eq, lt } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
@@ -59,9 +57,9 @@ export async function organizationExists(
 /**
  * Ownership test for app-scoped admin routes — one indexed read, nothing else.
  *
- * Kept separate from `getApp` on purpose: `getApp` runs the stale-`creating`
- * sweep, which is right for a status read and wrong for an authorization check
- * that sits on the attempt-polling hot path.
+ * Kept separate from `getAppUnscoped` on purpose: `getAppUnscoped` runs the
+ * stale-`creating` sweep, which is right for a status read and wrong for an
+ * authorization check that sits on the attempt-polling hot path.
  */
 export async function appBelongsToOrganization(
   db: Db,
@@ -213,23 +211,21 @@ export async function listAppsForOrganization(
 }
 
 /**
- * Fetch one app **within an organization**.
+ * Fetch one app by id with **no organization filter**.
  *
- * Scoped deliberately. Looking up by id alone would return any tenant's row
- * to anyone holding an id, and since `organizationId` is designed to become
- * `session.activeOrganizationId` in a one-line change, an unscoped lookup
- * would turn into a cross-tenant read the moment auth lands — silently, with
- * no diff to notice. Absent and not-yours are the same answer here.
+ * Unscoped on purpose — the name is the warning. The caller must already have
+ * authorized access to this `appId` (today: `requireAppAccess` in
+ * `dispatchAdmin`). Calling this outside that gate is a silent cross-tenant
+ * read. Also runs the stale-`creating` sweep so a status poll can reconcile.
  */
-export async function getApp(
+export async function getAppUnscoped(
   db: Db,
-  organizationId: string,
   appId: string,
   resolveAttempt: AttemptResolver
 ): Promise<AppRecord | null> {
   await sweepStaleCreating(db, resolveAttempt);
   const row = await db.query.app.findFirst({
-    where: and(eq(app.id, appId), eq(app.organizationId, organizationId)),
+    where: eq(app.id, appId),
   });
   return row ? toRecord(row) : null;
 }

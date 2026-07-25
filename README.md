@@ -148,15 +148,15 @@ Since S3c every admin request needs one of:
 
 | Credential | Scope | How it names an organization |
 | --- | --- | --- |
-| `X-Admin-Token` | root — every app | must pass `organizationId` explicitly |
+| `X-Admin-Token` | root — every app | on organization-scoped routes, must pass `organizationId` as a query param; app-scoped routes need none |
 | A signed-in session | that user's one organization | derived; naming a *different* one is `403` |
 
 A token belongs to no organization, so it cannot have an active one — that
-asymmetry is the whole reason the two paths differ. No handler branches on
-which credential arrived; each consumes a resolved organization id. (Three
-handlers still call the resolver themselves, because one reads the explicit
-id from a JSON body and the others from the query string. Hoisting that into
-the dispatcher is a follow-up.)
+asymmetry is the whole reason the two paths differ. An explicit
+`organizationId` is always a query parameter, including on
+`POST /admin/apps` (the JSON body carries only `name`). The dispatcher
+resolves it for organization-scoped routes and puts the result on the
+handler context; no handler branches on which credential arrived.
 
 **A session's `activeOrganizationId` is a hint, not a grant.** Authorization
 checks the `member` table on every request. better-auth does not keep that
@@ -180,7 +180,9 @@ Two consequences worth stating plainly:
 
 App-scoped admin routes (`/admin/apps/:id/…`) check registry ownership
 *before* touching the Durable Object, so a cross-tenant commit or SQL call
-never reaches another tenant's app at all.
+never reaches another tenant's app at all. A token caller may address those
+by app id alone — root does not need to name an organization on an
+app-scoped route.
 
 ### `apps/lint` is at ~91% of the Worker size ceiling
 

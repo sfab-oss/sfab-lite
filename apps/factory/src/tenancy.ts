@@ -6,20 +6,19 @@
  *
  * - **`ADMIN_TOKEN`** is a root credential. It belongs to no organization, so
  *   it cannot *have* an active one — a token caller that wants to act on a
- *   tenant must name it (`organizationId` in the body or query, exactly as
- *   before S3c). This is the ops/CI/verification path and its behaviour is
- *   deliberately unchanged.
+ *   tenant must name it (`organizationId` as a query param on organization-
+ *   scoped routes). App-scoped routes address by app id alone. This is the
+ *   ops/CI/verification path.
  * - **A session** belongs to a user, and in this product a user belongs to
  *   exactly one organization. It carries its own scope; letting it *also*
  *   name an organization would be handing a signed-in user a way to name
  *   someone else's.
  *
- * No handler branches on which credential arrived — they consume a resolved
- * organization id. They do still each *call* the resolver (`handleListApps`,
- * `handleCreateApp`, `handleGetApp`), because one takes the explicit id from
- * a JSON body and the others from the query string, and a request body can
- * only be read once. Hoisting that into the dispatcher is a known follow-up,
- * not a claim this module already delivers.
+ * An explicit `organizationId` is always a query parameter — including on
+ * `POST /admin/apps`. The dispatcher resolves it for `scope: "organization"`
+ * routes (`handleListApps`, `handleCreateApp`) and puts the result on
+ * `OrgCtx`. App-scoped routes never call the resolver: `requireAppAccess`
+ * is the gate, and root may address them by app id alone.
  *
  * Note what is NOT here: `/a/:appId/*` is addressed by app id alone and stays
  * that way. That route serves a generated app to *its own* end users, who are
@@ -109,10 +108,10 @@ export async function resolveActor(
 /**
  * The organization this request acts on, or the error to send.
  *
- * `explicit` is whatever the caller named (body field or query param). A
- * session that names its *own* organization is fine — the UI may well send
- * it — but one that names a different organization is a scope violation
- * stated out loud rather than silently ignored.
+ * `explicit` is whatever the caller named as a query param. A session that
+ * names its *own* organization is fine — the UI may well send it — but one
+ * that names a different organization is a scope violation stated out loud
+ * rather than silently ignored.
  */
 export function resolveOrganization(
   actor: Actor,
@@ -151,10 +150,10 @@ export function resolveOrganization(
  * routes take an app id and nothing else, and the app id is the only thing
  * standing between two tenants.
  *
- * Uses `appBelongsToOrganization` rather than `getApp` deliberately: `getApp`
- * runs the stale-`creating` sweep, and this check sits on the attempt-polling
- * path the UI hits every couple of seconds. An ownership test must be one
- * indexed read, not a reconciliation pass.
+ * Uses `appBelongsToOrganization` rather than `getAppUnscoped` deliberately:
+ * `getAppUnscoped` runs the stale-`creating` sweep, and this check sits on the
+ * attempt-polling path the UI hits every couple of seconds. An ownership test
+ * must be one indexed read, not a reconciliation pass.
  */
 export async function requireAppAccess(
   db: Db,
