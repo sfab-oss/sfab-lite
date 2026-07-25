@@ -121,11 +121,11 @@
     "client/base-ui-react.js": "sha256:bb2664507bbe7874251c5e3bf1e7cee67588a27d296b37ab92f8fdf4bce6ac5b"
   },
   "typesVfs": {
-    "fileCount": 1289,
-    "rawBytes": 8514669,
-    "gzipBytes": 1198775,
+    "fileCount": 2043,
+    "rawBytes": 9343517,
+    "gzipBytes": 1333786,
     "packages": {
-      "@base-ui/react": 46,
+      "@base-ui/react": 800,
       "@better-auth/core": 90,
       "@better-auth/drizzle-adapter": 1,
       "@better-auth/telemetry": 1,
@@ -212,10 +212,10 @@
   "totals": {
     "raw": 7459923,
     "gzip": 1294756,
-    "typesGzip": 1198775,
+    "typesGzip": 1333786,
     "cssGzip": 13148,
     "clientGzip": 563874,
-    "hostBakeGzip": 2506679
+    "hostBakeGzip": 2641690
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,
