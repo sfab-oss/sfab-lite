@@ -1,8 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { authClient } from "./auth-client";
+import { ChatScreen } from "./features/chat/page";
 import { useRouter } from "./router";
-import { AppDetailScreen } from "./screens/app-detail";
-import { AppsListScreen } from "./screens/apps-list";
 import { CreateAppScreen } from "./screens/create-app";
 import { SignInScreen } from "./screens/sign-in";
 
@@ -16,16 +15,18 @@ export function App() {
   const { route, navigate } = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const signedIn = Boolean(session?.user);
+  const devChat = import.meta.env.DEV && route.name === "dev-chat";
 
   useEffect(() => {
     if (
       !(isPending || signedIn) &&
       route.name !== "sign-in" &&
-      !(import.meta.env.DEV && route.name === "ui-kit")
+      !(import.meta.env.DEV && route.name === "ui-kit") &&
+      !devChat
     ) {
       navigate({ name: "sign-in" }, true);
     }
-  }, [isPending, signedIn, route.name, navigate]);
+  }, [isPending, signedIn, route.name, navigate, devChat]);
 
   if (import.meta.env.DEV && route.name === "ui-kit" && UiKitScreen) {
     return (
@@ -39,6 +40,10 @@ export function App() {
     );
   }
 
+  if (devChat) {
+    return <ChatScreen />;
+  }
+
   if (isPending) {
     return (
       <main className="px-6 py-16 text-muted-foreground">Loading session…</main>
@@ -49,12 +54,9 @@ export function App() {
     return <SignInScreen />;
   }
 
-  switch (route.name) {
-    case "create":
-      return <CreateAppScreen />;
-    case "app":
-      return <AppDetailScreen appId={route.appId} />;
-    default:
-      return <AppsListScreen />;
+  if (route.name === "create") {
+    return <CreateAppScreen />;
   }
+
+  return <ChatScreen />;
 }

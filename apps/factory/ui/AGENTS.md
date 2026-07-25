@@ -37,6 +37,7 @@ the gallery (and streamdown) from the main chunk.
 ```bash
 pnpm --filter @sfab-lite/factory dev:ui
 # → http://localhost:5173/dev/ui
+# → http://localhost:5173/dev/chat  (chat graft on mocks, DEV-only)
 ```
 
 ## Imports

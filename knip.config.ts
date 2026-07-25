@@ -24,6 +24,9 @@ const config: KnipConfig = {
         "scripts/*.mjs",
         "ui/index.html",
         "ui/src/components/ui/index.ts",
+        // Legacy admin screens kept for S4 wiring; not on the chat home path.
+        "ui/src/screens/apps-list.tsx",
+        "ui/src/screens/app-detail.tsx",
       ],
       project: [
         "src/**/*.ts",

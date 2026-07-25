@@ -16,12 +16,15 @@
     "bake-seed": "node scripts/bake-seed.mjs"
   },
   "dependencies": {
+    "@ai-sdk/react": "3.0.197",
     "@base-ui/react": "1.6.0",
     "@cloudflare/worker-bundler": "0.2.2",
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
     "@sfab-lite/template": "workspace:*",
+    "@shadcn/helpers": "0.1.0",
     "@shadcn/react": "0.2.1",
+    "ai": "6.0.197",
     "better-auth": "1.6.19",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -34,7 +37,8 @@
     "tailwind-merge": "3.3.1",
     "tailwindcss": "4.1.11",
     "tw-animate-css": "1.3.6",
-    "ulid": "3.0.2"
+    "ulid": "3.0.2",
+    "zustand": "5.0.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260721.1",
