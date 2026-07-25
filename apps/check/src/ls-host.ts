@@ -137,7 +137,7 @@ export function getLanguageService(st: AppLsState): LanguageService {
       moduleLiterals.map((lit) => {
         const name = lit.text;
         const resolved =
-          resolvePackage(name, st.overlay) ??
+          resolvePackage(name, st.overlay, containingFile) ??
           (name.startsWith(".")
             ? resolveRelative(name, containingFile, st.overlay)
             : undefined);

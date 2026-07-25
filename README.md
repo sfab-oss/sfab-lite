@@ -132,6 +132,43 @@ If you add a package to the kernel, or an app hits "X is not exported",
 suspect export agreement first; if the page is blank with a clean console
 for module resolution, suspect the graph class next.
 
+#### The other half: types advertising subpaths the kernel never serves
+
+Export agreement compares types against runtime **for specifiers already on
+an import map**. It says nothing about specifiers that are on *no* map, and
+the closure prune produces a lot of them: measured 2026-07-25 on `235b9f2`,
+the VFS advertised **313** specifiers exporting runtime values that neither
+import map covered — `better-auth/plugins/magic-link`, `drizzle-orm/d1/driver`,
+`clsx/lite`, four `hono/*` subpaths, and ~280 drizzle dialect modules for
+Postgres, MySQL and GEL that this stack never uses.
+
+Every one of those typechecked clean and blanked the page, exactly like
+`@base-ui/react` did.
+
+They are not fixed by mapping them. Only 19 could be mapped safely (the
+modules `drizzle-orm`'s root barrel already re-exports, so an app can reach
+every one of their values from `drizzle-orm` itself). 55 more *look* safely
+mappable because their export names already exist in the vendored chunk, but
+are different implementations — aliasing `clsx/lite` onto full `clsx` would
+silently accept objects and arrays that `lite` is defined to ignore, turning
+a blank page into wrong output. The remaining 235 would mean vendoring code
+the stack has no use for.
+
+So the resolver enforces the invariant instead: **`resolvePackage` resolves a
+bare specifier from app source only when the kernel serves it**, deriving the
+allowed set from `CLIENT_IMPORT_MAP ∪ SERVER_IMPORT_MAP`. Unserved imports
+fail at check time with TS2307 rather than at runtime with an empty `#root`.
+Files inside `/node_modules/` are exempt — `.d.ts` files reference their
+transitive dependencies by bare specifier (better-auth's types import
+`better-call`, which the kernel bundles rather than serves), and those are
+type-graph internals, not app imports.
+
+**Known gap:** the allowed set is the *union* of both maps, because the check
+worker builds one program over an app's client and server sources and cannot
+tell which half a file compiles into. A client component importing
+`drizzle-orm` — server-only, no client chunk — still passes check and still
+blanks the page. Closing that needs the resolver to know a file's side.
+
 ### Apps cannot add dependencies
 
 By design — the kernel *is* a built app's entire universe. Anything not in
