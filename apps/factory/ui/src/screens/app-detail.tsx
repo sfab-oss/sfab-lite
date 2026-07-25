@@ -113,7 +113,9 @@ export function AppDetailScreen({ appId }: { appId: string }) {
 
       {error ? <p className="text-[var(--danger)]">{error}</p> : null}
 
-      {app || error ? null : <p className="text-[var(--muted)]">Loading…</p>}
+      {app || error ? null : (
+        <p className="text-[var(--muted-foreground)]">Loading…</p>
+      )}
 
       {app ? (
         <AppBody
@@ -143,17 +145,17 @@ function AppBody({
       <section>
         <dl className="m-0 grid gap-2 text-sm">
           <div className="flex gap-3">
-            <dt className="w-28 text-[var(--muted)]">Id</dt>
+            <dt className="w-28 text-[var(--muted-foreground)]">Id</dt>
             <dd className="m-0 font-mono">{app.id}</dd>
           </div>
           <div className="flex gap-3">
-            <dt className="w-28 text-[var(--muted)]">Status</dt>
+            <dt className="w-28 text-[var(--muted-foreground)]">Status</dt>
             <dd className="m-0">
               <StatusBadge status={app.status} />
             </dd>
           </div>
           <div className="flex gap-3">
-            <dt className="w-28 text-[var(--muted)]">Created</dt>
+            <dt className="w-28 text-[var(--muted-foreground)]">Created</dt>
             <dd className="m-0">{formatWhen(app.createdAt)}</dd>
           </div>
         </dl>
@@ -216,11 +218,11 @@ function AttemptSection({
       <h2 className="m-0 mb-2 font-semibold text-base">Create attempt</h2>
       <dl className="m-0 grid gap-2 text-sm">
         <div className="flex gap-3">
-          <dt className="w-28 text-[var(--muted)]">Id</dt>
+          <dt className="w-28 text-[var(--muted-foreground)]">Id</dt>
           <dd className="m-0 font-mono text-xs">{attempt.id}</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="w-28 text-[var(--muted)]">Status</dt>
+          <dt className="w-28 text-[var(--muted-foreground)]">Status</dt>
           <dd className="m-0">{attempt.status}</dd>
         </div>
       </dl>
@@ -249,7 +251,9 @@ function VersionsSection({
     <section>
       <h2 className="m-0 mb-2 font-semibold text-base">Versions</h2>
       {versions.length === 0 ? (
-        <p className="text-[var(--muted)] text-sm">No versions yet.</p>
+        <p className="text-[var(--muted-foreground)] text-sm">
+          No versions yet.
+        </p>
       ) : (
         <ul className="m-0 list-none divide-y divide-[var(--line)] border border-[var(--line)] p-0 text-sm">
           {versions.map((v) => (
@@ -268,7 +272,7 @@ function VersionsSection({
                   </>
                 ) : null}
               </span>
-              <span className="text-[var(--muted)]">
+              <span className="text-[var(--muted-foreground)]">
                 {new Date(v.createdAt).toLocaleString()}
               </span>
             </li>

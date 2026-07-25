@@ -10,7 +10,8 @@ export type Route =
   | { name: "sign-in" }
   | { name: "apps" }
   | { name: "create" }
-  | { name: "app"; appId: string };
+  | { name: "app"; appId: string }
+  | { name: "ui-kit" };
 
 const RE_APP = /^\/apps\/([^/]+)$/;
 const RE_TRAILING_SLASHES = /\/+$/;
@@ -19,6 +20,9 @@ function parsePath(pathname: string): Route {
   const path = pathname.replace(RE_TRAILING_SLASHES, "") || "/";
   if (path === "/signin" || path === "/sign-in") {
     return { name: "sign-in" };
+  }
+  if (import.meta.env.DEV && path === "/dev/ui") {
+    return { name: "ui-kit" };
   }
   if (path === "/apps/new" || path === "/create") {
     return { name: "create" };
@@ -38,6 +42,8 @@ function pathFor(route: Route): string {
   switch (route.name) {
     case "sign-in":
       return "/signin";
+    case "ui-kit":
+      return "/dev/ui";
     case "create":
       return "/apps/new";
     case "app":

@@ -88,6 +88,9 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
   `cloudflare`, `durable-objects`, `workers-best-practices`, `ai-sdk`,
   `agent-browser`, `shadcn`, `tanstack-start-best-practices`, `find-skills`
   (symlinked under `.claude/skills/`; locked in `skills-lock.json`)
+- Factory console UI tokens / primitives →
+  [`apps/factory/ui/AGENTS.md`](apps/factory/ui/AGENTS.md) (shadcn semantic
+  tokens are canonical for new UI)
 
 ## Hard boundaries
 

@@ -14,6 +14,11 @@ import { defineConfig } from "vite";
 export default defineConfig({
   root: import.meta.dirname,
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": `${import.meta.dirname}/src`,
+    },
+  },
   server: {
     port: 5173,
     // `^/a/` is a regex on purpose. Vite matches a plain string context with
