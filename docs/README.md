@@ -12,7 +12,13 @@ factory tooling or documentation.
 | --- | --- | --- |
 | [`architecture/`](architecture/) | Authoritative | Settled system shape (do not relitigate without an ADR) |
 | [`decisions/`](decisions/) | Authoritative | ADRs — costly, cross-cutting choices among real alternatives |
+| [`engineering/`](engineering/) | Authoritative | Living technique guides — how we work within the platform's limits |
 | [`notes/`](notes/) | Non-authoritative | In-flight working notes; graduate or delete |
+
+Start with
+[`engineering/making-it-fit.md`](engineering/making-it-fit.md) before proposing
+a fix for a memory, bundle-size or latency problem. Several attractive ideas
+are already refuted there with measurements, and re-deriving them is expensive.
 
 House rules for agents also live in [`../AGENTS.md`](../AGENTS.md). Measured
 exploration evidence lives in the agent-workspace archive
@@ -22,5 +28,6 @@ exploration evidence lives in the agent-workspace archive
 
 - Product / operator guides and a public docs site (`apps/docs`) — deferred
   until there is a product surface to document (S3+).
-- Engineering smell/structure guides — add under `docs/engineering/` when the
-  codebase is thick enough to need them.
+- Engineering smell/structure guides — `docs/engineering/` now exists for
+  platform-constraint technique; add smell/structure guides alongside it when
+  the codebase is thick enough to need them.

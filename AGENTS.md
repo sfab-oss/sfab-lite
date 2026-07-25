@@ -54,8 +54,15 @@ Sub-apps run on D1, so those dialects are unreachable — but TypeScript still
 loaded all four to resolve conditional-type branches it would never take, at a
 cost of 232 source files and 67 MB. That trim carries two build-time
 assertions; if either fires, re-derive the trim rather than deleting the gate.
-The whole story, including five approaches that were measured and rejected, is
-in [`docs/notes/2026-07-25-check-worker-memory.md`](docs/notes/2026-07-25-check-worker-memory.md).
+Trimming unreachable vendor surface is a sanctioned technique with conditions —
+see [ADR-0004](docs/decisions/0004-trim-unreachable-vendor-surface.md).
+
+**Before proposing a fix for a memory, bundle-size or latency problem, read
+[`docs/engineering/making-it-fit.md`](docs/engineering/making-it-fit.md).** It
+is the catalogue of what worked and what was measured and rejected — shared
+DocumentRegistry, VFS pruning, client/server split, `lib.dom` trimming, CheckDO
+affinity. Re-deriving those is expensive and they are already refuted with
+numbers.
 
 **Anything memory-related must be verified in production.** Local workerd
 applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
