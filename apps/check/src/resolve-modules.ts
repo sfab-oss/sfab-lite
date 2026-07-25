@@ -1,7 +1,38 @@
 /**
  * Module resolution against the types VFS (+ per-app overlay).
  */
+import { CLIENT_IMPORT_MAP, SERVER_IMPORT_MAP } from "@sfab-lite/kernel";
 import { joinPath, normalizePath, readVfs } from "./vfs.js";
+
+/**
+ * Every bare specifier the kernel actually serves at runtime.
+ *
+ * App code may only import from this set. The types VFS is built by a
+ * closure prune and therefore ships `.d.ts` for far more subpaths than the
+ * import maps cover — 313 of them export runtime values. Without this gate
+ * those resolve here, typecheck clean, pass the publish gate, and then throw
+ * `Failed to resolve module specifier` in the browser with an empty `#root`.
+ * That is the S3.1 failure mode; `@base-ui/react` was one instance of it.
+ *
+ * Union of both halves rather than per-side: this host checks an app's client
+ * and server sources in one program and does not know which half a file
+ * compiles into. A client file importing a server-only specifier therefore
+ * still passes here — see `docs/architecture/OVERVIEW.md`.
+ */
+const KERNEL_SERVED: ReadonlySet<string> = new Set([
+  ...Object.keys(CLIENT_IMPORT_MAP),
+  ...Object.keys(SERVER_IMPORT_MAP),
+]);
+
+/**
+ * `.d.ts` files inside the VFS reference each other and their transitive
+ * dependencies by bare specifier (`better-auth`'s types import `better-call`,
+ * which the kernel bundles rather than serves). Those references are internal
+ * to the type graph and are not app imports, so they resolve unrestricted.
+ */
+function isVfsInternal(containingFile: string | undefined): boolean {
+  return containingFile?.includes("/node_modules/") ?? false;
+}
 
 const D_TS_TO_D_MTS = /\.d\.ts$/;
 const LEADING_DOT_SLASH = /^\.\//;
@@ -32,7 +63,6 @@ const PACKAGE_ENTRY: Record<string, string> = {
   "class-variance-authority":
     "/node_modules/class-variance-authority/dist/index.d.ts",
   "tailwind-merge": "/node_modules/tailwind-merge/dist/types.d.ts",
-  "lucide-react": "/node_modules/lucide-react/dist/lucide-react.d.ts",
   zod: "/node_modules/zod/index.d.ts",
 };
 
@@ -55,7 +85,6 @@ const KNOWN_PACKAGES = [
   "clsx",
   "class-variance-authority",
   "tailwind-merge",
-  "lucide-react",
   "@types/react",
   "@types/react-dom",
 ] as const;
@@ -163,8 +192,12 @@ function resolveKnownPackage(
 
 export function resolvePackage(
   name: string,
-  overlay: Map<string, string>
+  overlay: Map<string, string>,
+  containingFile?: string
 ): string | undefined {
+  if (!(isVfsInternal(containingFile) || KERNEL_SERVED.has(name))) {
+    return;
+  }
   const read: VfsRead = (p) => readVfs(p, overlay);
 
   const entry = PACKAGE_ENTRY[name];
