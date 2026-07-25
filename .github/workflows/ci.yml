@@ -78,11 +78,19 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:kernel
 
+      # Factory assets (`ui/dist`) are gitignored. wrangler deploy --dry-run
+      # fails if assets.directory is missing, so build the console before the
+      # bundle-size gate that proves the assets wiring deploys.
+      - id: ui-build
+        name: ui-build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm --filter @sfab-lite/factory build:ui
+
       # The only gate that inspects the *built* bundle rather than source.
       # apps/lint ships Biome's WASM at ~91% of Cloudflare's 10 MB Worker
       # limit, so a dependency bump can break deployability with nothing
       # else in this file noticing. Slower than the others (three esbuild
       # dry-run builds), hence last.
       - name: bundle-size
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.ui-build.outcome == 'success' }}
         run: pnpm check:bundle-size

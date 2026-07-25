@@ -41,6 +41,32 @@ Each worker has its own `dev` script and runs standalone under
 `wrangler dev` — e.g. `pnpm --filter @sfab-lite/check dev` (8802),
 `pnpm --filter @sfab-lite/lint dev` (8803).
 
+### Factory console UI
+
+The console lives in `apps/factory/ui/` (same package as the worker). Build
+output is `apps/factory/ui/dist` and is served by wrangler `assets` with
+worker-first routing.
+
+**Full stack (worker serves the built SPA):**
+
+```bash
+# once: copy apps/factory/.dev.vars.example → apps/factory/.dev.vars
+pnpm --filter @sfab-lite/factory build:ui
+pnpm --filter @sfab-lite/factory dev   # http://localhost:8790
+```
+
+**UI hot-reload (Vite proxies API routes to the worker):**
+
+```bash
+# terminal 1 — worker
+pnpm --filter @sfab-lite/factory dev   # :8790
+
+# terminal 2 — Vite
+pnpm --filter @sfab-lite/factory dev:ui   # :5173
+```
+
+Vite proxies `/api`, `/admin`, `/a`, and `/kernel` to `http://localhost:8790`.
+
 ## Known limitations
 
 Surprises worth knowing before they bite again, and the things "lite"
@@ -260,9 +286,10 @@ because I/O advances the clock. **Trust client-side walls.**
 
 ### Not built yet (staged, not cut)
 
-Factory UI, auth, organizations, tasks-lite, the agent, and diffs are S3+.
-See [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for
-what lands where.
+Tasks-lite, the agent, and diffs are S3+. Auth, organizations, the app
+registry, and the factory console (S3d) are in. See
+[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for what
+lands where.
 
 ## Docs
 
