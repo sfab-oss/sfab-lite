@@ -142,6 +142,56 @@ Honest framing for anything user-facing: the *response* is instant, the
 *commit* is **seconds, not minutes.** Still far better than a CI runner;
 the work itself is not instant and should not be sold as such.
 
+### Signing in has two methods, and neither is on by default
+
+| Method | Enabled by | Intended for |
+| --- | --- | --- |
+| GitHub | `GITHUB_CLIENT_ID` **and** `GITHUB_CLIENT_SECRET` both set | production — the real front door |
+| Email + password | `PASSWORD_AUTH` exactly `"true"` | local development |
+
+Both default off, which means **a deploy that sets nothing has no way to sign
+in at all.** That is fail-safe rather than helpful, and it is deliberate: an
+auth surface that appears because a variable was forgotten is worse than one
+that is missing loudly.
+
+There is no separate on/off flag for GitHub. A flag that only mirrored "are
+the secrets set" would be a second source of truth free to disagree with the
+first, and the disagreement would surface as a sign-in button that posts to a
+guaranteed failure. Setting exactly one of the two leaves the provider off
+**silently** — there is no warning log, because one emitted from the auth
+factory would repeat on every request and still not be where anyone looks.
+The signal is `GET /admin/health`, which reports the two secrets as separate
+booleans precisely so "half-configured" is distinguishable from "GitHub off
+on purpose".
+
+`GET /api/config` reports both as booleans, and the sign-in screen must read
+them rather than probe — the two methods fail differently, so there is no
+single signal to probe *for*:
+
+| Method, when off | Response | Why |
+| --- | --- | --- |
+| Email + password | `400` at handler entry | better-auth leaves the routes mounted and checks the option inside the handler |
+| GitHub | `404 PROVIDER_NOT_FOUND` | the provider is genuinely not registered |
+
+Both observed against `better-auth@1.6.19`. A client inferring "disabled"
+from a 404 would be wrong about password auth, and one inferring it from a
+400 would be wrong about GitHub. Read the config.
+
+**We register a GitHub App, not an OAuth App.** That matters more than it
+looks. GitHub Apps ignore the OAuth `scope` parameter entirely, so
+better-auth's built-in `read:user`/`user:email` request does nothing —
+access comes from the app's configured *permissions* instead. better-auth
+fills `user.email` from `GET /user/emails`, so the registration must grant the
+**Email addresses** account permission. Without it the OAuth callback finds no
+email and redirects to the error URL with `error=email_not_found`
+(`better-auth/dist/api/routes/callback.mjs:129`) — the check runs *before* any
+insert, so the `NOT NULL UNIQUE` constraint on `user.email` is never what you
+see. Debug this from the redirect query string, not from a D1 error. The
+callback URL is `<origin>/api/auth/callback/github`.
+
+Token expiry does not matter here: better-auth mints its own session cookie
+and never reuses the GitHub token after the sign-in exchange.
+
 ### `/admin/*` takes two credentials, and they are not equivalent
 
 Since S3c every admin request needs one of:

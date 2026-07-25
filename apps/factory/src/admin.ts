@@ -6,7 +6,11 @@
  * before a handler sees the request.
  */
 import { mergeSources } from "@sfab-lite/core";
-import { passwordAuthEnabled } from "./auth.js";
+import {
+  githubAuthEnabled,
+  githubSecretsPresent,
+  passwordAuthEnabled,
+} from "./auth.js";
 import {
   appStub,
   attemptAccepted,
@@ -334,10 +338,15 @@ function handleHealth(rc: RouteCtx): Response {
     },
     seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
     seedMigrations: TEMPLATE_SEED.migrations.length,
-    // better-auth does not unregister email/password routes when disabled —
-    // it returns 400 at handler entry — so a UI cannot probe for a 404 and
-    // must be told the flag by the server.
+    // Which sign-in methods this deploy actually has. `/api/config` reports
+    // the same two booleans publicly for the sign-in screen; here they are
+    // ops diagnostics, which is why the GitHub secrets are reported
+    // *separately* rather than as one derived flag: exactly one of them set
+    // is the plausible deploy mistake, and it is otherwise indistinguishable
+    // from GitHub being off on purpose.
     passwordAuth: passwordAuthEnabled(rc.env),
+    githubAuth: githubAuthEnabled(rc.env),
+    githubSecrets: githubSecretsPresent(rc.env),
   });
 }
 
