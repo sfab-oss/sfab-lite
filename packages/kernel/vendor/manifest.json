@@ -105,7 +105,7 @@
     "react-dom-server.js": "sha256:d133944e450d3ad5efa061fcbeda23f1396d0f6e651e876a4e1dfbc5f6483c9b",
     "drizzle-orm.js": "sha256:6611960de289524ca530bec3fd362d66cfbf9770983f5011a46a2425067f0a79",
     "better-auth.js": "sha256:182cf290055a394ba081ea5b792d37e094556e9c0254f760da7f628b67b4afbd",
-    "hono.js": "sha256:67d70f5ebe37e1d21fb51c7aa74b815ea3c852db6926c299ef428c3a5b33cf9a",
+    "hono.js": "sha256:a65268dd54114f5072ff906e642ca6958f477d2ec370dd6a7272c6be37dff5d9",
     "zod.js": "sha256:41101327e94750f37fba2d4b7d1ae34aea1f40a372c0f33486e1adfe575162dc",
     "client/react.js": "sha256:0fc9cf1bb1dc0c49cfb6a7339a7ddb310fddd231581b1ffa366400fbeed4b799",
     "client/jsx-runtime.js": "sha256:35d7b6a1c84705e6360c976c683753d8500b9788b24bdf1932292969c0185fa6",
@@ -118,7 +118,7 @@
     "client/tailwind-merge.js": "sha256:3994632fbf457911c244c2a7f84069d9222a277654bb67b8da19fcf6387f0dcb",
     "client/hono-client.js": "sha256:7a9707209f3f725adcad71ea6ea4df3bfe317057684ab0478ef30763d6bca1e2",
     "client/better-auth-client.js": "sha256:030742878b9330e6ac9583e6870b65ac765a181c7d666ad8e05d7fcb4563ce4e",
-    "client/base-ui-react.js": "sha256:bb2664507bbe7874251c5e3bf1e7cee67588a27d296b37ab92f8fdf4bce6ac5b"
+    "client/base-ui-react.js": "sha256:3d36465b4f4846904cdd9d466e8fdfacf9c7b91fbb25c1747a56bcd52c76d88f"
   },
   "typesVfs": {
     "fileCount": 2043,
@@ -168,7 +168,7 @@
     "react-dom/server": 1285652,
     "drizzle-orm": 186646,
     "better-auth": 2199578,
-    "hono": 68913,
+    "hono": 68924,
     "zod": 523007
   },
   "sizesGzip": {
@@ -178,7 +178,7 @@
     "react-dom-server.js": 228957,
     "drizzle-orm.js": 35924,
     "better-auth.js": 348459,
-    "hono.js": 16962,
+    "hono.js": 16964,
     "zod.js": 76887
   },
   "clientSizesRaw": {
@@ -193,7 +193,7 @@
     "tailwind-merge": 91325,
     "hono/client": 11187,
     "better-auth/react": 82723,
-    "@base-ui/react": 1485078
+    "@base-ui/react": 1486724
   },
   "clientSizesGzip": {
     "react.js": 11248,
@@ -207,15 +207,15 @@
     "tailwind-merge.js": 14577,
     "hono-client.js": 3368,
     "better-auth-client.js": 19835,
-    "base-ui-react.js": 269052
+    "base-ui-react.js": 269511
   },
   "totals": {
-    "raw": 7459923,
-    "gzip": 1294756,
+    "raw": 7461580,
+    "gzip": 1295217,
     "typesGzip": 1333786,
     "cssGzip": 13148,
-    "clientGzip": 563874,
-    "hostBakeGzip": 2641690
+    "clientGzip": 564333,
+    "hostBakeGzip": 2642151
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,

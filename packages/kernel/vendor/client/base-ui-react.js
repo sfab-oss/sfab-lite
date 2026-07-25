@@ -47,7 +47,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       function useSyncExternalStore$2(subscribe2, getSnapshot2) {
-        didWarnOld18Alpha || void 0 === React379.startTransition || (didWarnOld18Alpha = true, console.error(
+        didWarnOld18Alpha || void 0 === React380.startTransition || (didWarnOld18Alpha = true, console.error(
           "You are using an outdated, pre-release alpha of React 18 that does not support useSyncExternalStore. The use-sync-external-store shim will not work correctly. Upgrade to a newer pre-release."
         ));
         var value = getSnapshot2();
@@ -78,7 +78,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
           },
           [subscribe2]
         );
-        useDebugValue2(value);
+        useDebugValue3(value);
         return value;
       }
       function checkIfSnapshotChanged(inst) {
@@ -95,8 +95,8 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot2();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React379 = __require("react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState73 = React379.useState, useEffect56 = React379.useEffect, useLayoutEffect3 = React379.useLayoutEffect, useDebugValue2 = React379.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
-      exports.useSyncExternalStore = void 0 !== React379.useSyncExternalStore ? React379.useSyncExternalStore : shim;
+      var React380 = __require("react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState73 = React380.useState, useEffect56 = React380.useEffect, useLayoutEffect3 = React380.useLayoutEffect, useDebugValue3 = React380.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      exports.useSyncExternalStore = void 0 !== React380.useSyncExternalStore ? React380.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
   }
@@ -123,14 +123,14 @@ var require_with_selector_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React379 = __require("react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore3 = shim.useSyncExternalStore, useRef111 = React379.useRef, useEffect56 = React379.useEffect, useMemo107 = React379.useMemo, useDebugValue2 = React379.useDebugValue;
+      var React380 = __require("react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore4 = shim.useSyncExternalStore, useRef111 = React380.useRef, useEffect56 = React380.useEffect, useMemo108 = React380.useMemo, useDebugValue3 = React380.useDebugValue;
       exports.useSyncExternalStoreWithSelector = function(subscribe2, getSnapshot2, getServerSnapshot2, selector, isEqual) {
         var instRef = useRef111(null);
         if (null === instRef.current) {
           var inst = { hasValue: false, value: null };
           instRef.current = inst;
         } else inst = instRef.current;
-        instRef = useMemo107(
+        instRef = useMemo108(
           function() {
             function memoizedSelector(nextSnapshot) {
               if (!hasMemo) {
@@ -165,7 +165,7 @@ var require_with_selector_development = __commonJS({
           },
           [getSnapshot2, getServerSnapshot2, selector, isEqual]
         );
-        var value = useSyncExternalStore3(subscribe2, instRef[0], instRef[1]);
+        var value = useSyncExternalStore4(subscribe2, instRef[0], instRef[1]);
         useEffect56(
           function() {
             inst.hasValue = true;
@@ -173,7 +173,7 @@ var require_with_selector_development = __commonJS({
           },
           [value]
         );
-        useDebugValue2(value);
+        useDebugValue3(value);
         return value;
       };
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
@@ -40574,6 +40574,49 @@ function createTooltipHandle() {
 function useRender(params) {
   return useRenderElement(params.defaultTagName ?? "div", params, params);
 }
+
+// universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/unstable-use-media-query/index.mjs
+import * as React379 from "react.js";
+var import_shim3 = __toESM(require_shim(), 1);
+function useMediaQuery(query, options) {
+  const supportMatchMedia = typeof window !== "undefined" && typeof window.matchMedia !== "undefined";
+  query = query.replace(/^@media( ?)/m, "");
+  const {
+    defaultMatches = false,
+    matchMedia = supportMatchMedia ? window.matchMedia : null,
+    ssrMatchMedia = null,
+    noSsr = false
+  } = options;
+  const getDefaultSnapshot = React379.useCallback(() => defaultMatches, [defaultMatches]);
+  const getServerSnapshot2 = React379.useMemo(() => {
+    if (noSsr && matchMedia) {
+      return () => matchMedia(query).matches;
+    }
+    if (ssrMatchMedia !== null) {
+      const {
+        matches
+      } = ssrMatchMedia(query);
+      return () => matches;
+    }
+    return getDefaultSnapshot;
+  }, [getDefaultSnapshot, query, ssrMatchMedia, noSsr, matchMedia]);
+  const [getSnapshot2, subscribe2] = React379.useMemo(() => {
+    if (matchMedia === null) {
+      return [getDefaultSnapshot, () => () => {
+      }];
+    }
+    const mediaQueryList = matchMedia(query);
+    return [() => mediaQueryList.matches, (notify) => addEventListener(mediaQueryList, "change", notify)];
+  }, [getDefaultSnapshot, matchMedia, query]);
+  const match = (0, import_shim3.useSyncExternalStore)(subscribe2, getSnapshot2, getServerSnapshot2);
+  if (true) {
+    React379.useDebugValue({
+      query,
+      match
+    });
+  }
+  return match;
+}
 export {
   index_parts_exports as Accordion,
   index_parts_exports2 as AlertDialog,
@@ -40620,6 +40663,7 @@ export {
   mergeProps,
   mergePropsN,
   useDirection,
+  useMediaQuery,
   useRender
 };
 /*! Bundled license information:

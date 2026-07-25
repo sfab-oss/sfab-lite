@@ -201,13 +201,31 @@ const importMap = {};
 const hashes = {};
 /** @type {string[]} */
 const bailouts = [];
+/** @type {Record<string, string[]>} flat chunk filename → esbuild metafile export names */
+const chunkExportNames = {};
+
+/**
+ * Read named exports for an outfile from an esbuild metafile.
+ * @param {import("esbuild").Metafile} metafile
+ * @param {string} outfileAbs
+ */
+function exportsFromMetafile(metafile, outfileAbs) {
+  const norm = outfileAbs.replaceAll("\\", "/");
+  for (const [outPath, meta] of Object.entries(metafile.outputs)) {
+    if (outPath.replaceAll("\\", "/") === norm || outPath.endsWith(`/${norm.split("/").pop()}`)) {
+      return [...(meta.exports ?? [])].sort();
+    }
+  }
+  return [];
+}
 
 for (const chunk of chunks) {
-  await esbuild.build({
+  const result = await esbuild.build({
     ...browserShared,
     entryPoints: [chunk.entry],
     outfile: chunk.outfile,
     external: chunk.external ?? [],
+    metafile: true,
   });
   let source = readFileSync(chunk.outfile, "utf8");
   source = rewriteExternalRequires(source, chunk.external ?? []);
@@ -218,6 +236,7 @@ for (const chunk of chunks) {
   clientChunkFiles.push(file);
   importMap[chunk.name] = `./${file}`;
   hashes[file] = `sha256:${createHash("sha256").update(source).digest("hex")}`;
+  chunkExportNames[file] = exportsFromMetafile(result.metafile, chunk.outfile);
   console.log(`client wrote ${file} (${bytes} bytes)`);
 }
 
@@ -228,11 +247,12 @@ async function vendorPkg(opts) {
   writeFileSync(entry, entrySource);
   const outfile = join(outDir, outfileName);
   try {
-    await esbuild.build({
+    const result = await esbuild.build({
       ...browserShared,
       entryPoints: [entry],
       outfile,
       external,
+      metafile: true,
       plugins: [
         ...(external.length
           ? [
@@ -270,6 +290,7 @@ async function vendorPkg(opts) {
     clientChunkFiles.push(outfileName);
     hashes[outfileName] =
       `sha256:${createHash("sha256").update(source).digest("hex")}`;
+    chunkExportNames[outfileName] = exportsFromMetafile(result.metafile, outfile);
     for (const key of importKeys) {
       importMap[key] = `./${outfileName}`;
     }
@@ -391,9 +412,13 @@ function baseUiImportKeys() {
 
 const baseUiOk = await vendorPkg({
   name: "@base-ui/react",
-  // Root index re-exports every public component; one chunk + import-map
-  // aliases for each package.json exports subpath (except internals/types).
-  entrySource: `export * from "@base-ui/react";\n`,
+  // Root index re-exports every stable public component. unstable-use-media-query
+  // is on the package.json exports map but not the root index — pull it in
+  // explicitly so the import-map alias for that subpath is not a lie.
+  entrySource: `${`
+export * from "@base-ui/react";
+export { useMediaQuery } from "@base-ui/react/unstable-use-media-query";
+`.trim()}\n`,
   outfileName: "base-ui-react.js",
   external: ["react", "react-dom", "react/jsx-runtime"],
   importKeys: baseUiImportKeys(),
@@ -423,6 +448,13 @@ for (const f of clientChunkFiles) {
 const raw = Object.values(sizesRaw).reduce((a, b) => a + b, 0);
 const gzip = Object.values(sizesGzip).reduce((a, b) => a + b, 0);
 
+/** @type {Record<string, string[]>} bare specifier → runtime export names */
+const runtimeExports = {};
+for (const [spec, rel] of Object.entries(importMap)) {
+  const file = rel.replace(/^\.\//, "");
+  runtimeExports[spec] = chunkExportNames[file] ?? [];
+}
+
 const summary = {
   clientChunks: clientChunkFiles,
   importMap,
@@ -431,6 +463,7 @@ const summary = {
   sizesGzip,
   totals: { raw, gzip },
   bailouts,
+  runtimeExports,
 };
 writeFileSync(
   join(root, "results", "client-kernel-sizes.json"),
