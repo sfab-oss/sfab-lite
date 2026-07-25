@@ -67,9 +67,11 @@ esbuild + kernel import map there. Only the intersection is safe.
 - **No Node-only APIs.** `node:*` is not in the kernel; this is a Worker.
 - **Dependencies are the frozen kernel.** The versions in `package.json`
   match `kernel.json` exactly. Adding a dependency here does not add it to
-  the kernel — an app can only import what the kernel serves, plus the
-  declared client bailouts (today: `@base-ui/react`, bundled rather than
-  mapped). Prefer deep imports over barrels for anything icon-shaped.
+  the kernel — an app can only import what the kernel serves via its client
+  and server import maps. `@base-ui/react` (and its public subpaths) is
+  vendored into the client kernel and resolved through the import map, not
+  bundled into the app. Prefer deep imports over barrels for anything
+  icon-shaped.
 - **Every file is user-visible.** Unused exports, dead components, and
   commented-out code ship into every app ever created. `knip` runs over
   `app/` with its own entry points for exactly this reason.
