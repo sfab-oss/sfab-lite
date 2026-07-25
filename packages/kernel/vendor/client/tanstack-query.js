@@ -2842,11 +2842,11 @@ var dataTagErrorSymbol = /* @__PURE__ */ Symbol("dataTagErrorSymbol");
 var unsetMarker = /* @__PURE__ */ Symbol("unsetMarker");
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useQueries.js
-import * as React5 from "react.js";
+import * as React5 from "./react.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js
-import * as React from "react.js";
-import { jsx } from "jsx-runtime.js";
+import * as React from "./react.js";
+import { jsx } from "./jsx-runtime.js";
 var QueryClientContext = React.createContext(
   void 0
 );
@@ -2874,14 +2874,14 @@ var QueryClientProvider = ({
 };
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/IsRestoringProvider.js
-import * as React2 from "react.js";
+import * as React2 from "./react.js";
 var IsRestoringContext = React2.createContext(false);
 var useIsRestoring = () => React2.useContext(IsRestoringContext);
 var IsRestoringProvider = IsRestoringContext.Provider;
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/QueryErrorResetBoundary.js
-import * as React3 from "react.js";
-import { jsx as jsx2 } from "jsx-runtime.js";
+import * as React3 from "./react.js";
+import { jsx as jsx2 } from "./jsx-runtime.js";
 function createValue() {
   let isReset = false;
   return {
@@ -2906,7 +2906,7 @@ var QueryErrorResetBoundary = ({
 };
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/errorBoundaryUtils.js
-import * as React4 from "react.js";
+import * as React4 from "./react.js";
 var ensurePreventErrorBoundaryRetry = (options, errorResetBoundary) => {
   if (options.suspense || options.throwOnError || options.experimental_prefetchInRender) {
     if (!errorResetBoundary.isReset()) {
@@ -3033,7 +3033,7 @@ function useQueries({
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useBaseQuery.js
-import * as React6 from "react.js";
+import * as React6 from "./react.js";
 function useBaseQuery(options, Observer, queryClient) {
   if (true) {
     if (typeof options !== "object" || Array.isArray(options)) {
@@ -3211,7 +3211,7 @@ function infiniteQueryOptions(options) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/HydrationBoundary.js
-import * as React7 from "react.js";
+import * as React7 from "./react.js";
 var HydrationBoundary = ({
   children,
   options = {},
@@ -3259,7 +3259,7 @@ var HydrationBoundary = ({
 };
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useIsFetching.js
-import * as React8 from "react.js";
+import * as React8 from "./react.js";
 function useIsFetching(filters, queryClient) {
   const client = useQueryClient(queryClient);
   const queryCache = client.getQueryCache();
@@ -3274,7 +3274,7 @@ function useIsFetching(filters, queryClient) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useMutationState.js
-import * as React9 from "react.js";
+import * as React9 from "./react.js";
 function useIsMutating(filters, queryClient) {
   const client = useQueryClient(queryClient);
   return useMutationState(
@@ -3317,7 +3317,7 @@ function useMutationState(options = {}, queryClient) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-query@5.83.0_react@19.2.8/node_modules/@tanstack/react-query/build/modern/useMutation.js
-import * as React10 from "react.js";
+import * as React10 from "./react.js";
 function useMutation(options, queryClient) {
   const client = useQueryClient(queryClient);
   const [observer] = React10.useState(

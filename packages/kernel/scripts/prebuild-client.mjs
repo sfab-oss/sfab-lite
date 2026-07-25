@@ -137,16 +137,16 @@ const chunks = [
 /** Map a react/react-dom bare specifier to its flat client chunk filename. */
 function toClientFlatKey(spec) {
   if (spec === "react") {
-    return "react.js";
+    return "./react.js";
   }
   if (spec === "react/jsx-runtime") {
-    return "jsx-runtime.js";
+    return "./jsx-runtime.js";
   }
   if (spec === "react-dom/client") {
-    return "react-dom-client.js";
+    return "./react-dom-client.js";
   }
   if (spec === "react-dom" || spec.startsWith("react-dom/")) {
-    return "react-dom.js";
+    return "./react-dom.js";
   }
   return spec;
 }
@@ -276,14 +276,24 @@ async function vendorPkg(opts) {
       ],
     });
     let source = readFileSync(outfile, "utf8");
+    // Relative paths so chunks resolve each other when served from
+    // /kernel/:ver/client/ without relying on import-map flat aliases.
     source = source
-      .replace(/from\s+["']react["']/g, 'from "react.js"')
-      .replace(/from\s+["']react\/jsx-runtime["']/g, 'from "jsx-runtime.js"')
+      .replace(/from\s+["']react["']/g, 'from "./react.js"')
+      .replace(/from\s+["']react\/jsx-runtime["']/g, 'from "./jsx-runtime.js"')
       .replace(
         /from\s+["']react-dom\/client["']/g,
-        'from "react-dom-client.js"'
+        'from "./react-dom-client.js"'
       )
-      .replace(/from\s+["']react-dom["']/g, 'from "react-dom.js"');
+      .replace(/from\s+["']react-dom["']/g, 'from "./react-dom.js"')
+      // esbuild external plugin may already have emitted bare flat names.
+      .replace(/from\s+["']react\.js["']/g, 'from "./react.js"')
+      .replace(/from\s+["']jsx-runtime\.js["']/g, 'from "./jsx-runtime.js"')
+      .replace(
+        /from\s+["']react-dom-client\.js["']/g,
+        'from "./react-dom-client.js"'
+      )
+      .replace(/from\s+["']react-dom\.js["']/g, 'from "./react-dom.js"');
     writeFileSync(outfile, source);
     const bytes = Buffer.byteLength(source);
     sizesRaw[name] = bytes;

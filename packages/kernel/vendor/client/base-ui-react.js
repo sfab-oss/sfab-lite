@@ -95,7 +95,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot2();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React380 = __require("react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState73 = React380.useState, useEffect56 = React380.useEffect, useLayoutEffect3 = React380.useLayoutEffect, useDebugValue3 = React380.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      var React380 = __require("./react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState73 = React380.useState, useEffect56 = React380.useEffect, useLayoutEffect3 = React380.useLayoutEffect, useDebugValue3 = React380.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
       exports.useSyncExternalStore = void 0 !== React380.useSyncExternalStore ? React380.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
@@ -123,7 +123,7 @@ var require_with_selector_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React380 = __require("react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore4 = shim.useSyncExternalStore, useRef111 = React380.useRef, useEffect56 = React380.useEffect, useMemo108 = React380.useMemo, useDebugValue3 = React380.useDebugValue;
+      var React380 = __require("./react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore4 = shim.useSyncExternalStore, useRef111 = React380.useRef, useEffect56 = React380.useEffect, useMemo108 = React380.useMemo, useDebugValue3 = React380.useDebugValue;
       exports.useSyncExternalStoreWithSelector = function(subscribe2, getSnapshot2, getServerSnapshot2, selector, isEqual) {
         var instRef = useRef111(null);
         if (null === instRef.current) {
@@ -204,10 +204,10 @@ __export(index_parts_exports, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/root/AccordionRoot.mjs
-import * as React12 from "react.js";
+import * as React12 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useControlled.mjs
-import * as React from "react.js";
+import * as React from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/error.mjs
 var set;
@@ -286,13 +286,13 @@ function serializeToDevModeString(input) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/safeReact.mjs
-import * as React2 from "react.js";
+import * as React2 from "./react.js";
 var SafeReact = {
   ...React2
 };
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useRefWithInit.mjs
-import * as React3 from "react.js";
+import * as React3 from "./react.js";
 var UNINITIALIZED = {};
 function useRefWithInit(init, initArg) {
   const ref = React3.useRef(UNINITIALIZED);
@@ -336,7 +336,7 @@ function assertNotCalled() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useIsoLayoutEffect.mjs
-import * as React4 from "react.js";
+import * as React4 from "./react.js";
 var noop = () => {
 };
 var useIsoLayoutEffect = typeof document !== "undefined" ? React4.useLayoutEffect : noop;
@@ -357,10 +357,10 @@ function warn(...messages) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/list/CompositeList.mjs
-import * as React6 from "react.js";
+import * as React6 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/list/CompositeListContext.mjs
-import * as React5 from "react.js";
+import * as React5 from "./react.js";
 var CompositeListContext = /* @__PURE__ */ React5.createContext({
   register: () => {
   },
@@ -383,7 +383,7 @@ function useCompositeListContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/list/CompositeList.mjs
-import { jsx as _jsx } from "jsx-runtime.js";
+import { jsx as _jsx } from "./jsx-runtime.js";
 function CompositeList(props) {
   const {
     children,
@@ -514,7 +514,7 @@ function disableEslintWarning(_) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/direction-context/DirectionContext.mjs
-import * as React7 from "react.js";
+import * as React7 from "./react.js";
 var DirectionContext = /* @__PURE__ */ React7.createContext(void 0);
 if (true) DirectionContext.displayName = "DirectionContext";
 function useDirection() {
@@ -523,7 +523,7 @@ function useDirection() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/root/AccordionRootContext.mjs
-import * as React8 from "react.js";
+import * as React8 from "./react.js";
 var AccordionRootContext = /* @__PURE__ */ React8.createContext(void 0);
 if (true) AccordionRootContext.displayName = "AccordionRootContext";
 function useAccordionRootContext() {
@@ -535,7 +535,7 @@ function useAccordionRootContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/useRenderElement.mjs
-import * as React11 from "react.js";
+import * as React11 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useMergedRefs.mjs
 function useMergedRefs(a, b, c, d) {
@@ -627,10 +627,10 @@ function update(forkRef, refs) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/getReactElementRef.mjs
-import * as React10 from "react.js";
+import * as React10 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/reactVersion.mjs
-import * as React9 from "react.js";
+import * as React9 from "./react.js";
 var majorVersion = parseInt(React9.version, 10);
 function isReactVersionAtLeast(reactVersionToCheck) {
   return majorVersion >= reactVersionToCheck;
@@ -856,7 +856,7 @@ function isSyntheticEvent(event) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/useRenderElement.mjs
-import { createElement as _createElement } from "react.js";
+import { createElement as _createElement } from "./react.js";
 function useRenderElement(element, componentProps, params = {}) {
   const renderProp = componentProps.render;
   const outProps = useRenderElementProps(componentProps, params);
@@ -974,7 +974,7 @@ function renderTag(Tag, props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/root/AccordionRoot.mjs
-import { jsx as _jsx2 } from "jsx-runtime.js";
+import { jsx as _jsx2 } from "./jsx-runtime.js";
 var rootStateAttributesMapping = {
   value: () => null
 };
@@ -1072,10 +1072,10 @@ var AccordionRoot = /* @__PURE__ */ React12.forwardRef(function AccordionRoot2(c
 if (true) AccordionRoot.displayName = "AccordionRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/item/AccordionItem.mjs
-import * as React20 from "react.js";
+import * as React20 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useId.mjs
-import * as React13 from "react.js";
+import * as React13 from "./react.js";
 var globalId = 0;
 function useGlobalId(idOverride, prefix = "mui") {
   const [defaultId, setDefaultId] = React13.useState(idOverride);
@@ -1103,7 +1103,7 @@ function useBaseUiId(idOverride) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/root/useCollapsibleRoot.mjs
-import * as React16 from "react.js";
+import * as React16 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/reason-parts.mjs
 var reason_parts_exports = {};
@@ -1216,10 +1216,10 @@ function createGenericEventDetails(reason, event, customProperties) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/useTransitionStatus.mjs
-import * as React15 from "react.js";
+import * as React15 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useOnMount.mjs
-import * as React14 from "react.js";
+import * as React14 from "./react.js";
 var EMPTY = [];
 function useOnMount(fn) {
   React14.useEffect(fn, EMPTY);
@@ -1415,7 +1415,7 @@ function useCollapsibleRoot(parameters) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/root/CollapsibleRootContext.mjs
-import * as React17 from "react.js";
+import * as React17 from "./react.js";
 var CollapsibleRootContext = /* @__PURE__ */ React17.createContext(void 0);
 if (true) CollapsibleRootContext.displayName = "CollapsibleRootContext";
 function useCollapsibleRootContext() {
@@ -1427,7 +1427,7 @@ function useCollapsibleRootContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/list/useCompositeListItem.mjs
-import * as React18 from "react.js";
+import * as React18 from "./react.js";
 var IndexGuessBehavior = /* @__PURE__ */ (function(IndexGuessBehavior2) {
   IndexGuessBehavior2[IndexGuessBehavior2["None"] = 0] = "None";
   IndexGuessBehavior2[IndexGuessBehavior2["GuessFromOrder"] = 1] = "GuessFromOrder";
@@ -1500,7 +1500,7 @@ function useCompositeListItem(params = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/item/AccordionItemContext.mjs
-import * as React19 from "react.js";
+import * as React19 from "./react.js";
 var AccordionItemContext = /* @__PURE__ */ React19.createContext(void 0);
 if (true) AccordionItemContext.displayName = "AccordionItemContext";
 function useAccordionItemContext() {
@@ -1597,7 +1597,7 @@ var accordionStateAttributesMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/item/AccordionItem.mjs
-import { jsx as _jsx3 } from "jsx-runtime.js";
+import { jsx as _jsx3 } from "./jsx-runtime.js";
 var AccordionItem = /* @__PURE__ */ React20.forwardRef(function AccordionItem2(componentProps, forwardedRef) {
   const {
     className,
@@ -1687,7 +1687,7 @@ var AccordionItem = /* @__PURE__ */ React20.forwardRef(function AccordionItem2(c
 if (true) AccordionItem.displayName = "AccordionItem";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/header/AccordionHeader.mjs
-import * as React21 from "react.js";
+import * as React21 from "./react.js";
 var AccordionHeader = /* @__PURE__ */ React21.forwardRef(function AccordionHeader2(componentProps, forwardedRef) {
   const {
     render,
@@ -1709,10 +1709,10 @@ var AccordionHeader = /* @__PURE__ */ React21.forwardRef(function AccordionHeade
 if (true) AccordionHeader.displayName = "AccordionHeader";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/trigger/AccordionTrigger.mjs
-import * as React25 from "react.js";
+import * as React25 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/use-button/useButton.mjs
-import * as React24 from "react.js";
+import * as React24 from "./react.js";
 
 // universe/node_modules/.pnpm/@floating-ui+utils@0.2.12/node_modules/@floating-ui/utils/dist/floating-ui.utils.dom.mjs
 function hasWindow() {
@@ -1871,7 +1871,7 @@ function getFrameElement(win) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/root/CompositeRootContext.mjs
-import * as React22 from "react.js";
+import * as React22 from "./react.js";
 var CompositeRootContext = /* @__PURE__ */ React22.createContext(void 0);
 if (true) CompositeRootContext.displayName = "CompositeRootContext";
 function useCompositeRootContext(optional = false) {
@@ -1883,7 +1883,7 @@ function useCompositeRootContext(optional = false) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useFocusableWhenDisabled.mjs
-import * as React23 from "react.js";
+import * as React23 from "./react.js";
 function useFocusableWhenDisabled(parameters) {
   const {
     focusableWhenDisabled,
@@ -2137,10 +2137,10 @@ var AccordionTrigger = /* @__PURE__ */ React25.forwardRef(function AccordionTrig
 if (true) AccordionTrigger.displayName = "AccordionTrigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/accordion/panel/AccordionPanel.mjs
-import * as React28 from "react.js";
+import * as React28 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/panel/useCollapsiblePanel.mjs
-import * as React27 from "react.js";
+import * as React27 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/addEventListener.mjs
 function addEventListener(target, type, listener, options) {
@@ -2174,10 +2174,10 @@ function ownerDocument(node) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/useOpenChangeComplete.mjs
-import * as React26 from "react.js";
+import * as React26 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/useAnimationsFinished.mjs
-import * as ReactDOM from "react-dom.js";
+import * as ReactDOM from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/resolveRef.mjs
 function resolveRef(maybeRef) {
@@ -2702,10 +2702,10 @@ __export(index_parts_exports2, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/root/useRenderDialogRoot.mjs
-import * as React54 from "react.js";
+import * as React54 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useOnFirstRender.mjs
-import * as React29 from "react.js";
+import * as React29 from "./react.js";
 function useOnFirstRender(fn) {
   const ref = React29.useRef(true);
   if (ref.current) {
@@ -2715,7 +2715,7 @@ function useOnFirstRender(fn) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/root/useDialogRoot.mjs
-import * as React51 from "react.js";
+import * as React51 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/platform/parts.mjs
 var parts_exports = {};
@@ -3042,7 +3042,7 @@ function useScrollLock(enabled = true, referenceElement = null) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingDelayGroup.mjs
-import * as React30 from "react.js";
+import * as React30 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/utils/event.mjs
 function stopEvent(event) {
@@ -3211,7 +3211,7 @@ function isHoverOpenEvent(openEventType) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingDelayGroup.mjs
-import { jsx as _jsx4 } from "jsx-runtime.js";
+import { jsx as _jsx4 } from "./jsx-runtime.js";
 var FloatingDelayGroupContext = /* @__PURE__ */ React30.createContext({
   hasProvider: false,
   timeoutMs: 0,
@@ -3377,7 +3377,7 @@ function useDelayGroup(context, options = {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingFocusManager.mjs
-import * as React34 from "react.js";
+import * as React34 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/mergeCleanups.mjs
 function mergeCleanups(...cleanups) {
@@ -3392,7 +3392,7 @@ function mergeCleanups(...cleanups) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/FocusGuard.mjs
-import * as React31 from "react.js";
+import * as React31 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/visuallyHidden.mjs
 var visuallyHiddenBase = {
@@ -3417,7 +3417,7 @@ var visuallyHiddenInput = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/FocusGuard.mjs
-import { jsx as _jsx5 } from "jsx-runtime.js";
+import { jsx as _jsx5 } from "./jsx-runtime.js";
 var FocusGuard = /* @__PURE__ */ React31.forwardRef(function FocusGuard2(props, ref) {
   const [role, setRole] = React31.useState();
   useIsoLayoutEffect(() => {
@@ -4278,8 +4278,8 @@ function markOthers(avoidElements, options = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingPortal.mjs
-import * as React32 from "react.js";
-import * as ReactDOM2 from "react-dom.js";
+import * as React32 from "./react.js";
+import * as ReactDOM2 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/constants.mjs
 var TYPEAHEAD_RESET_MS = 500;
@@ -4308,7 +4308,7 @@ var ownerVisuallyHidden = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingPortal.mjs
-import { jsx as _jsx6, jsxs as _jsxs } from "jsx-runtime.js";
+import { jsx as _jsx6, jsxs as _jsxs } from "./jsx-runtime.js";
 var PortalContext = /* @__PURE__ */ React32.createContext(null);
 if (true) PortalContext.displayName = "PortalContext";
 var usePortalContext = () => React32.useContext(PortalContext);
@@ -4473,7 +4473,7 @@ var FloatingPortal = /* @__PURE__ */ React32.forwardRef(function FloatingPortal2
 if (true) FloatingPortal.displayName = "FloatingPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingTree.mjs
-import * as React33 from "react.js";
+import * as React33 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/utils/createEventEmitter.mjs
 function createEventEmitter() {
@@ -4512,7 +4512,7 @@ var FloatingTreeStore = class {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingTree.mjs
-import { jsx as _jsx7 } from "jsx-runtime.js";
+import { jsx as _jsx7 } from "./jsx-runtime.js";
 var FloatingNodeContext = /* @__PURE__ */ React33.createContext(null);
 if (true) FloatingNodeContext.displayName = "FloatingNodeContext";
 var FloatingTreeContext = /* @__PURE__ */ React33.createContext(null);
@@ -4568,7 +4568,7 @@ function FloatingTree(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/components/FloatingFocusManager.mjs
-import { jsx as _jsx8, jsxs as _jsxs2 } from "jsx-runtime.js";
+import { jsx as _jsx8, jsxs as _jsxs2 } from "./jsx-runtime.js";
 function getEventType(event, lastInteractionType) {
   const win = getWindow(getTarget(event));
   if (event instanceof win.KeyboardEvent) {
@@ -5048,7 +5048,7 @@ function FloatingFocusManager(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useClick.mjs
-import * as React35 from "react.js";
+import * as React35 from "./react.js";
 function useClick(context, props = {}) {
   const {
     enabled = true,
@@ -5141,7 +5141,7 @@ function useClick(context, props = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useClientPoint.mjs
-import * as React36 from "react.js";
+import * as React36 from "./react.js";
 function createVirtualElement(domElement, data) {
   let offsetX = null;
   let offsetY = null;
@@ -5298,7 +5298,7 @@ function useClientPoint(context, props = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useDismiss.mjs
-import * as React37 from "react.js";
+import * as React37 from "./react.js";
 function alwaysFalse() {
   return false;
 }
@@ -5691,7 +5691,7 @@ function useDismiss(context, props = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useFloating.mjs
-import * as React45 from "react.js";
+import * as React45 from "./react.js";
 
 // universe/node_modules/.pnpm/@floating-ui+core@1.8.0/node_modules/@floating-ui/core/dist/floating-ui.core.mjs
 function computeCoordsFromPlacement(_ref, placement, rtl) {
@@ -6939,9 +6939,9 @@ var computePosition2 = (reference, floating, options) => {
 };
 
 // universe/node_modules/.pnpm/@floating-ui+react-dom@2.1.9_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@floating-ui/react-dom/dist/floating-ui.react-dom.mjs
-import * as React38 from "react.js";
-import { useLayoutEffect as useLayoutEffect2 } from "react.js";
-import * as ReactDOM3 from "react-dom.js";
+import * as React38 from "./react.js";
+import { useLayoutEffect as useLayoutEffect2 } from "./react.js";
+import * as ReactDOM3 from "./react-dom.js";
 var isClient = typeof document !== "undefined";
 var noop2 = function noop3() {
 };
@@ -7398,11 +7398,11 @@ function createInlineMiddleware(coordsRef) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/popups/popupStoreUtils.mjs
-import * as React44 from "react.js";
-import * as ReactDOM4 from "react-dom.js";
+import * as React44 from "./react.js";
+import * as ReactDOM4 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useSyncedFloatingRootContext.mjs
-import * as React43 from "react.js";
+import * as React43 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/store/createSelector.mjs
 var createSelector = (a, b, c, d, e, f, ...other) => {
@@ -7459,10 +7459,10 @@ var createSelector = (a, b, c, d, e, f, ...other) => {
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/store/useStore.mjs
 var import_shim = __toESM(require_shim(), 1);
 var import_with_selector = __toESM(require_with_selector(), 1);
-import * as React40 from "react.js";
+import * as React40 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/fastHooks.mjs
-import * as React39 from "react.js";
+import * as React39 from "./react.js";
 var hooks = [];
 var currentInstance = void 0;
 function getInstance() {
@@ -7696,7 +7696,7 @@ var Store = class {
 };
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/store/ReactStore.mjs
-import * as React41 from "react.js";
+import * as React41 from "./react.js";
 var ReactStore = class extends Store {
   /**
    * Creates a new ReactStore instance.
@@ -7867,7 +7867,7 @@ var ReactStore = class extends Store {
 };
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useForcedRerendering.mjs
-import * as React42 from "react.js";
+import * as React42 from "./react.js";
 function useForcedRerendering() {
   const [, setState] = React42.useState({});
   return React42.useCallback(() => {
@@ -8612,7 +8612,7 @@ function useFloating2(options = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useFocus.mjs
-import * as React46 from "react.js";
+import * as React46 from "./react.js";
 var isMacSafari = parts_exports.os.mac && parts_exports.engine.webkit;
 function useFocus(context, props = {}) {
   const {
@@ -8740,7 +8740,7 @@ function useFocus(context, props = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useHoverFloatingInteraction.mjs
-import * as React47 from "react.js";
+import * as React47 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useHoverInteractionSharedState.mjs
 var HoverInteraction = class _HoverInteraction {
@@ -8955,8 +8955,8 @@ function useHoverFloatingInteraction(context, parameters = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useHoverReferenceInteraction.mjs
-import * as React48 from "react.js";
-import * as ReactDOM5 from "react-dom.js";
+import * as React48 from "./react.js";
+import * as ReactDOM5 from "./react-dom.js";
 var EMPTY_REF = {
   current: null
 };
@@ -9229,7 +9229,7 @@ function useHoverReferenceInteraction(context, props = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useListNavigation.mjs
-import * as React49 from "react.js";
+import * as React49 from "./react.js";
 var ESCAPE = "Escape";
 function doSwitch(orientation, vertical, horizontal) {
   switch (orientation) {
@@ -9738,7 +9738,7 @@ function useListNavigation(context, props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/useTypeahead.mjs
-import * as React50 from "react.js";
+import * as React50 from "./react.js";
 function useTypeahead(context, props) {
   const {
     listRef,
@@ -10183,7 +10183,7 @@ function DialogInteractions({
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/root/DialogRootContext.mjs
-import * as React52 from "react.js";
+import * as React52 from "./react.js";
 var IsDrawerContext = /* @__PURE__ */ React52.createContext(false);
 if (true) IsDrawerContext.displayName = "IsDrawerContext";
 var DialogRootContext = /* @__PURE__ */ React52.createContext(void 0);
@@ -10197,7 +10197,7 @@ function useDialogRootContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/store/DialogStore.mjs
-import * as React53 from "react.js";
+import * as React53 from "./react.js";
 var selectors2 = {
   ...popupStoreSelectors,
   modal: createSelector((state) => state.modal),
@@ -10270,7 +10270,7 @@ function createInitialState(initialState = {}) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/root/useRenderDialogRoot.mjs
-import { jsx as _jsx9, jsxs as _jsxs3 } from "jsx-runtime.js";
+import { jsx as _jsx9, jsxs as _jsxs3 } from "./jsx-runtime.js";
 function useRenderDialogRoot(props, mode = "dialog") {
   const {
     children,
@@ -10356,7 +10356,7 @@ function AlertDialogRoot(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/backdrop/DialogBackdrop.mjs
-import * as React55 from "react.js";
+import * as React55 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/popupStateMapping.mjs
 var CommonPopupDataAttributes = (function(CommonPopupDataAttributes2) {
@@ -10463,7 +10463,7 @@ var DialogBackdrop = /* @__PURE__ */ React55.forwardRef(function DialogBackdrop2
 if (true) DialogBackdrop.displayName = "DialogBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/close/DialogClose.mjs
-import * as React56 from "react.js";
+import * as React56 from "./react.js";
 var DialogClose = /* @__PURE__ */ React56.forwardRef(function DialogClose2(componentProps, forwardedRef) {
   const {
     render,
@@ -10503,7 +10503,7 @@ var DialogClose = /* @__PURE__ */ React56.forwardRef(function DialogClose2(compo
 if (true) DialogClose.displayName = "DialogClose";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/description/DialogDescription.mjs
-import * as React57 from "react.js";
+import * as React57 from "./react.js";
 var DialogDescription = /* @__PURE__ */ React57.forwardRef(function DialogDescription2(componentProps, forwardedRef) {
   const {
     render,
@@ -10527,7 +10527,7 @@ var DialogDescription = /* @__PURE__ */ React57.forwardRef(function DialogDescri
 if (true) DialogDescription.displayName = "DialogDescription";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/popup/DialogPopup.mjs
-import * as React59 from "react.js";
+import * as React59 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/popup/DialogPopupCssVars.mjs
 var DialogPopupCssVars = /* @__PURE__ */ (function(DialogPopupCssVars2) {
@@ -10547,7 +10547,7 @@ var DialogPopupDataAttributes = (function(DialogPopupDataAttributes2) {
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/portal/DialogPortalContext.mjs
-import * as React58 from "react.js";
+import * as React58 from "./react.js";
 var DialogPortalContext = /* @__PURE__ */ React58.createContext(void 0);
 if (true) DialogPortalContext.displayName = "DialogPortalContext";
 function useDialogPortalContext() {
@@ -10660,7 +10660,7 @@ function getStyles(element) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/popup/DialogPopup.mjs
-import { jsx as _jsx10 } from "jsx-runtime.js";
+import { jsx as _jsx10 } from "./jsx-runtime.js";
 var stateAttributesMapping2 = {
   ...popupStateMapping,
   ...transitionStatusMapping,
@@ -10752,7 +10752,7 @@ var DialogPopup = /* @__PURE__ */ React59.forwardRef(function DialogPopup2(compo
 if (true) DialogPopup.displayName = "DialogPopup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/portal/DialogPortal.mjs
-import * as React61 from "react.js";
+import * as React61 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/inertValue.mjs
 function inertValue(value) {
@@ -10763,8 +10763,8 @@ function inertValue(value) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/InternalBackdrop.mjs
-import * as React60 from "react.js";
-import { jsx as _jsx11 } from "jsx-runtime.js";
+import * as React60 from "./react.js";
+import { jsx as _jsx11 } from "./jsx-runtime.js";
 var InternalBackdrop = /* @__PURE__ */ React60.forwardRef(function InternalBackdrop2(props, ref) {
   const {
     cutout,
@@ -10792,7 +10792,7 @@ var InternalBackdrop = /* @__PURE__ */ React60.forwardRef(function InternalBackd
 if (true) InternalBackdrop.displayName = "InternalBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/portal/DialogPortal.mjs
-import { jsx as _jsx12, jsxs as _jsxs4 } from "jsx-runtime.js";
+import { jsx as _jsx12, jsxs as _jsxs4 } from "./jsx-runtime.js";
 var DialogPortal = /* @__PURE__ */ React61.forwardRef(function DialogPortal2(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -10823,7 +10823,7 @@ var DialogPortal = /* @__PURE__ */ React61.forwardRef(function DialogPortal2(pro
 if (true) DialogPortal.displayName = "DialogPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/title/DialogTitle.mjs
-import * as React62 from "react.js";
+import * as React62 from "./react.js";
 var DialogTitle = /* @__PURE__ */ React62.forwardRef(function DialogTitle2(componentProps, forwardedRef) {
   const {
     render,
@@ -10847,13 +10847,13 @@ var DialogTitle = /* @__PURE__ */ React62.forwardRef(function DialogTitle2(compo
 if (true) DialogTitle.displayName = "DialogTitle";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/trigger/DialogTrigger.mjs
-import * as React66 from "react.js";
+import * as React66 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useOpenInteractionType.mjs
-import * as React65 from "react.js";
+import * as React65 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useEnhancedClickHandler.mjs
-import * as React63 from "react.js";
+import * as React63 from "./react.js";
 function useEnhancedClickHandler(handler) {
   const lastClickInteractionTypeRef = React63.useRef("");
   const handlePointerDown = React63.useCallback((event) => {
@@ -10882,7 +10882,7 @@ function useEnhancedClickHandler(handler) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/useValueChanged.mjs
-import * as React64 from "react.js";
+import * as React64 from "./react.js";
 function useValueChanged(value, onChange) {
   const valueRef = React64.useRef(value);
   const onChangeCallback = useStableCallback(onChange);
@@ -10997,7 +10997,7 @@ if (true) DialogTrigger.displayName = "DialogTrigger";
 var AlertDialogTrigger = DialogTrigger;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/viewport/DialogViewport.mjs
-import * as React67 from "react.js";
+import * as React67 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/viewport/DialogViewportDataAttributes.mjs
 var DialogViewportDataAttributes = (function(DialogViewportDataAttributes2) {
@@ -11169,10 +11169,10 @@ __export(index_parts_exports3, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/autocomplete/root/AutocompleteRoot.mjs
-import * as React77 from "react.js";
+import * as React77 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/root/AriaCombobox.mjs
-import * as React76 from "react.js";
+import * as React76 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/hooks/gridNavigation.mjs
 function gridNavigation(event, prevIndex, listRef, orientation, loopFocus, rtl, disabledIndices, minIndex, maxIndex, cols = 2) {
@@ -11193,7 +11193,7 @@ function gridNavigation(event, prevIndex, listRef, orientation, loopFocus, rtl, 
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/root/ComboboxRootContext.mjs
-import * as React68 from "react.js";
+import * as React68 from "./react.js";
 var ComboboxRootContext = /* @__PURE__ */ React68.createContext(void 0);
 if (true) ComboboxRootContext.displayName = "ComboboxRootContext";
 var ComboboxFloatingContext = /* @__PURE__ */ React68.createContext(void 0);
@@ -11267,7 +11267,7 @@ function removeItem(selectedValues, itemValue, comparer) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/resolveValueLabel.mjs
-import * as React69 from "react.js";
+import * as React69 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/serializeValue.mjs
 function serializeValue(value) {
@@ -11285,7 +11285,7 @@ function serializeValue(value) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/resolveValueLabel.mjs
-import { jsx as _jsx13 } from "jsx-runtime.js";
+import { jsx as _jsx13 } from "./jsx-runtime.js";
 function isGroupedItems(items) {
   return items != null && items.length > 0 && typeof items[0] === "object" && items[0] != null && "items" in items[0];
 }
@@ -11450,7 +11450,7 @@ var selectors3 = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/field-root-context/FieldRootContext.mjs
-import * as React70 from "react.js";
+import * as React70 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/control/FieldControlDataAttributes.mjs
 var FieldControlDataAttributes = /* @__PURE__ */ (function(FieldControlDataAttributes2) {
@@ -11557,7 +11557,7 @@ function useFieldRootContext(optional = true) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/field-register-control/useRegisterFieldControl.mjs
-import * as React71 from "react.js";
+import * as React71 from "./react.js";
 function useRegisterFieldControl(controlRef, id, value, getFormValueOverride, enabled = true, name) {
   const {
     registerFieldControl
@@ -11586,7 +11586,7 @@ function useRegisterFieldControl(controlRef, id, value, getFormValueOverride, en
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/form-context/FormContext.mjs
-import * as React72 from "react.js";
+import * as React72 from "./react.js";
 var FormContext = /* @__PURE__ */ React72.createContext({
   formRef: {
     current: {
@@ -11606,10 +11606,10 @@ function useFormContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/labelable-provider/useLabelableId.mjs
-import * as React74 from "react.js";
+import * as React74 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/labelable-provider/LabelableContext.mjs
-import * as React73 from "react.js";
+import * as React73 from "./react.js";
 var LabelableContext = /* @__PURE__ */ React73.createContext({
   controlId: void 0,
   registerControlId: NOOP,
@@ -11713,7 +11713,7 @@ function createSingleSelectionCollatorFilter(collatorFilter, itemToStringLabel, 
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/root/utils/useFilter.mjs
-import * as React75 from "react.js";
+import * as React75 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/stringifyLocale.mjs
 function stringifyLocale(locale) {
@@ -11809,7 +11809,7 @@ var INITIAL_LAST_HIGHLIGHT = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/root/AriaCombobox.mjs
-import { jsx as _jsx14, jsxs as _jsxs5 } from "jsx-runtime.js";
+import { jsx as _jsx14, jsxs as _jsxs5 } from "./jsx-runtime.js";
 function AriaCombobox(props) {
   const {
     id: idProp,
@@ -12769,7 +12769,7 @@ function AriaCombobox(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/autocomplete/root/AutocompleteRoot.mjs
-import { jsx as _jsx15 } from "jsx-runtime.js";
+import { jsx as _jsx15 } from "./jsx-runtime.js";
 function AutocompleteRoot(props) {
   const {
     openOnInputClick = false,
@@ -12855,8 +12855,8 @@ function AutocompleteRoot(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/autocomplete/value/AutocompleteValue.mjs
-import * as React78 from "react.js";
-import { jsx as _jsx16 } from "jsx-runtime.js";
+import * as React78 from "./react.js";
+import { jsx as _jsx16 } from "./jsx-runtime.js";
 function AutocompleteValue(props) {
   const {
     children
@@ -12876,7 +12876,7 @@ function AutocompleteValue(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/trigger/ComboboxTrigger.mjs
-import * as React79 from "react.js";
+import * as React79 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/utils/stateAttributesMapping.mjs
 var triggerStateAttributesMapping = {
@@ -13136,10 +13136,10 @@ if (true) ComboboxTrigger.displayName = "ComboboxTrigger";
 var AutocompleteTrigger = ComboboxTrigger;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/input/ComboboxInput.mjs
-import * as React83 from "react.js";
+import * as React83 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/chips/ComboboxChipsContext.mjs
-import * as React80 from "react.js";
+import * as React80 from "./react.js";
 var ComboboxChipsContext = /* @__PURE__ */ React80.createContext(void 0);
 if (true) ComboboxChipsContext.displayName = "ComboboxChipsContext";
 function useComboboxChipsContext() {
@@ -13147,7 +13147,7 @@ function useComboboxChipsContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/positioner/ComboboxPositionerContext.mjs
-import * as React81 from "react.js";
+import * as React81 from "./react.js";
 var ComboboxPositionerContext = /* @__PURE__ */ React81.createContext(void 0);
 if (true) ComboboxPositionerContext.displayName = "ComboboxPositionerContext";
 function useComboboxPositionerContext(optional) {
@@ -13159,8 +13159,8 @@ function useComboboxPositionerContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/utils/ComboboxInternalDismissButton.mjs
-import * as React82 from "react.js";
-import { jsx as _jsx17 } from "jsx-runtime.js";
+import * as React82 from "./react.js";
+import { jsx as _jsx17 } from "./jsx-runtime.js";
 var ComboboxInternalDismissButton = /* @__PURE__ */ React82.forwardRef(function ComboboxInternalDismissButton2(_, forwardedRef) {
   const store = useComboboxRootContext();
   const {
@@ -13187,7 +13187,7 @@ var ComboboxInternalDismissButton = /* @__PURE__ */ React82.forwardRef(function 
 if (true) ComboboxInternalDismissButton.displayName = "ComboboxInternalDismissButton";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/input/ComboboxInput.mjs
-import { jsx as _jsx18, jsxs as _jsxs6 } from "jsx-runtime.js";
+import { jsx as _jsx18, jsxs as _jsxs6 } from "./jsx-runtime.js";
 var ComboboxInput = /* @__PURE__ */ React83.forwardRef(function ComboboxInput2(componentProps, forwardedRef) {
   const {
     render,
@@ -13550,7 +13550,7 @@ var ComboboxInput = /* @__PURE__ */ React83.forwardRef(function ComboboxInput2(c
 if (true) ComboboxInput.displayName = "ComboboxInput";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/input-group/ComboboxInputGroup.mjs
-import * as React84 from "react.js";
+import * as React84 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/utils/handleInputPress.mjs
 function handleInputPress(event, store, disabled2, readOnly, shouldIgnoreTarget) {
@@ -13631,7 +13631,7 @@ if (true) ComboboxInputGroup.displayName = "ComboboxInputGroup";
 var AutocompleteInputGroup = ComboboxInputGroup;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/icon/ComboboxIcon.mjs
-import * as React85 from "react.js";
+import * as React85 from "./react.js";
 var ComboboxIcon = /* @__PURE__ */ React85.forwardRef(function ComboboxIcon2(componentProps, forwardedRef) {
   const {
     render,
@@ -13651,7 +13651,7 @@ var ComboboxIcon = /* @__PURE__ */ React85.forwardRef(function ComboboxIcon2(com
 if (true) ComboboxIcon.displayName = "ComboboxIcon";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/clear/ComboboxClear.mjs
-import * as React86 from "react.js";
+import * as React86 from "./react.js";
 var stateAttributesMapping4 = {
   ...transitionStatusMapping,
   ...triggerOpenStateMapping2
@@ -13756,14 +13756,14 @@ var ComboboxClear = /* @__PURE__ */ React86.forwardRef(function ComboboxClear2(c
 if (true) ComboboxClear.displayName = "ComboboxClear";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/list/ComboboxList.mjs
-import * as React89 from "react.js";
+import * as React89 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/collection/ComboboxCollection.mjs
-import * as React88 from "react.js";
+import * as React88 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/collection/GroupCollectionContext.mjs
-import * as React87 from "react.js";
-import { jsx as _jsx19 } from "jsx-runtime.js";
+import * as React87 from "./react.js";
+import { jsx as _jsx19 } from "./jsx-runtime.js";
 var GroupCollectionContext = /* @__PURE__ */ React87.createContext(null);
 if (true) GroupCollectionContext.displayName = "GroupCollectionContext";
 function useGroupCollectionContext() {
@@ -13784,7 +13784,7 @@ function GroupCollectionProvider(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/collection/ComboboxCollection.mjs
-import { jsx as _jsx20 } from "jsx-runtime.js";
+import { jsx as _jsx20 } from "./jsx-runtime.js";
 function ComboboxCollection(props) {
   const {
     children
@@ -13803,7 +13803,7 @@ function ComboboxCollection(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/list/ComboboxList.mjs
-import { jsx as _jsx21 } from "jsx-runtime.js";
+import { jsx as _jsx21 } from "./jsx-runtime.js";
 var ComboboxList = /* @__PURE__ */ React89.forwardRef(function ComboboxList2(componentProps, forwardedRef) {
   var _ComboboxCollection;
   const {
@@ -13894,10 +13894,10 @@ var ComboboxList = /* @__PURE__ */ React89.forwardRef(function ComboboxList2(com
 if (true) ComboboxList.displayName = "ComboboxList";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/status/ComboboxStatus.mjs
-import * as React91 from "react.js";
+import * as React91 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/utils/useInitialLiveRegionTextMutation.mjs
-import * as React90 from "react.js";
+import * as React90 from "./react.js";
 var LIVE_REGION_MARKER = "\u2060";
 var INITIAL_LIVE_REGION_TEXT_MUTATION_RESET_DELAY = 200;
 function findLastTextNode(root) {
@@ -13967,10 +13967,10 @@ var ComboboxStatus = /* @__PURE__ */ React91.forwardRef(function ComboboxStatus2
 if (true) ComboboxStatus.displayName = "ComboboxStatus";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/portal/ComboboxPortal.mjs
-import * as React93 from "react.js";
+import * as React93 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/portal/ComboboxPortalContext.mjs
-import * as React92 from "react.js";
+import * as React92 from "./react.js";
 var ComboboxPortalContext = /* @__PURE__ */ React92.createContext(void 0);
 if (true) ComboboxPortalContext.displayName = "ComboboxPortalContext";
 function useComboboxPortalContext() {
@@ -13982,7 +13982,7 @@ function useComboboxPortalContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/portal/ComboboxPortal.mjs
-import { jsx as _jsx22 } from "jsx-runtime.js";
+import { jsx as _jsx22 } from "./jsx-runtime.js";
 var ComboboxPortal = /* @__PURE__ */ React93.forwardRef(function ComboboxPortal2(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -14006,7 +14006,7 @@ var ComboboxPortal = /* @__PURE__ */ React93.forwardRef(function ComboboxPortal2
 if (true) ComboboxPortal.displayName = "ComboboxPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/backdrop/ComboboxBackdrop.mjs
-import * as React94 from "react.js";
+import * as React94 from "./react.js";
 var stateAttributesMapping5 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -14043,10 +14043,10 @@ var ComboboxBackdrop = /* @__PURE__ */ React94.forwardRef(function ComboboxBackd
 if (true) ComboboxBackdrop.displayName = "ComboboxBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/positioner/ComboboxPositioner.mjs
-import * as React97 from "react.js";
+import * as React97 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useAnchorPositioning.mjs
-import * as React95 from "react.js";
+import * as React95 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/floating-ui-react/middleware/arrow.mjs
 var baseArrow = (options) => ({
@@ -14608,7 +14608,7 @@ function usePositioner(componentProps, state, {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useAnchoredPopupScrollLock.mjs
-import * as React96 from "react.js";
+import * as React96 from "./react.js";
 var VIEWPORT_WIDTH_TOLERANCE_PX = 20;
 function useAnchoredPopupScrollLock(enabled, touchOpen, positionerElement, referenceElement) {
   const [touchOpenShouldLockScroll, setTouchOpenShouldLockScroll] = React96.useState(false);
@@ -14625,7 +14625,7 @@ function useAnchoredPopupScrollLock(enabled, touchOpen, positionerElement, refer
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/positioner/ComboboxPositioner.mjs
-import { jsx as _jsx23, jsxs as _jsxs7 } from "jsx-runtime.js";
+import { jsx as _jsx23, jsxs as _jsxs7 } from "./jsx-runtime.js";
 var ComboboxPositioner = /* @__PURE__ */ React97.forwardRef(function ComboboxPositioner2(componentProps, forwardedRef) {
   const {
     render,
@@ -14714,8 +14714,8 @@ var ComboboxPositioner = /* @__PURE__ */ React97.forwardRef(function ComboboxPos
 if (true) ComboboxPositioner.displayName = "ComboboxPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/popup/ComboboxPopup.mjs
-import * as React98 from "react.js";
-import { jsx as _jsx24, jsxs as _jsxs8 } from "jsx-runtime.js";
+import * as React98 from "./react.js";
+import { jsx as _jsx24, jsxs as _jsxs8 } from "./jsx-runtime.js";
 var stateAttributesMapping6 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -14811,7 +14811,7 @@ var ComboboxPopup = /* @__PURE__ */ React98.forwardRef(function ComboboxPopup2(c
 if (true) ComboboxPopup.displayName = "ComboboxPopup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/arrow/ComboboxArrow.mjs
-import * as React99 from "react.js";
+import * as React99 from "./react.js";
 var ComboboxArrow = /* @__PURE__ */ React99.forwardRef(function ComboboxArrow2(componentProps, forwardedRef) {
   const {
     render,
@@ -14848,10 +14848,10 @@ var ComboboxArrow = /* @__PURE__ */ React99.forwardRef(function ComboboxArrow2(c
 if (true) ComboboxArrow.displayName = "ComboboxArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/group/ComboboxGroup.mjs
-import * as React101 from "react.js";
+import * as React101 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/group/ComboboxGroupContext.mjs
-import * as React100 from "react.js";
+import * as React100 from "./react.js";
 var ComboboxGroupContext = /* @__PURE__ */ React100.createContext(void 0);
 if (true) ComboboxGroupContext.displayName = "ComboboxGroupContext";
 function useComboboxGroupContext() {
@@ -14863,7 +14863,7 @@ function useComboboxGroupContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/group/ComboboxGroup.mjs
-import { jsx as _jsx25 } from "jsx-runtime.js";
+import { jsx as _jsx25 } from "./jsx-runtime.js";
 var ComboboxGroup = /* @__PURE__ */ React101.forwardRef(function ComboboxGroup2(componentProps, forwardedRef) {
   const {
     render,
@@ -14900,7 +14900,7 @@ var ComboboxGroup = /* @__PURE__ */ React101.forwardRef(function ComboboxGroup2(
 if (true) ComboboxGroup.displayName = "ComboboxGroup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/group-label/ComboboxGroupLabel.mjs
-import * as React102 from "react.js";
+import * as React102 from "./react.js";
 var ComboboxGroupLabel = /* @__PURE__ */ React102.forwardRef(function ComboboxGroupLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -14930,11 +14930,11 @@ var ComboboxGroupLabel = /* @__PURE__ */ React102.forwardRef(function ComboboxGr
 if (true) ComboboxGroupLabel.displayName = "ComboboxGroupLabel";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/item/ComboboxItem.mjs
-import * as React105 from "react.js";
-import * as ReactDOM6 from "react-dom.js";
+import * as React105 from "./react.js";
+import * as ReactDOM6 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/item/ComboboxItemContext.mjs
-import * as React103 from "react.js";
+import * as React103 from "./react.js";
 var ComboboxItemContext = /* @__PURE__ */ React103.createContext(void 0);
 if (true) ComboboxItemContext.displayName = "ComboboxItemContext";
 function useComboboxItemContext() {
@@ -14946,7 +14946,7 @@ function useComboboxItemContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/row/ComboboxRowContext.mjs
-import * as React104 from "react.js";
+import * as React104 from "./react.js";
 var ComboboxRowContext = /* @__PURE__ */ React104.createContext(false);
 if (true) ComboboxRowContext.displayName = "ComboboxRowContext";
 function useComboboxRowContext() {
@@ -14954,7 +14954,7 @@ function useComboboxRowContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/item/ComboboxItem.mjs
-import { jsx as _jsx26 } from "jsx-runtime.js";
+import { jsx as _jsx26 } from "./jsx-runtime.js";
 function ComboboxItemInner(props) {
   const {
     componentProps,
@@ -15143,8 +15143,8 @@ if (true) ComboboxItem.displayName = "ComboboxItem";
 var AutocompleteItem = ComboboxItem;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/row/ComboboxRow.mjs
-import * as React106 from "react.js";
-import { jsx as _jsx27 } from "jsx-runtime.js";
+import * as React106 from "./react.js";
+import { jsx as _jsx27 } from "./jsx-runtime.js";
 var ComboboxRow = /* @__PURE__ */ React106.forwardRef(function ComboboxRow2(componentProps, forwardedRef) {
   const {
     render,
@@ -15166,7 +15166,7 @@ var ComboboxRow = /* @__PURE__ */ React106.forwardRef(function ComboboxRow2(comp
 if (true) ComboboxRow.displayName = "ComboboxRow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/empty/ComboboxEmpty.mjs
-import * as React107 from "react.js";
+import * as React107 from "./react.js";
 var ComboboxEmpty = /* @__PURE__ */ React107.forwardRef(function ComboboxEmpty2(componentProps, forwardedRef) {
   const {
     render,
@@ -15194,7 +15194,7 @@ var ComboboxEmpty = /* @__PURE__ */ React107.forwardRef(function ComboboxEmpty2(
 if (true) ComboboxEmpty.displayName = "ComboboxEmpty";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/separator/Separator.mjs
-import * as React108 from "react.js";
+import * as React108 from "./react.js";
 var Separator = /* @__PURE__ */ React108.forwardRef(function SeparatorComponent(componentProps, forwardedRef) {
   const {
     className,
@@ -15233,10 +15233,10 @@ __export(index_parts_exports4, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/avatar/root/AvatarRoot.mjs
-import * as React110 from "react.js";
+import * as React110 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/avatar/root/AvatarRootContext.mjs
-import * as React109 from "react.js";
+import * as React109 from "./react.js";
 var AvatarRootContext = /* @__PURE__ */ React109.createContext(void 0);
 if (true) AvatarRootContext.displayName = "AvatarRootContext";
 function useAvatarRootContext() {
@@ -15253,7 +15253,7 @@ var avatarStateAttributesMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/avatar/root/AvatarRoot.mjs
-import { jsx as _jsx28 } from "jsx-runtime.js";
+import { jsx as _jsx28 } from "./jsx-runtime.js";
 var AvatarRoot = /* @__PURE__ */ React110.forwardRef(function AvatarRoot2(componentProps, forwardedRef) {
   const {
     className,
@@ -15283,10 +15283,10 @@ var AvatarRoot = /* @__PURE__ */ React110.forwardRef(function AvatarRoot2(compon
 if (true) AvatarRoot.displayName = "AvatarRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/avatar/image/AvatarImage.mjs
-import * as React112 from "react.js";
+import * as React112 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/avatar/image/useImageLoadingStatus.mjs
-import * as React111 from "react.js";
+import * as React111 from "./react.js";
 function useImageLoadingStatus(src, {
   referrerPolicy,
   crossOrigin,
@@ -15397,7 +15397,7 @@ var AvatarImage = /* @__PURE__ */ React112.forwardRef(function AvatarImage2(comp
 if (true) AvatarImage.displayName = "AvatarImage";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/avatar/fallback/AvatarFallback.mjs
-import * as React113 from "react.js";
+import * as React113 from "./react.js";
 var AvatarFallback = /* @__PURE__ */ React113.forwardRef(function AvatarFallback2(componentProps, forwardedRef) {
   const {
     className,
@@ -15434,7 +15434,7 @@ var AvatarFallback = /* @__PURE__ */ React113.forwardRef(function AvatarFallback
 if (true) AvatarFallback.displayName = "AvatarFallback";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/button/Button.mjs
-import * as React114 from "react.js";
+import * as React114 from "./react.js";
 var Button = /* @__PURE__ */ React114.forwardRef(function Button2(componentProps, forwardedRef) {
   const {
     render,
@@ -15472,7 +15472,7 @@ __export(index_parts_exports5, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox/root/CheckboxRoot.mjs
-import * as React120 from "react.js";
+import * as React120 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/getDefaultFormSubmitter.mjs
 function getDefaultFormSubmitter(form) {
@@ -15492,7 +15492,7 @@ function getDefaultFormSubmitter(form) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox/utils/useStateAttributesMapping.mjs
-import * as React115 from "react.js";
+import * as React115 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox/root/CheckboxRootDataAttributes.mjs
 var CheckboxRootDataAttributes = /* @__PURE__ */ (function(CheckboxRootDataAttributes2) {
@@ -15532,7 +15532,7 @@ function useStateAttributesMapping(state) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/item/FieldItemContext.mjs
-import * as React116 from "react.js";
+import * as React116 from "./react.js";
 var FieldItemContext = /* @__PURE__ */ React116.createContext({
   disabled: false
 });
@@ -15543,7 +15543,7 @@ function useFieldItemContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/labelable-provider/useAriaLabelledBy.mjs
-import * as React117 from "react.js";
+import * as React117 from "./react.js";
 function useAriaLabelledBy(explicitAriaLabelledBy, labelId, labelSourceRef, enableFallback = true, labelSourceId) {
   const [fallbackAriaLabelledBy, setFallbackAriaLabelledBy] = React117.useState();
   const generatedLabelId = useBaseUiId(labelSourceId ? `${labelSourceId}-label` : void 0);
@@ -15586,7 +15586,7 @@ function findAssociatedLabel(labelSource) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox-group/CheckboxGroupContext.mjs
-import * as React118 from "react.js";
+import * as React118 from "./react.js";
 var CheckboxGroupContext = /* @__PURE__ */ React118.createContext(void 0);
 if (true) CheckboxGroupContext.displayName = "CheckboxGroupContext";
 function useCheckboxGroupContext(optional = true) {
@@ -15598,7 +15598,7 @@ function useCheckboxGroupContext(optional = true) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox/root/CheckboxRootContext.mjs
-import * as React119 from "react.js";
+import * as React119 from "./react.js";
 var CheckboxRootContext = /* @__PURE__ */ React119.createContext(void 0);
 if (true) CheckboxRootContext.displayName = "CheckboxRootContext";
 function useCheckboxRootContext() {
@@ -15610,7 +15610,7 @@ function useCheckboxRootContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox/root/CheckboxRoot.mjs
-import { jsx as _jsx29, jsxs as _jsxs9 } from "jsx-runtime.js";
+import { jsx as _jsx29, jsxs as _jsxs9 } from "./jsx-runtime.js";
 var PARENT_CHECKBOX = "data-parent";
 var CheckboxRoot = /* @__PURE__ */ React120.forwardRef(function CheckboxRoot2(componentProps, forwardedRef) {
   const {
@@ -15912,7 +15912,7 @@ var CheckboxRoot = /* @__PURE__ */ React120.forwardRef(function CheckboxRoot2(co
 if (true) CheckboxRoot.displayName = "CheckboxRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox/indicator/CheckboxIndicator.mjs
-import * as React121 from "react.js";
+import * as React121 from "./react.js";
 var CheckboxIndicator = /* @__PURE__ */ React121.forwardRef(function CheckboxIndicator2(componentProps, forwardedRef) {
   const {
     render,
@@ -15963,10 +15963,10 @@ var CheckboxIndicator = /* @__PURE__ */ React121.forwardRef(function CheckboxInd
 if (true) CheckboxIndicator.displayName = "CheckboxIndicator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox-group/CheckboxGroup.mjs
-import * as React123 from "react.js";
+import * as React123 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox-group/useCheckboxGroupParent.mjs
-import * as React122 from "react.js";
+import * as React122 from "./react.js";
 var EMPTY4 = [];
 function useCheckboxGroupParent(params) {
   const {
@@ -16042,7 +16042,7 @@ function useCheckboxGroupParent(params) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/checkbox-group/CheckboxGroup.mjs
-import { jsx as _jsx30 } from "jsx-runtime.js";
+import { jsx as _jsx30 } from "./jsx-runtime.js";
 var CheckboxGroup = /* @__PURE__ */ React123.forwardRef(function CheckboxGroup2(componentProps, forwardedRef) {
   const {
     allValues,
@@ -16155,7 +16155,7 @@ __export(index_parts_exports6, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/root/CollapsibleRoot.mjs
-import * as React124 from "react.js";
+import * as React124 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/root/stateAttributesMapping.mjs
 var collapsibleStateAttributesMapping = {
@@ -16164,7 +16164,7 @@ var collapsibleStateAttributesMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/root/CollapsibleRoot.mjs
-import { jsx as _jsx31 } from "jsx-runtime.js";
+import { jsx as _jsx31 } from "./jsx-runtime.js";
 var CollapsibleRoot = /* @__PURE__ */ React124.forwardRef(function CollapsibleRoot2(componentProps, forwardedRef) {
   const {
     render,
@@ -16207,7 +16207,7 @@ var CollapsibleRoot = /* @__PURE__ */ React124.forwardRef(function CollapsibleRo
 if (true) CollapsibleRoot.displayName = "CollapsibleRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/trigger/CollapsibleTrigger.mjs
-import * as React125 from "react.js";
+import * as React125 from "./react.js";
 var stateAttributesMapping8 = {
   ...triggerOpenStateMapping,
   ...transitionStatusMapping
@@ -16251,7 +16251,7 @@ var CollapsibleTrigger = /* @__PURE__ */ React125.forwardRef(function Collapsibl
 if (true) CollapsibleTrigger.displayName = "CollapsibleTrigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/panel/CollapsiblePanel.mjs
-import * as React126 from "react.js";
+import * as React126 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/collapsible/panel/CollapsiblePanelCssVars.mjs
 var CollapsiblePanelCssVars = /* @__PURE__ */ (function(CollapsiblePanelCssVars2) {
@@ -16394,8 +16394,8 @@ __export(index_parts_exports7, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/root/ComboboxRoot.mjs
-import * as React127 from "react.js";
-import { jsx as _jsx32 } from "jsx-runtime.js";
+import * as React127 from "./react.js";
+import { jsx as _jsx32 } from "./jsx-runtime.js";
 function ComboboxRoot(props) {
   const {
     multiple = false,
@@ -16416,7 +16416,7 @@ function ComboboxRoot(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/label/ComboboxLabel.mjs
-import * as React128 from "react.js";
+import * as React128 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useRegisteredLabelId.mjs
 function useRegisteredLabelId(idProp, setLabelId) {
@@ -16540,8 +16540,8 @@ var ComboboxLabel = /* @__PURE__ */ React128.forwardRef(function ComboboxLabel2(
 if (true) ComboboxLabel.displayName = "ComboboxLabel";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/value/ComboboxValue.mjs
-import * as React129 from "react.js";
-import { jsx as _jsx33 } from "jsx-runtime.js";
+import * as React129 from "./react.js";
+import { jsx as _jsx33 } from "./jsx-runtime.js";
 function ComboboxValue(props) {
   const {
     children: childrenProp,
@@ -16573,8 +16573,8 @@ function ComboboxValue(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/item-indicator/ComboboxItemIndicator.mjs
-import * as React130 from "react.js";
-import { jsx as _jsx34 } from "jsx-runtime.js";
+import * as React130 from "./react.js";
+import { jsx as _jsx34 } from "./jsx-runtime.js";
 var ComboboxItemIndicator = /* @__PURE__ */ React130.forwardRef(function ComboboxItemIndicator2(componentProps, forwardedRef) {
   const keepMounted = componentProps.keepMounted ?? false;
   const {
@@ -16633,8 +16633,8 @@ var Inner = /* @__PURE__ */ React130.memo(/* @__PURE__ */ React130.forwardRef((c
 if (true) Inner.displayName = "Inner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/chips/ComboboxChips.mjs
-import * as React131 from "react.js";
-import { jsx as _jsx35 } from "jsx-runtime.js";
+import * as React131 from "./react.js";
+import { jsx as _jsx35 } from "./jsx-runtime.js";
 var ComboboxChips = /* @__PURE__ */ React131.forwardRef(function ComboboxChips2(componentProps, forwardedRef) {
   const {
     render,
@@ -16678,11 +16678,11 @@ var ComboboxChips = /* @__PURE__ */ React131.forwardRef(function ComboboxChips2(
 if (true) ComboboxChips.displayName = "ComboboxChips";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/chip/ComboboxChip.mjs
-import * as React133 from "react.js";
-import * as ReactDOM7 from "react-dom.js";
+import * as React133 from "./react.js";
+import * as ReactDOM7 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/chip/ComboboxChipContext.mjs
-import * as React132 from "react.js";
+import * as React132 from "./react.js";
 var ComboboxChipContext = /* @__PURE__ */ React132.createContext(void 0);
 if (true) ComboboxChipContext.displayName = "ComboboxChipContext";
 function useComboboxChipContext() {
@@ -16694,7 +16694,7 @@ function useComboboxChipContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/chip/ComboboxChip.mjs
-import { jsx as _jsx36 } from "jsx-runtime.js";
+import { jsx as _jsx36 } from "./jsx-runtime.js";
 var ComboboxChip = /* @__PURE__ */ React133.forwardRef(function ComboboxChip2(componentProps, forwardedRef) {
   const {
     render,
@@ -16796,7 +16796,7 @@ var ComboboxChip = /* @__PURE__ */ React133.forwardRef(function ComboboxChip2(co
 if (true) ComboboxChip.displayName = "ComboboxChip";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/combobox/chip-remove/ComboboxChipRemove.mjs
-import * as React134 from "react.js";
+import * as React134 from "./react.js";
 var ComboboxChipRemove = /* @__PURE__ */ React134.forwardRef(function ComboboxChipRemove2(componentProps, forwardedRef) {
   const {
     render,
@@ -16906,10 +16906,10 @@ __export(index_parts_exports9, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/context-menu/root/ContextMenuRoot.mjs
-import * as React175 from "react.js";
+import * as React175 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/context-menu/root/ContextMenuRootContext.mjs
-import * as React135 from "react.js";
+import * as React135 from "./react.js";
 var ContextMenuRootContext = /* @__PURE__ */ React135.createContext(void 0);
 if (true) ContextMenuRootContext.displayName = "ContextMenuRootContext";
 function useContextMenuRootContext(optional = true) {
@@ -16948,10 +16948,10 @@ __export(index_parts_exports8, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/arrow/MenuArrow.mjs
-import * as React138 from "react.js";
+import * as React138 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/positioner/MenuPositionerContext.mjs
-import * as React136 from "react.js";
+import * as React136 from "./react.js";
 var MenuPositionerContext = /* @__PURE__ */ React136.createContext(void 0);
 if (true) MenuPositionerContext.displayName = "MenuPositionerContext";
 function useMenuPositionerContext(optional) {
@@ -16963,7 +16963,7 @@ function useMenuPositionerContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/root/MenuRootContext.mjs
-import * as React137 from "react.js";
+import * as React137 from "./react.js";
 var MenuRootContext = /* @__PURE__ */ React137.createContext(void 0);
 if (true) MenuRootContext.displayName = "MenuRootContext";
 function useMenuRootContext(optional) {
@@ -17013,7 +17013,7 @@ var MenuArrow = /* @__PURE__ */ React138.forwardRef(function MenuArrow2(componen
 if (true) MenuArrow.displayName = "MenuArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/backdrop/MenuBackdrop.mjs
-import * as React139 from "react.js";
+import * as React139 from "./react.js";
 var stateAttributesMapping9 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -17055,10 +17055,10 @@ var MenuBackdrop = /* @__PURE__ */ React139.forwardRef(function MenuBackdrop2(co
 if (true) MenuBackdrop.displayName = "MenuBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/checkbox-item/MenuCheckboxItem.mjs
-import * as React143 from "react.js";
+import * as React143 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/checkbox-item/MenuCheckboxItemContext.mjs
-import * as React140 from "react.js";
+import * as React140 from "./react.js";
 var MenuCheckboxItemContext = /* @__PURE__ */ React140.createContext(void 0);
 if (true) MenuCheckboxItemContext.displayName = "MenuCheckboxItemContext";
 function useMenuCheckboxItemContext() {
@@ -17070,10 +17070,10 @@ function useMenuCheckboxItemContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/item/useMenuItem.mjs
-import * as React142 from "react.js";
+import * as React142 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/item/useMenuItemCommonProps.mjs
-import * as React141 from "react.js";
+import * as React141 from "./react.js";
 function useMenuItemCommonProps(params) {
   const {
     closeOnClick,
@@ -17217,7 +17217,7 @@ var itemMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/checkbox-item/MenuCheckboxItem.mjs
-import { jsx as _jsx37 } from "jsx-runtime.js";
+import { jsx as _jsx37 } from "./jsx-runtime.js";
 var MenuCheckboxItem = /* @__PURE__ */ React143.forwardRef(function MenuCheckboxItem2(componentProps, forwardedRef) {
   const {
     render,
@@ -17296,7 +17296,7 @@ var MenuCheckboxItem = /* @__PURE__ */ React143.forwardRef(function MenuCheckbox
 if (true) MenuCheckboxItem.displayName = "MenuCheckboxItem";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/checkbox-item-indicator/MenuCheckboxItemIndicator.mjs
-import * as React144 from "react.js";
+import * as React144 from "./react.js";
 var MenuCheckboxItemIndicator = /* @__PURE__ */ React144.forwardRef(function MenuCheckboxItemIndicator2(componentProps, forwardedRef) {
   const {
     render,
@@ -17341,10 +17341,10 @@ var MenuCheckboxItemIndicator = /* @__PURE__ */ React144.forwardRef(function Men
 if (true) MenuCheckboxItemIndicator.displayName = "MenuCheckboxItemIndicator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/group/MenuGroup.mjs
-import * as React146 from "react.js";
+import * as React146 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/group/MenuGroupContext.mjs
-import * as React145 from "react.js";
+import * as React145 from "./react.js";
 var MenuGroupContext = /* @__PURE__ */ React145.createContext(void 0);
 if (true) MenuGroupContext.displayName = "MenuGroupContext";
 function useMenuGroupRootContext() {
@@ -17356,7 +17356,7 @@ function useMenuGroupRootContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/group/MenuGroup.mjs
-import { jsx as _jsx38 } from "jsx-runtime.js";
+import { jsx as _jsx38 } from "./jsx-runtime.js";
 var MenuGroup = /* @__PURE__ */ React146.forwardRef(function MenuGroup2(componentProps, forwardedRef) {
   const {
     render,
@@ -17381,7 +17381,7 @@ var MenuGroup = /* @__PURE__ */ React146.forwardRef(function MenuGroup2(componen
 if (true) MenuGroup.displayName = "MenuGroup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/group-label/MenuGroupLabel.mjs
-import * as React147 from "react.js";
+import * as React147 from "./react.js";
 var MenuGroupLabel = /* @__PURE__ */ React147.forwardRef(function MenuGroupLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -17410,7 +17410,7 @@ var MenuGroupLabel = /* @__PURE__ */ React147.forwardRef(function MenuGroupLabel
 if (true) MenuGroupLabel.displayName = "MenuGroupLabel";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/item/MenuItem.mjs
-import * as React148 from "react.js";
+import * as React148 from "./react.js";
 var MenuItem = /* @__PURE__ */ React148.forwardRef(function MenuItem2(componentProps, forwardedRef) {
   const {
     render,
@@ -17459,7 +17459,7 @@ var MenuItem = /* @__PURE__ */ React148.forwardRef(function MenuItem2(componentP
 if (true) MenuItem.displayName = "MenuItem";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/link-item/MenuLinkItem.mjs
-import * as React149 from "react.js";
+import * as React149 from "./react.js";
 var MenuLinkItem = /* @__PURE__ */ React149.forwardRef(function MenuLinkItem2(componentProps, forwardedRef) {
   const {
     render,
@@ -17514,10 +17514,10 @@ var MenuLinkItem = /* @__PURE__ */ React149.forwardRef(function MenuLinkItem2(co
 if (true) MenuLinkItem.displayName = "MenuLinkItem";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/popup/MenuPopup.mjs
-import * as React151 from "react.js";
+import * as React151 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/root/ToolbarRootContext.mjs
-import * as React150 from "react.js";
+import * as React150 from "./react.js";
 var ToolbarRootContext = /* @__PURE__ */ React150.createContext(void 0);
 if (true) ToolbarRootContext.displayName = "ToolbarRootContext";
 function useToolbarRootContext(optional) {
@@ -17529,7 +17529,7 @@ function useToolbarRootContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/popup/MenuPopup.mjs
-import { jsx as _jsx39 } from "jsx-runtime.js";
+import { jsx as _jsx39 } from "./jsx-runtime.js";
 var stateAttributesMapping10 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -17636,10 +17636,10 @@ var MenuPopup = /* @__PURE__ */ React151.forwardRef(function MenuPopup2(componen
 if (true) MenuPopup.displayName = "MenuPopup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/portal/MenuPortal.mjs
-import * as React153 from "react.js";
+import * as React153 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/portal/MenuPortalContext.mjs
-import * as React152 from "react.js";
+import * as React152 from "./react.js";
 var MenuPortalContext = /* @__PURE__ */ React152.createContext(void 0);
 if (true) MenuPortalContext.displayName = "MenuPortalContext";
 function useMenuPortalContext() {
@@ -17651,7 +17651,7 @@ function useMenuPortalContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/portal/MenuPortal.mjs
-import { jsx as _jsx40 } from "jsx-runtime.js";
+import { jsx as _jsx40 } from "./jsx-runtime.js";
 var MenuPortal = /* @__PURE__ */ React153.forwardRef(function MenuPortal2(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -17676,8 +17676,8 @@ var MenuPortal = /* @__PURE__ */ React153.forwardRef(function MenuPortal2(props,
 if (true) MenuPortal.displayName = "MenuPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/positioner/MenuPositioner.mjs
-import * as React154 from "react.js";
-import { jsx as _jsx41, jsxs as _jsxs10 } from "jsx-runtime.js";
+import * as React154 from "./react.js";
+import { jsx as _jsx41, jsxs as _jsxs10 } from "./jsx-runtime.js";
 var MenuPositioner = /* @__PURE__ */ React154.forwardRef(function MenuPositioner2(componentProps, forwardedRef) {
   const {
     anchor: anchorProp,
@@ -17900,10 +17900,10 @@ var MenuPositioner = /* @__PURE__ */ React154.forwardRef(function MenuPositioner
 if (true) MenuPositioner.displayName = "MenuPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/radio-group/MenuRadioGroup.mjs
-import * as React156 from "react.js";
+import * as React156 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/radio-group/MenuRadioGroupContext.mjs
-import * as React155 from "react.js";
+import * as React155 from "./react.js";
 var MenuRadioGroupContext = /* @__PURE__ */ React155.createContext(void 0);
 if (true) MenuRadioGroupContext.displayName = "MenuRadioGroupContext";
 function useMenuRadioGroupContext() {
@@ -17915,7 +17915,7 @@ function useMenuRadioGroupContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/radio-group/MenuRadioGroup.mjs
-import { jsx as _jsx42 } from "jsx-runtime.js";
+import { jsx as _jsx42 } from "./jsx-runtime.js";
 var MenuRadioGroup = /* @__PURE__ */ React156.memo(/* @__PURE__ */ React156.forwardRef(function MenuRadioGroup2(componentProps, forwardedRef) {
   const {
     render,
@@ -17970,10 +17970,10 @@ var MenuRadioGroup = /* @__PURE__ */ React156.memo(/* @__PURE__ */ React156.forw
 if (true) MenuRadioGroup.displayName = "MenuRadioGroup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/radio-item/MenuRadioItem.mjs
-import * as React158 from "react.js";
+import * as React158 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/radio-item/MenuRadioItemContext.mjs
-import * as React157 from "react.js";
+import * as React157 from "./react.js";
 var MenuRadioItemContext = /* @__PURE__ */ React157.createContext(void 0);
 if (true) MenuRadioItemContext.displayName = "MenuRadioItemContext";
 function useMenuRadioItemContext() {
@@ -17985,7 +17985,7 @@ function useMenuRadioItemContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/radio-item/MenuRadioItem.mjs
-import { jsx as _jsx43 } from "jsx-runtime.js";
+import { jsx as _jsx43 } from "./jsx-runtime.js";
 var MenuRadioItem = /* @__PURE__ */ React158.forwardRef(function MenuRadioItem2(componentProps, forwardedRef) {
   const {
     render,
@@ -18059,7 +18059,7 @@ var MenuRadioItem = /* @__PURE__ */ React158.forwardRef(function MenuRadioItem2(
 if (true) MenuRadioItem.displayName = "MenuRadioItem";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/radio-item-indicator/MenuRadioItemIndicator.mjs
-import * as React159 from "react.js";
+import * as React159 from "./react.js";
 var MenuRadioItemIndicator = /* @__PURE__ */ React159.forwardRef(function MenuRadioItemIndicator2(componentProps, forwardedRef) {
   const {
     render,
@@ -18104,10 +18104,10 @@ var MenuRadioItemIndicator = /* @__PURE__ */ React159.forwardRef(function MenuRa
 if (true) MenuRadioItemIndicator.displayName = "MenuRadioItemIndicator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/root/MenuRoot.mjs
-import * as React163 from "react.js";
+import * as React163 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menubar/MenubarContext.mjs
-import * as React160 from "react.js";
+import * as React160 from "./react.js";
 var MenubarContext = /* @__PURE__ */ React160.createContext(null);
 if (true) MenubarContext.displayName = "MenubarContext";
 function useMenubarContext(optional) {
@@ -18119,7 +18119,7 @@ function useMenubarContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/store/MenuStore.mjs
-import * as React161 from "react.js";
+import * as React161 from "./react.js";
 var selectors4 = {
   ...popupStoreSelectors,
   disabled: createSelector((state) => state.parent.type === "menubar" ? state.parent.context.disabled || state.disabled : state.disabled),
@@ -18255,7 +18255,7 @@ function createInitialState2() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/submenu-root/MenuSubmenuRootContext.mjs
-import * as React162 from "react.js";
+import * as React162 from "./react.js";
 var MenuSubmenuRootContext = /* @__PURE__ */ React162.createContext(void 0);
 if (true) MenuSubmenuRootContext.displayName = "MenuSubmenuRootContext";
 function useMenuSubmenuRootContext() {
@@ -18263,7 +18263,7 @@ function useMenuSubmenuRootContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/root/MenuRoot.mjs
-import { jsx as _jsx44 } from "jsx-runtime.js";
+import { jsx as _jsx44 } from "./jsx-runtime.js";
 var MenuRoot = fastComponent(function MenuRoot2(props) {
   const {
     children,
@@ -18598,8 +18598,8 @@ var MenuRoot = fastComponent(function MenuRoot2(props) {
 if (true) MenuRoot.displayName = "MenuRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/submenu-root/MenuSubmenuRoot.mjs
-import * as React164 from "react.js";
-import { jsx as _jsx45 } from "jsx-runtime.js";
+import * as React164 from "./react.js";
+import { jsx as _jsx45 } from "./jsx-runtime.js";
 function MenuSubmenuRoot(props) {
   const parentMenu = useMenuRootContext().store;
   const contextValue = React164.useMemo(() => ({
@@ -18614,10 +18614,10 @@ function MenuSubmenuRoot(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/trigger/MenuTrigger.mjs
-import * as React168 from "react.js";
+import * as React168 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/item/useCompositeItem.mjs
-import * as React165 from "react.js";
+import * as React165 from "./react.js";
 function useCompositeItem(params = {}) {
   const {
     highlightItemOnHover,
@@ -18694,8 +18694,8 @@ function findRootOwnerId(node) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/popups/useTriggerFocusGuards.mjs
-import * as React166 from "react.js";
-import * as ReactDOM8 from "react-dom.js";
+import * as React166 from "./react.js";
+import * as ReactDOM8 from "./react-dom.js";
 function useTriggerFocusGuards(store, triggerElementRef) {
   const preFocusGuardRef = React166.useRef(null);
   function handlePreFocusGuardFocus(event) {
@@ -18732,7 +18732,7 @@ function useTriggerFocusGuards(store, triggerElementRef) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useMixedToggleClickHandler.mjs
-import * as React167 from "react.js";
+import * as React167 from "./react.js";
 function useMixedToggleClickHandler(params) {
   const {
     enabled = true,
@@ -18766,7 +18766,7 @@ function useMixedToggleClickHandler(params) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/trigger/MenuTrigger.mjs
-import { jsx as _jsx46, jsxs as _jsxs11 } from "jsx-runtime.js";
+import { jsx as _jsx46, jsxs as _jsxs11 } from "./jsx-runtime.js";
 var BOUNDARY_OFFSET2 = 2;
 var MenuTrigger = fastComponentRef(function MenuTrigger2(componentProps, forwardedRef) {
   const {
@@ -19004,14 +19004,14 @@ function useMenuParent() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/viewport/MenuViewport.mjs
-import * as React173 from "react.js";
+import * as React173 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/usePopupViewport.mjs
-import * as React172 from "react.js";
-import * as ReactDOM9 from "react-dom.js";
+import * as React172 from "./react.js";
+import * as ReactDOM9 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/usePreviousValue.mjs
-import * as React169 from "react.js";
+import * as React169 from "./react.js";
 function usePreviousValue(value) {
   const [state, setState] = React169.useState({
     current: value,
@@ -19027,7 +19027,7 @@ function usePreviousValue(value) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/usePopupAutoResize.mjs
-import * as React170 from "react.js";
+import * as React170 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/getCssDimensions.mjs
 function getCssDimensions2(element) {
@@ -19179,8 +19179,8 @@ function setPositionerCssSize(positionerElement, size4) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/direction-provider/DirectionProvider.mjs
-import * as React171 from "react.js";
-import { jsx as _jsx47 } from "jsx-runtime.js";
+import * as React171 from "./react.js";
+import { jsx as _jsx47 } from "./jsx-runtime.js";
 var DirectionProvider = function DirectionProvider2(props) {
   const {
     direction = "ltr"
@@ -19196,7 +19196,7 @@ var DirectionProvider = function DirectionProvider2(props) {
 if (true) DirectionProvider.displayName = "DirectionProvider";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/usePopupViewport.mjs
-import { jsx as _jsx48, jsxs as _jsxs12 } from "jsx-runtime.js";
+import { jsx as _jsx48, jsxs as _jsxs12 } from "./jsx-runtime.js";
 function usePopupViewport(parameters) {
   const {
     store,
@@ -19442,7 +19442,7 @@ var MenuViewport = /* @__PURE__ */ React173.forwardRef(function MenuViewport2(co
 if (true) MenuViewport.displayName = "MenuViewport";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menu/submenu-trigger/MenuSubmenuTrigger.mjs
-import * as React174 from "react.js";
+import * as React174 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/isElementDisabled.mjs
 function isElementDisabled(element) {
@@ -19626,7 +19626,7 @@ function createMenuHandle() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/context-menu/root/ContextMenuRoot.mjs
-import { jsx as _jsx49 } from "jsx-runtime.js";
+import { jsx as _jsx49 } from "./jsx-runtime.js";
 function ContextMenuRoot(props) {
   const [anchor, setAnchor] = React175.useState({
     getBoundingClientRect() {
@@ -19668,7 +19668,7 @@ function ContextMenuRoot(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/context-menu/trigger/ContextMenuTrigger.mjs
-import * as React176 from "react.js";
+import * as React176 from "./react.js";
 var LONG_PRESS_DELAY = 500;
 var ContextMenuTrigger = /* @__PURE__ */ React176.forwardRef(function ContextMenuTrigger2(componentProps, forwardedRef) {
   const {
@@ -19817,10 +19817,10 @@ var ContextMenuTrigger = /* @__PURE__ */ React176.forwardRef(function ContextMen
 if (true) ContextMenuTrigger.displayName = "ContextMenuTrigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/csp-provider/CSPProvider.mjs
-import * as React178 from "react.js";
+import * as React178 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/csp-context/CSPContext.mjs
-import * as React177 from "react.js";
+import * as React177 from "./react.js";
 var CSPContext = /* @__PURE__ */ React177.createContext(void 0);
 if (true) CSPContext.displayName = "CSPContext";
 var DEFAULT_CSP_CONTEXT_VALUE = {
@@ -19831,7 +19831,7 @@ function useCSPContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/csp-provider/CSPProvider.mjs
-import { jsx as _jsx50 } from "jsx-runtime.js";
+import { jsx as _jsx50 } from "./jsx-runtime.js";
 function CSPProvider(props) {
   const {
     children,
@@ -19865,7 +19865,7 @@ __export(index_parts_exports10, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/dialog/root/DialogRoot.mjs
-import * as React179 from "react.js";
+import * as React179 from "./react.js";
 function DialogRoot(props) {
   const mode = React179.useContext(IsDrawerContext) ? "drawer" : "dialog";
   return useRenderDialogRoot(props, mode);
@@ -19894,7 +19894,7 @@ __export(index_parts_exports11, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/backdrop/DrawerBackdrop.mjs
-import * as React180 from "react.js";
+import * as React180 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/popup/DrawerPopupCssVars.mjs
 var DrawerPopupCssVars = /* @__PURE__ */ (function(DrawerPopupCssVars2) {
@@ -19962,7 +19962,7 @@ if (true) DrawerBackdrop.displayName = "DrawerBackdrop";
 var DrawerClose = DialogClose;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/content/DrawerContent.mjs
-import * as React181 from "react.js";
+import * as React181 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/content/DrawerContentDataAttributes.mjs
 var DRAWER_CONTENT_ATTRIBUTE = "data-drawer-content";
@@ -19989,10 +19989,10 @@ if (true) DrawerContent.displayName = "DrawerContent";
 var DrawerDescription = DialogDescription;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/indent/DrawerIndent.mjs
-import * as React183 from "react.js";
+import * as React183 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/provider/DrawerProviderContext.mjs
-import * as React182 from "react.js";
+import * as React182 from "./react.js";
 var DrawerProviderContext = /* @__PURE__ */ React182.createContext(void 0);
 if (true) DrawerProviderContext.displayName = "DrawerProviderContext";
 function useDrawerProviderContext(optional) {
@@ -20073,7 +20073,7 @@ var DrawerIndent = /* @__PURE__ */ React183.forwardRef(function DrawerIndent2(co
 if (true) DrawerIndent.displayName = "DrawerIndent";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/indent-background/DrawerIndentBackground.mjs
-import * as React184 from "react.js";
+import * as React184 from "./react.js";
 var stateAttributesMapping14 = {
   active(value) {
     if (value) {
@@ -20108,7 +20108,7 @@ var DrawerIndentBackground = /* @__PURE__ */ React184.forwardRef(function Drawer
 if (true) DrawerIndentBackground.displayName = "DrawerIndentBackground";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/popup/DrawerPopup.mjs
-import * as React188 from "react.js";
+import * as React188 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/popup/DrawerPopupDataAttributes.mjs
 var DrawerPopupDataAttributes = (function(DrawerPopupDataAttributes2) {
@@ -20126,7 +20126,7 @@ var DrawerPopupDataAttributes = (function(DrawerPopupDataAttributes2) {
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/root/DrawerRootContext.mjs
-import * as React185 from "react.js";
+import * as React185 from "./react.js";
 var DrawerRootContext = /* @__PURE__ */ React185.createContext(void 0);
 if (true) DrawerRootContext.displayName = "DrawerRootContext";
 function useDrawerRootContext(optional) {
@@ -20138,7 +20138,7 @@ function useDrawerRootContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/root/useDrawerSnapPoints.mjs
-import * as React186 from "react.js";
+import * as React186 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/clamp.mjs
 function clamp2(val, min2 = Number.MIN_SAFE_INTEGER, max2 = Number.MAX_SAFE_INTEGER) {
@@ -20295,7 +20295,7 @@ function useDrawerSnapPoints() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/viewport/DrawerViewportContext.mjs
-import * as React187 from "react.js";
+import * as React187 from "./react.js";
 var DrawerViewportContext = /* @__PURE__ */ React187.createContext(null);
 if (true) DrawerViewportContext.displayName = "DrawerViewportContext";
 function useDrawerViewportContext(optional) {
@@ -20307,7 +20307,7 @@ function useDrawerViewportContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/popup/DrawerPopup.mjs
-import { jsx as _jsx51 } from "jsx-runtime.js";
+import { jsx as _jsx51 } from "./jsx-runtime.js";
 var drawerSwipeVarsRegistered = false;
 function removeCSSVariableInheritance() {
   if (drawerSwipeVarsRegistered) {
@@ -20618,8 +20618,8 @@ if (true) DrawerPopup.displayName = "DrawerPopup";
 var DrawerPortal = DialogPortal;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/provider/DrawerProvider.mjs
-import * as React189 from "react.js";
-import { jsx as _jsx52 } from "jsx-runtime.js";
+import * as React189 from "./react.js";
+import { jsx as _jsx52 } from "./jsx-runtime.js";
 function DrawerProvider(props) {
   const {
     children
@@ -20704,8 +20704,8 @@ function createVisualStateStore() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/root/DrawerRoot.mjs
-import * as React190 from "react.js";
-import { jsx as _jsx53, jsxs as _jsxs13 } from "jsx-runtime.js";
+import * as React190 from "./react.js";
+import { jsx as _jsx53, jsxs as _jsxs13 } from "./jsx-runtime.js";
 var _DrawerProviderReport;
 var _DrawerProviderReport2;
 function DrawerRoot(props) {
@@ -20923,10 +20923,10 @@ function DrawerProviderReporter() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/swipe-area/DrawerSwipeArea.mjs
-import * as React192 from "react.js";
+import * as React192 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useSwipeDismiss.mjs
-import * as React191 from "react.js";
+import * as React191 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/scrollable.mjs
 function isScrollable(element, axis, allowOverflowIntent = false) {
@@ -22286,11 +22286,11 @@ var DrawerTitle = DialogTitle;
 var DrawerTrigger = DialogTrigger;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/viewport/DrawerViewport.mjs
-import * as React194 from "react.js";
-import * as ReactDOM10 from "react-dom.js";
+import * as React194 from "./react.js";
+import * as ReactDOM10 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/virtual-keyboard-provider/DrawerVirtualKeyboardContext.mjs
-import * as React193 from "react.js";
+import * as React193 from "./react.js";
 var DrawerVirtualKeyboardContext = /* @__PURE__ */ React193.createContext(void 0);
 if (true) DrawerVirtualKeyboardContext.displayName = "DrawerVirtualKeyboardContext";
 function useDrawerVirtualKeyboardContext() {
@@ -22298,7 +22298,7 @@ function useDrawerVirtualKeyboardContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/viewport/DrawerViewport.mjs
-import { jsx as _jsx54 } from "jsx-runtime.js";
+import { jsx as _jsx54 } from "./jsx-runtime.js";
 var MIN_SWIPE_THRESHOLD = 10;
 var FAST_SWIPE_VELOCITY = 0.5;
 var SNAP_VELOCITY_THRESHOLD = 0.5;
@@ -23261,7 +23261,7 @@ function shouldDismissFromStartEdge(direction, axis) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/virtual-keyboard-provider/DrawerVirtualKeyboardProvider.mjs
-import * as React195 from "react.js";
+import * as React195 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/viewport/DrawerViewportCssVars.mjs
 var DrawerViewportCssVars = /* @__PURE__ */ (function(DrawerViewportCssVars2) {
@@ -23270,7 +23270,7 @@ var DrawerViewportCssVars = /* @__PURE__ */ (function(DrawerViewportCssVars2) {
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/drawer/virtual-keyboard-provider/DrawerVirtualKeyboardProvider.mjs
-import { jsx as _jsx55 } from "jsx-runtime.js";
+import { jsx as _jsx55 } from "./jsx-runtime.js";
 var KEYBOARD_RESIZE_THRESHOLD = 60;
 var KEYBOARD_VISIBILITY_MARGIN = 16;
 var KEYBOARD_SCROLL_SLACK = 48;
@@ -23673,10 +23673,10 @@ __export(index_parts_exports12, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/root/FieldRoot.mjs
-import * as React200 from "react.js";
+import * as React200 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/fieldset/root/FieldsetRootContext.mjs
-import * as React196 from "react.js";
+import * as React196 from "./react.js";
 var FieldsetRootContext = /* @__PURE__ */ React196.createContext(void 0);
 if (true) FieldsetRootContext.displayName = "FieldsetRootContext";
 function useFieldsetRootContext(optional = false) {
@@ -23688,8 +23688,8 @@ function useFieldsetRootContext(optional = false) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/labelable-provider/LabelableProvider.mjs
-import * as React197 from "react.js";
-import { jsx as _jsx56 } from "jsx-runtime.js";
+import * as React197 from "./react.js";
+import { jsx as _jsx56 } from "./jsx-runtime.js";
 var LabelableProvider = function LabelableProvider2(props) {
   const defaultId = useBaseUiId();
   const initialControlId = props.controlId === void 0 ? defaultId : props.controlId;
@@ -23748,7 +23748,7 @@ var LabelableProvider = function LabelableProvider2(props) {
 if (true) LabelableProvider.displayName = "LabelableProvider";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/root/useFieldValidation.mjs
-import * as React198 from "react.js";
+import * as React198 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/utils/getCombinedFieldValidityData.mjs
 function getCombinedFieldValidityData(validityData, invalid) {
@@ -23989,7 +23989,7 @@ function useFieldValidation(params) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/field-register-control/useFieldControlRegistration.mjs
-import * as React199 from "react.js";
+import * as React199 from "./react.js";
 function useFieldControlRegistration(params) {
   const {
     commit,
@@ -24111,7 +24111,7 @@ function useFieldControlRegistration(params) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/root/FieldRoot.mjs
-import { jsx as _jsx57 } from "jsx-runtime.js";
+import { jsx as _jsx57 } from "./jsx-runtime.js";
 var FieldRootInner = /* @__PURE__ */ React200.forwardRef(function FieldRootInner2(componentProps, forwardedRef) {
   const {
     errors,
@@ -24260,7 +24260,7 @@ var FieldRoot = /* @__PURE__ */ React200.forwardRef(function FieldRoot2(componen
 if (true) FieldRoot.displayName = "FieldRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/label/FieldLabel.mjs
-import * as React201 from "react.js";
+import * as React201 from "./react.js";
 var FieldLabel = /* @__PURE__ */ React201.forwardRef(function FieldLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -24314,8 +24314,8 @@ var FieldLabel = /* @__PURE__ */ React201.forwardRef(function FieldLabel2(compon
 if (true) FieldLabel.displayName = "FieldLabel";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/error/FieldError.mjs
-import * as React202 from "react.js";
-import { jsx as _jsx58 } from "jsx-runtime.js";
+import * as React202 from "./react.js";
+import { jsx as _jsx58 } from "./jsx-runtime.js";
 var stateAttributesMapping17 = {
   ...fieldValidityMapping,
   ...transitionStatusMapping
@@ -24421,7 +24421,7 @@ var FieldError = /* @__PURE__ */ React202.forwardRef(function FieldError2(compon
 if (true) FieldError.displayName = "FieldError";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/description/FieldDescription.mjs
-import * as React203 from "react.js";
+import * as React203 from "./react.js";
 var FieldDescription = /* @__PURE__ */ React203.forwardRef(function FieldDescription2(componentProps, forwardedRef) {
   const {
     render,
@@ -24462,7 +24462,7 @@ var FieldDescription = /* @__PURE__ */ React203.forwardRef(function FieldDescrip
 if (true) FieldDescription.displayName = "FieldDescription";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/control/FieldControl.mjs
-import * as React204 from "react.js";
+import * as React204 from "./react.js";
 var FieldControl = /* @__PURE__ */ React204.forwardRef(function FieldControl2(componentProps, forwardedRef) {
   const {
     render,
@@ -24577,8 +24577,8 @@ var FieldControl = /* @__PURE__ */ React204.forwardRef(function FieldControl2(co
 if (true) FieldControl.displayName = "FieldControl";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/validity/FieldValidity.mjs
-import * as React205 from "react.js";
-import { jsx as _jsx59 } from "jsx-runtime.js";
+import * as React205 from "./react.js";
+import { jsx as _jsx59 } from "./jsx-runtime.js";
 var FieldValidity = function FieldValidity2(props) {
   const {
     children
@@ -24606,8 +24606,8 @@ var FieldValidity = function FieldValidity2(props) {
 if (true) FieldValidity.displayName = "FieldValidity";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/field/item/FieldItem.mjs
-import * as React206 from "react.js";
-import { jsx as _jsx60 } from "jsx-runtime.js";
+import * as React206 from "./react.js";
+import { jsx as _jsx60 } from "./jsx-runtime.js";
 var FieldItem = /* @__PURE__ */ React206.forwardRef(function FieldItem2(componentProps, forwardedRef) {
   const {
     render,
@@ -24655,8 +24655,8 @@ __export(index_parts_exports13, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/fieldset/root/FieldsetRoot.mjs
-import * as React207 from "react.js";
-import { jsx as _jsx61 } from "jsx-runtime.js";
+import * as React207 from "./react.js";
+import { jsx as _jsx61 } from "./jsx-runtime.js";
 var FieldsetRoot = /* @__PURE__ */ React207.forwardRef(function FieldsetRoot2(componentProps, forwardedRef) {
   const {
     render,
@@ -24692,7 +24692,7 @@ var FieldsetRoot = /* @__PURE__ */ React207.forwardRef(function FieldsetRoot2(co
 if (true) FieldsetRoot.displayName = "FieldsetRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/fieldset/legend/FieldsetLegend.mjs
-import * as React208 from "react.js";
+import * as React208 from "./react.js";
 var FieldsetLegend = /* @__PURE__ */ React208.forwardRef(function FieldsetLegend2(componentProps, forwardedRef) {
   const {
     render,
@@ -24727,8 +24727,8 @@ var FieldsetLegend = /* @__PURE__ */ React208.forwardRef(function FieldsetLegend
 if (true) FieldsetLegend.displayName = "FieldsetLegend";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/form/Form.mjs
-import * as React209 from "react.js";
-import { jsx as _jsx62 } from "jsx-runtime.js";
+import * as React209 from "./react.js";
+import { jsx as _jsx62 } from "./jsx-runtime.js";
 var Form = /* @__PURE__ */ React209.forwardRef(function Form2(componentProps, forwardedRef) {
   const {
     render,
@@ -24841,8 +24841,8 @@ var Form = /* @__PURE__ */ React209.forwardRef(function Form2(componentProps, fo
 if (true) Form.displayName = "Form";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/input/Input.mjs
-import * as React210 from "react.js";
-import { jsx as _jsx63 } from "jsx-runtime.js";
+import * as React210 from "./react.js";
+import { jsx as _jsx63 } from "./jsx-runtime.js";
 var Input = /* @__PURE__ */ React210.forwardRef(function Input2(props, forwardedRef) {
   return /* @__PURE__ */ _jsx63(index_parts_exports12.Control, {
     ref: forwardedRef,
@@ -24852,13 +24852,13 @@ var Input = /* @__PURE__ */ React210.forwardRef(function Input2(props, forwarded
 if (true) Input.displayName = "Input";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menubar/Menubar.mjs
-import * as React213 from "react.js";
+import * as React213 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/root/CompositeRoot.mjs
-import * as React212 from "react.js";
+import * as React212 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/root/useCompositeRoot.mjs
-import * as React211 from "react.js";
+import * as React211 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/constants.mjs
 var ACTIVE_COMPOSITE_ITEM = "data-composite-item-active";
@@ -25080,7 +25080,7 @@ function isModifierKeySet(event, ignoredModifierKeys) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/composite/root/CompositeRoot.mjs
-import { jsx as _jsx64 } from "jsx-runtime.js";
+import { jsx as _jsx64 } from "./jsx-runtime.js";
 function CompositeRoot(componentProps) {
   const {
     render,
@@ -25162,7 +25162,7 @@ var MenubarDataAttributes = /* @__PURE__ */ (function(MenubarDataAttributes2) {
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/menubar/Menubar.mjs
-import { jsx as _jsx65 } from "jsx-runtime.js";
+import { jsx as _jsx65 } from "./jsx-runtime.js";
 var menubarStateAttributesMapping = {
   hasSubmenuOpen(value) {
     return value ? {
@@ -25270,10 +25270,10 @@ __export(index_parts_exports14, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/meter/root/MeterRoot.mjs
-import * as React215 from "react.js";
+import * as React215 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/meter/root/MeterRootContext.mjs
-import * as React214 from "react.js";
+import * as React214 from "./react.js";
 var MeterRootContext = /* @__PURE__ */ React214.createContext(void 0);
 if (true) MeterRootContext.displayName = "MeterRootContext";
 function useMeterRootContext() {
@@ -25323,7 +25323,7 @@ function valueToPercent(value, min2, max2) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/meter/root/MeterRoot.mjs
-import { jsx as _jsx66, jsxs as _jsxs14 } from "jsx-runtime.js";
+import { jsx as _jsx66, jsxs as _jsxs14 } from "./jsx-runtime.js";
 var MeterRoot = /* @__PURE__ */ React215.forwardRef(function MeterRoot2(componentProps, forwardedRef) {
   const {
     format,
@@ -25384,7 +25384,7 @@ var MeterRoot = /* @__PURE__ */ React215.forwardRef(function MeterRoot2(componen
 if (true) MeterRoot.displayName = "MeterRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/meter/track/MeterTrack.mjs
-import * as React216 from "react.js";
+import * as React216 from "./react.js";
 var MeterTrack = /* @__PURE__ */ React216.forwardRef(function MeterTrack2(componentProps, forwardedRef) {
   const {
     render,
@@ -25400,7 +25400,7 @@ var MeterTrack = /* @__PURE__ */ React216.forwardRef(function MeterTrack2(compon
 if (true) MeterTrack.displayName = "MeterTrack";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/meter/indicator/MeterIndicator.mjs
-import * as React217 from "react.js";
+import * as React217 from "./react.js";
 var MeterIndicator = /* @__PURE__ */ React217.forwardRef(function MeterIndicator2(componentProps, forwardedRef) {
   const {
     render,
@@ -25425,7 +25425,7 @@ var MeterIndicator = /* @__PURE__ */ React217.forwardRef(function MeterIndicator
 if (true) MeterIndicator.displayName = "MeterIndicator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/meter/value/MeterValue.mjs
-import * as React218 from "react.js";
+import * as React218 from "./react.js";
 var MeterValue = /* @__PURE__ */ React218.forwardRef(function MeterValue2(componentProps, forwardedRef) {
   const {
     className,
@@ -25449,7 +25449,7 @@ var MeterValue = /* @__PURE__ */ React218.forwardRef(function MeterValue2(compon
 if (true) MeterValue.displayName = "MeterValue";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/meter/label/MeterLabel.mjs
-import * as React219 from "react.js";
+import * as React219 from "./react.js";
 var MeterLabel = /* @__PURE__ */ React219.forwardRef(function MeterLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -25491,10 +25491,10 @@ __export(index_parts_exports15, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/root/NavigationMenuRoot.mjs
-import * as React221 from "react.js";
+import * as React221 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/root/NavigationMenuRootContext.mjs
-import * as React220 from "react.js";
+import * as React220 from "./react.js";
 var NavigationMenuRootContext = /* @__PURE__ */ React220.createContext(void 0);
 if (true) NavigationMenuRootContext.displayName = "NavigationMenuRootContext";
 if (true) {
@@ -25541,7 +25541,7 @@ function setSharedFixedSize(popupElement, positionerElement, width, height) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/root/NavigationMenuRoot.mjs
-import { jsx as _jsx67 } from "jsx-runtime.js";
+import { jsx as _jsx67 } from "./jsx-runtime.js";
 var blockedReturnFocusReasons = /* @__PURE__ */ new Set([reason_parts_exports.triggerHover, reason_parts_exports.outsidePress, reason_parts_exports.focusOut]);
 function getPositionerFixedSize(positionerElement) {
   const width = parseFloat(positionerElement.style.getPropertyValue(NavigationMenuPositionerCssVars.positionerWidth)) || 0;
@@ -25767,13 +25767,13 @@ function TreeContext(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/list/NavigationMenuList.mjs
-import * as React223 from "react.js";
+import * as React223 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/utils/constants.mjs
 var NAVIGATION_MENU_TRIGGER_IDENTIFIER = "data-base-ui-navigation-menu-trigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/list/NavigationMenuDismissContext.mjs
-import * as React222 from "react.js";
+import * as React222 from "./react.js";
 var NavigationMenuDismissContext = /* @__PURE__ */ React222.createContext(void 0);
 if (true) NavigationMenuDismissContext.displayName = "NavigationMenuDismissContext";
 function useNavigationMenuDismissContext() {
@@ -25781,7 +25781,7 @@ function useNavigationMenuDismissContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/list/NavigationMenuList.mjs
-import { jsx as _jsx68 } from "jsx-runtime.js";
+import { jsx as _jsx68 } from "./jsx-runtime.js";
 var NavigationMenuList = /* @__PURE__ */ React223.forwardRef(function NavigationMenuList2(componentProps, forwardedRef) {
   const {
     render,
@@ -25861,10 +25861,10 @@ var NavigationMenuList = /* @__PURE__ */ React223.forwardRef(function Navigation
 if (true) NavigationMenuList.displayName = "NavigationMenuList";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/item/NavigationMenuItem.mjs
-import * as React225 from "react.js";
+import * as React225 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/item/NavigationMenuItemContext.mjs
-import * as React224 from "react.js";
+import * as React224 from "./react.js";
 var NavigationMenuItemContext = /* @__PURE__ */ React224.createContext(void 0);
 if (true) NavigationMenuItemContext.displayName = "NavigationMenuItemContext";
 function useNavigationMenuItemContext() {
@@ -25876,7 +25876,7 @@ function useNavigationMenuItemContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/item/NavigationMenuItem.mjs
-import { jsx as _jsx69 } from "jsx-runtime.js";
+import { jsx as _jsx69 } from "./jsx-runtime.js";
 var NavigationMenuItem = /* @__PURE__ */ React225.forwardRef(function NavigationMenuItem2(componentProps, forwardedRef) {
   const {
     render,
@@ -25902,9 +25902,9 @@ var NavigationMenuItem = /* @__PURE__ */ React225.forwardRef(function Navigation
 if (true) NavigationMenuItem.displayName = "NavigationMenuItem";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/content/NavigationMenuContent.mjs
-import * as React226 from "react.js";
-import * as ReactDOM11 from "react-dom.js";
-import { jsx as _jsx70 } from "jsx-runtime.js";
+import * as React226 from "./react.js";
+import * as ReactDOM11 from "./react-dom.js";
+import { jsx as _jsx70 } from "./jsx-runtime.js";
 var stateAttributesMapping18 = {
   ...popupStateMapping,
   ...transitionStatusMapping,
@@ -26036,8 +26036,8 @@ var NavigationMenuContent = /* @__PURE__ */ React226.forwardRef(function Navigat
 if (true) NavigationMenuContent.displayName = "NavigationMenuContent";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/trigger/NavigationMenuTrigger.mjs
-import * as React227 from "react.js";
-import * as ReactDOM12 from "react-dom.js";
+import * as React227 from "./react.js";
+import * as ReactDOM12 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/utils/isOutsideMenuEvent.mjs
 function isOutsideMenuEvent({
@@ -26058,7 +26058,7 @@ function isOutsideMenuEvent({
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/trigger/NavigationMenuTrigger.mjs
-import { jsx as _jsx71, jsxs as _jsxs15 } from "jsx-runtime.js";
+import { jsx as _jsx71, jsxs as _jsxs15 } from "./jsx-runtime.js";
 var DEFAULT_SIZE = {
   width: 0,
   height: 0
@@ -26689,10 +26689,10 @@ function getHandleCloseContext(domReferenceElement, floatingElement, nodeId) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/portal/NavigationMenuPortal.mjs
-import * as React229 from "react.js";
+import * as React229 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/portal/NavigationMenuPortalContext.mjs
-import * as React228 from "react.js";
+import * as React228 from "./react.js";
 var NavigationMenuPortalContext = /* @__PURE__ */ React228.createContext(void 0);
 if (true) NavigationMenuPortalContext.displayName = "NavigationMenuPortalContext";
 function useNavigationMenuPortalContext() {
@@ -26704,7 +26704,7 @@ function useNavigationMenuPortalContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/portal/NavigationMenuPortal.mjs
-import { jsx as _jsx72 } from "jsx-runtime.js";
+import { jsx as _jsx72 } from "./jsx-runtime.js";
 var NavigationMenuPortal = /* @__PURE__ */ React229.forwardRef(function NavigationMenuPortal2(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -26728,11 +26728,11 @@ var NavigationMenuPortal = /* @__PURE__ */ React229.forwardRef(function Navigati
 if (true) NavigationMenuPortal.displayName = "NavigationMenuPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/positioner/NavigationMenuPositioner.mjs
-import * as React231 from "react.js";
-import * as ReactDOM13 from "react-dom.js";
+import * as React231 from "./react.js";
+import * as ReactDOM13 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/positioner/NavigationMenuPositionerContext.mjs
-import * as React230 from "react.js";
+import * as React230 from "./react.js";
 var NavigationMenuPositionerContext = /* @__PURE__ */ React230.createContext(void 0);
 if (true) NavigationMenuPositionerContext.displayName = "NavigationMenuPositionerContext";
 function useNavigationMenuPositionerContext(optional = false) {
@@ -26744,7 +26744,7 @@ function useNavigationMenuPositionerContext(optional = false) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/positioner/NavigationMenuPositioner.mjs
-import { jsx as _jsx73 } from "jsx-runtime.js";
+import { jsx as _jsx73 } from "./jsx-runtime.js";
 var EMPTY_ROOT_CONTEXT = getEmptyRootContext();
 var NavigationMenuPositioner = /* @__PURE__ */ React231.forwardRef(function NavigationMenuPositioner2(componentProps, forwardedRef) {
   const {
@@ -26863,8 +26863,8 @@ var NavigationMenuPositioner = /* @__PURE__ */ React231.forwardRef(function Navi
 if (true) NavigationMenuPositioner.displayName = "NavigationMenuPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/viewport/NavigationMenuViewport.mjs
-import * as React232 from "react.js";
-import { jsx as _jsx74, jsxs as _jsxs16 } from "jsx-runtime.js";
+import * as React232 from "./react.js";
+import { jsx as _jsx74, jsxs as _jsxs16 } from "./jsx-runtime.js";
 var EMPTY_ROOT_CONTEXT2 = getEmptyRootContext();
 function Guards({
   children
@@ -26960,7 +26960,7 @@ var NavigationMenuViewport = /* @__PURE__ */ React232.forwardRef(function Naviga
 if (true) NavigationMenuViewport.displayName = "NavigationMenuViewport";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/backdrop/NavigationMenuBackdrop.mjs
-import * as React233 from "react.js";
+import * as React233 from "./react.js";
 var stateAttributesMapping19 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -26999,7 +26999,7 @@ var NavigationMenuBackdrop = /* @__PURE__ */ React233.forwardRef(function Naviga
 if (true) NavigationMenuBackdrop.displayName = "NavigationMenuBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/popup/NavigationMenuPopup.mjs
-import * as React234 from "react.js";
+import * as React234 from "./react.js";
 var stateAttributesMapping20 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -27053,7 +27053,7 @@ var NavigationMenuPopup = /* @__PURE__ */ React234.forwardRef(function Navigatio
 if (true) NavigationMenuPopup.displayName = "NavigationMenuPopup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/arrow/NavigationMenuArrow.mjs
-import * as React235 from "react.js";
+import * as React235 from "./react.js";
 var NavigationMenuArrow = /* @__PURE__ */ React235.forwardRef(function NavigationMenuArrow2(componentProps, forwardedRef) {
   const {
     render,
@@ -27092,8 +27092,8 @@ var NavigationMenuArrow = /* @__PURE__ */ React235.forwardRef(function Navigatio
 if (true) NavigationMenuArrow.displayName = "NavigationMenuArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/link/NavigationMenuLink.mjs
-import * as React236 from "react.js";
-import { jsx as _jsx75 } from "jsx-runtime.js";
+import * as React236 from "./react.js";
+import { jsx as _jsx75 } from "./jsx-runtime.js";
 var NavigationMenuLink = /* @__PURE__ */ React236.forwardRef(function NavigationMenuLink2(componentProps, forwardedRef) {
   const {
     className,
@@ -27149,7 +27149,7 @@ var NavigationMenuLink = /* @__PURE__ */ React236.forwardRef(function Navigation
 if (true) NavigationMenuLink.displayName = "NavigationMenuLink";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/navigation-menu/icon/NavigationMenuIcon.mjs
-import * as React237 from "react.js";
+import * as React237 from "./react.js";
 var NavigationMenuIcon = /* @__PURE__ */ React237.forwardRef(function NavigationMenuIcon2(componentProps, forwardedRef) {
   const {
     render,
@@ -27194,10 +27194,10 @@ __export(index_parts_exports16, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/root/NumberFieldRoot.mjs
-import * as React239 from "react.js";
+import * as React239 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/root/NumberFieldRootContext.mjs
-import * as React238 from "react.js";
+import * as React238 from "./react.js";
 var NumberFieldRootContext = /* @__PURE__ */ React238.createContext(void 0);
 if (true) NumberFieldRootContext.displayName = "NumberFieldRootContext";
 function useNumberFieldRootContext() {
@@ -27504,7 +27504,7 @@ function toValidatedNumber(value, {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/root/NumberFieldRoot.mjs
-import { jsx as _jsx76, jsxs as _jsxs17 } from "jsx-runtime.js";
+import { jsx as _jsx76, jsxs as _jsxs17 } from "./jsx-runtime.js";
 var NumberFieldRoot = /* @__PURE__ */ React239.forwardRef(function NumberFieldRoot2(componentProps, forwardedRef) {
   const {
     id: idProp,
@@ -27810,7 +27810,7 @@ var NumberFieldRoot = /* @__PURE__ */ React239.forwardRef(function NumberFieldRo
 if (true) NumberFieldRoot.displayName = "NumberFieldRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/group/NumberFieldGroup.mjs
-import * as React240 from "react.js";
+import * as React240 from "./react.js";
 var NumberFieldGroup = /* @__PURE__ */ React240.forwardRef(function NumberFieldGroup2(componentProps, forwardedRef) {
   const {
     render,
@@ -27834,10 +27834,10 @@ var NumberFieldGroup = /* @__PURE__ */ React240.forwardRef(function NumberFieldG
 if (true) NumberFieldGroup.displayName = "NumberFieldGroup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/increment/NumberFieldIncrement.mjs
-import * as React242 from "react.js";
+import * as React242 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/internals/usePressAndHold.mjs
-import * as React241 from "react.js";
+import * as React241 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+utils@0.3.1_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/utils/useInterval.mjs
 var EMPTY5 = 0;
@@ -28227,14 +28227,14 @@ var NumberFieldIncrement = /* @__PURE__ */ React242.forwardRef(function NumberFi
 if (true) NumberFieldIncrement.displayName = "NumberFieldIncrement";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/decrement/NumberFieldDecrement.mjs
-import * as React243 from "react.js";
+import * as React243 from "./react.js";
 var NumberFieldDecrement = /* @__PURE__ */ React243.forwardRef(function NumberFieldDecrement2(componentProps, forwardedRef) {
   return useNumberFieldStepperButton(componentProps, forwardedRef, false);
 });
 if (true) NumberFieldDecrement.displayName = "NumberFieldDecrement";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/input/NumberFieldInput.mjs
-import * as React244 from "react.js";
+import * as React244 from "./react.js";
 var NAVIGATE_KEYS = /* @__PURE__ */ new Set(["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter", "Escape"]);
 var NumberFieldInput = /* @__PURE__ */ React244.forwardRef(function NumberFieldInput2(componentProps, forwardedRef) {
   const {
@@ -28536,11 +28536,11 @@ var NumberFieldInput = /* @__PURE__ */ React244.forwardRef(function NumberFieldI
 if (true) NumberFieldInput.displayName = "NumberFieldInput";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/scrub-area/NumberFieldScrubArea.mjs
-import * as React246 from "react.js";
-import * as ReactDOM14 from "react-dom.js";
+import * as React246 from "./react.js";
+import * as ReactDOM14 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/scrub-area/NumberFieldScrubAreaContext.mjs
-import * as React245 from "react.js";
+import * as React245 from "./react.js";
 var NumberFieldScrubAreaContext = /* @__PURE__ */ React245.createContext(void 0);
 if (true) NumberFieldScrubAreaContext.displayName = "NumberFieldScrubAreaContext";
 function useNumberFieldScrubAreaContext() {
@@ -28597,7 +28597,7 @@ function subscribeToVisualViewportResize(element, visualScaleRef) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/scrub-area/NumberFieldScrubArea.mjs
-import { jsx as _jsx77 } from "jsx-runtime.js";
+import { jsx as _jsx77 } from "./jsx-runtime.js";
 var SCRUB_AREA_STYLE = {
   touchAction: "none",
   WebkitUserSelect: "none",
@@ -28840,8 +28840,8 @@ var NumberFieldScrubArea = /* @__PURE__ */ React246.forwardRef(function NumberFi
 if (true) NumberFieldScrubArea.displayName = "NumberFieldScrubArea";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/number-field/scrub-area-cursor/NumberFieldScrubAreaCursor.mjs
-import * as React247 from "react.js";
-import * as ReactDOM15 from "react-dom.js";
+import * as React247 from "./react.js";
+import * as ReactDOM15 from "./react-dom.js";
 var CURSOR_STYLE = {
   position: "fixed",
   top: 0,
@@ -28889,10 +28889,10 @@ __export(index_parts_exports17, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/otp-field/root/OTPFieldRoot.mjs
-import * as React249 from "react.js";
+import * as React249 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/otp-field/root/OTPFieldRootContext.mjs
-import * as React248 from "react.js";
+import * as React248 from "./react.js";
 var OTPFieldRootContext = /* @__PURE__ */ React248.createContext(void 0);
 if (true) OTPFieldRootContext.displayName = "OTPFieldRootContext";
 function useOTPFieldRootContext() {
@@ -28988,7 +28988,7 @@ function removeOTPCharacter(currentValue, index2) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/otp-field/root/OTPFieldRoot.mjs
-import { jsx as _jsx78, jsxs as _jsxs18 } from "jsx-runtime.js";
+import { jsx as _jsx78, jsxs as _jsxs18 } from "./jsx-runtime.js";
 var OTPFieldRoot = /* @__PURE__ */ React249.forwardRef(function OTPFieldRoot2(componentProps, forwardedRef) {
   const {
     "aria-describedby": ariaDescribedByProp,
@@ -29313,7 +29313,7 @@ function useOTPFieldRootDevWarnings(parameters) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/otp-field/input/OTPFieldInput.mjs
-import * as React250 from "react.js";
+import * as React250 from "./react.js";
 var OTPFieldInput = /* @__PURE__ */ React250.forwardRef(function OTPFieldInput2(componentProps, forwardedRef) {
   const {
     "aria-label": externalAriaLabel,
@@ -29558,10 +29558,10 @@ __export(index_parts_exports18, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/root/PopoverRoot.mjs
-import * as React253 from "react.js";
+import * as React253 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/root/PopoverRootContext.mjs
-import * as React251 from "react.js";
+import * as React251 from "./react.js";
 var PopoverRootContext = /* @__PURE__ */ React251.createContext(void 0);
 if (true) PopoverRootContext.displayName = "PopoverRootContext";
 function usePopoverRootContext(optional) {
@@ -29573,8 +29573,8 @@ function usePopoverRootContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/store/PopoverStore.mjs
-import * as React252 from "react.js";
-import * as ReactDOM16 from "react-dom.js";
+import * as React252 from "./react.js";
+import * as ReactDOM16 from "./react-dom.js";
 function createInitialState3() {
   return {
     ...createInitialPopupStoreState(),
@@ -29684,7 +29684,7 @@ var PopoverStore = class _PopoverStore extends ReactStore {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/root/PopoverRoot.mjs
-import { jsx as _jsx79, jsxs as _jsxs19 } from "jsx-runtime.js";
+import { jsx as _jsx79, jsxs as _jsxs19 } from "./jsx-runtime.js";
 function PopoverRootComponent({
   props
 }) {
@@ -29792,13 +29792,13 @@ function PopoverInteractions({
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/trigger/PopoverTrigger.mjs
-import * as React254 from "react.js";
+import * as React254 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/utils/constants.mjs
 var OPEN_DELAY = 300;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/trigger/PopoverTrigger.mjs
-import { jsx as _jsx80, jsxs as _jsxs20 } from "jsx-runtime.js";
+import { jsx as _jsx80, jsxs as _jsxs20 } from "./jsx-runtime.js";
 var PopoverTrigger = /* @__PURE__ */ React254.forwardRef(function PopoverTrigger2(componentProps, forwardedRef) {
   const {
     render,
@@ -29915,10 +29915,10 @@ var PopoverTrigger = /* @__PURE__ */ React254.forwardRef(function PopoverTrigger
 if (true) PopoverTrigger.displayName = "PopoverTrigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/portal/PopoverPortal.mjs
-import * as React256 from "react.js";
+import * as React256 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/portal/PopoverPortalContext.mjs
-import * as React255 from "react.js";
+import * as React255 from "./react.js";
 var PopoverPortalContext = /* @__PURE__ */ React255.createContext(void 0);
 if (true) PopoverPortalContext.displayName = "PopoverPortalContext";
 function usePopoverPortalContext() {
@@ -29930,7 +29930,7 @@ function usePopoverPortalContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/portal/PopoverPortal.mjs
-import { jsx as _jsx81 } from "jsx-runtime.js";
+import { jsx as _jsx81 } from "./jsx-runtime.js";
 var PopoverPortal = /* @__PURE__ */ React256.forwardRef(function PopoverPortal2(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -29955,10 +29955,10 @@ var PopoverPortal = /* @__PURE__ */ React256.forwardRef(function PopoverPortal2(
 if (true) PopoverPortal.displayName = "PopoverPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/positioner/PopoverPositioner.mjs
-import * as React258 from "react.js";
+import * as React258 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/positioner/PopoverPositionerContext.mjs
-import * as React257 from "react.js";
+import * as React257 from "./react.js";
 var PopoverPositionerContext = /* @__PURE__ */ React257.createContext(void 0);
 if (true) PopoverPositionerContext.displayName = "PopoverPositionerContext";
 function usePopoverPositionerContext() {
@@ -29970,7 +29970,7 @@ function usePopoverPositionerContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/positioner/PopoverPositioner.mjs
-import { jsx as _jsx82, jsxs as _jsxs21 } from "jsx-runtime.js";
+import { jsx as _jsx82, jsxs as _jsxs21 } from "./jsx-runtime.js";
 var PopoverPositioner = /* @__PURE__ */ React258.forwardRef(function PopoverPositioner2(componentProps, forwardedRef) {
   const {
     render,
@@ -30080,11 +30080,11 @@ var PopoverPositioner = /* @__PURE__ */ React258.forwardRef(function PopoverPosi
 if (true) PopoverPositioner.displayName = "PopoverPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/popup/PopoverPopup.mjs
-import * as React260 from "react.js";
+import * as React260 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/closePart.mjs
-import * as React259 from "react.js";
-import { jsx as _jsx83 } from "jsx-runtime.js";
+import * as React259 from "./react.js";
+import { jsx as _jsx83 } from "./jsx-runtime.js";
 var ClosePartContext = /* @__PURE__ */ React259.createContext(void 0);
 if (true) ClosePartContext.displayName = "ClosePartContext";
 function useClosePartCount() {
@@ -30121,7 +30121,7 @@ function useClosePartRegistration() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/popup/PopoverPopup.mjs
-import { jsx as _jsx84 } from "jsx-runtime.js";
+import { jsx as _jsx84 } from "./jsx-runtime.js";
 var stateAttributesMapping22 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -30224,7 +30224,7 @@ var PopoverPopup = /* @__PURE__ */ React260.forwardRef(function PopoverPopup2(co
 if (true) PopoverPopup.displayName = "PopoverPopup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/arrow/PopoverArrow.mjs
-import * as React261 from "react.js";
+import * as React261 from "./react.js";
 var PopoverArrow = /* @__PURE__ */ React261.forwardRef(function PopoverArrow2(componentProps, forwardedRef) {
   const {
     render,
@@ -30263,7 +30263,7 @@ var PopoverArrow = /* @__PURE__ */ React261.forwardRef(function PopoverArrow2(co
 if (true) PopoverArrow.displayName = "PopoverArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/backdrop/PopoverBackdrop.mjs
-import * as React262 from "react.js";
+import * as React262 from "./react.js";
 var stateAttributesMapping23 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -30305,7 +30305,7 @@ var PopoverBackdrop = /* @__PURE__ */ React262.forwardRef(function PopoverBackdr
 if (true) PopoverBackdrop.displayName = "PopoverBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/title/PopoverTitle.mjs
-import * as React263 from "react.js";
+import * as React263 from "./react.js";
 var PopoverTitle = /* @__PURE__ */ React263.forwardRef(function PopoverTitle2(componentProps, forwardedRef) {
   const {
     render,
@@ -30329,7 +30329,7 @@ var PopoverTitle = /* @__PURE__ */ React263.forwardRef(function PopoverTitle2(co
 if (true) PopoverTitle.displayName = "PopoverTitle";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/description/PopoverDescription.mjs
-import * as React264 from "react.js";
+import * as React264 from "./react.js";
 var PopoverDescription = /* @__PURE__ */ React264.forwardRef(function PopoverDescription2(componentProps, forwardedRef) {
   const {
     render,
@@ -30353,7 +30353,7 @@ var PopoverDescription = /* @__PURE__ */ React264.forwardRef(function PopoverDes
 if (true) PopoverDescription.displayName = "PopoverDescription";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/close/PopoverClose.mjs
-import * as React265 from "react.js";
+import * as React265 from "./react.js";
 var PopoverClose = /* @__PURE__ */ React265.forwardRef(function PopoverClose2(componentProps, forwardedRef) {
   const {
     render,
@@ -30388,7 +30388,7 @@ var PopoverClose = /* @__PURE__ */ React265.forwardRef(function PopoverClose2(co
 if (true) PopoverClose.displayName = "PopoverClose";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/viewport/PopoverViewport.mjs
-import * as React266 from "react.js";
+import * as React266 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/popover/viewport/PopoverViewportCssVars.mjs
 var PopoverViewportCssVars = /* @__PURE__ */ (function(PopoverViewportCssVars2) {
@@ -30498,10 +30498,10 @@ __export(index_parts_exports19, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/root/PreviewCardRoot.mjs
-import * as React269 from "react.js";
+import * as React269 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/root/PreviewCardContext.mjs
-import * as React267 from "react.js";
+import * as React267 from "./react.js";
 var PreviewCardRootContext = /* @__PURE__ */ React267.createContext(void 0);
 if (true) PreviewCardRootContext.displayName = "PreviewCardRootContext";
 function usePreviewCardRootContext(optional) {
@@ -30513,7 +30513,7 @@ function usePreviewCardRootContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/store/PreviewCardStore.mjs
-import * as React268 from "react.js";
+import * as React268 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/utils/constants.mjs
 var OPEN_DELAY2 = 600;
@@ -30573,7 +30573,7 @@ function createInitialState4() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/root/PreviewCardRoot.mjs
-import { jsx as _jsx85, jsxs as _jsxs22 } from "jsx-runtime.js";
+import { jsx as _jsx85, jsxs as _jsxs22 } from "./jsx-runtime.js";
 function PreviewCardRootComponent(props) {
   const {
     open: openProp,
@@ -30663,10 +30663,10 @@ var PreviewCardRoot = fastComponent(function PreviewCardRoot2(props) {
 if (true) PreviewCardRoot.displayName = "PreviewCardRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/portal/PreviewCardPortal.mjs
-import * as React272 from "react.js";
+import * as React272 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/portal/PreviewCardPortalContext.mjs
-import * as React270 from "react.js";
+import * as React270 from "./react.js";
 var PreviewCardPortalContext = /* @__PURE__ */ React270.createContext(void 0);
 if (true) PreviewCardPortalContext.displayName = "PreviewCardPortalContext";
 function usePreviewCardPortalContext() {
@@ -30678,9 +30678,9 @@ function usePreviewCardPortalContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/FloatingPortalLite.mjs
-import * as React271 from "react.js";
-import * as ReactDOM17 from "react-dom.js";
-import { jsxs as _jsxs23 } from "jsx-runtime.js";
+import * as React271 from "./react.js";
+import * as ReactDOM17 from "./react-dom.js";
+import { jsxs as _jsxs23 } from "./jsx-runtime.js";
 var FloatingPortalLite = /* @__PURE__ */ React271.forwardRef(function FloatingPortalLite2(componentProps, forwardedRef) {
   const {
     children,
@@ -30709,7 +30709,7 @@ var FloatingPortalLite = /* @__PURE__ */ React271.forwardRef(function FloatingPo
 if (true) FloatingPortalLite.displayName = "FloatingPortalLite";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/portal/PreviewCardPortal.mjs
-import { jsx as _jsx86 } from "jsx-runtime.js";
+import { jsx as _jsx86 } from "./jsx-runtime.js";
 var PreviewCardPortal = /* @__PURE__ */ React272.forwardRef(function PreviewCardPortal2(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -30732,7 +30732,7 @@ var PreviewCardPortal = /* @__PURE__ */ React272.forwardRef(function PreviewCard
 if (true) PreviewCardPortal.displayName = "PreviewCardPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/trigger/PreviewCardTrigger.mjs
-import * as React273 from "react.js";
+import * as React273 from "./react.js";
 var PreviewCardTrigger = fastComponentRef(function PreviewCardTrigger2(componentProps, forwardedRef) {
   const {
     render,
@@ -30802,10 +30802,10 @@ var PreviewCardTrigger = fastComponentRef(function PreviewCardTrigger2(component
 if (true) PreviewCardTrigger.displayName = "PreviewCardTrigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/positioner/PreviewCardPositioner.mjs
-import * as React275 from "react.js";
+import * as React275 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/positioner/PreviewCardPositionerContext.mjs
-import * as React274 from "react.js";
+import * as React274 from "./react.js";
 var PreviewCardPositionerContext = /* @__PURE__ */ React274.createContext(void 0);
 if (true) PreviewCardPositionerContext.displayName = "PreviewCardPositionerContext";
 function usePreviewCardPositionerContext() {
@@ -30817,7 +30817,7 @@ function usePreviewCardPositionerContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/positioner/PreviewCardPositioner.mjs
-import { jsx as _jsx87 } from "jsx-runtime.js";
+import { jsx as _jsx87 } from "./jsx-runtime.js";
 var PreviewCardPositioner = /* @__PURE__ */ React275.forwardRef(function PreviewCardPositioner2(componentProps, forwardedRef) {
   const {
     render,
@@ -30899,7 +30899,7 @@ var PreviewCardPositioner = /* @__PURE__ */ React275.forwardRef(function Preview
 if (true) PreviewCardPositioner.displayName = "PreviewCardPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/popup/PreviewCardPopup.mjs
-import * as React276 from "react.js";
+import * as React276 from "./react.js";
 var stateAttributesMapping25 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -30952,7 +30952,7 @@ var PreviewCardPopup = /* @__PURE__ */ React276.forwardRef(function PreviewCardP
 if (true) PreviewCardPopup.displayName = "PreviewCardPopup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/arrow/PreviewCardArrow.mjs
-import * as React277 from "react.js";
+import * as React277 from "./react.js";
 var PreviewCardArrow = /* @__PURE__ */ React277.forwardRef(function PreviewCardArrow2(componentProps, forwardedRef) {
   const {
     render,
@@ -30989,7 +30989,7 @@ var PreviewCardArrow = /* @__PURE__ */ React277.forwardRef(function PreviewCardA
 if (true) PreviewCardArrow.displayName = "PreviewCardArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/backdrop/PreviewCardBackdrop.mjs
-import * as React278 from "react.js";
+import * as React278 from "./react.js";
 var stateAttributesMapping26 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -31028,7 +31028,7 @@ var PreviewCardBackdrop = /* @__PURE__ */ React278.forwardRef(function PreviewCa
 if (true) PreviewCardBackdrop.displayName = "PreviewCardBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/viewport/PreviewCardViewport.mjs
-import * as React279 from "react.js";
+import * as React279 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/preview-card/viewport/PreviewCardViewportCssVars.mjs
 var PreviewCardViewportCssVars = /* @__PURE__ */ (function(PreviewCardViewportCssVars2) {
@@ -31131,10 +31131,10 @@ __export(index_parts_exports20, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/progress/root/ProgressRoot.mjs
-import * as React281 from "react.js";
+import * as React281 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/progress/root/ProgressRootContext.mjs
-import * as React280 from "react.js";
+import * as React280 from "./react.js";
 var ProgressRootContext = /* @__PURE__ */ React280.createContext(void 0);
 if (true) ProgressRootContext.displayName = "ProgressRootContext";
 function useProgressRootContext() {
@@ -31176,7 +31176,7 @@ var progressStateAttributesMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/progress/root/ProgressRoot.mjs
-import { jsx as _jsx88, jsxs as _jsxs24 } from "jsx-runtime.js";
+import { jsx as _jsx88, jsxs as _jsxs24 } from "./jsx-runtime.js";
 function getDefaultAriaValueText(formattedValue, value) {
   if (value == null) {
     return "indeterminate progress";
@@ -31245,7 +31245,7 @@ var ProgressRoot = /* @__PURE__ */ React281.forwardRef(function ProgressRoot2(co
 if (true) ProgressRoot.displayName = "ProgressRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/progress/track/ProgressTrack.mjs
-import * as React282 from "react.js";
+import * as React282 from "./react.js";
 var ProgressTrack = /* @__PURE__ */ React282.forwardRef(function ProgressTrack2(componentProps, forwardedRef) {
   const {
     render,
@@ -31267,7 +31267,7 @@ var ProgressTrack = /* @__PURE__ */ React282.forwardRef(function ProgressTrack2(
 if (true) ProgressTrack.displayName = "ProgressTrack";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/progress/indicator/ProgressIndicator.mjs
-import * as React283 from "react.js";
+import * as React283 from "./react.js";
 var ProgressIndicator = /* @__PURE__ */ React283.forwardRef(function ProgressIndicator2(componentProps, forwardedRef) {
   const {
     render,
@@ -31300,7 +31300,7 @@ var ProgressIndicator = /* @__PURE__ */ React283.forwardRef(function ProgressInd
 if (true) ProgressIndicator.displayName = "ProgressIndicator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/progress/value/ProgressValue.mjs
-import * as React284 from "react.js";
+import * as React284 from "./react.js";
 var ProgressValue = /* @__PURE__ */ React284.forwardRef(function ProgressValue2(componentProps, forwardedRef) {
   const {
     className,
@@ -31330,7 +31330,7 @@ var ProgressValue = /* @__PURE__ */ React284.forwardRef(function ProgressValue2(
 if (true) ProgressValue.displayName = "ProgressValue";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/progress/label/ProgressLabel.mjs
-import * as React285 from "react.js";
+import * as React285 from "./react.js";
 var ProgressLabel = /* @__PURE__ */ React285.forwardRef(function ProgressLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -31365,7 +31365,7 @@ __export(index_parts_exports21, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/radio/root/RadioRoot.mjs
-import * as React288 from "react.js";
+import * as React288 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/radio/root/RadioRootDataAttributes.mjs
 var RadioRootDataAttributes = /* @__PURE__ */ (function(RadioRootDataAttributes2) {
@@ -31400,7 +31400,7 @@ var stateAttributesMapping28 = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/radio-group/RadioGroupContext.mjs
-import * as React286 from "react.js";
+import * as React286 from "./react.js";
 var RadioGroupContext = /* @__PURE__ */ React286.createContext(void 0);
 if (true) RadioGroupContext.displayName = "RadioGroupContext";
 function useRadioGroupContext() {
@@ -31408,7 +31408,7 @@ function useRadioGroupContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/radio/root/RadioRootContext.mjs
-import * as React287 from "react.js";
+import * as React287 from "./react.js";
 var RadioRootContext = /* @__PURE__ */ React287.createContext(void 0);
 if (true) RadioRootContext.displayName = "RadioRootContext";
 function useRadioRootContext() {
@@ -31420,7 +31420,7 @@ function useRadioRootContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/radio/root/RadioRoot.mjs
-import { jsx as _jsx89, jsxs as _jsxs25 } from "jsx-runtime.js";
+import { jsx as _jsx89, jsxs as _jsxs25 } from "./jsx-runtime.js";
 var RadioRoot = /* @__PURE__ */ React288.forwardRef(function RadioRoot2(componentProps, forwardedRef) {
   const {
     render,
@@ -31620,7 +31620,7 @@ var RadioRoot = /* @__PURE__ */ React288.forwardRef(function RadioRoot2(componen
 if (true) RadioRoot.displayName = "RadioRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/radio/indicator/RadioIndicator.mjs
-import * as React289 from "react.js";
+import * as React289 from "./react.js";
 var RadioIndicator = /* @__PURE__ */ React289.forwardRef(function RadioIndicator2(componentProps, forwardedRef) {
   const {
     render,
@@ -31665,8 +31665,8 @@ var RadioIndicator = /* @__PURE__ */ React289.forwardRef(function RadioIndicator
 if (true) RadioIndicator.displayName = "RadioIndicator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/radio-group/RadioGroup.mjs
-import * as React290 from "react.js";
-import { jsx as _jsx90 } from "jsx-runtime.js";
+import * as React290 from "./react.js";
+import { jsx as _jsx90 } from "./jsx-runtime.js";
 var MODIFIER_KEYS2 = [SHIFT];
 var RadioGroup = /* @__PURE__ */ React290.forwardRef(function RadioGroup2(componentProps, forwardedRef) {
   const {
@@ -31859,10 +31859,10 @@ __export(index_parts_exports22, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/root/ScrollAreaRoot.mjs
-import * as React292 from "react.js";
+import * as React292 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/root/ScrollAreaRootContext.mjs
-import * as React291 from "react.js";
+import * as React291 from "./react.js";
 var ScrollAreaRootContext = /* @__PURE__ */ React291.createContext(void 0);
 if (true) ScrollAreaRootContext.displayName = "ScrollAreaRootContext";
 function useScrollAreaRootContext() {
@@ -31912,7 +31912,7 @@ var ScrollAreaScrollbarDataAttributes = /* @__PURE__ */ (function(ScrollAreaScro
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/styles.mjs
-import { jsx as _jsx91 } from "jsx-runtime.js";
+import { jsx as _jsx91 } from "./jsx-runtime.js";
 var DISABLE_SCROLLBAR_CLASS_NAME = "base-ui-disable-scrollbar";
 var styleDisableScrollbar = {
   className: DISABLE_SCROLLBAR_CLASS_NAME,
@@ -31963,7 +31963,7 @@ var scrollAreaStateAttributesMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/root/ScrollAreaRoot.mjs
-import { jsxs as _jsxs26 } from "jsx-runtime.js";
+import { jsxs as _jsxs26 } from "./jsx-runtime.js";
 var DEFAULT_COORDS = {
   x: 0,
   y: 0
@@ -32214,10 +32214,10 @@ function normalizeOverflowEdgeThreshold(threshold) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/viewport/ScrollAreaViewport.mjs
-import * as React294 from "react.js";
+import * as React294 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/viewport/ScrollAreaViewportContext.mjs
-import * as React293 from "react.js";
+import * as React293 from "./react.js";
 var ScrollAreaViewportContext = /* @__PURE__ */ React293.createContext(void 0);
 if (true) ScrollAreaViewportContext.displayName = "ScrollAreaViewportContext";
 function useScrollAreaViewportContext() {
@@ -32264,7 +32264,7 @@ function normalizeScrollOffset(value, max2) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/viewport/ScrollAreaViewport.mjs
-import { jsx as _jsx92 } from "jsx-runtime.js";
+import { jsx as _jsx92 } from "./jsx-runtime.js";
 var scrollAreaOverflowVarsRegistered = false;
 function removeCSSVariableInheritance2() {
   if (scrollAreaOverflowVarsRegistered || // When `inherits: false`, specifying `inherit` on child elements doesn't work
@@ -32570,10 +32570,10 @@ function mergeHiddenState(prevState, nextState) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/scrollbar/ScrollAreaScrollbar.mjs
-import * as React296 from "react.js";
+import * as React296 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/scrollbar/ScrollAreaScrollbarContext.mjs
-import * as React295 from "react.js";
+import * as React295 from "./react.js";
 var ScrollAreaScrollbarContext = /* @__PURE__ */ React295.createContext(void 0);
 if (true) ScrollAreaScrollbarContext.displayName = "ScrollAreaScrollbarContext";
 function useScrollAreaScrollbarContext() {
@@ -32592,7 +32592,7 @@ var ScrollAreaScrollbarCssVars = /* @__PURE__ */ (function(ScrollAreaScrollbarCs
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/scrollbar/ScrollAreaScrollbar.mjs
-import { jsx as _jsx93 } from "jsx-runtime.js";
+import { jsx as _jsx93 } from "./jsx-runtime.js";
 var ScrollAreaScrollbar = /* @__PURE__ */ React296.forwardRef(function ScrollAreaScrollbar2(componentProps, forwardedRef) {
   const {
     render,
@@ -32776,7 +32776,7 @@ var ScrollAreaScrollbar = /* @__PURE__ */ React296.forwardRef(function ScrollAre
 if (true) ScrollAreaScrollbar.displayName = "ScrollAreaScrollbar";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/content/ScrollAreaContent.mjs
-import * as React297 from "react.js";
+import * as React297 from "./react.js";
 var ScrollAreaContent = /* @__PURE__ */ React297.forwardRef(function ScrollAreaContent2(componentProps, forwardedRef) {
   const {
     render,
@@ -32830,7 +32830,7 @@ var ScrollAreaContent = /* @__PURE__ */ React297.forwardRef(function ScrollAreaC
 if (true) ScrollAreaContent.displayName = "ScrollAreaContent";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/thumb/ScrollAreaThumb.mjs
-import * as React298 from "react.js";
+import * as React298 from "./react.js";
 var ScrollAreaThumb = /* @__PURE__ */ React298.forwardRef(function ScrollAreaThumb2(componentProps, forwardedRef) {
   const {
     render,
@@ -32890,7 +32890,7 @@ var ScrollAreaThumb = /* @__PURE__ */ React298.forwardRef(function ScrollAreaThu
 if (true) ScrollAreaThumb.displayName = "ScrollAreaThumb";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/scroll-area/corner/ScrollAreaCorner.mjs
-import * as React299 from "react.js";
+import * as React299 from "./react.js";
 var ScrollAreaCorner = /* @__PURE__ */ React299.forwardRef(function ScrollAreaCorner2(componentProps, forwardedRef) {
   const {
     render,
@@ -32947,10 +32947,10 @@ __export(index_parts_exports23, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/root/SelectRoot.mjs
-import * as React301 from "react.js";
+import * as React301 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/root/SelectRootContext.mjs
-import * as React300 from "react.js";
+import * as React300 from "./react.js";
 var SelectRootContext = /* @__PURE__ */ React300.createContext(null);
 if (true) SelectRootContext.displayName = "SelectRootContext";
 var SelectFloatingContext = /* @__PURE__ */ React300.createContext(null);
@@ -33029,7 +33029,7 @@ var selectors7 = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/root/SelectRoot.mjs
-import { jsx as _jsx94, jsxs as _jsxs27 } from "jsx-runtime.js";
+import { jsx as _jsx94, jsxs as _jsxs27 } from "./jsx-runtime.js";
 function SelectRoot(props) {
   const {
     id,
@@ -33452,7 +33452,7 @@ function SelectRoot(props) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/label/SelectLabel.mjs
-import * as React302 from "react.js";
+import * as React302 from "./react.js";
 var SelectLabel = /* @__PURE__ */ React302.forwardRef(function SelectLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -33486,7 +33486,7 @@ var SelectLabel = /* @__PURE__ */ React302.forwardRef(function SelectLabel2(comp
 if (true) SelectLabel.displayName = "SelectLabel";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/trigger/SelectTrigger.mjs
-import * as React303 from "react.js";
+import * as React303 from "./react.js";
 var BOUNDARY_OFFSET3 = 2;
 var SELECTED_DELAY = 400;
 var stateAttributesMapping29 = {
@@ -33653,7 +33653,7 @@ var SelectTrigger = /* @__PURE__ */ React303.forwardRef(function SelectTrigger2(
 if (true) SelectTrigger.displayName = "SelectTrigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/value/SelectValue.mjs
-import * as React304 from "react.js";
+import * as React304 from "./react.js";
 var stateAttributesMapping30 = {
   value: () => null
 };
@@ -33705,7 +33705,7 @@ var SelectValue = /* @__PURE__ */ React304.forwardRef(function SelectValue2(comp
 if (true) SelectValue.displayName = "SelectValue";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/icon/SelectIcon.mjs
-import * as React305 from "react.js";
+import * as React305 from "./react.js";
 var SelectIcon = /* @__PURE__ */ React305.forwardRef(function SelectIcon2(componentProps, forwardedRef) {
   const {
     render,
@@ -33734,15 +33734,15 @@ var SelectIcon = /* @__PURE__ */ React305.forwardRef(function SelectIcon2(compon
 if (true) SelectIcon.displayName = "SelectIcon";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/portal/SelectPortal.mjs
-import * as React307 from "react.js";
+import * as React307 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/portal/SelectPortalContext.mjs
-import * as React306 from "react.js";
+import * as React306 from "./react.js";
 var SelectPortalContext = /* @__PURE__ */ React306.createContext(void 0);
 if (true) SelectPortalContext.displayName = "SelectPortalContext";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/portal/SelectPortal.mjs
-import { jsx as _jsx95 } from "jsx-runtime.js";
+import { jsx as _jsx95 } from "./jsx-runtime.js";
 var SelectPortal = /* @__PURE__ */ React307.forwardRef(function SelectPortal2(portalProps, forwardedRef) {
   const {
     store
@@ -33764,7 +33764,7 @@ var SelectPortal = /* @__PURE__ */ React307.forwardRef(function SelectPortal2(po
 if (true) SelectPortal.displayName = "SelectPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/backdrop/SelectBackdrop.mjs
-import * as React308 from "react.js";
+import * as React308 from "./react.js";
 var stateAttributesMapping31 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -33804,10 +33804,10 @@ var SelectBackdrop = /* @__PURE__ */ React308.forwardRef(function SelectBackdrop
 if (true) SelectBackdrop.displayName = "SelectBackdrop";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/positioner/SelectPositioner.mjs
-import * as React310 from "react.js";
+import * as React310 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/positioner/SelectPositionerContext.mjs
-import * as React309 from "react.js";
+import * as React309 from "./react.js";
 var SelectPositionerContext = /* @__PURE__ */ React309.createContext(void 0);
 if (true) SelectPositionerContext.displayName = "SelectPositionerContext";
 function useSelectPositionerContext() {
@@ -33832,7 +33832,7 @@ var LIST_FUNCTIONAL_STYLES = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/positioner/SelectPositioner.mjs
-import { jsx as _jsx96, jsxs as _jsxs28 } from "jsx-runtime.js";
+import { jsx as _jsx96, jsxs as _jsxs28 } from "./jsx-runtime.js";
 var FIXED = {
   position: "fixed"
 };
@@ -34009,8 +34009,8 @@ var SelectPositioner = /* @__PURE__ */ React310.forwardRef(function SelectPositi
 if (true) SelectPositioner.displayName = "SelectPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/popup/SelectPopup.mjs
-import * as React311 from "react.js";
-import { jsx as _jsx97, jsxs as _jsxs29 } from "jsx-runtime.js";
+import * as React311 from "./react.js";
+import { jsx as _jsx97, jsxs as _jsxs29 } from "./jsx-runtime.js";
 var stateAttributesMapping32 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -34390,7 +34390,7 @@ function unsetTransformStyles(popupElement) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/list/SelectList.mjs
-import * as React312 from "react.js";
+import * as React312 from "./react.js";
 var SelectList = /* @__PURE__ */ React312.forwardRef(function SelectList2(componentProps, forwardedRef) {
   const {
     render,
@@ -34432,10 +34432,10 @@ var SelectList = /* @__PURE__ */ React312.forwardRef(function SelectList2(compon
 if (true) SelectList.displayName = "SelectList";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/item/SelectItem.mjs
-import * as React314 from "react.js";
+import * as React314 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/item/SelectItemContext.mjs
-import * as React313 from "react.js";
+import * as React313 from "./react.js";
 var SelectItemContext = /* @__PURE__ */ React313.createContext(void 0);
 if (true) SelectItemContext.displayName = "SelectItemContext";
 function useSelectItemContext() {
@@ -34447,7 +34447,7 @@ function useSelectItemContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/item/SelectItem.mjs
-import { jsx as _jsx98 } from "jsx-runtime.js";
+import { jsx as _jsx98 } from "./jsx-runtime.js";
 var SelectItem = /* @__PURE__ */ React314.memo(/* @__PURE__ */ React314.forwardRef(function SelectItem2(componentProps, forwardedRef) {
   const {
     render,
@@ -34630,8 +34630,8 @@ var SelectItem = /* @__PURE__ */ React314.memo(/* @__PURE__ */ React314.forwardR
 if (true) SelectItem.displayName = "SelectItem";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/item-indicator/SelectItemIndicator.mjs
-import * as React315 from "react.js";
-import { jsx as _jsx99 } from "jsx-runtime.js";
+import * as React315 from "./react.js";
+import { jsx as _jsx99 } from "./jsx-runtime.js";
 var SelectItemIndicator = /* @__PURE__ */ React315.forwardRef(function SelectItemIndicator2(componentProps, forwardedRef) {
   const keepMounted = componentProps.keepMounted ?? false;
   const {
@@ -34690,7 +34690,7 @@ var Inner2 = /* @__PURE__ */ React315.memo(/* @__PURE__ */ React315.forwardRef((
 if (true) Inner2.displayName = "Inner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/item-text/SelectItemText.mjs
-import * as React316 from "react.js";
+import * as React316 from "./react.js";
 var SelectItemText = /* @__PURE__ */ React316.memo(/* @__PURE__ */ React316.forwardRef(function SelectItemText2(componentProps, forwardedRef) {
   const {
     index: index2,
@@ -34728,7 +34728,7 @@ var SelectItemText = /* @__PURE__ */ React316.memo(/* @__PURE__ */ React316.forw
 if (true) SelectItemText.displayName = "SelectItemText";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/arrow/SelectArrow.mjs
-import * as React317 from "react.js";
+import * as React317 from "./react.js";
 var stateAttributesMapping33 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -34775,10 +34775,10 @@ var SelectArrow = /* @__PURE__ */ React317.forwardRef(function SelectArrow2(comp
 if (true) SelectArrow.displayName = "SelectArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/scroll-down-arrow/SelectScrollDownArrow.mjs
-import * as React319 from "react.js";
+import * as React319 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/scroll-arrow/SelectScrollArrow.mjs
-import * as React318 from "react.js";
+import * as React318 from "./react.js";
 var SelectScrollArrow = /* @__PURE__ */ React318.forwardRef(function SelectScrollArrow2(componentProps, forwardedRef) {
   const {
     render,
@@ -34926,7 +34926,7 @@ function getTargetScrollTop(items, isUp, scrollTop, clientHeight, scrollArrowHei
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/scroll-down-arrow/SelectScrollDownArrow.mjs
-import { jsx as _jsx100 } from "jsx-runtime.js";
+import { jsx as _jsx100 } from "./jsx-runtime.js";
 var SelectScrollDownArrow = /* @__PURE__ */ React319.forwardRef(function SelectScrollDownArrow2(props, forwardedRef) {
   return /* @__PURE__ */ _jsx100(SelectScrollArrow, {
     ...props,
@@ -34937,8 +34937,8 @@ var SelectScrollDownArrow = /* @__PURE__ */ React319.forwardRef(function SelectS
 if (true) SelectScrollDownArrow.displayName = "SelectScrollDownArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/scroll-up-arrow/SelectScrollUpArrow.mjs
-import * as React320 from "react.js";
-import { jsx as _jsx101 } from "jsx-runtime.js";
+import * as React320 from "./react.js";
+import { jsx as _jsx101 } from "./jsx-runtime.js";
 var SelectScrollUpArrow = /* @__PURE__ */ React320.forwardRef(function SelectScrollUpArrow2(props, forwardedRef) {
   return /* @__PURE__ */ _jsx101(SelectScrollArrow, {
     ...props,
@@ -34949,10 +34949,10 @@ var SelectScrollUpArrow = /* @__PURE__ */ React320.forwardRef(function SelectScr
 if (true) SelectScrollUpArrow.displayName = "SelectScrollUpArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/group/SelectGroup.mjs
-import * as React322 from "react.js";
+import * as React322 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/group/SelectGroupContext.mjs
-import * as React321 from "react.js";
+import * as React321 from "./react.js";
 var SelectGroupContext = /* @__PURE__ */ React321.createContext(void 0);
 if (true) SelectGroupContext.displayName = "SelectGroupContext";
 function useSelectGroupContext() {
@@ -34964,7 +34964,7 @@ function useSelectGroupContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/group/SelectGroup.mjs
-import { jsx as _jsx102 } from "jsx-runtime.js";
+import { jsx as _jsx102 } from "./jsx-runtime.js";
 var SelectGroup = /* @__PURE__ */ React322.forwardRef(function SelectGroup2(componentProps, forwardedRef) {
   const {
     render,
@@ -34992,7 +34992,7 @@ var SelectGroup = /* @__PURE__ */ React322.forwardRef(function SelectGroup2(comp
 if (true) SelectGroup.displayName = "SelectGroup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/select/group-label/SelectGroupLabel.mjs
-import * as React323 from "react.js";
+import * as React323 from "./react.js";
 var SelectGroupLabel = /* @__PURE__ */ React323.forwardRef(function SelectGroupLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -35031,7 +35031,7 @@ __export(index_parts_exports24, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/root/SliderRoot.mjs
-import * as React325 from "react.js";
+import * as React325 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/utils/asc.mjs
 function asc(a, b) {
@@ -35087,7 +35087,7 @@ var sliderStateAttributesMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/root/SliderRootContext.mjs
-import * as React324 from "react.js";
+import * as React324 from "./react.js";
 var SliderRootContext = /* @__PURE__ */ React324.createContext(void 0);
 if (true) SliderRootContext.displayName = "SliderRootContext";
 function useSliderRootContext() {
@@ -35099,7 +35099,7 @@ function useSliderRootContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/root/SliderRoot.mjs
-import { jsx as _jsx103 } from "jsx-runtime.js";
+import { jsx as _jsx103 } from "./jsx-runtime.js";
 function getSliderChangeEventReason(event) {
   return "key" in event ? reason_parts_exports.keyboard : reason_parts_exports.inputChange;
 }
@@ -35339,7 +35339,7 @@ var SliderRoot = /* @__PURE__ */ React325.forwardRef(function SliderRoot2(compon
 if (true) SliderRoot.displayName = "SliderRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/label/SliderLabel.mjs
-import * as React326 from "react.js";
+import * as React326 from "./react.js";
 var SliderLabel = /* @__PURE__ */ React326.forwardRef(function SliderLabel2(componentProps, forwardedRef) {
   const {
     render,
@@ -35384,7 +35384,7 @@ var SliderLabel = /* @__PURE__ */ React326.forwardRef(function SliderLabel2(comp
 if (true) SliderLabel.displayName = "SliderLabel";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/value/SliderValue.mjs
-import * as React327 from "react.js";
+import * as React327 from "./react.js";
 var SliderValue = /* @__PURE__ */ React327.forwardRef(function SliderValue2(componentProps, forwardedRef) {
   const {
     "aria-live": ariaLive = "off",
@@ -35433,7 +35433,7 @@ var SliderValue = /* @__PURE__ */ React327.forwardRef(function SliderValue2(comp
 if (true) SliderValue.displayName = "SliderValue";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/control/SliderControl.mjs
-import * as React328 from "react.js";
+import * as React328 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/utils/getMidpoint.mjs
 function getMidpoint(element) {
@@ -36028,7 +36028,7 @@ var SliderControl = /* @__PURE__ */ React328.forwardRef(function SliderControl2(
 if (true) SliderControl.displayName = "SliderControl";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/track/SliderTrack.mjs
-import * as React329 from "react.js";
+import * as React329 from "./react.js";
 var SliderTrack = /* @__PURE__ */ React329.forwardRef(function SliderTrack2(componentProps, forwardedRef) {
   const {
     render,
@@ -36054,7 +36054,7 @@ var SliderTrack = /* @__PURE__ */ React329.forwardRef(function SliderTrack2(comp
 if (true) SliderTrack.displayName = "SliderTrack";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/thumb/SliderThumb.mjs
-import * as React330 from "react.js";
+import * as React330 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/utils/useIsHydrating.mjs
 var import_shim2 = __toESM(require_shim(), 1);
@@ -36089,7 +36089,7 @@ var SliderThumbDataAttributes = /* @__PURE__ */ (function(SliderThumbDataAttribu
 var script = '!function(){const t=document.currentScript?.parentElement;if(!t)return;const e=t.closest("[data-base-ui-slider-control]");if(!e)return;const r=e.querySelector("[data-base-ui-slider-indicator]"),i=e.getBoundingClientRect(),n="vertical"===e.getAttribute("data-orientation")?"height":"width",o=e.querySelectorAll(\'input[type="range"]\'),l=o.length>1,s=o.length-1;let a=null,u=null;for(let t=0;t<o.length;t+=1){const e=o[t],y=parseFloat(e.getAttribute("value")??"");if(Number.isNaN(y))return;const c=e.parentElement;if(!c)return;const p=parseFloat(e.getAttribute("max")??"100"),g=parseFloat(e.getAttribute("min")??"0"),b=c?.getBoundingClientRect(),d=i[n]-b[n],m=100*(y-g)/(p-g),v=(b[n]/2+d*m/100)/i[n]*100;c.style.setProperty("--position",`${v}%`),Number.isFinite(v)&&(c.style.removeProperty("visibility"),r&&(0===t?(a=v,r.style.setProperty("--start-position",`${v}%`),l||r.style.removeProperty("visibility")):t===s&&(u=v-(a??0),r.style.setProperty("--end-position",`${v}%`),r.style.setProperty("--relative-size",`${u}%`),r.style.removeProperty("visibility"))))}}();';
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/thumb/SliderThumb.mjs
-import { jsx as _jsx104, jsxs as _jsxs30 } from "jsx-runtime.js";
+import { jsx as _jsx104, jsxs as _jsxs30 } from "./jsx-runtime.js";
 var ALL_KEYS = /* @__PURE__ */ new Set([...COMPOSITE_KEYS, PAGE_UP, PAGE_DOWN]);
 function getDefaultAriaValueText2(values, index2, format, locale) {
   if (index2 < 0) {
@@ -36446,7 +36446,7 @@ var SliderThumb = /* @__PURE__ */ React330.forwardRef(function SliderThumb2(comp
 if (true) SliderThumb.displayName = "SliderThumb";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/slider/indicator/SliderIndicator.mjs
-import * as React331 from "react.js";
+import * as React331 from "./react.js";
 function getInsetStyles(vertical, range, start, end, renderBeforeHydration, hydrating) {
   const visibility = start === void 0 || range && end === void 0 ? "hidden" : void 0;
   const startEdge = vertical ? "bottom" : "insetInlineStart";
@@ -36529,10 +36529,10 @@ __export(index_parts_exports25, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/switch/root/SwitchRoot.mjs
-import * as React333 from "react.js";
+import * as React333 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/switch/root/SwitchRootContext.mjs
-import * as React332 from "react.js";
+import * as React332 from "./react.js";
 var SwitchRootContext = /* @__PURE__ */ React332.createContext(void 0);
 if (true) SwitchRootContext.displayName = "SwitchRootContext";
 function useSwitchRootContext() {
@@ -36575,7 +36575,7 @@ var stateAttributesMapping34 = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/switch/root/SwitchRoot.mjs
-import { jsx as _jsx105, jsxs as _jsxs31 } from "jsx-runtime.js";
+import { jsx as _jsx105, jsxs as _jsxs31 } from "./jsx-runtime.js";
 var SwitchRoot = /* @__PURE__ */ React333.forwardRef(function SwitchRoot2(componentProps, forwardedRef) {
   const {
     checked: checkedProp,
@@ -36764,7 +36764,7 @@ var SwitchRoot = /* @__PURE__ */ React333.forwardRef(function SwitchRoot2(compon
 if (true) SwitchRoot.displayName = "SwitchRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/switch/thumb/SwitchThumb.mjs
-import * as React334 from "react.js";
+import * as React334 from "./react.js";
 var SwitchThumb = /* @__PURE__ */ React334.forwardRef(function SwitchThumb2(componentProps, forwardedRef) {
   const {
     render,
@@ -36793,10 +36793,10 @@ __export(index_parts_exports26, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/root/TabsRoot.mjs
-import * as React336 from "react.js";
+import * as React336 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/root/TabsRootContext.mjs
-import * as React335 from "react.js";
+import * as React335 from "./react.js";
 var TabsRootContext = /* @__PURE__ */ React335.createContext(void 0);
 if (true) TabsRootContext.displayName = "TabsRootContext";
 function useTabsRootContext() {
@@ -36822,7 +36822,7 @@ var tabsStateAttributesMapping = {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/root/TabsRoot.mjs
-import { jsx as _jsx106 } from "jsx-runtime.js";
+import { jsx as _jsx106 } from "./jsx-runtime.js";
 var TabsRoot = /* @__PURE__ */ React336.forwardRef(function TabsRoot2(componentProps, forwardedRef) {
   const {
     className,
@@ -37084,10 +37084,10 @@ function computeActivationDirection(oldValue, newValue, orientation, tabMap) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/tab/TabsTab.mjs
-import * as React338 from "react.js";
+import * as React338 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/list/TabsListContext.mjs
-import * as React337 from "react.js";
+import * as React337 from "./react.js";
 var TabsListContext = /* @__PURE__ */ React337.createContext(void 0);
 if (true) TabsListContext.displayName = "TabsListContext";
 function useTabsListContext() {
@@ -37250,7 +37250,7 @@ var TabsTab = /* @__PURE__ */ React338.forwardRef(function TabsTab2(componentPro
 if (true) TabsTab.displayName = "TabsTab";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/indicator/TabsIndicator.mjs
-import * as React339 from "react.js";
+import * as React339 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/indicator/prehydrationScript.min.mjs
 var script2 = '!function(){const t=document.currentScript.previousElementSibling;if(!t)return;const e=t.closest(\'[role="tablist"]\');if(!e)return;const i=e.querySelector("[data-active]");if(!i)return;if(0===i.offsetWidth||0===e.offsetWidth)return;let o=0,n=0,h=0,l=0,r=0,f=0;function s(t){const e=getComputedStyle(t);let i=parseFloat(e.width)||0,o=parseFloat(e.height)||0;return(Math.round(i)!==t.offsetWidth||Math.round(o)!==t.offsetHeight)&&(i=t.offsetWidth,o=t.offsetHeight),{width:i,height:o}}if(null!=i&&null!=e){const{width:t,height:c}=s(i),{width:u,height:d}=s(e),a=i.getBoundingClientRect(),g=e.getBoundingClientRect(),p=u>0?g.width/u:1,b=d>0?g.height/d:1;if(Math.abs(p)>Number.EPSILON&&Math.abs(b)>Number.EPSILON){const t=a.left-g.left,i=a.top-g.top;o=t/p+e.scrollLeft-e.clientLeft,h=i/b+e.scrollTop-e.clientTop}else o=i.offsetLeft,h=i.offsetTop;r=t,f=c,n=e.scrollWidth-o-r,l=e.scrollHeight-h-f}function c(e,i){t.style.setProperty(`--active-tab-${e}`,`${i}px`)}c("left",o),c("right",n),c("top",h),c("bottom",l),c("width",r),c("height",f),r>0&&f>0&&t.removeAttribute("hidden")}();';
@@ -37267,7 +37267,7 @@ var TabsIndicatorCssVars = /* @__PURE__ */ (function(TabsIndicatorCssVars2) {
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/indicator/TabsIndicator.mjs
-import { jsx as _jsx107, jsxs as _jsxs32 } from "jsx-runtime.js";
+import { jsx as _jsx107, jsxs as _jsxs32 } from "./jsx-runtime.js";
 var stateAttributesMapping35 = {
   ...tabsStateAttributesMapping,
   activeTabPosition: () => null,
@@ -37392,7 +37392,7 @@ var TabsIndicator = /* @__PURE__ */ React339.forwardRef(function TabsIndicator2(
 if (true) TabsIndicator.displayName = "TabsIndicator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/panel/TabsPanel.mjs
-import * as React340 from "react.js";
+import * as React340 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/panel/TabsPanelDataAttributes.mjs
 var TabsPanelDataAttributes = (function(TabsPanelDataAttributes2) {
@@ -37497,8 +37497,8 @@ var TabsPanel = /* @__PURE__ */ React340.forwardRef(function TabsPanel2(componen
 if (true) TabsPanel.displayName = "TabsPanel";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tabs/list/TabsList.mjs
-import * as React341 from "react.js";
-import { jsx as _jsx108 } from "jsx-runtime.js";
+import * as React341 from "./react.js";
+import { jsx as _jsx108 } from "./jsx-runtime.js";
 var TabsList = /* @__PURE__ */ React341.forwardRef(function TabsList2(componentProps, forwardedRef) {
   const {
     activateOnFocus = false,
@@ -37618,10 +37618,10 @@ __export(index_parts_exports27, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/provider/ToastProvider.mjs
-import * as React343 from "react.js";
+import * as React343 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/provider/ToastProviderContext.mjs
-import * as React342 from "react.js";
+import * as React342 from "./react.js";
 var ToastContext = /* @__PURE__ */ React342.createContext(void 0);
 if (true) ToastContext.displayName = "ToastContext";
 function useToastProviderContext() {
@@ -38057,7 +38057,7 @@ var ToastStore = class extends ReactStore {
 };
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/provider/ToastProvider.mjs
-import { jsx as _jsx109 } from "jsx-runtime.js";
+import { jsx as _jsx109 } from "./jsx-runtime.js";
 var ToastProvider = function ToastProvider2(props) {
   const {
     children,
@@ -38111,7 +38111,7 @@ var ToastProvider = function ToastProvider2(props) {
 if (true) ToastProvider.displayName = "ToastProvider";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/viewport/ToastViewport.mjs
-import * as React344 from "react.js";
+import * as React344 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/viewport/ToastViewportCssVars.mjs
 var ToastViewportCssVars = /* @__PURE__ */ (function(ToastViewportCssVars2) {
@@ -38120,7 +38120,7 @@ var ToastViewportCssVars = /* @__PURE__ */ (function(ToastViewportCssVars2) {
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/viewport/ToastViewport.mjs
-import { jsx as _jsx110, jsxs as _jsxs33 } from "jsx-runtime.js";
+import { jsx as _jsx110, jsxs as _jsxs33 } from "./jsx-runtime.js";
 var ToastViewport = /* @__PURE__ */ React344.forwardRef(function ToastViewport2(componentProps, forwardedRef) {
   const {
     render,
@@ -38351,11 +38351,11 @@ var ToastViewport = /* @__PURE__ */ React344.forwardRef(function ToastViewport2(
 if (true) ToastViewport.displayName = "ToastViewport";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/root/ToastRoot.mjs
-import * as React346 from "react.js";
-import * as ReactDOM18 from "react-dom.js";
+import * as React346 from "./react.js";
+import * as ReactDOM18 from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/root/ToastRootContext.mjs
-import * as React345 from "react.js";
+import * as React345 from "./react.js";
 var ToastRootContext = /* @__PURE__ */ React345.createContext(void 0);
 if (true) ToastRootContext.displayName = "ToastRootContext";
 function useToastRootContext() {
@@ -38377,7 +38377,7 @@ var ToastRootCssVars = /* @__PURE__ */ (function(ToastRootCssVars2) {
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/root/ToastRoot.mjs
-import { jsx as _jsx111 } from "jsx-runtime.js";
+import { jsx as _jsx111 } from "./jsx-runtime.js";
 var stateAttributesMapping37 = {
   ...transitionStatusMapping,
   swipeDirection(value) {
@@ -38850,7 +38850,7 @@ var ToastRoot = /* @__PURE__ */ React346.forwardRef(function ToastRoot2(componen
 if (true) ToastRoot.displayName = "ToastRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/content/ToastContent.mjs
-import * as React347 from "react.js";
+import * as React347 from "./react.js";
 var ToastContent = /* @__PURE__ */ React347.forwardRef(function ToastContent2(componentProps, forwardedRef) {
   const {
     render,
@@ -38901,7 +38901,7 @@ var ToastContent = /* @__PURE__ */ React347.forwardRef(function ToastContent2(co
 if (true) ToastContent.displayName = "ToastContent";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/description/ToastDescription.mjs
-import * as React348 from "react.js";
+import * as React348 from "./react.js";
 var ToastDescription = /* @__PURE__ */ React348.forwardRef(function ToastDescription2(componentProps, forwardedRef) {
   const {
     render,
@@ -38947,7 +38947,7 @@ var ToastDescription = /* @__PURE__ */ React348.forwardRef(function ToastDescrip
 if (true) ToastDescription.displayName = "ToastDescription";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/title/ToastTitle.mjs
-import * as React349 from "react.js";
+import * as React349 from "./react.js";
 var ToastTitle = /* @__PURE__ */ React349.forwardRef(function ToastTitle2(componentProps, forwardedRef) {
   const {
     render,
@@ -38993,7 +38993,7 @@ var ToastTitle = /* @__PURE__ */ React349.forwardRef(function ToastTitle2(compon
 if (true) ToastTitle.displayName = "ToastTitle";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/close/ToastClose.mjs
-import * as React350 from "react.js";
+import * as React350 from "./react.js";
 var ToastClose = /* @__PURE__ */ React350.forwardRef(function ToastClose2(componentProps, forwardedRef) {
   const {
     render,
@@ -39040,7 +39040,7 @@ var ToastClose = /* @__PURE__ */ React350.forwardRef(function ToastClose2(compon
 if (true) ToastClose.displayName = "ToastClose";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/action/ToastAction.mjs
-import * as React351 from "react.js";
+import * as React351 from "./react.js";
 var ToastAction = /* @__PURE__ */ React351.forwardRef(function ToastAction2(componentProps, forwardedRef) {
   const {
     render,
@@ -39083,10 +39083,10 @@ if (true) ToastAction.displayName = "ToastAction";
 var ToastPortal = FloatingPortalLite;
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/positioner/ToastPositioner.mjs
-import * as React353 from "react.js";
+import * as React353 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/positioner/ToastPositionerContext.mjs
-import * as React352 from "react.js";
+import * as React352 from "./react.js";
 var ToastPositionerContext = /* @__PURE__ */ React352.createContext(void 0);
 if (true) ToastPositionerContext.displayName = "ToastPositionerContext";
 function useToastPositionerContext() {
@@ -39098,7 +39098,7 @@ function useToastPositionerContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/positioner/ToastPositioner.mjs
-import { jsx as _jsx112 } from "jsx-runtime.js";
+import { jsx as _jsx112 } from "./jsx-runtime.js";
 var ToastPositioner = /* @__PURE__ */ React353.forwardRef(function ToastPositioner2(componentProps, forwardedRef) {
   const {
     toast,
@@ -39175,7 +39175,7 @@ var ToastPositioner = /* @__PURE__ */ React353.forwardRef(function ToastPosition
 if (true) ToastPositioner.displayName = "ToastPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/arrow/ToastArrow.mjs
-import * as React354 from "react.js";
+import * as React354 from "./react.js";
 var ToastArrow = /* @__PURE__ */ React354.forwardRef(function ToastArrow2(componentProps, forwardedRef) {
   const {
     className,
@@ -39208,7 +39208,7 @@ var ToastArrow = /* @__PURE__ */ React354.forwardRef(function ToastArrow2(compon
 if (true) ToastArrow.displayName = "ToastArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toast/useToastManager.mjs
-import * as React355 from "react.js";
+import * as React355 from "./react.js";
 function useToastManager() {
   const store = React355.useContext(ToastContext);
   if (!store) {
@@ -39287,10 +39287,10 @@ function createToastManager() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toggle/Toggle.mjs
-import * as React357 from "react.js";
+import * as React357 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toggle-group/ToggleGroupContext.mjs
-import * as React356 from "react.js";
+import * as React356 from "./react.js";
 var ToggleGroupContext = /* @__PURE__ */ React356.createContext(void 0);
 if (true) ToggleGroupContext.displayName = "ToggleGroupContext";
 function useToggleGroupContext(optional = true) {
@@ -39302,7 +39302,7 @@ function useToggleGroupContext(optional = true) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toggle/Toggle.mjs
-import { jsx as _jsx113 } from "jsx-runtime.js";
+import { jsx as _jsx113 } from "./jsx-runtime.js";
 var Toggle = /* @__PURE__ */ React357.forwardRef(function Toggle2(componentProps, forwardedRef) {
   const {
     className,
@@ -39395,10 +39395,10 @@ var Toggle = /* @__PURE__ */ React357.forwardRef(function Toggle2(componentProps
 if (true) Toggle.displayName = "Toggle";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toggle-group/ToggleGroup.mjs
-import * as React359 from "react.js";
+import * as React359 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/group/ToolbarGroupContext.mjs
-import * as React358 from "react.js";
+import * as React358 from "./react.js";
 var ToolbarGroupContext = /* @__PURE__ */ React358.createContext(void 0);
 if (true) ToolbarGroupContext.displayName = "ToolbarGroupContext";
 function useToolbarGroupContext(optional) {
@@ -39418,7 +39418,7 @@ var ToggleGroupDataAttributes = /* @__PURE__ */ (function(ToggleGroupDataAttribu
 })({});
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toggle-group/ToggleGroup.mjs
-import { jsx as _jsx114 } from "jsx-runtime.js";
+import { jsx as _jsx114 } from "./jsx-runtime.js";
 var stateAttributesMapping38 = {
   multiple(value) {
     if (value) {
@@ -39523,8 +39523,8 @@ __export(index_parts_exports28, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/separator/ToolbarSeparator.mjs
-import * as React360 from "react.js";
-import { jsx as _jsx115 } from "jsx-runtime.js";
+import * as React360 from "./react.js";
+import { jsx as _jsx115 } from "./jsx-runtime.js";
 var ToolbarSeparator = /* @__PURE__ */ React360.forwardRef(function ToolbarSeparator2(props, forwardedRef) {
   const context = useToolbarRootContext();
   const orientation = {
@@ -39540,8 +39540,8 @@ var ToolbarSeparator = /* @__PURE__ */ React360.forwardRef(function ToolbarSepar
 if (true) ToolbarSeparator.displayName = "ToolbarSeparator";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/root/ToolbarRoot.mjs
-import * as React361 from "react.js";
-import { jsx as _jsx116 } from "jsx-runtime.js";
+import * as React361 from "./react.js";
+import { jsx as _jsx116 } from "./jsx-runtime.js";
 var ToolbarRoot = /* @__PURE__ */ React361.forwardRef(function ToolbarRoot2(componentProps, forwardedRef) {
   const {
     disabled: disabled2 = false,
@@ -39594,8 +39594,8 @@ var ToolbarRoot = /* @__PURE__ */ React361.forwardRef(function ToolbarRoot2(comp
 if (true) ToolbarRoot.displayName = "ToolbarRoot";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/group/ToolbarGroup.mjs
-import * as React362 from "react.js";
-import { jsx as _jsx117 } from "jsx-runtime.js";
+import * as React362 from "./react.js";
+import { jsx as _jsx117 } from "./jsx-runtime.js";
 var ToolbarGroup = /* @__PURE__ */ React362.forwardRef(function ToolbarGroup2(componentProps, forwardedRef) {
   const {
     className,
@@ -39631,8 +39631,8 @@ var ToolbarGroup = /* @__PURE__ */ React362.forwardRef(function ToolbarGroup2(co
 if (true) ToolbarGroup.displayName = "ToolbarGroup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/button/ToolbarButton.mjs
-import * as React363 from "react.js";
-import { jsx as _jsx118 } from "jsx-runtime.js";
+import * as React363 from "./react.js";
+import { jsx as _jsx118 } from "./jsx-runtime.js";
 var ToolbarButton = /* @__PURE__ */ React363.forwardRef(function ToolbarButton2(componentProps, forwardedRef) {
   const {
     className,
@@ -39692,8 +39692,8 @@ var ToolbarButton = /* @__PURE__ */ React363.forwardRef(function ToolbarButton2(
 if (true) ToolbarButton.displayName = "ToolbarButton";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/link/ToolbarLink.mjs
-import * as React364 from "react.js";
-import { jsx as _jsx119 } from "jsx-runtime.js";
+import * as React364 from "./react.js";
+import { jsx as _jsx119 } from "./jsx-runtime.js";
 var TOOLBAR_LINK_METADATA = {
   // Links cannot be disabled, but they still occupy a focusable composite item slot.
   disabled: false,
@@ -39726,8 +39726,8 @@ var ToolbarLink = /* @__PURE__ */ React364.forwardRef(function ToolbarLink2(comp
 if (true) ToolbarLink.displayName = "ToolbarLink";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/toolbar/input/ToolbarInput.mjs
-import * as React365 from "react.js";
-import { jsx as _jsx120 } from "jsx-runtime.js";
+import * as React365 from "./react.js";
+import { jsx as _jsx120 } from "./jsx-runtime.js";
 var ToolbarInput = /* @__PURE__ */ React365.forwardRef(function ToolbarInput2(componentProps, forwardedRef) {
   const {
     className,
@@ -39801,10 +39801,10 @@ __export(index_parts_exports29, {
 });
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/root/TooltipRoot.mjs
-import * as React368 from "react.js";
+import * as React368 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/root/TooltipRootContext.mjs
-import * as React366 from "react.js";
+import * as React366 from "./react.js";
 var TooltipRootContext = /* @__PURE__ */ React366.createContext(void 0);
 if (true) TooltipRootContext.displayName = "TooltipRootContext";
 function useTooltipRootContext(optional) {
@@ -39816,7 +39816,7 @@ function useTooltipRootContext(optional) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/store/TooltipStore.mjs
-import * as React367 from "react.js";
+import * as React367 from "./react.js";
 var selectors9 = {
   ...popupStoreSelectors,
   disabled: createSelector((state) => state.disabled),
@@ -39876,7 +39876,7 @@ function createInitialState5() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/root/TooltipRoot.mjs
-import { jsx as _jsx121, jsxs as _jsxs34 } from "jsx-runtime.js";
+import { jsx as _jsx121, jsxs as _jsxs34 } from "./jsx-runtime.js";
 var TooltipRoot = fastComponent(function TooltipRoot2(props) {
   const {
     disabled: disabled2 = false,
@@ -39993,10 +39993,10 @@ function TooltipInteractions({
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/trigger/TooltipTrigger.mjs
-import * as React370 from "react.js";
+import * as React370 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/provider/TooltipProviderContext.mjs
-import * as React369 from "react.js";
+import * as React369 from "./react.js";
 var TooltipProviderContext = /* @__PURE__ */ React369.createContext(void 0);
 if (true) TooltipProviderContext.displayName = "TooltipProviderContext";
 function useTooltipProviderContext() {
@@ -40231,10 +40231,10 @@ var TooltipTrigger = fastComponentRef(function TooltipTrigger2(componentProps, f
 if (true) TooltipTrigger.displayName = "TooltipTrigger";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/portal/TooltipPortal.mjs
-import * as React372 from "react.js";
+import * as React372 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/portal/TooltipPortalContext.mjs
-import * as React371 from "react.js";
+import * as React371 from "./react.js";
 var TooltipPortalContext = /* @__PURE__ */ React371.createContext(void 0);
 if (true) TooltipPortalContext.displayName = "TooltipPortalContext";
 function useTooltipPortalContext() {
@@ -40246,7 +40246,7 @@ function useTooltipPortalContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/portal/TooltipPortal.mjs
-import { jsx as _jsx122 } from "jsx-runtime.js";
+import { jsx as _jsx122 } from "./jsx-runtime.js";
 var TooltipPortal = /* @__PURE__ */ React372.forwardRef(function TooltipPortal2(props, forwardedRef) {
   const {
     keepMounted = false,
@@ -40269,10 +40269,10 @@ var TooltipPortal = /* @__PURE__ */ React372.forwardRef(function TooltipPortal2(
 if (true) TooltipPortal.displayName = "TooltipPortal";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/positioner/TooltipPositioner.mjs
-import * as React374 from "react.js";
+import * as React374 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/positioner/TooltipPositionerContext.mjs
-import * as React373 from "react.js";
+import * as React373 from "./react.js";
 var TooltipPositionerContext = /* @__PURE__ */ React373.createContext(void 0);
 if (true) TooltipPositionerContext.displayName = "TooltipPositionerContext";
 function useTooltipPositionerContext() {
@@ -40284,7 +40284,7 @@ function useTooltipPositionerContext() {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/positioner/TooltipPositioner.mjs
-import { jsx as _jsx123 } from "jsx-runtime.js";
+import { jsx as _jsx123 } from "./jsx-runtime.js";
 var TooltipPositioner = /* @__PURE__ */ React374.forwardRef(function TooltipPositioner2(componentProps, forwardedRef) {
   const {
     render,
@@ -40355,7 +40355,7 @@ var TooltipPositioner = /* @__PURE__ */ React374.forwardRef(function TooltipPosi
 if (true) TooltipPositioner.displayName = "TooltipPositioner";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/popup/TooltipPopup.mjs
-import * as React375 from "react.js";
+import * as React375 from "./react.js";
 var stateAttributesMapping39 = {
   ...popupStateMapping,
   ...transitionStatusMapping
@@ -40411,7 +40411,7 @@ var TooltipPopup = /* @__PURE__ */ React375.forwardRef(function TooltipPopup2(co
 if (true) TooltipPopup.displayName = "TooltipPopup";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/arrow/TooltipArrow.mjs
-import * as React376 from "react.js";
+import * as React376 from "./react.js";
 var TooltipArrow = /* @__PURE__ */ React376.forwardRef(function TooltipArrow2(componentProps, forwardedRef) {
   const {
     render,
@@ -40450,8 +40450,8 @@ var TooltipArrow = /* @__PURE__ */ React376.forwardRef(function TooltipArrow2(co
 if (true) TooltipArrow.displayName = "TooltipArrow";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/provider/TooltipProvider.mjs
-import * as React377 from "react.js";
-import { jsx as _jsx124 } from "jsx-runtime.js";
+import * as React377 from "./react.js";
+import { jsx as _jsx124 } from "./jsx-runtime.js";
 var TooltipProvider = function TooltipProvider2(props) {
   const {
     delay,
@@ -40478,7 +40478,7 @@ var TooltipProvider = function TooltipProvider2(props) {
 if (true) TooltipProvider.displayName = "TooltipProvider";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/viewport/TooltipViewport.mjs
-import * as React378 from "react.js";
+import * as React378 from "./react.js";
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/tooltip/viewport/TooltipViewportCssVars.mjs
 var TooltipViewportCssVars = /* @__PURE__ */ (function(TooltipViewportCssVars2) {
@@ -40576,7 +40576,7 @@ function useRender(params) {
 }
 
 // universe/node_modules/.pnpm/@base-ui+react@1.6.0_@types+react@19.1.8_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@base-ui/react/unstable-use-media-query/index.mjs
-import * as React379 from "react.js";
+import * as React379 from "./react.js";
 var import_shim3 = __toESM(require_shim(), 1);
 function useMediaQuery(query, options) {
   const supportMatchMedia = typeof window !== "undefined" && typeof window.matchMedia !== "undefined";

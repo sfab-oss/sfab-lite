@@ -1,5 +1,5 @@
-import __ext_react from "react.js";
-import __ext_react_dom from "react-dom.js";
+import __ext_react from "./react.js";
+import __ext_react_dom from "./react-dom.js";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;

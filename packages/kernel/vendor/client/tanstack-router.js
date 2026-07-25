@@ -91,7 +91,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React17 = __require("react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState5 = React17.useState, useEffect7 = React17.useEffect, useLayoutEffect3 = React17.useLayoutEffect, useDebugValue = React17.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      var React17 = __require("./react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState5 = React17.useState, useEffect7 = React17.useEffect, useLayoutEffect3 = React17.useLayoutEffect, useDebugValue = React17.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
       exports.useSyncExternalStore = void 0 !== React17.useSyncExternalStore ? React17.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
@@ -119,7 +119,7 @@ var require_with_selector_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React17 = __require("react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef7 = React17.useRef, useEffect7 = React17.useEffect, useMemo4 = React17.useMemo, useDebugValue = React17.useDebugValue;
+      var React17 = __require("./react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef7 = React17.useRef, useEffect7 = React17.useEffect, useMemo4 = React17.useMemo, useDebugValue = React17.useDebugValue;
       exports.useSyncExternalStoreWithSelector = function(subscribe2, getSnapshot, getServerSnapshot, selector, isEqual) {
         var instRef = useRef7(null);
         if (null === instRef.current) {
@@ -4052,8 +4052,8 @@ function stripSearchParams(input) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/awaited.js
-import { jsx } from "jsx-runtime.js";
-import * as React from "react.js";
+import { jsx } from "./jsx-runtime.js";
+import * as React from "./react.js";
 function useAwaited({
   promise: _promise
 }) {
@@ -4079,8 +4079,8 @@ function AwaitInner(props) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/CatchBoundary.js
-import { jsx as jsx2, jsxs } from "jsx-runtime.js";
-import * as React2 from "react.js";
+import { jsx as jsx2, jsxs } from "./jsx-runtime.js";
+import * as React2 from "./react.js";
 function CatchBoundary(props) {
   const errorComponent = props.errorComponent ?? ErrorComponent;
   return /* @__PURE__ */ jsx2(
@@ -4173,8 +4173,8 @@ function ErrorComponent({ error }) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/ClientOnly.js
-import { jsx as jsx3 } from "jsx-runtime.js";
-import React__default from "react.js";
+import { jsx as jsx3 } from "./jsx-runtime.js";
+import React__default from "./react.js";
 function ClientOnly({ children, fallback = null }) {
   return useHydrated() ? /* @__PURE__ */ jsx3(React__default.Fragment, { children }) : /* @__PURE__ */ jsx3(React__default.Fragment, { children: fallback });
 }
@@ -4191,11 +4191,11 @@ function subscribe() {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/route.js
-import { jsx as jsx5 } from "jsx-runtime.js";
-import React__default2 from "react.js";
+import { jsx as jsx5 } from "./jsx-runtime.js";
+import React__default2 from "./react.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/useMatch.js
-import * as React6 from "react.js";
+import * as React6 from "./react.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-store@0.7.7_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-store/dist/esm/index.js
 var import_with_selector = __toESM(require_with_selector());
@@ -4252,13 +4252,13 @@ function getOwnKeys(obj) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/useRouterState.js
-import { useRef } from "react.js";
+import { useRef } from "./react.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/useRouter.js
-import * as React4 from "react.js";
+import * as React4 from "./react.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/routerContext.js
-import * as React3 from "react.js";
+import * as React3 from "./react.js";
 var routerContext = React3.createContext(null);
 function getRouterContext() {
   if (typeof document === "undefined") {
@@ -4305,7 +4305,7 @@ function useRouterState(opts) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/matchContext.js
-import * as React5 from "react.js";
+import * as React5 from "./react.js";
 var matchContext = React5.createContext(void 0);
 var dummyMatchContext = React5.createContext(
   void 0
@@ -4385,7 +4385,7 @@ function useSearch(opts) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/useNavigate.js
-import * as React7 from "react.js";
+import * as React7 from "./react.js";
 function useNavigate(_defaultOpts) {
   const { navigate, state } = useRouter();
   const matchIndex = useMatch({
@@ -4418,12 +4418,12 @@ function Navigate(props) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/link.js
-import { jsx as jsx4 } from "jsx-runtime.js";
-import * as React9 from "react.js";
-import { flushSync } from "react-dom.js";
+import { jsx as jsx4 } from "./jsx-runtime.js";
+import * as React9 from "./react.js";
+import { flushSync } from "./react-dom.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/utils.js
-import * as React8 from "react.js";
+import * as React8 from "./react.js";
 function useStableCallback(fn) {
   const fnRef = React8.useRef(fn);
   fnRef.current = fn;
@@ -5066,7 +5066,7 @@ function createLazyFileRoute(id) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/lazyRouteComponent.js
-import * as React10 from "react.js";
+import * as React10 from "./react.js";
 function lazyRouteComponent(importer, exportName) {
   let loadPromise;
   let comp;
@@ -5111,11 +5111,11 @@ function lazyRouteComponent(importer, exportName) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/Matches.js
-import { jsx as jsx12, jsxs as jsxs3 } from "jsx-runtime.js";
-import * as React13 from "react.js";
+import { jsx as jsx12, jsxs as jsxs3 } from "./jsx-runtime.js";
+import * as React13 from "./react.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/Transitioner.js
-import * as React11 from "react.js";
+import * as React11 from "./react.js";
 function Transitioner() {
   const router = useRouter();
   const mountLoadForRouter = React11.useRef({ router, mounted: false });
@@ -5208,11 +5208,11 @@ function Transitioner() {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/Match.js
-import { jsxs as jsxs2, jsx as jsx11, Fragment as Fragment2 } from "jsx-runtime.js";
-import * as React12 from "react.js";
+import { jsxs as jsxs2, jsx as jsx11, Fragment as Fragment2 } from "./jsx-runtime.js";
+import * as React12 from "./react.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/not-found.js
-import { jsx as jsx6 } from "jsx-runtime.js";
+import { jsx as jsx6 } from "./jsx-runtime.js";
 function CatchNotFound(props) {
   const resetKey = useRouterState({
     select: (s) => `not-found-${s.location.pathname}-${s.status}`
@@ -5246,13 +5246,13 @@ function DefaultGlobalNotFound() {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/SafeFragment.js
-import { jsx as jsx7, Fragment } from "jsx-runtime.js";
+import { jsx as jsx7, Fragment } from "./jsx-runtime.js";
 function SafeFragment(props) {
   return /* @__PURE__ */ jsx7(Fragment, { children: props.children });
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/renderRouteNotFound.js
-import { jsx as jsx8 } from "jsx-runtime.js";
+import { jsx as jsx8 } from "./jsx-runtime.js";
 function renderRouteNotFound(router, route, data) {
   if (!route.options.notFoundComponent) {
     if (router.options.defaultNotFoundComponent) {
@@ -5270,10 +5270,10 @@ function renderRouteNotFound(router, route, data) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/scroll-restoration.js
-import { jsx as jsx10 } from "jsx-runtime.js";
+import { jsx as jsx10 } from "./jsx-runtime.js";
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/ScriptOnce.js
-import { jsx as jsx9 } from "jsx-runtime.js";
+import { jsx as jsx9 } from "./jsx-runtime.js";
 function ScriptOnce({
   children
 }) {
@@ -5661,7 +5661,7 @@ if (typeof globalThis !== "undefined") {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/RouterProvider.js
-import { jsx as jsx13 } from "jsx-runtime.js";
+import { jsx as jsx13 } from "./jsx-runtime.js";
 function RouterContextProvider({
   router,
   children,
@@ -5723,7 +5723,7 @@ function useElementScrollRestoration(options) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/useBlocker.js
-import * as React14 from "react.js";
+import * as React14 from "./react.js";
 function _resolveBlockerOpts(opts, condition) {
   if (opts === void 0) {
     return {
@@ -5887,8 +5887,8 @@ function useCanGoBack() {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/Asset.js
-import { jsx as jsx14 } from "jsx-runtime.js";
-import * as React15 from "react.js";
+import { jsx as jsx14 } from "./jsx-runtime.js";
+import * as React15 from "./react.js";
 function Asset({
   tag,
   attrs,
@@ -5976,8 +5976,8 @@ function Script({
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/HeadContent.js
-import * as React16 from "react.js";
-import { createElement as createElement5 } from "react.js";
+import * as React16 from "./react.js";
+import { createElement as createElement5 } from "./react.js";
 var useTags = () => {
   const router = useRouter();
   const routeMeta = useRouterState({
@@ -6118,8 +6118,8 @@ function uniqBy(arr, fn) {
 }
 
 // universe/node_modules/.pnpm/@tanstack+react-router@1.129.0_react-dom@19.2.8_react@19.2.8__react@19.2.8/node_modules/@tanstack/react-router/dist/esm/Scripts.js
-import { jsx as jsx15, Fragment as Fragment3 } from "jsx-runtime.js";
-import { createElement as createElement6 } from "react.js";
+import { jsx as jsx15, Fragment as Fragment3 } from "./jsx-runtime.js";
+import { createElement as createElement6 } from "./react.js";
 var Scripts = () => {
   const router = useRouter();
   const assetScripts = useRouterState({
