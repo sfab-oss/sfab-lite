@@ -85,6 +85,15 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:seed
 
+      # One TS program over the types VFS retains ~320 MB against a 128 MB
+      # isolate, so the check worker may hold state for at most one app. When
+      # it held one per appId, the second distinct app in an isolate killed it
+      # — in production that was 4 of 6 create attempts, with the retry
+      # succeeding, which reads as flakiness rather than as a leak.
+      - name: check-memory
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:check-memory
+
       # Types VFS export names must be a subset of the matching vendor chunk's
       # esbuild metafile exports. Catches "typechecks clean, throws at
       # runtime" kernel skew (hono/validator, @base-ui/react bailout).
