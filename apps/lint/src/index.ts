@@ -11,21 +11,32 @@ export interface Env {
   ADMIN_TOKEN?: string;
 }
 
+/**
+ * An unset `ADMIN_TOKEN` denies rather than allows — see the same correction
+ * in `apps/check/src/index.ts`. A missing secret must not grant access.
+ */
 function unauthorized(env: Env, request: Request): Response | null {
-  if (!env.ADMIN_TOKEN) {
-    return null;
-  }
-  if (request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN) {
+  if (
+    env.ADMIN_TOKEN &&
+    request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN
+  ) {
     return null;
   }
   return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
 }
 
-function healthResponse(): Response {
+/** `adminToken` mirrors the check worker's — see its note on why booleans. */
+function healthResponse(env: Env, request: Request): Response {
   return Response.json({
     ok: true,
     service: "sfab-lite-lint",
     role: "lint-worker",
+    adminToken: {
+      configured: Boolean(env.ADMIN_TOKEN),
+      matchesCaller:
+        Boolean(env.ADMIN_TOKEN) &&
+        request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN,
+    },
     wasmPath: "wasm-web-initSync",
   });
 }
@@ -80,7 +91,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/health") {
-      return healthResponse();
+      return healthResponse(env, request);
     }
     if (url.pathname === "/boot") {
       return bootResponse(env, request);

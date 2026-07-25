@@ -229,3 +229,22 @@ export async function getAppUnscoped(
   });
   return row ? toRecord(row) : null;
 }
+
+/**
+ * Drop the registry row, returning whether one was there.
+ *
+ * Unscoped by id for the same reason as `getAppUnscoped`, and named the same
+ * way so misuse stays greppable: the caller must already have cleared
+ * `requireAppAccess`. Runs no stale sweep — the row is about to be gone, so
+ * reconciling its status first would be work whose only output is discarded.
+ */
+export async function deleteAppUnscoped(
+  db: Db,
+  appId: string
+): Promise<boolean> {
+  const removed = await db
+    .delete(app)
+    .where(eq(app.id, appId))
+    .returning({ id: app.id });
+  return removed.length > 0;
+}

@@ -266,6 +266,38 @@ export class AppDO extends DurableObject {
     };
   }
 
+  /**
+   * Drop everything this app owns: versions, attempts, and its own tables.
+   *
+   * The in-flight refusal is decided **here** rather than by the caller. A
+   * caller-side check would pass and then race the `waitUntil` chain that runs
+   * commits, which writes through this object and would recreate rows in
+   * storage the registry no longer indexes — and a Durable Object nothing
+   * indexes cannot be found again, because `idFromName` is a hash.
+   *
+   * `deleteAll` is atomic on SQLite-backed storage. It does not clear alarms;
+   * this class sets none, and a future one must delete its own before calling.
+   */
+  async destroy(): Promise<
+    | { ok: true; bytesFreed: number }
+    | { ok: false; error: "attempt_in_flight"; attemptId: string }
+  > {
+    this.#ensureMeta();
+    const running = this.ctx.storage.transactionSync(() =>
+      this.#pendingAttemptId()
+    );
+    if (running) {
+      return {
+        ok: false as const,
+        error: "attempt_in_flight" as const,
+        attemptId: running,
+      };
+    }
+    const bytesFreed = Number(this.ctx.storage.sql.databaseSize);
+    await this.ctx.storage.deleteAll();
+    return { ok: true as const, bytesFreed };
+  }
+
   touch(): {
     ok: true;
     appIdHint: string;
@@ -527,6 +559,23 @@ export class AppDO extends DurableObject {
   }
 
   /**
+   * The attempt currently in flight, after sweeping the stale ones.
+   *
+   * Callers must run this inside `transactionSync` — the answer is only
+   * meaningful while nothing else can open an attempt between the read and
+   * whatever the caller does about it.
+   */
+  #pendingAttemptId(): string | null {
+    this.#sweepStaleAttempts();
+    const running = this.ctx.storage.sql
+      .exec(
+        "SELECT id FROM _sfab_commit_attempts WHERE status = 'pending' LIMIT 1"
+      )
+      .toArray()[0] as { id?: string } | undefined;
+    return running?.id ?? null;
+  }
+
+  /**
    * Open a commit attempt, or refuse because one is already running.
    *
    * **At most one attempt in flight per app.** Two concurrent commits would
@@ -543,17 +592,12 @@ export class AppDO extends DurableObject {
     | { ok: false; error: "attempt_in_flight"; attemptId: string } {
     this.#ensureMeta();
     return this.ctx.storage.transactionSync(() => {
-      this.#sweepStaleAttempts();
-      const running = this.ctx.storage.sql
-        .exec(
-          "SELECT id FROM _sfab_commit_attempts WHERE status = 'pending' LIMIT 1"
-        )
-        .toArray()[0] as { id?: string } | undefined;
-      if (running?.id) {
+      const running = this.#pendingAttemptId();
+      if (running) {
         return {
           ok: false as const,
           error: "attempt_in_flight" as const,
-          attemptId: running.id,
+          attemptId: running,
         };
       }
       const id = newAttemptId();

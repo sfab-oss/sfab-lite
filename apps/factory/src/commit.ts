@@ -32,6 +32,10 @@ export interface AppStub {
     appSchemaVersion: number;
     bootstrapMs: number;
   }>;
+  destroy: () => Promise<
+    | { ok: true; bytesFreed: number }
+    | { ok: false; error: "attempt_in_flight"; attemptId: string }
+  >;
   putVersion: (input: {
     parentId: string | null;
     sourceFiles: Record<string, string>;

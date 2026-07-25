@@ -54,7 +54,36 @@ declare global {
      * must therefore be *told* the flag rather than probing for a 404.
      */
     PASSWORD_AUTH?: string;
-    /** When set, all `/admin/*` require matching `X-Admin-Token`. */
+    /**
+     * Opens **registration** — creating a new factory account — for both
+     * password and GitHub. Default off, and off is the right production
+     * setting once the accounts that need to exist do.
+     *
+     * Not a sign-in switch: better-auth's `disableSignUp` refuses user
+     * creation and leaves authentication alone, so existing accounts keep
+     * working while it is off. The two paths fail differently and neither is
+     * a 404 — password sign-up returns **400
+     * `EMAIL_PASSWORD_SIGN_UP_DISABLED`** (observed against a running local
+     * factory), and an unknown GitHub user is redirected to the error URL
+     * with `error=signup_disabled` (read from better-auth 1.6.19's
+     * `callback.mjs`; not exercised, since it needs real credentials).
+     *
+     * Reported by `/api/config` so the sign-in screen can hide the sign-up
+     * form rather than offer a button that cannot succeed.
+     */
+    SIGNUP_OPEN?: string;
+    /**
+     * Gates every `/admin/*` route, and **must be byte-identical in all three
+     * workers** — factory, check, and lint. The factory presents it over the
+     * service bindings; check and lint compare it. A mismatch surfaces
+     * mid-commit as `lint_failed` / `lintHttp: 401`, which names the wrong
+     * component entirely. `/admin/health` reports a fingerprint of the value
+     * from each worker so a mismatch is visible before it costs a debugging
+     * session. See `docs/DEPLOY.md`.
+     *
+     * Unset does **not** open the surface — `resolveActor` 401s a request
+     * with no usable credential whatever the config says (S3c).
+     */
     ADMIN_TOKEN?: string;
     /**
      * GitHub sign-in for the **factory** — the intended production front

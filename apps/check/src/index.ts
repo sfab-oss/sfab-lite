@@ -12,21 +12,44 @@ export interface Env {
   ADMIN_TOKEN?: string;
 }
 
+/**
+ * An unset `ADMIN_TOKEN` denies rather than allows.
+ *
+ * This used to return `null` — allowed — when the secret was missing, so a
+ * deploy that forgot it exposed `/check` to anyone who found the worker's URL.
+ * A missing secret must never be the thing that grants access; the factory's
+ * own gate made this same correction in S3c.
+ */
 function unauthorized(env: Env, request: Request): Response | null {
-  if (!env.ADMIN_TOKEN) {
-    return null;
-  }
-  if (request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN) {
+  if (
+    env.ADMIN_TOKEN &&
+    request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN
+  ) {
     return null;
   }
   return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
 }
 
-function healthResponse(): Response {
+/**
+ * `adminToken` is what makes the three workers' shared secret checkable.
+ *
+ * It reports only two booleans about the *caller's* header — never the value,
+ * and never a digest of it. `matchesCaller` is no more of an oracle than
+ * `POST /check` already is, and it turns "do factory, check and lint agree?"
+ * into one question the factory's `/admin/health` can ask directly, instead of
+ * a `lintHttp: 401` mid-commit that names the wrong component.
+ */
+function healthResponse(env: Env, request: Request): Response {
   return Response.json({
     ok: true,
     service: "sfab-lite-check",
     role: "check-worker",
+    adminToken: {
+      configured: Boolean(env.ADMIN_TOKEN),
+      matchesCaller:
+        Boolean(env.ADMIN_TOKEN) &&
+        request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN,
+    },
     vfsFiles: TYPES_VFS_MANIFEST.vfsFileCount,
     vfsGzipBytes: TYPES_VFS_MANIFEST.vfsJsonGzipBytes,
     typescript: TYPES_VFS_MANIFEST.typescript,
@@ -71,7 +94,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/health") {
-      return healthResponse();
+      return healthResponse(env, request);
     }
     if (url.pathname === "/check" && request.method === "POST") {
       return await checkResponse(env, request);

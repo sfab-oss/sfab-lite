@@ -23,6 +23,22 @@ export function passwordAuthEnabled(env: Env): boolean {
 }
 
 /**
+ * Whether anyone may create a **new** factory account.
+ *
+ * Same fail-safe rule as `passwordAuthEnabled`, and for a sharper reason: this
+ * deploy is reachable by URL, so an unset toggle would leave the front door
+ * open to the whole internet. Only the exact string `"true"` opens it.
+ *
+ * This gates *registration*, not authentication — better-auth's `disableSignUp`
+ * refuses to create a user and leaves sign-in untouched, so existing accounts
+ * keep working when it flips off. Turning it on is therefore reversible and
+ * costs nothing to leave closed.
+ */
+export function signUpOpen(env: Env): boolean {
+  return env.SIGNUP_OPEN === "true";
+}
+
+/**
  * One definition of "this secret is set": non-blank after a trim.
  *
  * Everything that asks about the GitHub credentials — registration, the
@@ -180,6 +196,8 @@ async function provisionOwnerOrganization(
  * - `emailAndPassword.enabled` follows `PASSWORD_AUTH` (default off).
  * - GitHub is registered only when both credentials are set — the intended
  *   production front door, where password auth is the local convenience.
+ * - `disableSignUp` follows `SIGNUP_OPEN` (default off) on **both** providers,
+ *   so a deployed factory does not hand an account to anyone with the URL.
  * - On sign-up, `user.create.after` inserts the org + owner membership so
  *   the session hook has a row to stamp.
  */
@@ -193,6 +211,10 @@ export function createAuth(env: Env, baseURL: string) {
 
   const db = createDb(env);
   const github = githubCredentials(env);
+  // One value drives both providers. Two independent switches could disagree,
+  // and the disagreement would be a quietly open registration path on whichever
+  // one was forgotten.
+  const disableSignUp = !signUpOpen(env);
 
   return betterAuth({
     baseURL,
@@ -201,13 +223,16 @@ export function createAuth(env: Env, baseURL: string) {
     // Spread rather than always passing a `github` key: registering the
     // provider with empty strings would mount a sign-in path that fails at
     // the token exchange instead of simply not existing.
-    ...(github ? { socialProviders: { github } } : {}),
+    ...(github
+      ? { socialProviders: { github: { ...github, disableSignUp } } }
+      : {}),
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema,
     }),
     emailAndPassword: {
       enabled: passwordAuthEnabled(env),
+      disableSignUp,
       // Stubs return a resolved promise rather than being `async`: there is
       // nothing to await until a real mail provider is wired in.
       sendResetPassword: ({ user: u, url }) => {

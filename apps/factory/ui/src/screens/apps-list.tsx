@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import type { AppRecord } from "../api";
-import { AuthRequiredError, listApps } from "../api";
+import { AuthRequiredError, deleteApp, listApps } from "../api";
 import { endUnusableSession } from "../auth-client";
 import { Link, useRouter } from "../router";
 import { ConsoleChrome } from "./chrome";
@@ -92,10 +92,16 @@ export function AppsListScreen() {
     body = (
       <ul className="m-0 list-none divide-y divide-[var(--line)] border border-[var(--line)] p-0">
         {apps.map((app) => (
-          <li key={app.id}>
+          // The delete control is a sibling of the Link, not inside it —
+          // nesting a button in an anchor gives one row two conflicting
+          // activation targets.
+          <li
+            key={app.id}
+            className="flex items-center hover:bg-[var(--surface)]"
+          >
             <Link
               to={{ name: "app", appId: app.id }}
-              className="flex items-center justify-between gap-4 px-3 py-3 text-[var(--ink)] no-underline hover:bg-[var(--surface)]"
+              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-[var(--ink)] no-underline"
             >
               <span>
                 <span className="font-medium">{app.name}</span>
@@ -105,6 +111,14 @@ export function AppsListScreen() {
               </span>
               <StatusBadge status={app.status} />
             </Link>
+            <DeleteAppButton
+              app={app}
+              onDeleted={() =>
+                setApps((prev) =>
+                  prev ? prev.filter((a) => a.id !== app.id) : prev
+                )
+              }
+            />
           </li>
         ))}
       </ul>
@@ -134,6 +148,79 @@ export function AppsListScreen() {
       )}
       {body}
     </ConsoleChrome>
+  );
+}
+
+/**
+ * Two-press delete: the first press arms, the second commits.
+ *
+ * Arming in place rather than `window.confirm` because the row itself is the
+ * confirmation — the button sits next to the name and id being destroyed,
+ * where a modal would restate them and still be dismissed by reflex.
+ */
+function DeleteAppButton({
+  app,
+  onDeleted,
+}: {
+  app: AppRecord;
+  onDeleted: () => void;
+}) {
+  const [armed, setArmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onDelete() {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteApp(app.id);
+      onDeleted();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setArmed(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (error) {
+    return (
+      <span className="px-3 py-3 text-[var(--danger)] text-xs">{error}</span>
+    );
+  }
+
+  if (!armed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setArmed(true)}
+        aria-label={`Delete ${app.name}`}
+        className="border-0 bg-transparent px-3 py-3 text-[var(--muted)] text-xs hover:text-[var(--danger)]"
+      >
+        Delete
+      </button>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-2 px-3 py-3 text-xs">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onDelete}
+        className="border-0 bg-transparent p-0 font-medium text-[var(--danger)] disabled:opacity-50"
+      >
+        {busy ? "Deleting…" : "Confirm"}
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => setArmed(false)}
+        className="border-0 bg-transparent p-0 text-[var(--muted)] disabled:opacity-50"
+      >
+        Cancel
+      </button>
+    </span>
   );
 }
 
