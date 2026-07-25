@@ -1,3 +1,8 @@
 # Local-only. Copy to `.dev.vars` (gitignored). Never commit secrets.
+# Factory's own better-auth secret (≥32 chars).
 BETTER_AUTH_SECRET=dev-only-change-me-32chars-min!!
+# Injected into every sub-app as BETTER_AUTH_SECRET (see serve.ts).
+APP_BETTER_AUTH_SECRET=dev-only-app-secret-min-32-chars!!
+# Exact string "true" enables factory email+password. Default off.
+PASSWORD_AUTH=true
 # ADMIN_TOKEN=
