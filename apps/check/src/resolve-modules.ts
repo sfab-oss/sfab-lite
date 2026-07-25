@@ -29,9 +29,14 @@ const KERNEL_SERVED: ReadonlySet<string> = new Set([
  * dependencies by bare specifier (`better-auth`'s types import `better-call`,
  * which the kernel bundles rather than serves). Those references are internal
  * to the type graph and are not app imports, so they resolve unrestricted.
+ *
+ * Anchored at the root rather than a substring match: app sources live under
+ * `/app/` and their paths come from the caller's overlay, so an app file named
+ * `src/node_modules/x.ts` would satisfy a substring test and import anything
+ * the VFS happens to type. Only the VFS itself is rooted at `/node_modules/`.
  */
 function isVfsInternal(containingFile: string | undefined): boolean {
-  return containingFile?.includes("/node_modules/") ?? false;
+  return containingFile?.startsWith("/node_modules/") ?? false;
 }
 
 const D_TS_TO_D_MTS = /\.d\.ts$/;
