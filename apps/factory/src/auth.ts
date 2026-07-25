@@ -23,19 +23,57 @@ export function passwordAuthEnabled(env: Env): boolean {
 }
 
 /**
+ * One definition of "this secret is set": non-blank after a trim.
+ *
+ * Everything that asks about the GitHub credentials — registration, the
+ * public config flag, and the per-secret health detail — resolves through
+ * this, so none of them can disagree about whether a value counts.
+ */
+function trimmedSecret(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+/**
  * The factory's GitHub credentials, or `null` if it has none.
  *
  * Returning the pair rather than a boolean keeps "both are present" in one
  * place and lets the caller use the narrowed strings — a separate predicate
  * plus a cast at the use site would state the same invariant twice and let
  * them drift.
+ *
+ * Trimmed, and blank-after-trim counts as absent: `wrangler secret put` from
+ * a here-doc or a copied line readily stores a trailing newline, and a
+ * whitespace-only value is truthy. Without the trim that pair would register
+ * a provider that cannot complete a token exchange, and `/api/config` would
+ * advertise a sign-in button guaranteed to fail — the exact failure the
+ * conditional registration below exists to prevent.
  */
 function githubCredentials(
   env: Env
 ): { clientId: string; clientSecret: string } | null {
-  const clientId = env.GITHUB_CLIENT_ID;
-  const clientSecret = env.GITHUB_CLIENT_SECRET;
+  const clientId = trimmedSecret(env.GITHUB_CLIENT_ID);
+  const clientSecret = trimmedSecret(env.GITHUB_CLIENT_SECRET);
   return clientId && clientSecret ? { clientId, clientSecret } : null;
+}
+
+/**
+ * Presence of each GitHub secret, separately — the one question
+ * `githubCredentials` cannot answer, because a pair-or-null collapses
+ * "neither set" and "exactly one set" into the same `null`.
+ *
+ * Exists only for `/admin/health`: half-configured is a deploy mistake, and
+ * telling it apart from "GitHub off on purpose" needs both bits. Booleans
+ * only — a value must never leave the process.
+ */
+export function githubSecretsPresent(env: Env): {
+  clientId: boolean;
+  clientSecret: boolean;
+} {
+  return {
+    clientId: trimmedSecret(env.GITHUB_CLIENT_ID) !== null,
+    clientSecret: trimmedSecret(env.GITHUB_CLIENT_SECRET) !== null,
+  };
 }
 
 /**
@@ -48,13 +86,6 @@ function githubCredentials(
 export function githubAuthEnabled(env: Env): boolean {
   return githubCredentials(env) !== null;
 }
-
-/**
- * Half-configured credentials are a deploy mistake, not a mode — but the
- * place to surface that is `/admin/health`, which reports each secret's
- * presence separately, not a per-request `console.warn` that would repeat on
- * every auth call and still be invisible to whoever is looking for it.
- */
 
 /**
  * Collision-safe org slug derived from the user id (UNIQUE column). Display

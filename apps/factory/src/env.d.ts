@@ -40,12 +40,12 @@ declare global {
      * Enables email+password on the **factory's** sign-in. Default off:
      * fail-safe beats fail-open for an auth toggle.
      *
-     * ⚠ Today "off" means **no sign-in at all**, not "GitHub only". The
-     * intended production shape is GitHub OAuth, but no social provider is
-     * wired yet — registering the OAuth app is an owner prerequisite. Until
-     * that lands, a deploy with this unset mounts `/api/auth/*` and every
-     * sign-in attempt 400s. Do not read this flag as "the safe production
-     * default" before checking that a provider actually exists.
+     * ⚠ "off" means **GitHub only** — and only if `GITHUB_CLIENT_ID` and
+     * `GITHUB_CLIENT_SECRET` are both set. A deploy with this unset and no
+     * GitHub credentials has **no sign-in at all**: `/api/auth/*` stays
+     * mounted and every password attempt 400s. Do not read this flag as "the
+     * safe production default" before checking that a provider actually
+     * exists.
      *
      * Real enforcement, but not route removal: better-auth checks the option
      * at handler entry and returns 400, so the endpoints stay mounted. The UI
@@ -59,17 +59,23 @@ declare global {
      * door. Unqualified per GLOSSARY.md: these are the factory's own
      * credentials and are never injected into a generated app.
      *
-     * The provider is registered only when **both** are non-empty. There is
-     * no separate on/off flag: a flag that only mirrors "did you set the
-     * secrets" is a second source of truth that can disagree with the first.
+     * The provider is registered only when **both** are non-blank after a
+     * trim — a whitespace-only secret is treated as absent, since it is
+     * truthy but cannot complete a token exchange.
+     *
+     * There is no separate on/off flag: a flag that only mirrors "did you set
+     * the secrets" is a second source of truth that can disagree with the
+     * first. Half-configured shows up on `/admin/health`, which reports the
+     * two separately; nothing is logged.
      *
      * ⚠ We register a **GitHub App**, not an OAuth App. GitHub Apps ignore
      * the OAuth `scope` parameter entirely, so better-auth's built-in
      * `read:user`/`user:email` request is inert — access comes from the app's
      * configured *permissions*. better-auth reads `GET /user/emails` to fill
-     * `user.email`, which is `NOT NULL UNIQUE`, so the app registration must
-     * grant the **Email addresses** account permission or sign-up fails on a
-     * database constraint rather than a useful error.
+     * `user.email`, so the registration must grant the **Email addresses**
+     * account permission. Without it the callback redirects with
+     * `error=email_not_found` before any insert — you will never see the
+     * `NOT NULL UNIQUE` constraint on that column fire.
      *
      * Token expiry is irrelevant here: better-auth mints its own session
      * cookie and never reuses the GitHub token after the sign-in exchange.

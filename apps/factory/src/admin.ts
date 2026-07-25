@@ -6,7 +6,11 @@
  * before a handler sees the request.
  */
 import { mergeSources } from "@sfab-lite/core";
-import { githubAuthEnabled, passwordAuthEnabled } from "./auth.js";
+import {
+  githubAuthEnabled,
+  githubSecretsPresent,
+  passwordAuthEnabled,
+} from "./auth.js";
 import {
   appStub,
   attemptAccepted,
@@ -342,10 +346,7 @@ function handleHealth(rc: RouteCtx): Response {
     // from GitHub being off on purpose.
     passwordAuth: passwordAuthEnabled(rc.env),
     githubAuth: githubAuthEnabled(rc.env),
-    githubSecrets: {
-      clientId: Boolean(rc.env.GITHUB_CLIENT_ID),
-      clientSecret: Boolean(rc.env.GITHUB_CLIENT_SECRET),
-    },
+    githubSecrets: githubSecretsPresent(rc.env),
   });
 }
 
