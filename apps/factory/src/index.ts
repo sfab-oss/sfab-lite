@@ -12,8 +12,11 @@
  * synchronous — it restores an already-checked version, so there is nothing
  * to wait for.
  *
- * Admin: ungated when ADMIN_TOKEN unset (local). When set, every
- * `/admin/*` requires matching X-Admin-Token.
+ * Admin (S3c): every `/admin/*` request needs a credential — a matching
+ * `X-Admin-Token` (root, must name its `organizationId`) or a signed-in
+ * session (scoped to its own organization). No credential is 401 whatever the
+ * config says; a missing `ADMIN_TOKEN` no longer opens the surface. See
+ * `tenancy.ts`.
  */
 import type { CheckResult, LintResult } from "@sfab-lite/core";
 import { mergeSources } from "@sfab-lite/core";
@@ -42,6 +45,12 @@ import {
 import type { ScopedSqlProps } from "./scoped-sql.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
+import type { Actor } from "./tenancy.js";
+import {
+  requireAppAccess,
+  resolveActor,
+  resolveOrganization,
+} from "./tenancy.js";
 
 export { AppDO } from "./app-do.js";
 export { ScopedSql } from "./scoped-sql.js";
@@ -174,17 +183,6 @@ function jsonError(error: string, status = 400) {
 }
 
 /** Fail closed for /admin when ADMIN_TOKEN is configured. */
-function adminUnauthorized(env: Env, request: Request): Response | null {
-  if (!env.ADMIN_TOKEN) {
-    return null;
-  }
-  const got = request.headers.get("X-Admin-Token");
-  if (got === env.ADMIN_TOKEN) {
-    return null;
-  }
-  return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
-}
-
 function serviceHeaders(env: Env): Record<string, string> {
   const h: Record<string, string> = { "content-type": "application/json" };
   if (env.ADMIN_TOKEN) {
@@ -457,19 +455,57 @@ const RE_ADMIN_CHECK = /^\/admin\/apps\/([^/]+)\/check$/;
 const RE_ADMIN_COMMIT = /^\/admin\/apps\/([^/]+)\/commit$/;
 const RE_ADMIN_REVERT = /^\/admin\/apps\/([^/]+)\/revert$/;
 
-interface RouteCtx {
+/** A request before any route has matched it. */
+interface RequestCtx {
   request: Request;
   env: Env;
   ctx: ExecutionContext;
   url: URL;
+}
+
+/** …and after. `match` exists only once a pattern produced it. */
+interface RouteCtx extends RequestCtx {
   match: RegExpMatchArray;
 }
 
-interface Route {
+/** A request that cleared the `/admin` credential gate. */
+interface AdminCtx extends RouteCtx {
+  actor: Actor;
+}
+
+/**
+ * An admin request for one specific app, already checked to belong to the
+ * actor. `appId` arrives decoded because the dispatcher had to decode it to
+ * run that check — handlers no longer parse `match[1]` themselves.
+ */
+interface AppCtx extends AdminCtx {
+  appId: string;
+}
+
+interface PublicRoute {
   method: string | readonly string[];
   pattern: RegExp;
   handler: (rc: RouteCtx) => Promise<Response> | Response;
 }
+
+/**
+ * Admin routes declare their scope, and the scope *is* the authorization.
+ *
+ * `"app"` routes take an app id in `match[1]`; the dispatcher runs
+ * `requireAppAccess` and hands the handler an `AppCtx`. A new app-scoped route
+ * cannot silently skip the ownership check, because the only way to receive an
+ * `appId` is to ask for the scope that checks it.
+ */
+type AdminRoute = {
+  method: string | readonly string[];
+  pattern: RegExp;
+} & (
+  | {
+      scope: "factory";
+      handler: (rc: AdminCtx) => Promise<Response> | Response;
+    }
+  | { scope: "app"; handler: (rc: AppCtx) => Promise<Response> | Response }
+);
 
 function methodMatches(
   allowed: string | readonly string[],
@@ -488,20 +524,21 @@ function methodMatches(
  * returned `alreadySeeded: true` on collision — with owning organizations that
  * was a tenancy hole (silently attach to whoever already held the name). Gone.
  *
- * `organizationId` is request input today — the session swap point. When auth
- * lands, read `session.activeOrganizationId` here instead of the body and
- * leave `registry.ts` alone.
+ * The owning organization comes from the actor (S3c): a session acts on its
+ * own, a token must name one. `registry.ts` was written to take it as an
+ * argument and needed no change.
  */
-async function handleCreateApp(rc: RouteCtx): Promise<Response> {
+async function handleCreateApp(rc: AdminCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
     organizationId?: string;
     name?: string;
   } | null;
-  const organizationId = body?.organizationId?.trim();
-  const name = body?.name?.trim();
-  if (!organizationId) {
-    return jsonError("organizationId required");
+  const scope = resolveOrganization(rc.actor, body?.organizationId);
+  if (scope instanceof Response) {
+    return scope;
   }
+  const { organizationId } = scope;
+  const name = body?.name?.trim();
   if (!name) {
     return jsonError("name required");
   }
@@ -568,12 +605,15 @@ function attemptResolver(env: Env): AttemptResolver {
   };
 }
 
-async function handleListApps(rc: RouteCtx): Promise<Response> {
-  // Session swap point (list): `organizationId` query → active org on session.
-  const organizationId = rc.url.searchParams.get("organizationId")?.trim();
-  if (!organizationId) {
-    return jsonError("organizationId required");
+async function handleListApps(rc: AdminCtx): Promise<Response> {
+  const scope = resolveOrganization(
+    rc.actor,
+    rc.url.searchParams.get("organizationId") ?? undefined
+  );
+  if (scope instanceof Response) {
+    return scope;
   }
+  const { organizationId } = scope;
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
     return jsonError("organization_not_found", 404);
@@ -586,17 +626,27 @@ async function handleListApps(rc: RouteCtx): Promise<Response> {
   return Response.json({ ok: true, organizationId, apps });
 }
 
-async function handleGetApp(rc: RouteCtx): Promise<Response> {
-  // Session swap point (get): `organizationId` query → active org on session.
-  const organizationId = rc.url.searchParams.get("organizationId")?.trim();
-  if (!organizationId) {
-    return jsonError("organizationId required");
+/**
+ * Read one app's registry record.
+ *
+ * Dispatch already proved the actor may touch this app, so the org-scoped
+ * `getApp` below repeats one indexed read for a session caller. Kept anyway:
+ * this route is also where the stale-`creating` sweep belongs (a status poll
+ * is exactly when reconciling matters), and "every `/admin/apps/:id…` route is
+ * access-checked, no exceptions" is worth more than saving a read.
+ */
+async function handleGetApp(rc: AppCtx): Promise<Response> {
+  const scope = resolveOrganization(
+    rc.actor,
+    rc.url.searchParams.get("organizationId") ?? undefined
+  );
+  if (scope instanceof Response) {
+    return scope;
   }
-  const appId = decodeURIComponent(rc.match[1] ?? "");
   const record = await getApp(
     createDb(rc.env),
-    organizationId,
-    appId,
+    scope.organizationId,
+    rc.appId,
     attemptResolver(rc.env)
   );
   if (!record) {
@@ -606,14 +656,14 @@ async function handleGetApp(rc: RouteCtx): Promise<Response> {
   return Response.json({ ok: true, app: record });
 }
 
-async function handleTouch(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleTouch(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const touch = await appStub(rc.env, appId).touch();
   return Response.json({ ok: true, appId, touch });
 }
 
-async function handleSql(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleSql(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     query?: string;
     binds?: unknown[];
@@ -630,14 +680,14 @@ async function handleSql(rc: RouteCtx): Promise<Response> {
   return Response.json({ ok: true, appId, ping, result });
 }
 
-async function handleListVersions(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleListVersions(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const listed = await appStub(rc.env, appId).listVersions();
   return Response.json({ appId, ...listed });
 }
 
-async function handleGetAttempt(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleGetAttempt(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const attemptId = decodeURIComponent(rc.match[2] ?? "");
   const { attempt } = await appStub(rc.env, appId).getAttempt(attemptId);
   if (!attempt) {
@@ -646,8 +696,8 @@ async function handleGetAttempt(rc: RouteCtx): Promise<Response> {
   return Response.json({ ok: true, appId, attempt });
 }
 
-async function handleListAttempts(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleListAttempts(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const raw = Number(rc.url.searchParams.get("limit"));
   const { attempts } = await appStub(rc.env, appId).listAttempts(
     Number.isFinite(raw) && raw > 0 ? raw : undefined
@@ -655,8 +705,8 @@ async function handleListAttempts(rc: RouteCtx): Promise<Response> {
   return Response.json({ ok: true, appId, attempts });
 }
 
-async function handleCheck(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleCheck(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     files?: Record<string, string | null>;
     forceCold?: boolean;
@@ -687,8 +737,8 @@ async function handleCheck(rc: RouteCtx): Promise<Response> {
   });
 }
 
-async function handleCommit(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleCommit(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     files?: Record<string, string | null>;
   } | null;
@@ -711,8 +761,8 @@ async function handleCommit(rc: RouteCtx): Promise<Response> {
   );
 }
 
-async function handleRevert(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+async function handleRevert(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     versionId?: string;
   } | null;
@@ -787,32 +837,90 @@ function handleSubApp(rc: RouteCtx): Promise<Response> {
 
 const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
 
-const ROUTES: Route[] = [
-  { method: "GET", pattern: /^\/admin\/health$/, handler: handleHealth },
-  // Public — must stay outside the /admin token gate (see fetch below).
+/** Everything reachable without a factory credential. */
+const PUBLIC_ROUTES: PublicRoute[] = [
   { method: "GET", pattern: /^\/api\/config$/, handler: handleApiConfig },
   { method: "*", pattern: /^\/api\/auth(?:\/.*)?$/, handler: handleAuth },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
+  // A generated app served to its own end users — see `tenancy.ts` on why
+  // this one is addressed by app id alone.
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
-  { method: "GET", pattern: /^\/admin\/apps$/, handler: handleListApps },
-  { method: "POST", pattern: /^\/admin\/apps$/, handler: handleCreateApp },
-  { method: "GET", pattern: RE_ADMIN_TOUCH, handler: handleTouch },
-  { method: "POST", pattern: RE_ADMIN_SQL, handler: handleSql },
-  { method: "GET", pattern: RE_ADMIN_VERSIONS, handler: handleListVersions },
-  { method: "GET", pattern: RE_ADMIN_ATTEMPT, handler: handleGetAttempt },
-  { method: "GET", pattern: RE_ADMIN_ATTEMPTS, handler: handleListAttempts },
-  { method: "POST", pattern: RE_ADMIN_CHECK, handler: handleCheck },
-  { method: "POST", pattern: RE_ADMIN_COMMIT, handler: handleCommit },
-  { method: "POST", pattern: RE_ADMIN_REVERT, handler: handleRevert },
-  // After `/admin/apps/:id/…` routes so a looser pattern cannot steal them.
-  { method: "GET", pattern: RE_ADMIN_APP, handler: handleGetApp },
 ];
 
-function matchRoute(
+const ADMIN_ROUTES: AdminRoute[] = [
+  {
+    method: "GET",
+    pattern: /^\/admin\/health$/,
+    scope: "factory",
+    handler: handleHealth,
+  },
+  {
+    method: "GET",
+    pattern: /^\/admin\/apps$/,
+    scope: "factory",
+    handler: handleListApps,
+  },
+  {
+    method: "POST",
+    pattern: /^\/admin\/apps$/,
+    scope: "factory",
+    handler: handleCreateApp,
+  },
+  {
+    method: "GET",
+    pattern: RE_ADMIN_TOUCH,
+    scope: "app",
+    handler: handleTouch,
+  },
+  { method: "POST", pattern: RE_ADMIN_SQL, scope: "app", handler: handleSql },
+  {
+    method: "GET",
+    pattern: RE_ADMIN_VERSIONS,
+    scope: "app",
+    handler: handleListVersions,
+  },
+  {
+    method: "GET",
+    pattern: RE_ADMIN_ATTEMPT,
+    scope: "app",
+    handler: handleGetAttempt,
+  },
+  {
+    method: "GET",
+    pattern: RE_ADMIN_ATTEMPTS,
+    scope: "app",
+    handler: handleListAttempts,
+  },
+  {
+    method: "POST",
+    pattern: RE_ADMIN_CHECK,
+    scope: "app",
+    handler: handleCheck,
+  },
+  {
+    method: "POST",
+    pattern: RE_ADMIN_COMMIT,
+    scope: "app",
+    handler: handleCommit,
+  },
+  {
+    method: "POST",
+    pattern: RE_ADMIN_REVERT,
+    scope: "app",
+    handler: handleRevert,
+  },
+  // After `/admin/apps/:id/…` routes so a looser pattern cannot steal them.
+  { method: "GET", pattern: RE_ADMIN_APP, scope: "app", handler: handleGetApp },
+];
+
+function matchRoute<
+  R extends { method: string | readonly string[]; pattern: RegExp },
+>(
+  routes: R[],
   method: string,
   pathname: string
-): { route: Route; match: RegExpMatchArray } | null {
-  for (const route of ROUTES) {
+): { route: R; match: RegExpMatchArray } | null {
+  for (const route of routes) {
     if (route.method !== "*" && !methodMatches(route.method, method)) {
       continue;
     }
@@ -824,6 +932,40 @@ function matchRoute(
   return null;
 }
 
+const NOT_FOUND_BODY =
+  "sfab-lite factory: /admin/health | /admin/apps | .../commit | .../check | .../revert | .../attempts\n";
+
+/**
+ * Dispatch an authenticated `/admin/*` request.
+ *
+ * Credential first, route second — deliberately. Resolving the actor before
+ * matching means an unknown `/admin/…` path answers 401 rather than 404 to an
+ * anonymous caller, so the admin surface is not enumerable by probing.
+ */
+async function dispatchAdmin(rc: RequestCtx): Promise<Response> {
+  const actor = await resolveActor(rc.env, rc.request, rc.url.origin);
+  if (actor instanceof Response) {
+    return actor;
+  }
+
+  const hit = matchRoute(ADMIN_ROUTES, rc.request.method, rc.url.pathname);
+  if (!hit) {
+    return new Response(NOT_FOUND_BODY, { status: 404 });
+  }
+
+  const base: AdminCtx = { ...rc, match: hit.match, actor };
+  if (hit.route.scope === "factory") {
+    return await hit.route.handler(base);
+  }
+
+  const appId = decodeURIComponent(hit.match[1] ?? "");
+  const denied = await requireAppAccess(createDb(rc.env), actor, appId);
+  if (denied) {
+    return denied;
+  }
+  return await hit.route.handler({ ...base, appId });
+}
+
 export default {
   async fetch(
     request: Request,
@@ -831,28 +973,17 @@ export default {
     ctx: ExecutionContext
   ): Promise<Response> {
     const url = new URL(request.url);
+    const rc: RequestCtx = { request, env, ctx, url };
+
+    const publicHit = matchRoute(PUBLIC_ROUTES, request.method, url.pathname);
+    if (publicHit) {
+      return await publicHit.route.handler({ ...rc, match: publicHit.match });
+    }
 
     if (url.pathname.startsWith("/admin")) {
-      const denied = adminUnauthorized(env, request);
-      if (denied) {
-        return denied;
-      }
+      return await dispatchAdmin(rc);
     }
 
-    const hit = matchRoute(request.method, url.pathname);
-    if (hit) {
-      return await hit.route.handler({
-        request,
-        env,
-        ctx,
-        url,
-        match: hit.match,
-      });
-    }
-
-    return new Response(
-      "sfab-lite factory: /admin/health | /admin/apps | .../commit | .../check | .../revert | .../attempts\n",
-      { status: 404 }
-    );
+    return new Response(NOT_FOUND_BODY, { status: 404 });
   },
 };

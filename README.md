@@ -142,6 +142,37 @@ Honest framing for anything user-facing: the *response* is instant, the
 *commit* is **seconds, not minutes.** Still far better than a CI runner;
 the work itself is not instant and should not be sold as such.
 
+### `/admin/*` takes two credentials, and they are not equivalent
+
+Since S3c every admin request needs one of:
+
+| Credential | Scope | How it names an organization |
+| --- | --- | --- |
+| `X-Admin-Token` | root — every app | must pass `organizationId` explicitly |
+| A signed-in session | that user's one organization | derived; naming a *different* one is `403` |
+
+A token belongs to no organization, so it cannot have an active one — that
+asymmetry is the whole reason the two paths differ. Everything downstream of
+the credential consumes a resolved organization id, so handlers have a single
+code path.
+
+Two consequences worth stating plainly:
+
+- **No credential is `401`, whatever the config says.** Before S3c an unset
+  `ADMIN_TOKEN` meant the gate returned "allowed" — a factory deployed
+  without that secret had a fully open admin surface. A missing secret must
+  never be the thing that grants access. Local development sets
+  `ADMIN_TOKEN` in `.dev.vars` like any other secret.
+- **`/a/:appId/*` is deliberately *not* covered.** That route serves a
+  generated app to its own end users, who are not factory users and have no
+  factory organization; scoping it by factory tenancy would be a category
+  error. Its access control is the app's own better-auth, and app ids are
+  unguessable ULIDs rather than names.
+
+App-scoped admin routes (`/admin/apps/:id/…`) check registry ownership
+*before* touching the Durable Object, so a cross-tenant commit or SQL call
+never reaches another tenant's app at all.
+
 ### `apps/lint` is at ~91% of the Worker size ceiling
 
 Gzipped bundle sizes, against Cloudflare's **10 MB** Paid-plan limit (Free
