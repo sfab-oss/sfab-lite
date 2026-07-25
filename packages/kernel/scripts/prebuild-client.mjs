@@ -9,7 +9,11 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import { getUniverseRequire, universeResolvePlugin } from "./universe.mjs";
+import {
+  getUniverseRequire,
+  universeNodeModules,
+  universeResolvePlugin,
+} from "./universe.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -339,8 +343,64 @@ if (!betterAuthOk) {
   bailouts.push("better-auth/react → bundle into app (B)");
 }
 
-// @base-ui: large / deep — intentional per-dep bailout to app bundle (B)
-bailouts.push("@base-ui/react/* → bundle into app (B)");
+/**
+ * Public import-map keys for @base-ui/react, derived from the installed
+ * package.json `exports` so a base-ui upgrade cannot silently drop a subpath.
+ * Skips ./package.json, ./types, and ./internals/* (not part of the root surface).
+ */
+function baseUiImportKeys() {
+  // Read from the isolated universe path — avoid require.resolve("…/package.json"),
+  // which knip treats as an unlisted dependency edge.
+  const pkgJsonPath = join(
+    universeNodeModules,
+    "@base-ui",
+    "react",
+    "package.json"
+  );
+  const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));
+  const exportsField = pkg.exports;
+  if (!exportsField || typeof exportsField !== "object") {
+    throw new Error("@base-ui/react package.json has no exports map");
+  }
+  /** @type {string[]} */
+  const keys = [];
+  for (const subpath of Object.keys(exportsField).sort()) {
+    if (
+      subpath === "./package.json" ||
+      subpath === "./types" ||
+      subpath.startsWith("./internals")
+    ) {
+      continue;
+    }
+    if (subpath === ".") {
+      keys.push("@base-ui/react");
+      continue;
+    }
+    if (!subpath.startsWith("./")) {
+      throw new Error(
+        `@base-ui/react exports key is not a relative subpath: ${subpath}`
+      );
+    }
+    keys.push(`@base-ui/react/${subpath.slice(2)}`);
+  }
+  if (keys.length === 0) {
+    throw new Error("@base-ui/react exports map produced zero public keys");
+  }
+  return keys;
+}
+
+const baseUiOk = await vendorPkg({
+  name: "@base-ui/react",
+  // Root index re-exports every public component; one chunk + import-map
+  // aliases for each package.json exports subpath (except internals/types).
+  entrySource: `export * from "@base-ui/react";\n`,
+  outfileName: "base-ui-react.js",
+  external: ["react", "react-dom", "react/jsx-runtime"],
+  importKeys: baseUiImportKeys(),
+});
+if (!baseUiOk) {
+  bailouts.push("@base-ui/react/* → bundle into app (B)");
+}
 
 const filesExport = Object.fromEntries(
   clientChunkFiles.map((f) => [f, readFileSync(join(outDir, f), "utf8")])

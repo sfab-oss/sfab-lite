@@ -35,7 +35,8 @@
     "cva.js",
     "tailwind-merge.js",
     "hono-client.js",
-    "better-auth-client.js"
+    "better-auth-client.js",
+    "base-ui-react.js"
   ],
   "importMap": {
     "react": "./react.js",
@@ -50,11 +51,53 @@
     "hono/client": "./hono-client.js",
     "hono": "./hono-client.js",
     "better-auth/react": "./better-auth-client.js",
-    "better-auth/client/plugins": "./better-auth-client.js"
+    "better-auth/client/plugins": "./better-auth-client.js",
+    "@base-ui/react": "./base-ui-react.js",
+    "@base-ui/react/accordion": "./base-ui-react.js",
+    "@base-ui/react/alert-dialog": "./base-ui-react.js",
+    "@base-ui/react/autocomplete": "./base-ui-react.js",
+    "@base-ui/react/avatar": "./base-ui-react.js",
+    "@base-ui/react/button": "./base-ui-react.js",
+    "@base-ui/react/checkbox": "./base-ui-react.js",
+    "@base-ui/react/checkbox-group": "./base-ui-react.js",
+    "@base-ui/react/collapsible": "./base-ui-react.js",
+    "@base-ui/react/combobox": "./base-ui-react.js",
+    "@base-ui/react/context-menu": "./base-ui-react.js",
+    "@base-ui/react/csp-provider": "./base-ui-react.js",
+    "@base-ui/react/dialog": "./base-ui-react.js",
+    "@base-ui/react/direction-provider": "./base-ui-react.js",
+    "@base-ui/react/drawer": "./base-ui-react.js",
+    "@base-ui/react/field": "./base-ui-react.js",
+    "@base-ui/react/fieldset": "./base-ui-react.js",
+    "@base-ui/react/form": "./base-ui-react.js",
+    "@base-ui/react/input": "./base-ui-react.js",
+    "@base-ui/react/menu": "./base-ui-react.js",
+    "@base-ui/react/menubar": "./base-ui-react.js",
+    "@base-ui/react/merge-props": "./base-ui-react.js",
+    "@base-ui/react/meter": "./base-ui-react.js",
+    "@base-ui/react/navigation-menu": "./base-ui-react.js",
+    "@base-ui/react/number-field": "./base-ui-react.js",
+    "@base-ui/react/otp-field": "./base-ui-react.js",
+    "@base-ui/react/popover": "./base-ui-react.js",
+    "@base-ui/react/preview-card": "./base-ui-react.js",
+    "@base-ui/react/progress": "./base-ui-react.js",
+    "@base-ui/react/radio": "./base-ui-react.js",
+    "@base-ui/react/radio-group": "./base-ui-react.js",
+    "@base-ui/react/scroll-area": "./base-ui-react.js",
+    "@base-ui/react/select": "./base-ui-react.js",
+    "@base-ui/react/separator": "./base-ui-react.js",
+    "@base-ui/react/slider": "./base-ui-react.js",
+    "@base-ui/react/switch": "./base-ui-react.js",
+    "@base-ui/react/tabs": "./base-ui-react.js",
+    "@base-ui/react/toast": "./base-ui-react.js",
+    "@base-ui/react/toggle": "./base-ui-react.js",
+    "@base-ui/react/toggle-group": "./base-ui-react.js",
+    "@base-ui/react/toolbar": "./base-ui-react.js",
+    "@base-ui/react/tooltip": "./base-ui-react.js",
+    "@base-ui/react/unstable-use-media-query": "./base-ui-react.js",
+    "@base-ui/react/use-render": "./base-ui-react.js"
   },
-  "clientBailouts": [
-    "@base-ui/react/* → bundle into app (B)"
-  ],
+  "clientBailouts": [],
   "hashes": {
     "react.js": "sha256:6eff97db2da2a2b2f6cd58295bcfb612f57eb32b0d5695a0dc2c0da6d535bc22",
     "jsx-runtime.js": "sha256:4e731a7ba45224e7187942fe211823158fc15bfa03a45a33e5293deb0bca872b",
@@ -74,7 +117,8 @@
     "client/cva.js": "sha256:f2e1b0729df28ed9377e9ddf3b89797a4a4582c0ce6208d3a172aedd9e8f9f94",
     "client/tailwind-merge.js": "sha256:3994632fbf457911c244c2a7f84069d9222a277654bb67b8da19fcf6387f0dcb",
     "client/hono-client.js": "sha256:7a9707209f3f725adcad71ea6ea4df3bfe317057684ab0478ef30763d6bca1e2",
-    "client/better-auth-client.js": "sha256:030742878b9330e6ac9583e6870b65ac765a181c7d666ad8e05d7fcb4563ce4e"
+    "client/better-auth-client.js": "sha256:030742878b9330e6ac9583e6870b65ac765a181c7d666ad8e05d7fcb4563ce4e",
+    "client/base-ui-react.js": "sha256:bb2664507bbe7874251c5e3bf1e7cee67588a27d296b37ab92f8fdf4bce6ac5b"
   },
   "typesVfs": {
     "fileCount": 1289,
@@ -148,7 +192,8 @@
     "class-variance-authority": 2768,
     "tailwind-merge": 91325,
     "hono/client": 11187,
-    "better-auth/react": 82723
+    "better-auth/react": 82723,
+    "@base-ui/react": 1485078
   },
   "clientSizesGzip": {
     "react.js": 11248,
@@ -161,15 +206,16 @@
     "cva.js": 896,
     "tailwind-merge.js": 14577,
     "hono-client.js": 3368,
-    "better-auth-client.js": 19835
+    "better-auth-client.js": 19835,
+    "base-ui-react.js": 269052
   },
   "totals": {
-    "raw": 5974845,
-    "gzip": 1025704,
+    "raw": 7459923,
+    "gzip": 1294756,
     "typesGzip": 1198775,
     "cssGzip": 13148,
-    "clientGzip": 294822,
-    "hostBakeGzip": 2237627
+    "clientGzip": 563874,
+    "hostBakeGzip": 2506679
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,
