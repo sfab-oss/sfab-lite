@@ -224,7 +224,10 @@ const chunkExportNames = {};
 function exportsFromMetafile(metafile, outfileAbs) {
   const norm = outfileAbs.replaceAll("\\", "/");
   for (const [outPath, meta] of Object.entries(metafile.outputs)) {
-    if (outPath.replaceAll("\\", "/") === norm || outPath.endsWith(`/${norm.split("/").pop()}`)) {
+    if (
+      outPath.replaceAll("\\", "/") === norm ||
+      outPath.endsWith(`/${norm.split("/").pop()}`)
+    ) {
       return [...(meta.exports ?? [])].sort();
     }
   }
@@ -317,7 +320,10 @@ async function vendorPkg(opts) {
     clientChunkFiles.push(outfileName);
     hashes[outfileName] =
       `sha256:${createHash("sha256").update(source).digest("hex")}`;
-    chunkExportNames[outfileName] = exportsFromMetafile(result.metafile, outfile);
+    chunkExportNames[outfileName] = exportsFromMetafile(
+      result.metafile,
+      outfile
+    );
     for (const key of importKeys) {
       importMap[key] = `./${outfileName}`;
     }

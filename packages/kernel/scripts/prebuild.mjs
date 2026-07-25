@@ -233,7 +233,10 @@ const serverChunkExportNames = {};
 function exportsFromMetafile(metafile, outfileAbs) {
   const base = outfileAbs.replaceAll("\\", "/").split("/").pop();
   for (const [outPath, meta] of Object.entries(metafile.outputs)) {
-    if (outPath.replaceAll("\\", "/").endsWith(`/${base}`) || outPath.endsWith(base)) {
+    if (
+      outPath.replaceAll("\\", "/").endsWith(`/${base}`) ||
+      outPath.endsWith(base)
+    ) {
       return [...(meta.exports ?? [])].sort();
     }
   }
@@ -362,7 +365,10 @@ const honoEntry = join(root, "scripts", "vendor-entries", "hono.mjs");
   const source = readFileSync(outfile, "utf8");
   const bytes = Buffer.byteLength(source);
   sizes.hono = bytes;
-  serverChunkExportNames["hono.js"] = exportsFromMetafile(result.metafile, outfile);
+  serverChunkExportNames["hono.js"] = exportsFromMetafile(
+    result.metafile,
+    outfile
+  );
   exportsOut.push(`export const KERNEL_HONO = ${JSON.stringify(source)};`, "");
   console.log(`wrote hono.js (${bytes} bytes)`);
 }
@@ -379,7 +385,10 @@ const zodEntry = join(root, "scripts", "vendor-entries", "zod.mjs");
   const source = readFileSync(outfile, "utf8");
   const bytes = Buffer.byteLength(source);
   sizes.zod = bytes;
-  serverChunkExportNames["zod.js"] = exportsFromMetafile(result.metafile, outfile);
+  serverChunkExportNames["zod.js"] = exportsFromMetafile(
+    result.metafile,
+    outfile
+  );
   exportsOut.push(`export const KERNEL_ZOD = ${JSON.stringify(source)};`, "");
   console.log(`wrote zod.js (${bytes} bytes)`);
 }

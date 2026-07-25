@@ -27,11 +27,86 @@ const { TYPES_VFS } = await import(
 const { CLIENT_IMPORT_MAP } = await import(
   pathToFileURL(join(kernelGen, "client-kernel.js")).href
 );
-const {
-  CLIENT_RUNTIME_EXPORTS,
-  SERVER_RUNTIME_EXPORTS,
-  SERVER_IMPORT_MAP,
-} = await import(pathToFileURL(join(kernelGen, "runtime-exports.js")).href);
+const { CLIENT_RUNTIME_EXPORTS, SERVER_RUNTIME_EXPORTS, SERVER_IMPORT_MAP } =
+  await import(pathToFileURL(join(kernelGen, "runtime-exports.js")).href);
+
+const D_TS_EXT_RE = /\.d\.[cm]?ts$/;
+const MJS_EXT_RE = /\.mjs$/;
+const JS_EXT_RE = /\.js$/;
+const LEADING_DOT_SLASH_RE = /^\.\//;
+const D_TS_SUFFIX_RE = /\.d\.ts$/;
+const D_MTS_SUFFIX_RE = /\.d\.mts$/;
+
+/** @param {string} specifier */
+function splitSpecifier(specifier) {
+  const at = specifier.startsWith("@")
+    ? specifier.indexOf("/", specifier.indexOf("/") + 1)
+    : specifier.indexOf("/");
+  const pkg = at === -1 ? specifier : specifier.slice(0, at);
+  const sub = at === -1 ? "." : `./${specifier.slice(pkg.length + 1)}`;
+  return { pkg, sub };
+}
+
+/** @param {string} pkg @param {string} rel */
+function resolveVfsFromRel(pkg, rel) {
+  const abs = normalizePkgRel(pkg, rel);
+  if (TYPES_VFS[abs]) {
+    return abs;
+  }
+  for (const alt of dualDeclAlternates(abs)) {
+    if (TYPES_VFS[alt]) {
+      return alt;
+    }
+  }
+  return null;
+}
+
+/**
+ * @param {Record<string, unknown>} pj
+ * @param {string} pkg
+ * @param {string} sub
+ */
+function tryRootTypesField(pj, pkg, sub) {
+  if (sub !== "." || !(pj.types || pj.typings)) {
+    return null;
+  }
+  const abs = normalizePkgRel(pkg, pj.types || pj.typings);
+  return TYPES_VFS[abs] ? abs : null;
+}
+
+/**
+ * @param {string} pkg
+ * @param {string} sub
+ */
+function tryResolveFromPackageJson(pkg, sub) {
+  const pkgJsonText = TYPES_VFS[`/node_modules/${pkg}/package.json`];
+  if (!pkgJsonText) {
+    return null;
+  }
+  try {
+    const pj = JSON.parse(pkgJsonText);
+    const fromExports = typesPathFromExports(pj.exports, sub);
+    if (fromExports) {
+      const resolved = resolveVfsFromRel(pkg, fromExports);
+      if (resolved) {
+        return resolved;
+      }
+    }
+    return tryRootTypesField(pj, pkg, sub);
+  } catch {
+    return null;
+  }
+}
+
+/** @param {string[]} candidates */
+function firstExistingVfsPath(candidates) {
+  for (const cand of candidates) {
+    if (TYPES_VFS[cand]) {
+      return cand;
+    }
+  }
+  return null;
+}
 
 /**
  * Resolve the .d.ts path in TYPES_VFS for a bare package specifier.
@@ -40,44 +115,54 @@ const {
  * @returns {string | null} VFS path
  */
 function resolveTypesEntry(specifier) {
-  const at = specifier.startsWith("@")
-    ? specifier.indexOf("/", specifier.indexOf("/") + 1)
-    : specifier.indexOf("/");
-  const pkg = at === -1 ? specifier : specifier.slice(0, at);
-  const sub =
-    at === -1 ? "." : `./${specifier.slice(pkg.length + 1)}`;
-
-  const pkgJsonText = TYPES_VFS[`/node_modules/${pkg}/package.json`];
-  if (pkgJsonText) {
-    try {
-      const pj = JSON.parse(pkgJsonText);
-      const fromExports = typesPathFromExports(pj.exports, sub);
-      if (fromExports) {
-        const abs = normalizePkgRel(pkg, fromExports);
-        if (TYPES_VFS[abs]) {
-          return abs;
-        }
-        for (const alt of dualDeclAlternates(abs)) {
-          if (TYPES_VFS[alt]) {
-            return alt;
-          }
-        }
-      }
-      if (sub === "." && (pj.types || pj.typings)) {
-        const abs = normalizePkgRel(pkg, pj.types || pj.typings);
-        if (TYPES_VFS[abs]) {
-          return abs;
-        }
-      }
-    } catch {
-      // fall through to heuristics
-    }
+  const { pkg, sub } = splitSpecifier(specifier);
+  const fromPkgJson = tryResolveFromPackageJson(pkg, sub);
+  if (fromPkgJson) {
+    return fromPkgJson;
   }
-
   const rest = sub === "." ? "" : sub.slice(2);
-  for (const cand of candidatesFor(pkg, rest)) {
-    if (TYPES_VFS[cand]) {
-      return cand;
+  return firstExistingVfsPath(candidatesFor(pkg, rest));
+}
+
+/** @param {string} entry */
+function stringExportTypesPath(entry) {
+  return entry.endsWith(".d.ts") || entry.endsWith(".d.mts") ? entry : null;
+}
+
+/** @param {string} v */
+function runtimePathToDts(v) {
+  return v.replace(MJS_EXT_RE, ".d.mts").replace(JS_EXT_RE, ".d.ts");
+}
+
+/** @param {Record<string, unknown>} nested */
+function nestedExportTypesPath(nested) {
+  if (typeof nested.types === "string") {
+    return nested.types;
+  }
+  if (typeof nested.default === "string") {
+    return runtimePathToDts(nested.default);
+  }
+  return null;
+}
+
+/** @param {Record<string, unknown>} obj */
+function objectExportTypesPath(obj) {
+  for (const cond of ["types", "import", "module", "default", "require"]) {
+    const v = obj[cond];
+    if (typeof v === "string") {
+      if (cond === "types" || D_TS_EXT_RE.test(v)) {
+        return v;
+      }
+      // Map .js/.mjs runtime path to a sibling declaration if present later.
+      return runtimePathToDts(v);
+    }
+    if (v && typeof v === "object") {
+      const fromNested = nestedExportTypesPath(
+        /** @type {Record<string, unknown>} */ (v)
+      );
+      if (fromNested) {
+        return fromNested;
+      }
     }
   }
   return null;
@@ -97,49 +182,27 @@ function typesPathFromExports(exportsField, subpath) {
     return null;
   }
   if (typeof entry === "string") {
-    return entry.endsWith(".d.ts") || entry.endsWith(".d.mts") ? entry : null;
+    return stringExportTypesPath(entry);
   }
   if (typeof entry !== "object") {
     return null;
   }
-  const obj = /** @type {Record<string, unknown>} */ (entry);
-  for (const cond of ["types", "import", "module", "default", "require"]) {
-    const v = obj[cond];
-    if (typeof v === "string") {
-      if (cond === "types" || /\.d\.[cm]?ts$/.test(v)) {
-        return v;
-      }
-      // Map .js/.mjs runtime path to a sibling declaration if present later.
-      const asDts = v.replace(/\.mjs$/, ".d.mts").replace(/\.js$/, ".d.ts");
-      return asDts;
-    }
-    if (v && typeof v === "object") {
-      const nested = /** @type {Record<string, unknown>} */ (v);
-      if (typeof nested.types === "string") {
-        return nested.types;
-      }
-      if (typeof nested.default === "string") {
-        const d = nested.default;
-        return d.replace(/\.mjs$/, ".d.mts").replace(/\.js$/, ".d.ts");
-      }
-    }
-  }
-  return null;
+  return objectExportTypesPath(/** @type {Record<string, unknown>} */ (entry));
 }
 
 /** @param {string} pkg @param {string} rel */
 function normalizePkgRel(pkg, rel) {
-  const cleaned = rel.replace(/^\.\//, "");
+  const cleaned = rel.replace(LEADING_DOT_SLASH_RE, "");
   return `/node_modules/${pkg}/${cleaned}`.replaceAll("\\", "/");
 }
 
 /** @param {string} vfsPath */
 function dualDeclAlternates(vfsPath) {
   if (vfsPath.endsWith(".d.ts")) {
-    return [vfsPath.replace(/\.d\.ts$/, ".d.mts")];
+    return [vfsPath.replace(D_TS_SUFFIX_RE, ".d.mts")];
   }
   if (vfsPath.endsWith(".d.mts")) {
-    return [vfsPath.replace(/\.d\.mts$/, ".d.ts")];
+    return [vfsPath.replace(D_MTS_SUFFIX_RE, ".d.ts")];
   }
   return [];
 }
@@ -211,11 +274,9 @@ function valueExportsFromDts(entryPath) {
         sfCache.set(n, sf);
         return sf;
       }
-      return ts.createCompilerHost(options).getSourceFile(
-        fileName,
-        languageVersion,
-        onError
-      );
+      return ts
+        .createCompilerHost(options)
+        .getSourceFile(fileName, languageVersion, onError);
     },
     resolveModuleNameLiterals(
       moduleLiterals,
@@ -292,6 +353,7 @@ function exportNamesFromModuleSymbol(checker, mod) {
   const names = [];
   for (const sym of checker.getExportsOfModule(mod)) {
     // Skip type-only exports — they are not runtime values.
+    // biome-ignore lint/suspicious/noBitwiseOperators: SymbolFlags.Value is a bitmask; AND is the TS checker API
     if (!(sym.flags & ts.SymbolFlags.Value)) {
       continue;
     }

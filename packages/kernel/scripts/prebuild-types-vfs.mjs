@@ -378,6 +378,36 @@ function buildClosureFromTemplateProgram() {
  * Only `.d.ts` (not sibling `.d.mts`) — base-ui ships both for every file;
  * pulling both would roughly double the package for no resolution gain when
  * the `.d.ts` side is present.
+ */
+/** @param {string} vfsPath */
+function recordPackageTypeFromVfsPath(vfsPath) {
+  const m = vfsPath.match(/^\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
+  if (m) {
+    packageTypeCounts[m[1]] = (packageTypeCounts[m[1]] ?? 0) + 1;
+  }
+}
+
+/** @param {string} vfsPath */
+function isFullPackageTypesFile(vfsPath) {
+  return vfsPath.endsWith(".d.ts") || vfsPath.endsWith("package.json");
+}
+
+/**
+ * Add one universe file to the VFS when it is a new .d.ts or package.json.
+ * @param {string} abs
+ * @returns {boolean} true when a file was added
+ */
+function tryAddFullPackageTypesFile(abs) {
+  const vfsPath = toNodeModulesVfsPath(abs);
+  if (!(vfsPath && isFullPackageTypesFile(vfsPath)) || vfs[vfsPath]) {
+    return false;
+  }
+  putFile(vfsPath, abs);
+  recordPackageTypeFromVfsPath(vfsPath);
+  return true;
+}
+
+/**
  * @param {string} pkgName
  */
 function includeFullPackageTypes(pkgName) {
@@ -397,21 +427,8 @@ function includeFullPackageTypes(pkgName) {
         walk(abs);
         continue;
       }
-      const vfsPath = toNodeModulesVfsPath(abs);
-      if (!vfsPath) {
-        continue;
-      }
-      if (!(vfsPath.endsWith(".d.ts") || vfsPath.endsWith("package.json"))) {
-        continue;
-      }
-      if (vfs[vfsPath]) {
-        continue;
-      }
-      putFile(vfsPath, abs);
-      added++;
-      const m = vfsPath.match(/^\/node_modules\/((?:@[^/]+\/)?[^/]+)/);
-      if (m) {
-        packageTypeCounts[m[1]] = (packageTypeCounts[m[1]] ?? 0) + 1;
+      if (tryAddFullPackageTypesFile(abs)) {
+        added++;
       }
     }
   }
