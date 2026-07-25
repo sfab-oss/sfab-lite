@@ -70,19 +70,35 @@ even at the cost of the template's RPC type safety.
 
 ## What is shipped instead
 
-`callCheck` retries a *thrown* service-binding call up to `CHECK_ATTEMPTS` (4)
+`callCheck` retries a *thrown* service-binding call up to `CHECK_ATTEMPTS`
 times. An `exceededMemory` kill throws rather than returning a status, so this
 retries isolate deaths and never retries a real check result. Attempts are
 recorded as `checkAttempts` on the attempt payload so the OOM rate stays
 visible rather than hiding inside a slower commit.
 
-This is a mitigation. It takes first-try success from ~50% to ~94% and costs a
-worst-case create ~45s.
+**The retry budget is wall clock, not arithmetic.** `runCommitAttempt` runs
+under `ctx.waitUntil`, which is killed after ~30s, and a killed attempt writes
+no terminal status — the app then sits in `creating` until the AppDO stale
+sweep reclaims it 5 minutes later as `attempt_abandoned`.
+
+Four attempts (~45s) was tried first and measured doing exactly that: 5/8
+creates ready, and the three failures **hung for 5 minutes** instead of failing
+in 15s. That is worse than the crash it replaced. `CHECK_ATTEMPTS` is 2, which
+is what fits beside lint and compile at ~10s per check: ~50% → ~75%, with
+failures fast and terminal again.
+
+Raising it without first moving the work off `waitUntil` will bring the hang
+back.
 
 ## The actual options
 
 None of these are cheap, and the choice is a product decision:
 
+0. **Move the create attempt off `waitUntil`** — a Queue consumer, or a DO
+   alarm, gets its own invocation budget and retries for free. This does not
+   fix the OOM, but it makes retrying cost nothing, which turns a ~50% check
+   into a ~99% create. Cheapest of these by far, and the idiomatic Cloudflare
+   answer for background work that needs retries beyond a request's lifetime.
 1. **Shrink the app's type surface.** drizzle-orm + better-auth + zod are ~550
    of the 877 loaded files. Replacing drizzle with hand-written SQL types, or
    better-auth with something smaller, would move the number — and change what

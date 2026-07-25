@@ -159,14 +159,28 @@ async function callLint(
  * of the 877 `.d.ts` files the program loads), not of any app's code, so no
  * app can avoid it and no retry count fixes it in principle.
  *
- * Four attempts takes first-try success from ~50% to ~94% while costing a
- * failing create ~45 s in the worst case. This is a **mitigation, not a fix**:
- * the real options are shrinking the app's type surface or checking somewhere
- * with more memory than a Worker isolate.
+ * **The retry budget is bounded by wall clock, not by how many retries would
+ * help.** `runCommitAttempt` runs under `ctx.waitUntil`, whose work is killed
+ * after roughly 30 s — and a killed attempt writes no terminal status, so the
+ * app sits in `creating` until the AppDO's stale sweep reclaims it 5 minutes
+ * later as `attempt_abandoned`. Four attempts (~45 s) was measured doing
+ * exactly that: three of eight creates hung for 5 minutes instead of failing
+ * in 15 s, which is a strictly worse experience than the crash it replaced.
+ *
+ * Each check costs ~10 s in production, so two attempts is what fits beside
+ * lint and compile. That buys ~50% -> ~75% and keeps a failure fast and
+ * terminal. Raising this number without moving the work off `waitUntil` will
+ * reintroduce the hang.
+ *
+ * This is a **mitigation, not a fix**. See
+ * `docs/notes/2026-07-25-check-worker-memory.md`.
  */
-const CHECK_ATTEMPTS = 4;
-/** Let the replacement isolate cold-start rather than racing the dead one. */
-const CHECK_RETRY_DELAY_MS = 1500;
+const CHECK_ATTEMPTS = 2;
+/**
+ * Long enough to land on a replacement isolate rather than racing the dead
+ * one, short enough to stay inside the waitUntil budget above.
+ */
+const CHECK_RETRY_DELAY_MS = 300;
 
 /**
  * An `exceededMemory` kill surfaces as the service binding *throwing*, not as

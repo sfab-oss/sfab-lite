@@ -25,9 +25,20 @@ export function loadSession(): Promise<Session> {
   return queryClient.ensureQueryData(sessionQueryOptions);
 }
 
-/** After sign-in/out or joining an org, the cached answer is stale. */
-export function invalidateSession(): Promise<void> {
-  return queryClient.invalidateQueries({
-    queryKey: sessionQueryOptions.queryKey,
-  });
+/**
+ * After sign-in/out or joining an org, refetch the session and wait for it.
+ *
+ * Must not be `invalidateQueries`. Every reader of this query is a route guard
+ * calling {@link loadSession}, and a guard registers no observer — so the query
+ * is never *active*, and `invalidateQueries` marks it stale without refetching
+ * anything. The caller then navigates, the guard re-reads the pre-org session
+ * from cache, and redirects straight back to where it came from. Onboarding
+ * looked like it silently failed until you reloaded the page.
+ *
+ * `fetchQuery` with `staleTime: 0` sidesteps active/inactive semantics
+ * entirely: it always fetches, always writes the cache, and the returned
+ * promise settles only once the fresh session is in place.
+ */
+export function invalidateSession(): Promise<Session> {
+  return queryClient.fetchQuery({ ...sessionQueryOptions, staleTime: 0 });
 }
