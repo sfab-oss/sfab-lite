@@ -1,15 +1,18 @@
+import __ext_react from "./react.js";
+import __ext_react_dom from "./react-dom.js";
+import __ext_react_jsx_runtime from "./jsx-runtime.js";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
+function __require(x) {
+  if (x === "react" || x === "react.js" || x === "./react.js") return __ext_react?.default ?? __ext_react;
+  if (x === "react-dom" || x === "react-dom.js" || x === "./react-dom.js") return __ext_react_dom?.default ?? __ext_react_dom;
+  if (x === "react/jsx-runtime" || x === "jsx-runtime.js" || x === "./jsx-runtime.js") return __ext_react_jsx_runtime?.default ?? __ext_react_jsx_runtime;
   throw Error('Dynamic require of "' + x + '" is not supported');
-});
+}
 var __commonJS = (cb, mod) => function __require2() {
   try {
     return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
@@ -91,7 +94,7 @@ var require_use_sync_external_store_shim_development = __commonJS({
         return getSnapshot();
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React17 = __require("./react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState5 = React17.useState, useEffect7 = React17.useEffect, useLayoutEffect3 = React17.useLayoutEffect, useDebugValue = React17.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
+      var React17 = __require("react.js"), objectIs = "function" === typeof Object.is ? Object.is : is, useState5 = React17.useState, useEffect7 = React17.useEffect, useLayoutEffect3 = React17.useLayoutEffect, useDebugValue = React17.useDebugValue, didWarnOld18Alpha = false, didWarnUncachedGetSnapshot = false, shim = "undefined" === typeof window || "undefined" === typeof window.document || "undefined" === typeof window.document.createElement ? useSyncExternalStore$1 : useSyncExternalStore$2;
       exports.useSyncExternalStore = void 0 !== React17.useSyncExternalStore ? React17.useSyncExternalStore : shim;
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
@@ -119,7 +122,7 @@ var require_with_selector_development = __commonJS({
         return x === y && (0 !== x || 1 / x === 1 / y) || x !== x && y !== y;
       }
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
-      var React17 = __require("./react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef7 = React17.useRef, useEffect7 = React17.useEffect, useMemo4 = React17.useMemo, useDebugValue = React17.useDebugValue;
+      var React17 = __require("react.js"), shim = require_shim(), objectIs = "function" === typeof Object.is ? Object.is : is, useSyncExternalStore = shim.useSyncExternalStore, useRef7 = React17.useRef, useEffect7 = React17.useEffect, useMemo4 = React17.useMemo, useDebugValue = React17.useDebugValue;
       exports.useSyncExternalStoreWithSelector = function(subscribe2, getSnapshot, getServerSnapshot, selector, isEqual) {
         var instRef = useRef7(null);
         if (null === instRef.current) {

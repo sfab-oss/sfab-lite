@@ -7,8 +7,8 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 function __require(x) {
-  if (x === "react") return __ext_react?.default ?? __ext_react;
-  if (x === "react-dom") return __ext_react_dom?.default ?? __ext_react_dom;
+  if (x === "react" || x === "react.js" || x === "./react.js") return __ext_react?.default ?? __ext_react;
+  if (x === "react-dom" || x === "react-dom.js" || x === "./react-dom.js") return __ext_react_dom?.default ?? __ext_react_dom;
   throw Error('Dynamic require of "' + x + '" is not supported');
 }
 var __commonJS = (cb, mod) => function __require2() {

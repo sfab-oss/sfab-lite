@@ -134,7 +134,7 @@ const chunks = [
   },
 ];
 
-/** Map a react/react-dom bare specifier to its flat client chunk filename. */
+/** Map a react/react-dom bare specifier to a relative flat client chunk path. */
 function toClientFlatKey(spec) {
   if (spec === "react") {
     return "./react.js";
@@ -151,7 +151,18 @@ function toClientFlatKey(spec) {
   return spec;
 }
 
-/** Rewrite esbuild CJS stubs to flat client keys. */
+/** Flat filename without ./ — what the external plugin stamps onto __require(). */
+function toClientFlatBare(spec) {
+  const rel = toClientFlatKey(spec);
+  return rel.startsWith("./") ? rel.slice(2) : rel;
+}
+
+/**
+ * Rewrite esbuild's CJS `__require` stub so in-browser evaluation of
+ * use-sync-external-store (and similar) can load react from the flat chunk.
+ * Matches the original package name plus the flat bare/relative forms the
+ * external plugin may have rewritten require() arguments to.
+ */
 function rewriteExternalRequires(source, external) {
   if (!external.length) {
     return source;
@@ -160,10 +171,11 @@ function rewriteExternalRequires(source, external) {
   const map = [];
   for (const spec of external) {
     const id = spec.replace(/[^a-zA-Z0-9]/g, "_");
-    const flat = toClientFlatKey(spec);
-    imports.push(`import __ext_${id} from ${JSON.stringify(flat)};`);
+    const flatRel = toClientFlatKey(spec);
+    const flatBare = toClientFlatBare(spec);
+    imports.push(`import __ext_${id} from ${JSON.stringify(flatRel)};`);
     map.push(
-      `  if (x === ${JSON.stringify(spec)}) return __ext_${id}?.default ?? __ext_${id};`
+      `  if (x === ${JSON.stringify(spec)} || x === ${JSON.stringify(flatBare)} || x === ${JSON.stringify(flatRel)}) return __ext_${id}?.default ?? __ext_${id};`
     );
   }
   const stubRe =
@@ -264,7 +276,9 @@ async function vendorPkg(opts) {
                       filter: /^(react|react-dom|react\/jsx-runtime)(\/.*)?$/,
                     },
                     (args) => ({
-                      path: toClientFlatKey(args.path),
+                      // Bare flat name (not ./) so CJS __require("react.js")
+                      // matches what rewriteExternalRequires maps.
+                      path: toClientFlatBare(args.path),
                       external: true,
                     })
                   );
@@ -294,6 +308,9 @@ async function vendorPkg(opts) {
         'from "./react-dom-client.js"'
       )
       .replace(/from\s+["']react-dom\.js["']/g, 'from "./react-dom.js"');
+    // CJS shims inside the bundle call __require("react.js") — rewrite the
+    // stub so those resolve to the ESM flat chunk (vendorPkg previously skipped this).
+    source = rewriteExternalRequires(source, external);
     writeFileSync(outfile, source);
     const bytes = Buffer.byteLength(source);
     sizesRaw[name] = bytes;
