@@ -32,6 +32,16 @@ function newVersionId(): string {
   return `v_${nextUlid()}`;
 }
 
+/**
+ * Attempt ids share the version sequence deliberately: an attempt and the
+ * version it may mint are the same event seen before and after the gate, so
+ * ordering one against the other has to be meaningful. The prefix keeps them
+ * impossible to confuse in a URL or a log line.
+ */
+function newAttemptId(): string {
+  return `a_${nextUlid()}`;
+}
+
 export interface SqlMeta {
   duration: number;
   size_after: number;
@@ -75,13 +85,93 @@ CREATE TABLE IF NOT EXISTS _sfab_live (
   singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
   version_id TEXT
 );
-CREATE TABLE IF NOT EXISTS _sfab_check_status (
-  version_id TEXT PRIMARY KEY NOT NULL,
+CREATE TABLE IF NOT EXISTS _sfab_commit_attempts (
+  id TEXT PRIMARY KEY NOT NULL,
+  kind TEXT NOT NULL,
   status TEXT NOT NULL,
+  parent_id TEXT,
+  version_id TEXT,
+  created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  payload TEXT
+  payload TEXT,
+  FOREIGN KEY (version_id) REFERENCES _sfab_versions(id)
 );
+CREATE INDEX IF NOT EXISTS _sfab_commit_attempts_status
+  ON _sfab_commit_attempts (status);
 `.trim();
+
+/**
+ * A pending attempt older than this is presumed dead and swept to `error`.
+ *
+ * `waitUntil` is best-effort: a dropped invocation would otherwise leave an
+ * attempt pending forever, and the one-in-flight rule would lock the app out
+ * of committing. Five minutes is the factory's `limits.cpu_ms` ceiling
+ * (`wrangler.jsonc`) — past it the work provably cannot still be running.
+ */
+const STALE_ATTEMPT_MS = 5 * 60_000;
+
+export type AttemptKind = "create" | "commit" | "revert";
+type AttemptStatus = "pending" | "pass" | "fail" | "error";
+
+export interface AttemptRecord {
+  id: string;
+  kind: AttemptKind;
+  status: AttemptStatus;
+  parentId: string | null;
+  versionId: string | null;
+  createdAt: number;
+  updatedAt: number;
+  payload: unknown;
+}
+
+/** Attempts are an event log, not history — versions are the history. */
+const ATTEMPT_RETENTION = 50;
+
+interface AttemptRow {
+  id: string;
+  kind: string;
+  status: string;
+  parent_id: string | null;
+  version_id: string | null;
+  created_at: number;
+  updated_at: number;
+  payload: string | null;
+}
+
+/**
+ * The single SQL-row → record boundary for attempts. Takes `unknown` on
+ * purpose: cursor rows are `Record<string, SqlStorageValue>`, and narrowing
+ * here means neither caller needs a cast of its own.
+ */
+function toAttemptRecord(raw: unknown): AttemptRecord {
+  const row = raw as AttemptRow;
+  let payload: unknown = null;
+  if (row.payload) {
+    try {
+      payload = JSON.parse(row.payload) as unknown;
+    } catch {
+      payload = row.payload;
+    }
+  }
+  return {
+    id: row.id,
+    kind: row.kind as AttemptKind,
+    status: row.status as AttemptStatus,
+    parentId: row.parent_id,
+    versionId: row.version_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    payload,
+  };
+}
+
+export interface PutVersionInput {
+  parentId: string | null;
+  sourceFiles: Record<string, string>;
+  serverBundle: string;
+  assets: Record<string, string>;
+  kernelVersion: string;
+}
 
 export interface VersionRecord {
   id: string;
@@ -105,6 +195,12 @@ export class AppDO extends DurableObject {
   #ensureMeta(): void {
     this.ctx.storage.sql.exec("PRAGMA foreign_keys = ON;");
     this.ctx.storage.sql.exec(META_DDL);
+    // S2.6 removed `_sfab_check_status`. It was keyed by version_id and only
+    // ever written *after* a version existed, so it could never describe a
+    // commit still in flight — `_sfab_commit_attempts` replaces it. DOs
+    // deployed before S2.6 still carry the old table and `CREATE TABLE IF NOT
+    // EXISTS` cannot remove it, so drop it here.
+    this.ctx.storage.sql.exec("DROP TABLE IF EXISTS _sfab_check_status;");
   }
 
   /**
@@ -205,19 +301,23 @@ export class AppDO extends DurableObject {
    * Append a checked version and point live at it.
    * INSERT only — never UPDATE an existing version row.
    */
-  putVersion(input: {
-    parentId: string | null;
-    sourceFiles: Record<string, string>;
-    serverBundle: string;
-    assets: Record<string, string>;
-    kernelVersion: string;
-  }): {
+  putVersion(input: PutVersionInput): {
     ok: true;
     id: string;
     liveVersionId: string;
     parentId: string | null;
   } {
     this.#ensureMeta();
+    return this.#putVersionSync(input);
+  }
+
+  /** Sync core of `putVersion`, callable from inside `transactionSync`. */
+  #putVersionSync(input: PutVersionInput): {
+    ok: true;
+    id: string;
+    liveVersionId: string;
+    parentId: string | null;
+  } {
     const id = newVersionId();
     if (input.parentId != null) {
       const parent = this.ctx.storage.sql
@@ -261,6 +361,7 @@ export class AppDO extends DurableObject {
     | {
         ok: true;
         id: string;
+        attemptId: string;
         liveVersionId: string;
         parentId: string;
         restoredFrom: string;
@@ -279,16 +380,30 @@ export class AppDO extends DurableObject {
     if (live.liveVersionId === versionId) {
       return { ok: false, error: "already_live" };
     }
-    const put = await this.putVersion({
-      parentId: live.liveVersionId,
-      sourceFiles: version.sourceFiles,
-      serverBundle: version.serverBundle,
-      assets: version.assets,
-      kernelVersion: version.kernelVersion,
-    });
+    // Revert goes through the attempt path even though it never waits on a
+    // check: it is subject to the same one-in-flight rule (reverting mid-commit
+    // would race the parent pointer), and `kind` is the only place the history
+    // records *why* a version exists. It settles in the same DO turn, so a
+    // revert attempt is never observably pending.
+    const start = this.startAttempt("revert", live.liveVersionId);
+    if (!start.ok) {
+      return { ok: false, error: start.error };
+    }
+    const put = this.completeAttempt(
+      start.attemptId,
+      {
+        parentId: live.liveVersionId,
+        sourceFiles: version.sourceFiles,
+        serverBundle: version.serverBundle,
+        assets: version.assets,
+        kernelVersion: version.kernelVersion,
+      },
+      { source: "revert", restoredFrom: versionId, trusted: true }
+    );
     return {
       ok: true,
       id: put.id,
+      attemptId: start.attemptId,
       liveVersionId: put.liveVersionId,
       parentId: live.liveVersionId,
       restoredFrom: versionId,
@@ -388,64 +503,165 @@ export class AppDO extends DurableObject {
     };
   }
 
-  setCheckStatus(
-    versionId: string,
-    status: "pending" | "pass" | "fail" | "error",
-    payload: unknown = null
-  ): { ok: true; versionId: string; status: string } {
-    this.#ensureMeta();
+  /**
+   * Sweep pending attempts that outlived `STALE_ATTEMPT_MS`.
+   *
+   * Async commit moved the work into `waitUntil`, which is best-effort — a
+   * dropped invocation writes no terminal status. Without this the app would
+   * be permanently blocked by the one-in-flight rule below.
+   */
+  #sweepStaleAttempts(): void {
     this.ctx.storage.sql.exec(
-      `INSERT OR REPLACE INTO _sfab_check_status
-        (version_id, status, updated_at, payload)
-       VALUES (?, ?, ?, ?)`,
-      versionId,
-      status,
+      `UPDATE _sfab_commit_attempts
+          SET status = 'error', updated_at = ?, payload = ?
+        WHERE status = 'pending' AND created_at < ?`,
       Date.now(),
-      payload == null ? null : JSON.stringify(payload)
+      JSON.stringify({ error: "attempt_abandoned", staleMs: STALE_ATTEMPT_MS }),
+      Date.now() - STALE_ATTEMPT_MS
     );
-    return { ok: true, versionId, status };
   }
 
-  getCheckStatus(versionId: string): {
+  /**
+   * Open a commit attempt, or refuse because one is already running.
+   *
+   * **At most one attempt in flight per app.** Two concurrent commits would
+   * both check against the same parent and both mint a version, quietly
+   * breaking the linear history the whole model rests on. Refusing is also
+   * the honest answer to the agent: its edit did not land, rather than
+   * landing later against a tree it never saw.
+   */
+  startAttempt(
+    kind: AttemptKind,
+    parentId: string | null
+  ):
+    | { ok: true; attemptId: string }
+    | { ok: false; error: "attempt_in_flight"; attemptId: string } {
+    this.#ensureMeta();
+    return this.ctx.storage.transactionSync(() => {
+      this.#sweepStaleAttempts();
+      const running = this.ctx.storage.sql
+        .exec(
+          "SELECT id FROM _sfab_commit_attempts WHERE status = 'pending' LIMIT 1"
+        )
+        .toArray()[0] as { id?: string } | undefined;
+      if (running?.id) {
+        return {
+          ok: false as const,
+          error: "attempt_in_flight" as const,
+          attemptId: running.id,
+        };
+      }
+      const id = newAttemptId();
+      const now = Date.now();
+      this.ctx.storage.sql.exec(
+        `INSERT INTO _sfab_commit_attempts
+          (id, kind, status, parent_id, version_id, created_at, updated_at, payload)
+         VALUES (?, ?, 'pending', ?, NULL, ?, ?, NULL)`,
+        id,
+        kind,
+        parentId,
+        now,
+        now
+      );
+      this.#pruneAttempts();
+      return { ok: true as const, attemptId: id };
+    });
+  }
+
+  /**
+   * Keep the attempt log bounded. Never touches `pending` rows — an attempt
+   * still running is not a candidate for eviction however old the log is.
+   */
+  #pruneAttempts(): void {
+    this.ctx.storage.sql.exec(
+      `DELETE FROM _sfab_commit_attempts
+        WHERE status != 'pending'
+          AND id NOT IN (
+            SELECT id FROM _sfab_commit_attempts ORDER BY id DESC LIMIT ?
+          )`,
+      ATTEMPT_RETENTION
+    );
+  }
+
+  /** Terminal failure — no version is minted. */
+  failAttempt(
+    attemptId: string,
+    status: "fail" | "error",
+    payload: unknown = null
+  ): { ok: true; attemptId: string; status: string } {
+    this.#ensureMeta();
+    this.ctx.storage.sql.exec(
+      `UPDATE _sfab_commit_attempts
+          SET status = ?, updated_at = ?, payload = ?
+        WHERE id = ?`,
+      status,
+      Date.now(),
+      payload == null ? null : JSON.stringify(payload),
+      attemptId
+    );
+    return { ok: true, attemptId, status };
+  }
+
+  /**
+   * Mint the version and settle the attempt in one transaction.
+   *
+   * Two RPCs would leave a window where the version is live but the attempt
+   * still reads `pending` — a poller would show "checking" for code already
+   * serving traffic.
+   */
+  completeAttempt(
+    attemptId: string,
+    input: PutVersionInput,
+    payload: unknown = null
+  ): { ok: true; id: string; liveVersionId: string; parentId: string | null } {
+    this.#ensureMeta();
+    return this.ctx.storage.transactionSync(() => {
+      const put = this.#putVersionSync(input);
+      this.ctx.storage.sql.exec(
+        `UPDATE _sfab_commit_attempts
+            SET status = 'pass', version_id = ?, updated_at = ?, payload = ?
+          WHERE id = ?`,
+        put.id,
+        Date.now(),
+        payload == null ? null : JSON.stringify(payload),
+        attemptId
+      );
+      return put;
+    });
+  }
+
+  getAttempt(attemptId: string): {
     ok: true;
-    versionId: string;
-    status: "pending" | "pass" | "fail" | "error" | "missing";
-    updatedAt: number | null;
-    payload: unknown;
+    attempt: AttemptRecord | null;
   } {
     this.#ensureMeta();
+    // Sweep on read too: a poller must not sit on `pending` forever waiting
+    // for a writer that will never come back.
+    this.#sweepStaleAttempts();
     const row = this.ctx.storage.sql
       .exec(
-        "SELECT status, updated_at, payload FROM _sfab_check_status WHERE version_id = ?",
-        versionId
+        `SELECT id, kind, status, parent_id, version_id, created_at, updated_at, payload
+           FROM _sfab_commit_attempts WHERE id = ?`,
+        attemptId
       )
-      .toArray()[0] as
-      | { status?: string; updated_at?: number; payload?: string | null }
-      | undefined;
-    if (!row?.status) {
-      return {
-        ok: true,
-        versionId,
-        status: "missing",
-        updatedAt: null,
-        payload: null,
-      };
-    }
-    let payload: unknown = null;
-    if (row.payload) {
-      try {
-        payload = JSON.parse(row.payload) as unknown;
-      } catch {
-        payload = row.payload;
-      }
-    }
-    return {
-      ok: true,
-      versionId,
-      status: row.status as "pending" | "pass" | "fail" | "error",
-      updatedAt: row.updated_at ?? null,
-      payload,
-    };
+      .toArray()[0];
+    return { ok: true, attempt: row ? toAttemptRecord(row) : null };
+  }
+
+  listAttempts(limit = 20): {
+    ok: true;
+    attempts: AttemptRecord[];
+  } {
+    this.#ensureMeta();
+    this.#sweepStaleAttempts();
+    const rows = this.ctx.storage.sql
+      .exec(
+        `SELECT id, kind, status, parent_id, version_id, created_at, updated_at, payload
+           FROM _sfab_commit_attempts ORDER BY id DESC LIMIT ?`,
+        Math.max(1, Math.min(limit, 100))
+      )
+      .toArray();
+    return { ok: true, attempts: rows.map(toAttemptRecord) };
   }
 
   /** Latest version by created_at — equals live tip under append-only commit. */
