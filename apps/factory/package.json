@@ -17,6 +17,8 @@
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
     "@sfab-lite/template": "workspace:*",
+    "better-auth": "1.6.19",
+    "drizzle-orm": "0.45.2",
     "tailwindcss": "4.1.11",
     "ulid": "3.0.2"
   },
