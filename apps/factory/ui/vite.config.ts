@@ -16,10 +16,15 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
+    // `^/a/` is a regex on purpose. Vite matches a plain string context with
+    // `url.startsWith(context)` (`doesProxyContextMatchUrl`), so a bare "/a"
+    // would also capture `/apps`, `/apps/:id` and `/assets/*` — the console's
+    // own routes — and proxy them to the worker instead of serving them from
+    // Vite. Only a context beginning with `^` is treated as a pattern.
     proxy: {
       "/api": { target: "http://localhost:8790", changeOrigin: true },
       "/admin": { target: "http://localhost:8790", changeOrigin: true },
-      "/a": { target: "http://localhost:8790", changeOrigin: true },
+      "^/a/": { target: "http://localhost:8790", changeOrigin: true },
       "/kernel": { target: "http://localhost:8790", changeOrigin: true },
     },
   },

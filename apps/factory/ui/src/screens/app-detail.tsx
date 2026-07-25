@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AppRecord, AttemptRecord, VersionSummary } from "../api";
 import { AuthRequiredError, getApp, getAttempt, listVersions } from "../api";
+import { endUnusableSession } from "../auth-client";
 import { Link, useRouter } from "../router";
 import { StatusBadge } from "./apps-list";
 import { ConsoleChrome } from "./chrome";
@@ -19,6 +20,11 @@ export function AppDetailScreen({ appId }: { appId: string }) {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
+    // Whether the last successful poll saw this app still being created — a
+    // failed poll cannot ask, since the request that would answer is the one
+    // that failed.
+    let awaitingCreate = false;
+
     const loadReady = async (record: AppRecord) => {
       const listed = await listVersions(appId);
       if (cancelled) {
@@ -29,6 +35,7 @@ export function AppDetailScreen({ appId }: { appId: string }) {
       setLiveVersionId(listed.liveVersionId);
       setAttempt(null);
       setError(null);
+      awaitingCreate = false;
     };
 
     const loadPending = async (record: AppRecord) => {
@@ -42,7 +49,30 @@ export function AppDetailScreen({ appId }: { appId: string }) {
       setApp(record);
       setAttempt(nextAttempt);
       setError(null);
-      if (record.status === "creating") {
+      awaitingCreate = record.status === "creating";
+      if (awaitingCreate) {
+        timer = setTimeout(() => {
+          load();
+        }, POLL_MS);
+      }
+    };
+
+    const onLoadError = async (e: unknown) => {
+      if (cancelled) {
+        return;
+      }
+      if (e instanceof AuthRequiredError) {
+        await endUnusableSession();
+        if (!cancelled) {
+          navigate({ name: "sign-in" }, true);
+        }
+        return;
+      }
+      setError(e instanceof Error ? e.message : String(e));
+      // Same reason as the apps list: creation settles server-side whether or
+      // not this screen is watching, so one failed poll must not end the
+      // watch.
+      if (awaitingCreate) {
         timer = setTimeout(() => {
           load();
         }, POLL_MS);
@@ -61,16 +91,7 @@ export function AppDetailScreen({ appId }: { appId: string }) {
           }
           await loadPending(record);
         })
-        .catch((e: unknown) => {
-          if (cancelled) {
-            return;
-          }
-          if (e instanceof AuthRequiredError) {
-            navigate({ name: "sign-in" }, true);
-            return;
-          }
-          setError(e instanceof Error ? e.message : String(e));
-        });
+        .catch(onLoadError);
     };
 
     load();
@@ -160,8 +181,7 @@ function AppBody({
 
         {app.status === "creating" ? (
           <p className="mt-4 text-[var(--warn)] text-sm">
-            Seeding the template — this usually takes 18–25 seconds. Polling
-            automatically.
+            Seeding the template while check runs. Polling automatically.
           </p>
         ) : null}
       </section>
@@ -240,7 +260,12 @@ function VersionsSection({
               <span className="font-mono text-xs">
                 {v.id}
                 {v.id === liveVersionId ? (
-                  <span className="ml-2 text-[var(--ok)]">live</span>
+                  <>
+                    {/* A literal space, not just the margin: without it the
+                        DOM text reads `v_01…live`, which is what a screen
+                        reader announces and what a copy-paste produces. */}{" "}
+                    <span className="text-[var(--ok)]">live</span>
+                  </>
                 ) : null}
               </span>
               <span className="text-[var(--muted)]">

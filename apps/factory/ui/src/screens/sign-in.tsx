@@ -4,11 +4,16 @@ import { fetchAuthConfig } from "../api";
 import { authClient } from "../auth-client";
 import { useRouter } from "../router";
 
+type AuthMode = "signin" | "signup";
+
 export function SignInScreen() {
   const { navigate } = useRouter();
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
+  // Lives here rather than in `SignInBody` because the heading above the form
+  // has to name the same action the form performs.
+  const [mode, setMode] = useState<AuthMode>("signin");
 
   useEffect(() => {
     let cancelled = false;
@@ -57,13 +62,19 @@ export function SignInScreen() {
 
   return (
     <Shell>
-      <h1 className="m-0 font-semibold text-2xl tracking-tight">Sign in</h1>
+      {/* Heading follows the form below it — a "Sign in" title over a
+          create-account form misnames what the button will do. */}
+      <h1 className="m-0 font-semibold text-2xl tracking-tight">
+        {mode === "signup" ? "Create account" : "Sign in"}
+      </h1>
       <p className="mt-2 text-[var(--muted)] text-sm">
         Factory console — manage apps for your organization.
       </p>
       <SignInBody
         config={config}
+        mode={mode}
         onSignedIn={() => navigate({ name: "apps" }, true)}
+        setMode={setMode}
       />
     </Shell>
   );
@@ -71,12 +82,15 @@ export function SignInScreen() {
 
 function SignInBody({
   config,
+  mode,
+  setMode,
   onSignedIn,
 }: {
   config: AuthConfig;
+  mode: AuthMode;
+  setMode: (mode: AuthMode) => void;
   onSignedIn: () => void;
 }) {
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -209,7 +223,7 @@ function SignInBody({
 }
 
 async function runPasswordAuth(
-  mode: "signin" | "signup",
+  mode: AuthMode,
   input: { email: string; password: string; name: string }
 ): Promise<string | null> {
   if (mode === "signup") {
@@ -242,7 +256,7 @@ function NoAuthConfigured() {
   );
 }
 
-function submitLabel(busy: boolean, mode: "signin" | "signup"): string {
+function submitLabel(busy: boolean, mode: AuthMode): string {
   if (busy) {
     return "Working…";
   }

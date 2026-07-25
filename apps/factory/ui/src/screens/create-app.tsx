@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { AuthRequiredError, createApp } from "../api";
+import { endUnusableSession } from "../auth-client";
 import { Link, useRouter } from "../router";
 import { ConsoleChrome } from "./chrome";
 
@@ -23,6 +24,7 @@ export function CreateAppScreen() {
       navigate({ name: "app", appId });
     } catch (err) {
       if (err instanceof AuthRequiredError) {
+        await endUnusableSession();
         navigate({ name: "sign-in" }, true);
         return;
       }
@@ -35,8 +37,8 @@ export function CreateAppScreen() {
     <ConsoleChrome title="New app">
       <p className="mt-0 text-[var(--muted)] text-sm">
         Creates a registry row and seeds the starter template. The request
-        returns immediately; the app stays <code>creating</code> for roughly
-        18–25 seconds while check runs.
+        returns immediately; the app stays <code>creating</code> while check
+        runs, then becomes <code>ready</code> on its own.
       </p>
       <form onSubmit={onSubmit} className="mt-6 flex max-w-md flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">

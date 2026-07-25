@@ -98,7 +98,10 @@ export default {
       return await publicHit.route.handler({ ...rc, match: publicHit.match });
     }
 
-    if (url.pathname.startsWith("/admin")) {
+    // Segment-exact: a bare `startsWith("/admin")` would also claim
+    // `/administrator`, handing a console route to the admin dispatcher (401)
+    // instead of the SPA.
+    if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
       return await dispatchAdmin(rc);
     }
 

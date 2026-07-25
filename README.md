@@ -51,9 +51,19 @@ worker-first routing.
 
 ```bash
 # once: copy apps/factory/.dev.vars.example → apps/factory/.dev.vars
+# once: create the local D1 tables (see below — skipping this is a 500)
+cd apps/factory && pnpm exec wrangler d1 migrations apply sfab-lite-factory --local
+
 pnpm --filter @sfab-lite/factory build:ui
 pnpm --filter @sfab-lite/factory dev   # http://localhost:8790
 ```
+
+**The migrate step is not optional and its failure does not look like a
+setup problem.** Local D1 starts empty, so without it the console renders
+perfectly, the sign-up form submits, and `POST /api/auth/sign-up/email`
+returns **500** with `no such table: user` — visible only in the worker log.
+The UI shows "sign-up failed". Each worktree has its own `.wrangler/` state,
+so every new worktree needs this again.
 
 **UI hot-reload (Vite proxies API routes to the worker):**
 
@@ -65,7 +75,11 @@ pnpm --filter @sfab-lite/factory dev   # :8790
 pnpm --filter @sfab-lite/factory dev:ui   # :5173
 ```
 
-Vite proxies `/api`, `/admin`, `/a`, and `/kernel` to `http://localhost:8790`.
+Vite proxies `/api`, `/admin`, `^/a/`, and `/kernel` to
+`http://localhost:8790`. The sub-app proxy is the regex `^/a/` rather than the
+string `/a`, because Vite matches a plain string context with
+`url.startsWith(context)` — `/a` would also capture the console's own `/apps`
+and `/assets/*`.
 
 ## Known limitations
 
