@@ -57,6 +57,25 @@ export async function organizationExists(
 }
 
 /**
+ * Ownership test for app-scoped admin routes — one indexed read, nothing else.
+ *
+ * Kept separate from `getApp` on purpose: `getApp` runs the stale-`creating`
+ * sweep, which is right for a status read and wrong for an authorization check
+ * that sits on the attempt-polling hot path.
+ */
+export async function appBelongsToOrganization(
+  db: Db,
+  organizationId: string,
+  appId: string
+): Promise<boolean> {
+  const row = await db.query.app.findFirst({
+    where: and(eq(app.id, appId), eq(app.organizationId, organizationId)),
+    columns: { id: true },
+  });
+  return Boolean(row);
+}
+
+/**
  * Insert the registry row *before* any AppDO work. Status starts at
  * `creating` so a UI can poll during the ~18–25s seed commit.
  */

@@ -142,6 +142,46 @@ Honest framing for anything user-facing: the *response* is instant, the
 *commit* is **seconds, not minutes.** Still far better than a CI runner;
 the work itself is not instant and should not be sold as such.
 
+### `/admin/*` takes two credentials, and they are not equivalent
+
+Since S3c every admin request needs one of:
+
+| Credential | Scope | How it names an organization |
+| --- | --- | --- |
+| `X-Admin-Token` | root — every app | must pass `organizationId` explicitly |
+| A signed-in session | that user's one organization | derived; naming a *different* one is `403` |
+
+A token belongs to no organization, so it cannot have an active one — that
+asymmetry is the whole reason the two paths differ. No handler branches on
+which credential arrived; each consumes a resolved organization id. (Three
+handlers still call the resolver themselves, because one reads the explicit
+id from a JSON body and the others from the query string. Hoisting that into
+the dispatcher is a follow-up.)
+
+**A session's `activeOrganizationId` is a hint, not a grant.** Authorization
+checks the `member` table on every request. better-auth does not keep that
+column in sync with membership: `remove-member` clears it only when the
+remover *is* the removed user, and `leave-organization` clears it only for the
+current session token. Trusting the column would let a removed member keep
+committing to the org's apps until their cookie expired.
+
+Two consequences worth stating plainly:
+
+- **No credential is `401`, whatever the config says.** Before S3c an unset
+  `ADMIN_TOKEN` meant the gate returned "allowed" — a factory deployed
+  without that secret had a fully open admin surface. A missing secret must
+  never be the thing that grants access. Local development sets
+  `ADMIN_TOKEN` in `.dev.vars` like any other secret.
+- **`/a/:appId/*` is deliberately *not* covered.** That route serves a
+  generated app to its own end users, who are not factory users and have no
+  factory organization; scoping it by factory tenancy would be a category
+  error. Its access control is the app's own better-auth, and app ids are
+  unguessable ULIDs rather than names.
+
+App-scoped admin routes (`/admin/apps/:id/…`) check registry ownership
+*before* touching the Durable Object, so a cross-tenant commit or SQL call
+never reaches another tenant's app at all.
+
 ### `apps/lint` is at ~91% of the Worker size ceiling
 
 Gzipped bundle sizes, against Cloudflare's **10 MB** Paid-plan limit (Free
