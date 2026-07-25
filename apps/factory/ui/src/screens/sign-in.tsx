@@ -1,4 +1,19 @@
+import { BoxesIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Separator,
+} from "@/components/ui";
 import type { AuthConfig } from "../api";
 import { fetchAuthConfig } from "../api";
 import { authClient } from "../auth-client";
@@ -41,20 +56,20 @@ export function SignInScreen() {
 
   if (sessionPending || !(config || configError)) {
     return (
-      <Shell>
-        <p className="text-[var(--muted-foreground)]">Loading…</p>
-      </Shell>
+      <AuthShell>
+        <p className="text-center text-muted-foreground text-sm">Loading…</p>
+      </AuthShell>
     );
   }
 
   if (configError) {
     return (
-      <Shell>
-        <p className="text-[var(--danger)]">Could not load sign-in config.</p>
-        <p className="mt-2 text-[var(--muted-foreground)] text-sm">
-          {configError}
-        </p>
-      </Shell>
+      <AuthShell>
+        <Alert variant="destructive">
+          <AlertTitle>Could not load sign-in config.</AlertTitle>
+          <AlertDescription>{configError}</AlertDescription>
+        </Alert>
+      </AuthShell>
     );
   }
 
@@ -63,22 +78,28 @@ export function SignInScreen() {
   }
 
   return (
-    <Shell>
-      {/* Heading follows the form below it — a "Sign in" title over a
-          create-account form misnames what the button will do. */}
-      <h1 className="m-0 font-semibold text-2xl tracking-tight">
-        {mode === "signup" ? "Create account" : "Sign in"}
-      </h1>
-      <p className="mt-2 text-[var(--muted-foreground)] text-sm">
-        Factory console — manage apps for your organization.
-      </p>
-      <SignInBody
-        config={config}
-        mode={mode}
-        onSignedIn={() => navigate({ name: "apps" }, true)}
-        setMode={setMode}
-      />
-    </Shell>
+    <AuthShell>
+      <Card>
+        {/* Heading follows the form below it — a "Sign in" title over a
+            create-account form misnames what the button will do. */}
+        <CardHeader>
+          <CardTitle>
+            {mode === "signup" ? "Create account" : "Sign in"}
+          </CardTitle>
+          <CardDescription>
+            Factory console — manage apps for your organization.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SignInBody
+            config={config}
+            mode={mode}
+            onSignedIn={() => navigate({ name: "apps" }, true)}
+            setMode={setMode}
+          />
+        </CardContent>
+      </Card>
+    </AuthShell>
   );
 }
 
@@ -141,51 +162,60 @@ function SignInBody({
   }
 
   return (
-    <div className="mt-8 flex max-w-sm flex-col gap-4">
+    <div className="flex flex-col gap-4">
       {config.githubAuth ? (
-        <button
+        <Button
           type="button"
+          variant="outline"
+          className="w-full"
           disabled={busy}
           onClick={onGitHub}
-          className="border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-left hover:border-[var(--ink)] disabled:opacity-50"
         >
           Continue with GitHub
-        </button>
+        </Button>
       ) : null}
 
       {config.passwordAuth && config.githubAuth ? (
-        <p className="m-0 text-center text-[var(--muted-foreground)] text-xs">
-          or
-        </p>
+        <div className="relative py-1">
+          <div className="absolute inset-0 flex items-center">
+            <Separator />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-card px-2 text-muted-foreground">or</span>
+          </div>
+        </div>
       ) : null}
 
       {config.passwordAuth ? (
-        <form onSubmit={onSubmit} className="flex flex-col gap-3">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
           {mode === "signup" ? (
-            <label className="flex flex-col gap-1 text-sm">
-              Name
-              <input
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="auth-name">Name</Label>
+              <Input
+                id="auth-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoComplete="name"
-                className="border border-[var(--line)] bg-white px-2 py-1.5"
+                placeholder="Ana Torres"
               />
-            </label>
+            </div>
           ) : null}
-          <label className="flex flex-col gap-1 text-sm">
-            Email
-            <input
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="auth-email">Email</Label>
+            <Input
+              id="auth-email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              className="border border-[var(--line)] bg-white px-2 py-1.5"
+              placeholder="you@example.com"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Password
-            <input
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="auth-password">Password</Label>
+            <Input
+              id="auth-password"
               type="password"
               required
               value={password}
@@ -193,39 +223,41 @@ function SignInBody({
               autoComplete={
                 mode === "signup" ? "new-password" : "current-password"
               }
-              className="border border-[var(--line)] bg-white px-2 py-1.5"
             />
-          </label>
-          <button
-            type="submit"
-            disabled={busy}
-            className="border border-[var(--ink)] bg-[var(--ink)] px-3 py-2 text-white disabled:opacity-50"
-          >
+          </div>
+          <Button type="submit" className="w-full" disabled={busy}>
             {submitLabel(busy, mode)}
-          </button>
+          </Button>
           {/* Hidden, not disabled, when registration is closed: the sign-up
               request would fail at the end of a form the user already filled
               in, and `EMAIL_PASSWORD_SIGN_UP_DISABLED` does not explain why. */}
           {config.signUpOpen ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                setMode(mode === "signin" ? "signup" : "signin");
-                setError(null);
-              }}
-              className="border-0 bg-transparent p-0 text-left text-[var(--brand)] text-sm underline"
-            >
+            <p className="text-center text-muted-foreground text-sm">
               {mode === "signin"
-                ? "Need an account? Sign up"
-                : "Already have an account? Sign in"}
-            </button>
+                ? "Need an account? "
+                : "Already have an account? "}
+              <Button
+                type="button"
+                variant="link"
+                disabled={busy}
+                className="h-auto p-0 text-brand"
+                onClick={() => {
+                  setMode(mode === "signin" ? "signup" : "signin");
+                  setError(null);
+                }}
+              >
+                {mode === "signin" ? "Sign up" : "Sign in"}
+              </Button>
+            </p>
           ) : null}
         </form>
       ) : null}
 
       {error ? (
-        <p className="m-0 text-[var(--danger)] text-sm">{error}</p>
+        <Alert variant="destructive">
+          <AlertTitle>Something went wrong</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
     </div>
   );
@@ -252,16 +284,16 @@ async function runPasswordAuth(
 
 function NoAuthConfigured() {
   return (
-    <div className="mt-8 border border-[var(--danger)] bg-[#fff5f5] p-4">
-      <p className="m-0 font-medium text-[var(--danger)]">
-        No sign-in method configured on this deploy
-      </p>
-      <p className="mt-2 mb-0 text-[var(--muted-foreground)] text-sm">
-        Set <code>PASSWORD_AUTH=true</code> (local) and/or both{" "}
-        <code>GITHUB_CLIENT_ID</code> and <code>GITHUB_CLIENT_SECRET</code>{" "}
-        (production). Until then there is no way to authenticate.
-      </p>
-    </div>
+    <Alert variant="destructive">
+      <AlertTitle>No sign-in method configured on this deploy</AlertTitle>
+      <AlertDescription>
+        <p>
+          Set <code>PASSWORD_AUTH=true</code> (local) and/or both{" "}
+          <code>GITHUB_CLIENT_ID</code> and <code>GITHUB_CLIENT_SECRET</code>{" "}
+          (production). Until then there is no way to authenticate.
+        </p>
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -272,13 +304,16 @@ function submitLabel(busy: boolean, mode: AuthMode): string {
   return mode === "signup" ? "Create account" : "Sign in";
 }
 
-function Shell({ children }: { children: ReactNode }) {
+function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto max-w-lg px-6 py-16">
-      <p className="m-0 mb-8 font-medium text-[var(--muted-foreground)] text-sm uppercase tracking-wide">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted/40 p-6">
+      <div className="flex items-center gap-2 font-semibold text-lg">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <BoxesIcon className="size-5" />
+        </div>
         sfab-lite
-      </p>
-      {children}
-    </main>
+      </div>
+      <div className="w-full max-w-sm">{children}</div>
+    </div>
   );
 }
