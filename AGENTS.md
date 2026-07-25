@@ -18,7 +18,7 @@ factory tooling. Architecture:
 
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
-`pnpm check:cycles`, `pnpm check:dead-code`.
+`pnpm check:cycles`, `pnpm check:dead-code`, `pnpm check:seed`.
 
 `check:app-lint` is the odd one: it checks `packages/template/app/src` —
 the seed payload — against `packages/core/app-biome.json`, the config the
@@ -30,6 +30,12 @@ freshly seeded app from lighting up on code its owner never touched.
 `check:kernel` rebuilds `@sfab-lite/kernel` from its isolated
 `packages/kernel/universe` install and fails if committed vendor /
 generated / `kernel.json` artifacts drift.
+
+`check:seed` is the same idea for `apps/factory/src/generated/seed.json`:
+re-runs the template pack and fails if the committed seed no longer matches
+`packages/template/app/src`. The seed is a bundle constant because the host
+Worker has no filesystem, so editing the template without re-baking would
+leave every other gate green while the factory kept seeding the old source.
 
 ## Layout
 
