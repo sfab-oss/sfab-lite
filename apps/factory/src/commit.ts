@@ -148,26 +148,72 @@ async function callLint(
   return { http: res.status, wallMs: Date.now() - t0, body };
 }
 
+/**
+ * Total attempts against the check worker, including the first.
+ *
+ * A full TypeScript program over the frozen types VFS sits right at the edge of
+ * a Worker isolate's 128 MB, so the check worker dies with `exceededMemory` on
+ * roughly half of all requests — measured, see `S3.5` and
+ * `apps/check/scripts/measure-split.mjs`. That is a property of the template's
+ * dependency graph (drizzle-orm, better-auth and zod together account for ~550
+ * of the 877 `.d.ts` files the program loads), not of any app's code, so no
+ * app can avoid it and no retry count fixes it in principle.
+ *
+ * Four attempts takes first-try success from ~50% to ~94% while costing a
+ * failing create ~45 s in the worst case. This is a **mitigation, not a fix**:
+ * the real options are shrinking the app's type surface or checking somewhere
+ * with more memory than a Worker isolate.
+ */
+const CHECK_ATTEMPTS = 4;
+/** Let the replacement isolate cold-start rather than racing the dead one. */
+const CHECK_RETRY_DELAY_MS = 1500;
+
+/**
+ * An `exceededMemory` kill surfaces as the service binding *throwing*, not as
+ * an HTTP status — the isolate dies mid-response. An error status, by contrast,
+ * is the check worker answering, so it is a real result and never retried.
+ */
 export async function callCheck(
   env: Env,
   appId: string,
   files: Record<string, string>,
   forceCold = false
-): Promise<{ http: number; wallMs: number; body: CheckResult | null }> {
+): Promise<{
+  http: number;
+  wallMs: number;
+  body: CheckResult | null;
+  attempts: number;
+}> {
   const t0 = Date.now();
-  const res = await env.CHECK.fetch(
-    new Request("https://check-worker/check", {
-      method: "POST",
-      headers: serviceHeaders(env),
-      body: JSON.stringify({
-        appId,
-        files,
-        forceCold,
-      }),
-    })
-  );
-  const body = (await res.json().catch(() => null)) as CheckResult | null;
-  return { http: res.status, wallMs: Date.now() - t0, body };
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= CHECK_ATTEMPTS; attempt++) {
+    try {
+      const res = await env.CHECK.fetch(
+        new Request("https://check-worker/check", {
+          method: "POST",
+          headers: serviceHeaders(env),
+          body: JSON.stringify({ appId, files, forceCold }),
+        })
+      );
+      const body = (await res.json().catch(() => null)) as CheckResult | null;
+      return {
+        http: res.status,
+        wallMs: Date.now() - t0,
+        body,
+        attempts: attempt,
+      };
+    } catch (e) {
+      lastError = e;
+      if (attempt < CHECK_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, CHECK_RETRY_DELAY_MS));
+      }
+    }
+  }
+
+  // Rethrow so the caller still records `attempt_crashed` with the real
+  // message. Swallowing this would turn a systemic limit into silent slowness.
+  throw lastError;
 }
 
 async function compileAll(files: Record<string, string>) {
@@ -243,6 +289,7 @@ export async function runCommitAttempt(
         error: "check_failed",
         checkHttp: check.http,
         checkWallMs: check.wallMs,
+        checkAttempts: check.attempts,
         check: check.body,
         publishGate: false,
         totalMs: Date.now() - tAll0,
@@ -274,6 +321,9 @@ export async function runCommitAttempt(
         checkWallMs: check.wallMs,
         checkMs: check.body?.checkMs ?? null,
         checkPass: check.body?.pass ?? null,
+        // >1 means the check worker died and was retried. Recorded so the OOM
+        // rate stays visible instead of hiding inside a longer commit.
+        checkAttempts: check.attempts,
         lsReused: check.body?.lsReused ?? null,
         compileMs: compiled.compiled.compileMs,
         clientCompileMs: compiled.client.compileMs,
