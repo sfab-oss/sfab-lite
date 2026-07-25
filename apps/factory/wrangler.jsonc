@@ -10,6 +10,21 @@
   "limits": {
     "cpu_ms": 300000
   },
+  // The factory's own D1 — auth, organizations, app registry. Exists because
+  // Durable Objects cannot be enumerated (`src/env.d.ts`). No app data here.
+  //
+  // `database_id` is a PLACEHOLDER. Creating the real database is an owner
+  // action (`wrangler d1 create sfab-lite-factory`), so it is deliberately not
+  // done here — local `wrangler dev` and `--dry-run` do not need a real id, a
+  // deploy does. Replace this before the first deploy that includes D1.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sfab-lite-factory",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {

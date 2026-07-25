@@ -7,8 +7,10 @@
  * commit costs 10–24s in production (measured, S2.5).
  *
  * `POST .../commit` and `POST /admin/apps` return `202` with an `attemptId`;
- * poll `GET .../attempts/:attemptId`. Revert stays synchronous — it restores
- * an already-checked version, so there is nothing to wait for.
+ * poll `GET .../attempts/:attemptId`. Create also writes a D1 registry row
+ * (`creating` → `ready`|`failed`) so apps are enumerable. Revert stays
+ * synchronous — it restores an already-checked version, so there is nothing
+ * to wait for.
  *
  * Admin: ungated when ADMIN_TOKEN unset (local). When set, every
  * `/admin/*` requires matching X-Admin-Token.
@@ -21,10 +23,22 @@ import type {
   PutVersionInput,
   VersionRecord,
 } from "./app-do.js";
+import { createAuth, passwordAuthEnabled } from "./auth.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
+import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
+import type { AttemptResolver } from "./registry.js";
+import {
+  getApp,
+  insertCreatingApp,
+  listAppsForOrganization,
+  markCreateFailed,
+  organizationExists,
+  setCreateAttemptId,
+  settleCreateApp,
+} from "./registry.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
@@ -264,7 +278,7 @@ async function runCommitAttempt(
   files: Record<string, string>,
   parentId: string | null,
   opts?: { forceColdCheck?: boolean }
-): Promise<void> {
+): Promise<"pass" | "fail" | "error"> {
   const stub = appStub(env, appId);
   const tAll0 = Date.now();
 
@@ -277,7 +291,7 @@ async function runCommitAttempt(
         lintWallMs: lint.wallMs,
         lint: lint.body,
       });
-      return;
+      return "error";
     }
 
     let compiled: Awaited<ReturnType<typeof compileAll>>;
@@ -289,7 +303,7 @@ async function runCommitAttempt(
         message: e instanceof Error ? e.message : String(e),
         stack: e instanceof Error ? e.stack : undefined,
       });
-      return;
+      return "error";
     }
 
     const check = await callCheck(
@@ -307,7 +321,7 @@ async function runCommitAttempt(
         publishGate: false,
         totalMs: Date.now() - tAll0,
       });
-      return;
+      return "fail";
     }
 
     const lintDiagCount = (lint.body?.files ?? []).reduce(
@@ -348,6 +362,7 @@ async function runCommitAttempt(
         warnings: compiled.compiled.warnings,
       }
     );
+    return "pass";
   } catch (e) {
     // Last resort. If even this write fails there is nothing left to record
     // with — the stale sweep in the AppDO is the backstop for that case.
@@ -358,6 +373,7 @@ async function runCommitAttempt(
         totalMs: Date.now() - tAll0,
       })
       .catch(() => undefined);
+    return "error";
   }
 }
 
@@ -368,6 +384,45 @@ async function runCommitAttempt(
  * production, S2.5). The guarantee is unchanged — check is still the gate and
  * no version exists without a pass. Only the waiting moved off the request.
  */
+/**
+ * The accepted-attempt contract, in one place.
+ *
+ * Two callers enqueue work — an ordinary commit and app creation — and their
+ * orchestration legitimately differs, since creation also has a D1 row to
+ * settle. Their contract must not differ: a client polls a create exactly the
+ * way it polls a commit. So the 202 shape and the poll URL live here rather
+ * than being written out at each call site, where they could quietly drift.
+ */
+function attemptAccepted(
+  appId: string,
+  kind: AttemptKind,
+  attemptId: string,
+  parentId: string | null,
+  extra?: Record<string, unknown>
+): Response {
+  return Response.json(
+    {
+      ok: true,
+      appId,
+      kind,
+      attemptId,
+      parentId,
+      status: "pending",
+      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${attemptId}`,
+      ...extra,
+    },
+    { status: 202 }
+  );
+}
+
+/** The refusal half of the same contract — see `AppDO.startAttempt`. */
+function attemptConflict(appId: string, attemptId: string): Response {
+  return Response.json(
+    { ok: false, error: "attempt_in_flight", appId, attemptId },
+    { status: 409 }
+  );
+}
+
 async function enqueueCommit(
   env: Env,
   ctx: ExecutionContext,
@@ -379,28 +434,14 @@ async function enqueueCommit(
 ): Promise<Response> {
   const start = await appStub(env, appId).startAttempt(kind, parentId);
   if (!start.ok) {
-    return Response.json(
-      { ok: false, error: start.error, appId, attemptId: start.attemptId },
-      { status: 409 }
-    );
+    return attemptConflict(appId, start.attemptId);
   }
 
   ctx.waitUntil(
     runCommitAttempt(env, appId, start.attemptId, files, parentId, opts)
   );
 
-  return Response.json(
-    {
-      ok: true,
-      appId,
-      kind,
-      attemptId: start.attemptId,
-      parentId,
-      status: "pending",
-      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${start.attemptId}`,
-    },
-    { status: 202 }
-  );
+  return attemptAccepted(appId, kind, start.attemptId, parentId);
 }
 
 // --- Module-scope route patterns (compiled once) ---
@@ -440,41 +481,129 @@ function methodMatches(
   return allowed.includes(method);
 }
 
+/**
+ * Create an app: D1 row first (`creating`), then bootstrap + async seed.
+ *
+ * App ids are server-minted (`app_…`). The old caller-supplied id path also
+ * returned `alreadySeeded: true` on collision — with owning organizations that
+ * was a tenancy hole (silently attach to whoever already held the name). Gone.
+ *
+ * `organizationId` is request input today — the session swap point. When auth
+ * lands, read `session.activeOrganizationId` here instead of the body and
+ * leave `registry.ts` alone.
+ */
 async function handleCreateApp(rc: RouteCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
-    appId?: string;
+    organizationId?: string;
+    name?: string;
   } | null;
-  const appId = body?.appId?.trim();
-  if (!appId) {
-    return jsonError("appId required");
+  const organizationId = body?.organizationId?.trim();
+  const name = body?.name?.trim();
+  if (!organizationId) {
+    return jsonError("organizationId required");
+  }
+  if (!name) {
+    return jsonError("name required");
   }
 
+  const db = createDb(rc.env);
+  if (!(await organizationExists(db, organizationId))) {
+    return jsonError("organization_not_found", 404);
+  }
+
+  // Row before DO work: the UI needs something to poll during the ~18–25s seed.
+  const created = await insertCreatingApp(db, { organizationId, name });
+  const appId = created.id;
   const stub = appStub(rc.env, appId);
-  await stub.bootstrap(TEMPLATE_SEED.migrations);
-  const live = await stub.getLive();
-  if (live.liveVersionId) {
-    const touch = await stub.touch();
-    return Response.json({
-      ok: true,
-      appId,
-      alreadySeeded: true,
-      liveVersionId: live.liveVersionId,
-      touch,
-    });
+
+  try {
+    await stub.bootstrap(TEMPLATE_SEED.migrations);
+  } catch (e) {
+    await markCreateFailed(db, appId);
+    return jsonError(e instanceof Error ? e.message : "bootstrap_failed", 500);
   }
 
-  // Creation *is* a commit — the seed goes through the same gate — so it gets
-  // the same attempt and the same 202. Cold create measured 18.5s in
-  // production (S2.5); holding the request open for it was the worst case.
-  return enqueueCommit(
-    rc.env,
-    rc.ctx,
-    appId,
-    "create",
-    TEMPLATE_SEED.sourceFiles,
-    null,
-    { forceColdCheck: true }
+  // Creation *is* a commit — same gate, same 202 — but the registry must
+  // settle when the attempt does. That transition lives in the waitUntil
+  // chain below (not inside `runCommitAttempt`) so ordinary commits stay
+  // unaware of D1.
+  const start = await stub.startAttempt("create", null);
+  if (!start.ok) {
+    await markCreateFailed(db, appId);
+    return attemptConflict(appId, start.attemptId);
+  }
+
+  await setCreateAttemptId(db, appId, start.attemptId);
+
+  rc.ctx.waitUntil(
+    (async () => {
+      const status = await runCommitAttempt(
+        rc.env,
+        appId,
+        start.attemptId,
+        TEMPLATE_SEED.sourceFiles,
+        null,
+        { forceColdCheck: true }
+      );
+      await settleCreateApp(createDb(rc.env), appId, status);
+    })()
   );
+
+  return attemptAccepted(appId, "create", start.attemptId, null, {
+    organizationId,
+    name,
+    appStatus: "creating",
+  });
+}
+
+/**
+ * How the registry asks the AppDO what really happened to a seed attempt.
+ * Passed in rather than imported by `registry.ts`, which must not reach into
+ * the host worker's plumbing.
+ */
+function attemptResolver(env: Env): AttemptResolver {
+  return async (appId, attemptId) => {
+    const { attempt } = await appStub(env, appId).getAttempt(attemptId);
+    return attempt ? attempt.status : "missing";
+  };
+}
+
+async function handleListApps(rc: RouteCtx): Promise<Response> {
+  // Session swap point (list): `organizationId` query → active org on session.
+  const organizationId = rc.url.searchParams.get("organizationId")?.trim();
+  if (!organizationId) {
+    return jsonError("organizationId required");
+  }
+  const db = createDb(rc.env);
+  if (!(await organizationExists(db, organizationId))) {
+    return jsonError("organization_not_found", 404);
+  }
+  const apps = await listAppsForOrganization(
+    db,
+    organizationId,
+    attemptResolver(rc.env)
+  );
+  return Response.json({ ok: true, organizationId, apps });
+}
+
+async function handleGetApp(rc: RouteCtx): Promise<Response> {
+  // Session swap point (get): `organizationId` query → active org on session.
+  const organizationId = rc.url.searchParams.get("organizationId")?.trim();
+  if (!organizationId) {
+    return jsonError("organizationId required");
+  }
+  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const record = await getApp(
+    createDb(rc.env),
+    organizationId,
+    appId,
+    attemptResolver(rc.env)
+  );
+  if (!record) {
+    // Deliberately the same answer for "no such app" and "not your app".
+    return jsonError("app_not_found", 404);
+  }
+  return Response.json({ ok: true, app: record });
 }
 
 async function handleTouch(rc: RouteCtx): Promise<Response> {
@@ -603,19 +732,40 @@ async function handleRevert(rc: RouteCtx): Promise<Response> {
   return Response.json({ appId, action: "revert", ...result });
 }
 
-function handleHealth(_rc: RouteCtx): Response {
+function handleHealth(rc: RouteCtx): Response {
   return Response.json({
     ok: true,
     service: "sfab-lite-factory",
     phase: "s2d",
     bindings: {
-      check: Boolean(_rc.env.CHECK),
-      lint: Boolean(_rc.env.LINT),
-      loader: Boolean(_rc.env.LOADER),
+      check: Boolean(rc.env.CHECK),
+      lint: Boolean(rc.env.LINT),
+      loader: Boolean(rc.env.LOADER),
     },
     seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
     seedMigrations: TEMPLATE_SEED.migrations.length,
+    // better-auth does not unregister email/password routes when disabled —
+    // it returns 400 at handler entry — so a UI cannot probe for a 404 and
+    // must be told the flag by the server.
+    passwordAuth: passwordAuthEnabled(rc.env),
   });
+}
+
+/**
+ * Public factory config for the sign-in UI. Unauthenticated on purpose:
+ * better-auth does not unregister email/password routes when disabled — it
+ * returns 400 at handler entry — so a UI cannot probe for a 404 and must be
+ * told the flag by the server. Do not re-read env client-side.
+ */
+function handleApiConfig(rc: RouteCtx): Response {
+  return Response.json({
+    passwordAuth: passwordAuthEnabled(rc.env),
+  });
+}
+
+function handleAuth(rc: RouteCtx): Promise<Response> | Response {
+  const auth = createAuth(rc.env, rc.url.origin);
+  return auth.handler(rc.request);
 }
 
 function handleKernel(rc: RouteCtx): Response {
@@ -635,10 +785,16 @@ function handleSubApp(rc: RouteCtx): Promise<Response> {
   return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, mode);
 }
 
+const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
+
 const ROUTES: Route[] = [
   { method: "GET", pattern: /^\/admin\/health$/, handler: handleHealth },
+  // Public — must stay outside the /admin token gate (see fetch below).
+  { method: "GET", pattern: /^\/api\/config$/, handler: handleApiConfig },
+  { method: "*", pattern: /^\/api\/auth(?:\/.*)?$/, handler: handleAuth },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
+  { method: "GET", pattern: /^\/admin\/apps$/, handler: handleListApps },
   { method: "POST", pattern: /^\/admin\/apps$/, handler: handleCreateApp },
   { method: "GET", pattern: RE_ADMIN_TOUCH, handler: handleTouch },
   { method: "POST", pattern: RE_ADMIN_SQL, handler: handleSql },
@@ -648,6 +804,8 @@ const ROUTES: Route[] = [
   { method: "POST", pattern: RE_ADMIN_CHECK, handler: handleCheck },
   { method: "POST", pattern: RE_ADMIN_COMMIT, handler: handleCommit },
   { method: "POST", pattern: RE_ADMIN_REVERT, handler: handleRevert },
+  // After `/admin/apps/:id/…` routes so a looser pattern cannot steal them.
+  { method: "GET", pattern: RE_ADMIN_APP, handler: handleGetApp },
 ];
 
 function matchRoute(

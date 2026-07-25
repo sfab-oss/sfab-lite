@@ -107,10 +107,15 @@ async function serveApiRoute(
   publicBase: string,
   mode: ServeMode
 ): Promise<Response> {
-  const secret = env.BETTER_AUTH_SECRET;
+  // `APP_BETTER_AUTH_SECRET` on the host, injected into the sub-app as plain
+  // `BETTER_AUTH_SECRET` below. The host now runs better-auth for the factory
+  // itself, so the unqualified name belongs to the factory — per GLOSSARY.md,
+  // factory terms go unqualified and app-side ones take the `app` qualifier.
+  // The sub-app's own variable name is unchanged; only the host binding moved.
+  const secret = env.APP_BETTER_AUTH_SECRET;
   if (!secret) {
     return Response.json(
-      { ok: false, error: "BETTER_AUTH_SECRET missing on host" },
+      { ok: false, error: "APP_BETTER_AUTH_SECRET missing on host" },
       { status: 500 }
     );
   }

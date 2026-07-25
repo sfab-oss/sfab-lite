@@ -107,8 +107,13 @@ CREATE INDEX IF NOT EXISTS _sfab_commit_attempts_status
  * attempt pending forever, and the one-in-flight rule would lock the app out
  * of committing. Five minutes is the factory's `limits.cpu_ms` ceiling
  * (`wrangler.jsonc`) — past it the work provably cannot still be running.
+ *
+ * Exported so the app registry can reuse the same ceiling for stale
+ * `creating` rows (same cause: a dropped `waitUntil` between the D1 insert
+ * and a terminal attempt status). Two timeouts for one failure mode would
+ * drift.
  */
-const STALE_ATTEMPT_MS = 5 * 60_000;
+export const STALE_ATTEMPT_MS = 5 * 60_000;
 
 export type AttemptKind = "create" | "commit" | "revert";
 type AttemptStatus = "pending" | "pass" | "fail" | "error";
