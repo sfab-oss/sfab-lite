@@ -12,10 +12,10 @@ declare global {
 /**
  * Where this app is mounted, or `undefined` when it owns the origin.
  *
- * Everything that builds a URL — the API client and the auth client — reads
- * it from here, so the app works unchanged whether it is served standalone
- * or under a prefix. Do not hardcode absolute `/api/...` strings: they are
- * correct standalone and wrong under a prefix.
+ * Everything that builds a URL — the API client, the auth client, and the
+ * router `basepath` — reads it from here, so the app works unchanged whether
+ * it is served standalone or under a prefix. Do not hardcode absolute
+ * `/api/...` strings: they are correct standalone and wrong under a prefix.
  */
 export const publicBase =
   typeof window === "undefined" ? undefined : window.__SFAB_PUBLIC_BASE__;
