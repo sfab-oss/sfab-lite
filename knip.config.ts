@@ -17,9 +17,7 @@ const config: KnipConfig = {
       entry: ["src/index.ts", "scripts/*.mjs"],
       project: ["src/**/*.ts", "scripts/**/*.mjs"],
       // `cloudflare:workers` is a workerd built-in, not an npm package.
-      // `better-auth` is used by S3a (factory auth); kept here so both
-      // parallel branches share one package.json until the manager merges.
-      ignoreDependencies: ["cloudflare", "better-auth"],
+      ignoreDependencies: ["cloudflare"],
     },
     "apps/check": {
       project: ["src/**/*.ts"],

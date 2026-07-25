@@ -277,7 +277,7 @@ async function runCommitAttempt(
   files: Record<string, string>,
   parentId: string | null,
   opts?: { forceColdCheck?: boolean }
-): Promise<void> {
+): Promise<"pass" | "fail" | "error"> {
   const stub = appStub(env, appId);
   const tAll0 = Date.now();
 
@@ -290,7 +290,7 @@ async function runCommitAttempt(
         lintWallMs: lint.wallMs,
         lint: lint.body,
       });
-      return;
+      return "error";
     }
 
     let compiled: Awaited<ReturnType<typeof compileAll>>;
@@ -302,7 +302,7 @@ async function runCommitAttempt(
         message: e instanceof Error ? e.message : String(e),
         stack: e instanceof Error ? e.stack : undefined,
       });
-      return;
+      return "error";
     }
 
     const check = await callCheck(
@@ -320,7 +320,7 @@ async function runCommitAttempt(
         publishGate: false,
         totalMs: Date.now() - tAll0,
       });
-      return;
+      return "fail";
     }
 
     const lintDiagCount = (lint.body?.files ?? []).reduce(
@@ -361,6 +361,7 @@ async function runCommitAttempt(
         warnings: compiled.compiled.warnings,
       }
     );
+    return "pass";
   } catch (e) {
     // Last resort. If even this write fails there is nothing left to record
     // with — the stale sweep in the AppDO is the backstop for that case.
@@ -371,6 +372,7 @@ async function runCommitAttempt(
         totalMs: Date.now() - tAll0,
       })
       .catch(() => undefined);
+    return "error";
   }
 }
 
@@ -381,6 +383,45 @@ async function runCommitAttempt(
  * production, S2.5). The guarantee is unchanged — check is still the gate and
  * no version exists without a pass. Only the waiting moved off the request.
  */
+/**
+ * The accepted-attempt contract, in one place.
+ *
+ * Two callers enqueue work — an ordinary commit and app creation — and their
+ * orchestration legitimately differs, since creation also has a D1 row to
+ * settle. Their contract must not differ: a client polls a create exactly the
+ * way it polls a commit. So the 202 shape and the poll URL live here rather
+ * than being written out at each call site, where they could quietly drift.
+ */
+function attemptAccepted(
+  appId: string,
+  kind: AttemptKind,
+  attemptId: string,
+  parentId: string | null,
+  extra?: Record<string, unknown>
+): Response {
+  return Response.json(
+    {
+      ok: true,
+      appId,
+      kind,
+      attemptId,
+      parentId,
+      status: "pending",
+      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${attemptId}`,
+      ...extra,
+    },
+    { status: 202 }
+  );
+}
+
+/** The refusal half of the same contract — see `AppDO.startAttempt`. */
+function attemptConflict(appId: string, attemptId: string): Response {
+  return Response.json(
+    { ok: false, error: "attempt_in_flight", appId, attemptId },
+    { status: 409 }
+  );
+}
+
 async function enqueueCommit(
   env: Env,
   ctx: ExecutionContext,
@@ -392,28 +433,14 @@ async function enqueueCommit(
 ): Promise<Response> {
   const start = await appStub(env, appId).startAttempt(kind, parentId);
   if (!start.ok) {
-    return Response.json(
-      { ok: false, error: start.error, appId, attemptId: start.attemptId },
-      { status: 409 }
-    );
+    return attemptConflict(appId, start.attemptId);
   }
 
   ctx.waitUntil(
     runCommitAttempt(env, appId, start.attemptId, files, parentId, opts)
   );
 
-  return Response.json(
-    {
-      ok: true,
-      appId,
-      kind,
-      attemptId: start.attemptId,
-      parentId,
-      status: "pending",
-      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${start.attemptId}`,
-    },
-    { status: 202 }
-  );
+  return attemptAccepted(appId, kind, start.attemptId, parentId);
 }
 
 // --- Module-scope route patterns (compiled once) ---
@@ -502,22 +529,14 @@ async function handleCreateApp(rc: RouteCtx): Promise<Response> {
   const start = await stub.startAttempt("create", null);
   if (!start.ok) {
     await markCreateFailed(db, appId);
-    return Response.json(
-      {
-        ok: false,
-        error: start.error,
-        appId,
-        attemptId: start.attemptId,
-      },
-      { status: 409 }
-    );
+    return attemptConflict(appId, start.attemptId);
   }
 
   await setCreateAttemptId(db, appId, start.attemptId);
 
   rc.ctx.waitUntil(
     (async () => {
-      await runCommitAttempt(
+      const status = await runCommitAttempt(
         rc.env,
         appId,
         start.attemptId,
@@ -525,32 +544,15 @@ async function handleCreateApp(rc: RouteCtx): Promise<Response> {
         null,
         { forceColdCheck: true }
       );
-      const { attempt } = await stub.getAttempt(start.attemptId);
-      if (
-        attempt &&
-        (attempt.status === "pass" ||
-          attempt.status === "fail" ||
-          attempt.status === "error")
-      ) {
-        await settleCreateApp(createDb(rc.env), appId, attempt.status);
-      }
+      await settleCreateApp(createDb(rc.env), appId, status);
     })()
   );
 
-  return Response.json(
-    {
-      ok: true,
-      appId,
-      organizationId,
-      name,
-      kind: "create",
-      attemptId: start.attemptId,
-      status: "pending",
-      appStatus: "creating",
-      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${start.attemptId}`,
-    },
-    { status: 202 }
-  );
+  return attemptAccepted(appId, "create", start.attemptId, null, {
+    organizationId,
+    name,
+    appStatus: "creating",
+  });
 }
 
 async function handleListApps(rc: RouteCtx): Promise<Response> {
@@ -568,9 +570,15 @@ async function handleListApps(rc: RouteCtx): Promise<Response> {
 }
 
 async function handleGetApp(rc: RouteCtx): Promise<Response> {
+  // Session swap point (get): `organizationId` query → active org on session.
+  const organizationId = rc.url.searchParams.get("organizationId")?.trim();
+  if (!organizationId) {
+    return jsonError("organizationId required");
+  }
   const appId = decodeURIComponent(rc.match[1] ?? "");
-  const record = await getApp(createDb(rc.env), appId);
+  const record = await getApp(createDb(rc.env), organizationId, appId);
   if (!record) {
+    // Deliberately the same answer for "no such app" and "not your app".
     return jsonError("app_not_found", 404);
   }
   return Response.json({ ok: true, app: record });

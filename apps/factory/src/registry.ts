@@ -157,10 +157,23 @@ export async function listAppsForOrganization(
   return rows.map(toRecord);
 }
 
-export async function getApp(db: Db, appId: string): Promise<AppRecord | null> {
+/**
+ * Fetch one app **within an organization**.
+ *
+ * Scoped deliberately. Looking up by id alone would return any tenant's row
+ * to anyone holding an id, and since `organizationId` is designed to become
+ * `session.activeOrganizationId` in a one-line change, an unscoped lookup
+ * would turn into a cross-tenant read the moment auth lands — silently, with
+ * no diff to notice. Absent and not-yours are the same answer here.
+ */
+export async function getApp(
+  db: Db,
+  organizationId: string,
+  appId: string
+): Promise<AppRecord | null> {
   await sweepStaleCreating(db);
   const row = await db.query.app.findFirst({
-    where: eq(app.id, appId),
+    where: and(eq(app.id, appId), eq(app.organizationId, organizationId)),
   });
   return row ? toRecord(row) : null;
 }
