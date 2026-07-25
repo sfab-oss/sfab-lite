@@ -11,6 +11,17 @@
  *
  * Files present after rebuild but absent from the index are an explicit
  * failure (newly added artifacts must be staged), not a silent match.
+ *
+ * `kernel.json` (and its `vendor/manifest.json` duplicate, and the
+ * `TYPES_VFS_MANIFEST` tail of `src/generated/types-vfs.js`) embed gzip
+ * byte counts from `gzipSync()`. gzip is not a content-addressed format —
+ * different zlib builds can compress the same bytes to a different-size
+ * (and different-hash) stream — so those fields are scrubbed to a fixed
+ * placeholder before anything is hashed or compared here. They stay in the
+ * committed artifacts (apps/check reads one at runtime for its health
+ * endpoint) and are printed below on every run; they just never gate this
+ * check. rawBytes and every hash in these files are plain byte lengths /
+ * sha256 of deterministic build output, so they assert as before.
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -19,12 +30,50 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const kernelJsonPath = "packages/kernel/kernel.json";
 
 const trackedRoots = [
   "packages/kernel/vendor",
-  "packages/kernel/kernel.json",
+  kernelJsonPath,
   "packages/kernel/src/generated",
 ];
+
+const GZIP_SCALAR_FIELDS = [
+  "gzipBytes",
+  "vfsJsonGzipBytes",
+  "gzip",
+  "typesGzip",
+  "cssGzip",
+  "clientGzip",
+  "hostBakeGzip",
+];
+const GZIP_OBJECT_FIELDS = ["sizesGzip", "clientSizesGzip"];
+
+/** @param {string} text */
+function redactGzipFields(text) {
+  let out = text;
+  for (const name of GZIP_SCALAR_FIELDS) {
+    out = out.replaceAll(new RegExp(`"${name}":\\s*\\d+`, "g"), `"${name}":0`);
+  }
+  for (const name of GZIP_OBJECT_FIELDS) {
+    out = out.replaceAll(
+      new RegExp(`"${name}":\\s*\\{[^{}]*\\}`, "g"),
+      `"${name}":{}`
+    );
+  }
+  return out.replaceAll(
+    /"underGzipKill":\s*(?:true|false)/g,
+    '"underGzipKill":false'
+  );
+}
+
+/** @param {Buffer} buf */
+function contentHash(buf) {
+  const redacted = redactGzipFields(buf.toString("utf8"));
+  return createHash("sha256")
+    .update(Buffer.from(redacted, "utf8"))
+    .digest("hex");
+}
 
 /** @param {string} dir @param {string[]} out */
 function walkFiles(dir, out) {
@@ -40,7 +89,7 @@ function walkFiles(dir, out) {
   }
 }
 
-/** Worktree snapshot after rebuild: rel path → sha256 hex. */
+/** Worktree snapshot after rebuild: rel path → content hash (gzip fields redacted). */
 function worktreeSnapshot() {
   /** @type {string[]} */
   const files = [];
@@ -50,7 +99,7 @@ function worktreeSnapshot() {
   const map = new Map();
   for (const abs of files.sort()) {
     const rel = abs.slice(repoRoot.length + 1);
-    map.set(rel, createHash("sha256").update(readFileSync(abs)).digest("hex"));
+    map.set(rel, contentHash(readFileSync(abs)));
   }
   return map;
 }
@@ -72,7 +121,8 @@ function indexPaths() {
 }
 
 /**
- * sha256 of the blob staged at path, or null if absent from the index.
+ * Content hash (gzip fields redacted) of the blob staged at path, or null if
+ * absent from the index.
  * @param {string} rel
  */
 function indexHash(rel) {
@@ -84,7 +134,67 @@ function indexHash(rel) {
   if (result.status !== 0) {
     return null;
   }
-  return createHash("sha256").update(result.stdout).digest("hex");
+  return contentHash(result.stdout);
+}
+
+/** Raw (uncompressed) size fields in kernel.json: deterministic, so exact equality. */
+const RAW_BYTE_PATHS = [
+  ["totals", "raw"],
+  ["typesVfs", "rawBytes"],
+  ["cssVfs", "rawBytes"],
+];
+
+/** @param {unknown} obj @param {string[]} path */
+function getPath(obj, path) {
+  return path.reduce(
+    (o, k) => (o && typeof o === "object" ? o[k] : undefined),
+    obj
+  );
+}
+
+/** kernel.json rawBytes fields, rebuilt vs indexed. Empty if kernel.json is not yet indexed. */
+function rawByteDrift() {
+  const indexed = spawnSync("git", ["show", `:${kernelJsonPath}`], {
+    cwd: repoRoot,
+    encoding: "utf8",
+  });
+  if (indexed.status !== 0) {
+    return [];
+  }
+  const rebuilt = JSON.parse(
+    readFileSync(join(repoRoot, kernelJsonPath), "utf8")
+  );
+  const before = JSON.parse(indexed.stdout);
+  const messages = [];
+  for (const path of RAW_BYTE_PATHS) {
+    const a = getPath(rebuilt, path);
+    const b = getPath(before, path);
+    if (a !== b) {
+      const delta = a - b;
+      messages.push(
+        `kernel.json ${path.join(".")}: indexed=${b} rebuilt=${a} (${delta >= 0 ? "+" : ""}${delta} bytes)`
+      );
+    }
+  }
+  return messages;
+}
+
+/** gzip sizes are reporting-only — never asserted, always printed. */
+function printGzipReport() {
+  const kernelJson = JSON.parse(
+    readFileSync(join(repoRoot, kernelJsonPath), "utf8")
+  );
+  console.log(
+    "check:kernel — gzip sizes (reporting only, not part of this gate):"
+  );
+  console.log(`  server + client total: ${kernelJson.totals.gzip} bytes`);
+  console.log(
+    `  types VFS:             ${kernelJson.typesVfs.gzipBytes} bytes`
+  );
+  console.log(`  css VFS:               ${kernelJson.cssVfs.gzipBytes} bytes`);
+  console.log(
+    `  host-bake total:       ${kernelJson.totals.hostBakeGzip} bytes`
+  );
 }
 
 function runBuild() {
@@ -102,10 +212,12 @@ console.log(
   "check:kernel — rebuilding @sfab-lite/kernel from isolated universe…"
 );
 runBuild();
-const after = worktreeSnapshot();
+printGzipReport();
 
 /** @type {string[]} */
-const drifted = [];
+const drifted = [...rawByteDrift()];
+
+const after = worktreeSnapshot();
 
 for (const [file, hash] of after) {
   const indexed = indexHash(file);
@@ -123,7 +235,9 @@ for (const file of indexPaths()) {
 }
 
 if (drifted.length) {
-  console.error("kernel artifacts drifted after rebuild (vs git index):\n");
+  console.error(
+    "\nkernel artifacts drifted after rebuild (vs git index; gzip byte counts excluded — see report above):\n"
+  );
   for (const f of [...new Set(drifted)].sort()) {
     console.error(`  ${f}`);
   }
@@ -139,4 +253,6 @@ if (drifted.length) {
   process.exit(1);
 }
 
-console.log("check:kernel — ok (artifacts match git index after rebuild)");
+console.log(
+  "\ncheck:kernel — ok (artifacts match git index after rebuild; rawBytes + content hash)"
+);
