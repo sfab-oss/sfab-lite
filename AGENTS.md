@@ -18,7 +18,8 @@ factory tooling. Architecture:
 
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
-`pnpm check:cycles`, `pnpm check:dead-code`, `pnpm check:seed`.
+`pnpm check:cycles`, `pnpm check:dead-code`, `pnpm check:seed`,
+`pnpm check:check-memory`.
 
 `check:app-lint` is the odd one: it checks `packages/template/app/src` —
 the seed payload — against `packages/core/app-biome.json`, the config the
@@ -36,6 +37,15 @@ re-runs the template pack and fails if the committed seed no longer matches
 `packages/template/app/src`. The seed is a bundle constant because the host
 Worker has no filesystem, so editing the template without re-baking would
 leave every other gate green while the factory kept seeding the old source.
+
+`check:check-memory` runs the check worker over six distinct appIds in one
+process and fails if its LanguageService store holds more than one app or if
+the heap grows. **One TS program over the types VFS retains ~320 MB and a
+Worker isolate gets 128 MB**, so the check worker can afford state for exactly
+one app at a time. Treat that as a standing budget when touching
+`apps/check/src`: anything cached per app, and anything that grows the types
+VFS, spends against it. `apps/check/scripts/measure-memory.mjs` is the
+diagnostic that produced these numbers and re-derives them on demand.
 
 ## Layout
 

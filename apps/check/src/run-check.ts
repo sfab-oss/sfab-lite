@@ -27,7 +27,40 @@ export type LsStore = Map<string, AppLsState>;
 const defaultStore: LsStore = new Map();
 const LEADING_SLASH = /^\//;
 
+/**
+ * At most one app may hold state at a time, evicted *before* the next program
+ * is built.
+ *
+ * A TS program over the frozen types VFS retains ~320 MB (measured by
+ * `scripts/measure-memory.mjs`) and a Worker isolate gets 128 MB. The store is
+ * keyed by appId and one isolate serves many apps, so an unbounded store meant
+ * the second distinct app checked in an isolate built its program while the
+ * first was still retained — the isolate died with `exceededMemory`. That is
+ * exactly the production shape: 4 of 6 create attempts crashed and the retry
+ * succeeded, because a cold isolate has nothing retained and a warm one does.
+ *
+ * Consecutive checks of the *same* app still reuse the LanguageService, which
+ * is the case the incremental path was built for. Alternating apps now pay a
+ * cold rebuild: ~1050 ms versus ~770 ms warm, the whole price of not crashing.
+ *
+ * Dropping the entry also resets its `versions` map, which is safe only
+ * because the DocumentRegistry is owned by the LanguageService and dies with
+ * it — there is no surviving cache for a reset version to collide with. Do
+ * not split these two lifetimes; `regression-delete-readd-inprocess.ts` covers
+ * why a stale registry entry keyed by an old version string is a real bug.
+ *
+ * Evicting on entry bounds *concurrent* requests too, but only because
+ * {@link runCheck} is synchronous: two requests in one isolate cannot
+ * interleave, so the earlier program is always unreferenced before the next is
+ * built. Making `runCheck` async would let two programs coexist and put the
+ * isolate straight back over its limit, with this cap still looking correct.
+ */
 function stateFor(appId: string, store: LsStore): AppLsState {
+  for (const other of [...store.keys()]) {
+    if (other !== appId) {
+      store.delete(other);
+    }
+  }
   let s = store.get(appId);
   if (!s) {
     s = createAppLsState();
