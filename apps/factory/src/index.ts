@@ -21,7 +21,12 @@
  * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
 import { dispatchAdmin } from "./admin.js";
-import { createAuth, githubAuthEnabled, passwordAuthEnabled } from "./auth.js";
+import {
+  createAuth,
+  githubAuthEnabled,
+  passwordAuthEnabled,
+  signUpOpen,
+} from "./auth.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute } from "./routes.js";
 import { serveSubApp } from "./serve.js";
@@ -49,6 +54,10 @@ function handleApiConfig(rc: RouteCtx): Response {
   return Response.json({
     passwordAuth: passwordAuthEnabled(rc.env),
     githubAuth: githubAuthEnabled(rc.env),
+    // Whether the sign-up form should render at all. Same reasoning as the two
+    // above: closed sign-up does not 404, it fails at the end of a flow the
+    // user already committed to, so the screen has to be told rather than probe.
+    signUpOpen: signUpOpen(rc.env),
   });
 }
 

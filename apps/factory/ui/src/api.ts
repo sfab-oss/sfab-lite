@@ -15,6 +15,8 @@ export interface AppRecord {
 export interface AuthConfig {
   passwordAuth: boolean;
   githubAuth: boolean;
+  /** Whether new accounts may be created. Sign-in is unaffected by this. */
+  signUpOpen: boolean;
 }
 
 export interface AttemptRecord {
@@ -116,6 +118,32 @@ export async function getApp(appId: string): Promise<AppRecord> {
   }
   const body = await readJson<{ ok: true; app: AppRecord }>(res);
   return body.app;
+}
+
+/**
+ * Delete an app and everything it owns. Irreversible — there is no trash.
+ *
+ * A 409 means a commit or the initial seed is still running; the app is
+ * untouched and the same call works once it settles.
+ */
+export async function deleteApp(appId: string): Promise<void> {
+  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (res.status === 401) {
+    throw new AuthRequiredError();
+  }
+  if (!res.ok) {
+    const detail = await errorMessage(res, `delete failed (${res.status})`);
+    // The wire code is accurate and unreadable; the worker's own vocabulary
+    // should not be what a person sees on a button they just pressed.
+    throw new Error(
+      detail === "attempt_in_flight"
+        ? "a commit is still running — try again in a moment"
+        : detail
+    );
+  }
 }
 
 export async function listVersions(appId: string): Promise<{

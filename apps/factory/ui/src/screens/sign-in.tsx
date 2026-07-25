@@ -199,19 +199,24 @@ function SignInBody({
           >
             {submitLabel(busy, mode)}
           </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              setMode(mode === "signin" ? "signup" : "signin");
-              setError(null);
-            }}
-            className="border-0 bg-transparent p-0 text-left text-[var(--accent)] text-sm underline"
-          >
-            {mode === "signin"
-              ? "Need an account? Sign up"
-              : "Already have an account? Sign in"}
-          </button>
+          {/* Hidden, not disabled, when registration is closed: the sign-up
+              request would fail at the end of a form the user already filled
+              in, and `EMAIL_PASSWORD_SIGN_UP_DISABLED` does not explain why. */}
+          {config.signUpOpen ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setError(null);
+              }}
+              className="border-0 bg-transparent p-0 text-left text-[var(--accent)] text-sm underline"
+            >
+              {mode === "signin"
+                ? "Need an account? Sign up"
+                : "Already have an account? Sign in"}
+            </button>
+          ) : null}
         </form>
       ) : null}
 

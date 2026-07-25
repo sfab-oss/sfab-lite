@@ -10,6 +10,7 @@ import {
   githubAuthEnabled,
   githubSecretsPresent,
   passwordAuthEnabled,
+  signUpOpen,
 } from "./auth.js";
 import {
   appStub,
@@ -24,6 +25,7 @@ import {
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
 import {
+  deleteAppUnscoped,
   getAppUnscoped,
   insertCreatingApp,
   listAppsForOrganization,
@@ -38,7 +40,6 @@ import type {
   AppCtx,
   OrgCtx,
   RequestCtx,
-  RouteCtx,
 } from "./routes.js";
 import { jsonError, matchRoute, NOT_FOUND_BODY } from "./routes.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
@@ -200,6 +201,33 @@ async function handleGetApp(rc: AppCtx): Promise<Response> {
   return Response.json({ ok: true, app: record });
 }
 
+/**
+ * Delete an app: Durable Object storage first, registry row second.
+ *
+ * That order is the recoverable one. If the registry delete fails, a row is
+ * left pointing at empty storage — visible in the console, and deleting again
+ * finishes the job. The reverse leaves storage that no row indexes, and since
+ * Durable Objects cannot be enumerated, nothing could ever find it again.
+ *
+ * Not idempotent by accident: a second delete still asks the DO (cheap, now
+ * empty) and reports `removed: false` for the row, so a caller retrying after
+ * a partial failure gets told what was actually left to do.
+ */
+async function handleDeleteApp(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
+  const destroyed = await appStub(rc.env, appId).destroy();
+  if (!destroyed.ok) {
+    return Response.json({ appId, ...destroyed }, { status: 409 });
+  }
+  const removed = await deleteAppUnscoped(createDb(rc.env), appId);
+  return Response.json({
+    ok: true,
+    appId,
+    removed,
+    bytesFreed: destroyed.bytesFreed,
+  });
+}
+
 async function handleTouch(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const touch = await appStub(rc.env, appId).touch();
@@ -326,7 +354,61 @@ async function handleRevert(rc: AppCtx): Promise<Response> {
   return Response.json({ appId, action: "revert", ...result });
 }
 
-function handleHealth(rc: RouteCtx): Response {
+/**
+ * Ask a bound worker whether it holds the same `ADMIN_TOKEN` we do.
+ *
+ * `reachable: false` and `matchesCaller: false` are different diagnoses and
+ * must not collapse into one: the first is a broken binding, the second a
+ * mismatched secret, and only the second is the failure this probe exists to
+ * catch. A throw here is the binding, not the token.
+ */
+async function probePeerToken(
+  binding: Fetcher | undefined,
+  token: string | undefined
+): Promise<{
+  reachable: boolean;
+  configured: boolean;
+  matchesCaller: boolean;
+}> {
+  const absent = { reachable: false, configured: false, matchesCaller: false };
+  if (!binding) {
+    return absent;
+  }
+  try {
+    const res = await binding.fetch("https://peer/health", {
+      headers: token ? { "X-Admin-Token": token } : {},
+    });
+    if (!res.ok) {
+      return absent;
+    }
+    const body = (await res.json()) as {
+      adminToken?: { configured?: boolean; matchesCaller?: boolean };
+    };
+    return {
+      reachable: true,
+      configured: Boolean(body.adminToken?.configured),
+      matchesCaller: Boolean(body.adminToken?.matchesCaller),
+    };
+  } catch {
+    return absent;
+  }
+}
+
+/**
+ * Health, including the one deploy prerequisite nothing else states out loud:
+ * factory, check and lint must hold a byte-identical `ADMIN_TOKEN`.
+ *
+ * Before this, a mismatch first surfaced mid-commit as `lint_failed` with
+ * `lintHttp: 401` — an error that names the lint worker when the fault is a
+ * secret the factory presented. `adminToken.agree` answers it directly, and
+ * answers it *before* anyone tries to commit.
+ */
+async function handleHealth(rc: AdminCtx): Promise<Response> {
+  const token = rc.env.ADMIN_TOKEN;
+  const [check, lint] = await Promise.all([
+    probePeerToken(rc.env.CHECK, token),
+    probePeerToken(rc.env.LINT, token),
+  ]);
   return Response.json({
     ok: true,
     service: "sfab-lite-factory",
@@ -335,6 +417,12 @@ function handleHealth(rc: RouteCtx): Response {
       check: Boolean(rc.env.CHECK),
       lint: Boolean(rc.env.LINT),
       loader: Boolean(rc.env.LOADER),
+    },
+    adminToken: {
+      configured: Boolean(token),
+      check,
+      lint,
+      agree: Boolean(token) && check.matchesCaller && lint.matchesCaller,
     },
     seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
     seedMigrations: TEMPLATE_SEED.migrations.length,
@@ -347,6 +435,10 @@ function handleHealth(rc: RouteCtx): Response {
     passwordAuth: passwordAuthEnabled(rc.env),
     githubAuth: githubAuthEnabled(rc.env),
     githubSecrets: githubSecretsPresent(rc.env),
+    // Registration, not sign-in. `false` is the intended production state and
+    // is reported so "can anyone still create an account here?" is answerable
+    // without reading the deploy's env.
+    signUpOpen: signUpOpen(rc.env),
   });
 }
 
@@ -414,6 +506,12 @@ const ADMIN_ROUTES: AdminRoute[] = [
   },
   // After `/admin/apps/:id/…` routes so a looser pattern cannot steal them.
   { method: "GET", pattern: RE_ADMIN_APP, scope: "app", handler: handleGetApp },
+  {
+    method: "DELETE",
+    pattern: RE_ADMIN_APP,
+    scope: "app",
+    handler: handleDeleteApp,
+  },
 ];
 
 /**
