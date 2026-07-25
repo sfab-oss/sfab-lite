@@ -1,114 +1,181 @@
-# The check worker does not fit in a Worker isolate
+# The check worker did not fit in a Worker isolate
 
 **Date:** 2026-07-25
-**Status:** open problem, mitigated but not solved
+**Status:** resolved — 36% `exceededMemory` → 0 of 64 in production
 **Task:** S3.5
 
-## What happens
+## What happened
 
-`sfab-lite-check` dies with `outcome: exceededMemory` / "Worker exceeded memory
-limit" on roughly half of all `/check` requests in production. It surfaces to a
-user as `attempt_crashed` on app creation, after 9-17s, with a retry usually
-succeeding — so it reads as flakiness rather than as a limit being hit.
+`sfab-lite-check` died with `outcome: exceededMemory` / "Worker exceeded memory
+limit" on a large share of `/check` requests. It surfaced to a user as
+`attempt_crashed` on app creation, after 9-17s, with a retry usually
+succeeding — so it read as flakiness rather than as a limit being hit.
 
-Confirmed by `wrangler tail` across all three workers during six creates:
+Measured baseline on version `82db5488`, `wrangler tail` across 8 real creates:
 
-| worker | outcomes |
+| outcome | count |
 | --- | --- |
-| `sfab-lite-check` | **exceededMemory ×3**, ok ×2 |
-| `sfab-lite-lint` | ok ×5 |
-| `sfab-lite-factory` | ok ×45 |
+| `ok` | 7 |
+| `exceededMemory` | **4** |
+| total check calls | 11 |
+
+**36%.** Seven of eight apps reached `ready`; one failed outright when both
+retries died.
 
 ## Why
 
-A Worker isolate gets **128 MB**. One TypeScript program over the frozen types
-VFS retains **~330 MB of Node heap** — measured, not estimated, by
-`apps/check/scripts/measure-memory.mjs`.
+A Worker isolate gets **128 MB**, on every plan — there is no knob. One
+TypeScript program over the frozen types VFS retained **~330 MB of Node heap**
+(`apps/check/scripts/measure-memory.mjs`), loading **877 source files**.
 
-The program loads **877 source files / 5.74 MB of text**, out of 2,043 files in
-the VFS. Node heap is not workerd heap, but the ratio is stable enough to place
-real usage right at the 128 MB line, which is exactly why the failure is
-intermittent rather than total.
+Splitting that number into its two halves is what led to the fix:
 
-What the program loads, by package:
-
-| | files | text |
+| phase | retained | shareable? |
 | --- | --- | --- |
-| `libs` (lib.dom is 2.29 MB of it) | 60 | 2.69 MB |
-| `drizzle-orm` | 301 | 0.89 MB |
-| `better-auth` | 157 | 0.79 MB |
-| `@better-auth/core` | 90 | 0.29 MB |
-| `zod` | 77 | 0.21 MB |
-| everything else | 192 | 0.87 MB |
+| parse + bind (SourceFile ASTs) | 200.0 MB | in principle |
+| check (instantiated types) | 130.5 MB | no |
 
-1,196 VFS files are **never opened** — mostly `@base-ui/react` (779 of 801),
-`kysely` (265), and `csstype`. Pruning them shrinks the upload, not the heap.
+Parse was the bigger half, so the next question was what was being parsed.
 
-## Two fixes that were tried and are not enough
+## The cause: dead SQL dialects
 
-**Bounding the LS store (shipped, PR #26).** The store held an `AppLsState` per
-`appId` and never evicted, so the *second* distinct app in an isolate built its
-program while the first was still retained. Fixing that took heap growth across
-six apps from +1,605 MB to +8 MB and production creates from 2/6 to 4/6. It was
-a real leak and it is fixed — but a single program still straddles the limit.
+The app targets D1, i.e. SQLite. The program was loading all of drizzle's
+other dialects anyway — **232 of its 301 files, 690 KB of `.d.ts`**:
 
-Note the local verification of that fix was worth less than it looked: local
-workerd applies **no memory limit** (`.agents/skills/cloudflare/references/
-miniflare/gotchas.md` — "Memory | System dependent | No artificial limits"), so
-20/20 clean under `wrangler dev` said nothing about production.
+| subtree | files | text | reachable from a sub-app? |
+| --- | --- | --- | --- |
+| `pg-core/` | 71 | 204 KB | no |
+| `gel-core/` | 56 | 161 KB | no |
+| `mysql-core/` | 54 | 164 KB | no |
+| `singlestore-core/` | 49 | 153 KB | no |
+| `sqlite-core/` + `d1/` + `sql/` + root | 69 | 223 KB | yes |
 
-**Splitting the program into client and server halves.** Measured with
-`apps/check/scripts/measure-split.mjs` and **refuted**: rooting only the client
-entry still loads **876 of the 877 files**, because `src/ui/lib/api.ts` does
-`hc<AppType>` against the server's Hono app type, and that one `import type`
-pulls the whole server graph — drizzle, better-auth, zod — into the client's
-closure.
+Not an app-level barrel import — the edge is inside drizzle:
 
-Cutting that link drops the client half to 543 files / 109 MB, but the **server
-half alone is 703 files / 270 MB**, i.e. ~82% of the union. So no split fits,
-even at the cost of the template's RPC type safety.
+```
+/app/src/db/schema.ts
+  └ drizzle-orm/index.d.ts
+    └ drizzle-orm/column-builder.d.ts
+      └ drizzle-orm/pg-core/index.d.ts
+```
 
-## What is shipped instead
+`column-builder.d.ts` declares three aliases that dispatch on a `TDialect`
+type parameter — `BuildColumn`, `BuildIndexColumn`, `ChangeColumnTableName` —
+each naming a column class per dialect in its own conditional branch. A D1 app
+is always `TDialect = 'sqlite'`, so the other branches never instantiate, but
+TypeScript still loads and binds all four dialect modules to **resolve** the
+type references sitting inside branches it will never take.
 
-`callCheck` retries a *thrown* service-binding call up to `CHECK_ATTEMPTS`
-times. An `exceededMemory` kill throws rather than returning a status, so this
-retries isolate deaths and never retries a real check result. Attempts are
-recorded as `checkAttempts` on the attempt payload so the OOM rate stays
-visible rather than hiding inside a slower commit.
+## The fix
 
-**The retry budget is wall clock, not arithmetic.** `runCommitAttempt` runs
-under `ctx.waitUntil`, which is killed after ~30s, and a killed attempt writes
-no terminal status — the app then sits in `creating` until the AppDO stale
-sweep reclaims it 5 minutes later as `attempt_abandoned`.
+`packages/kernel/scripts/trim-drizzle-dialects.mjs` rewrites those three
+aliases to their sqlite branch and drops the four imports, as a read filter
+during the types-VFS closure build. Not a `node_modules` patch: the same read
+path feeds both the program's module resolution and the text baked into the
+VFS, so the two cannot disagree, and `pnpm install` stays idempotent.
 
-Four attempts (~45s) was tried first and measured doing exactly that: 5/8
-creates ready, and the three failures **hung for 5 minutes** instead of failing
-in 15s. That is worse than the crash it replaced. `CHECK_ATTEMPTS` is 2, which
-is what fits beside lint and compile at ~10s per check: ~50% → ~75%, with
-failures fast and terminal again.
+| | before | after |
+| --- | --- | --- |
+| source files loaded | 877 | **645** |
+| parse + bind | 200.0 MB | **132.9 MB** |
+| check | 130.5 MB | 130.3 MB |
+| **retained heap** | **330.5 MB** | **263.1 MB** |
+| VFS files | 2,043 | 1,811 |
+| VFS raw | 9.34 MB | 8.64 MB |
 
-Raising it without first moving the work off `waitUntil` will bring the hang
-back.
+The check half is unchanged, exactly as the diagnosis predicts: those branches
+were only ever resolved, never instantiated.
 
-## The actual options
+**This is capability removal, not a trick.** sfab-lite apps run on D1. There is
+no Postgres, MySQL, Gel or SingleStore for them to reach, so the dialects were
+dead surface that a sub-app could never have used.
 
-None of these are cheap, and the choice is a product decision:
+## Production result
 
-0. **Move the create attempt off `waitUntil`** — a Queue consumer, or a DO
-   alarm, gets its own invocation budget and retries for free. This does not
-   fix the OOM, but it makes retrying cost nothing, which turns a ~50% check
-   into a ~99% create. Cheapest of these by far, and the idiomatic Cloudflare
-   answer for background work that needs retries beyond a request's lifetime.
-1. **Shrink the app's type surface.** drizzle-orm + better-auth + zod are ~550
-   of the 877 loaded files. Replacing drizzle with hand-written SQL types, or
-   better-auth with something smaller, would move the number — and change what
-   the template is.
-2. **Check somewhere with more memory.** Containers have configurable memory;
-   Durable Objects do not (same 128 MB). This breaks the "edge-native lite"
-   shape ADR-0001 committed to, so it deserves its own ADR.
-3. **Weaken the gate.** Syntactic diagnostics plus a narrow semantic subset fit
-   easily. This trades the guarantee that a committed app typechecks.
-4. **Keep retrying.** Works today at ~94%, degrades if the template grows.
+Deployed as version `4ce2c8af` and measured the same way:
 
-The thing not to do is trim the VFS and expect it to help: the 1,196 unopened
-files cost bundle size, not heap.
+| | baseline `82db5488` | slimmed `4ce2c8af` |
+| --- | --- | --- |
+| creates | 8 | **64** |
+| check calls | 11 | **64** |
+| `exceededMemory` | 4 (36%) | **0** |
+| retries | 3 | **0** |
+| apps `ready` | 7/8 | **64/64** |
+
+Sixty-four calls, one per create, none retried. If the true rate were still
+36%, observing zero in 64 tries has probability ~10⁻¹²; the 95% upper bound on
+the rate is now under 5%.
+
+`CHECK_ATTEMPTS` stays at 2. It costs nothing when checks pass first time and
+it is what would absorb a regression — but it is no longer load bearing, and
+**the wall-clock reasoning behind that 2 still applies**: see
+`apps/factory/src/commit.ts`. Raising it without first moving the work off
+`ctx.waitUntil` brings back the five-minute hang.
+
+## Gates
+
+Two, both red-tested before being trusted:
+
+- `prebuild-types-vfs.mjs` throws if the trim never ran (drizzle moved the
+  file, or the host read path changed).
+- `assertNoDeadDialects()` asserts on the **finished artifact** rather than the
+  code path, because the VFS is also topped up from disk afterwards
+  (`ensureDualDeclSiblings` — `column-builder.d.cts` sits right next to the
+  file being rewritten). Red-tested at 231 offending files.
+
+Plus the standing `pnpm check:check-memory`, which still covers the separate
+store-eviction bug fixed in PR #26.
+
+## What was ruled out, with evidence
+
+Recorded so none of it gets re-litigated:
+
+**A shared `DocumentRegistry`.** The most attractive idea on paper — the 847
+dependency `.d.ts` files are byte-identical for every app forever. But the
+shared ASTs are then permanently resident, so peak becomes shared-parse +
+per-app-check ≈ 195 + 130 = 325 MB. Identical. It buys time, not memory.
+
+**Pruning the VFS of unopened files.** 1,196 VFS files are never opened. They
+cost bundle size, not heap. (`measure-program.mjs`)
+
+**Splitting the program into client and server halves.** Rooting only the
+client entry still loads 876 of 877 files, because `src/ui/lib/api.ts` does
+`hc<AppType>` against the server's Hono app type and that one `import type`
+pulls in drizzle, better-auth and zod. Even cutting that link leaves the server
+half at 703 files / 270 MB — ~82% of the union. (`measure-split.mjs`)
+
+**Trimming `lib.dom.d.ts`.** It is 2.29 MB, 40% of all text the program loads
+— but only **32 MB of heap**, ~10%. Declaration-heavy `.d.ts` parses far
+cheaper per byte than generic-heavy library types. Do not expect 40% of heap
+from 40% of text.
+
+**Deep-importing `better-auth/plugins/organization`** instead of the barrel:
+157 → 141 files, **2 MB**. Also blocked by the S3.1 gate in
+`resolve-modules.ts`, which refuses any specifier the runtime kernel does not
+serve — so it needs a kernel import-map and vendor-entry change. Not worth it
+for 2 MB of heap, but worth revisiting for *bundle* size, where the same change
+would drop SIWE, passkey, 2FA and the rest from every app.
+
+**More memory.** 128 MB is the limit on Free and Paid alike and there has been
+no increase in 2026. Containers have configurable memory but break the
+edge-native shape ADR-0001 committed to.
+
+**TypeScript 7 / `tsgo`,** which uses ~2.9x less memory in `--noEmit` mode, is
+excluded by the repo's standing TS 6.0.3 pin.
+
+## The lesson worth keeping
+
+Local verification of anything memory-related is worthless here: **local
+workerd applies no memory limit** (`.agents/skills/cloudflare/references/
+miniflare/gotchas.md` — "Memory | System dependent | No artificial limits").
+An earlier "20/20 clean under `wrangler dev`" said nothing at all. Every number
+in the production tables above came from `wrangler tail` against a real deploy.
+
+## Still open
+
+The 263 MB program has ~50 MB of headroom against a 128 MB isolate at the
+observed Node-to-workerd ratio, and that headroom shrinks as the template
+grows. The next lever, if it is ever needed, is **moving the create attempt off
+`ctx.waitUntil`** to a DO alarm or Queue consumer, which does not reduce memory
+but makes retries free. It stays unbuilt on purpose — it is a mitigation, and
+this was a fix.

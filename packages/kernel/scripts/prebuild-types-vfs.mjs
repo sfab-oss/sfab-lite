@@ -24,6 +24,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import { PINS } from "./pins.mjs";
+import { isTrimTarget, trimDrizzleDialects } from "./trim-drizzle-dialects.mjs";
 import {
   getUniverseRequire,
   universeNodeModules,
@@ -258,8 +259,38 @@ function buildClosureFromTemplateProgram() {
     typeRoots: [],
   };
   const baseHost = ts.createCompilerHost(options);
+  let trimmedFiles = 0;
+
+  /**
+   * Single read path for the closure build, so the trimmed text is what the
+   * program resolves imports from *and* what lands in the VFS. Patching only
+   * one of those would either bake a file the program never saw or resolve a
+   * dialect the VFS no longer ships.
+   */
+  function readTrimmed(fileName) {
+    const text = baseHost.readFile(fileName);
+    if (text === undefined || !isTrimTarget(fileName)) {
+      return text;
+    }
+    trimmedFiles++;
+    return trimDrizzleDialects(text);
+  }
+
   const host = {
     ...baseHost,
+    readFile: readTrimmed,
+    getSourceFile(fileName, languageVersionOrOptions) {
+      const text = readTrimmed(fileName);
+      if (text === undefined) {
+        return;
+      }
+      return ts.createSourceFile(
+        fileName,
+        text,
+        languageVersionOrOptions,
+        false
+      );
+    },
     getCurrentDirectory: () => templatePkg,
     resolveModuleNameLiterals(
       moduleLiterals,
@@ -361,11 +392,53 @@ function buildClosureFromTemplateProgram() {
   ensurePackageJsons(pkgs);
   ensureRootTypesField(pkgs);
   ensureDualDeclSiblings();
+
+  if (trimmedFiles === 0) {
+    throw new Error(
+      "types VFS: the drizzle dialect trim never ran — column-builder.d.ts was " +
+        "not read during the closure build. Either drizzle moved it or the " +
+        "host read path changed; see scripts/trim-drizzle-dialects.mjs."
+    );
+  }
+
   return {
     templateRootCount: roots.length,
     nodeModulesFiles: nmFiles,
     packages: [...pkgs].sort(),
+    trimmedFiles,
   };
+}
+
+/**
+ * Nothing baked may reach a non-SQLite drizzle dialect.
+ *
+ * The trim is a read filter on one file, but the VFS is also topped up from
+ * disk afterwards (`ensureDualDeclSiblings`, `ensureRootTypesField`, the
+ * full-package base-ui exception). Any of those could reintroduce an untrimmed
+ * sibling — `column-builder.d.cts` is right there next to the file we rewrite.
+ * Assert on the finished artifact rather than trusting the one code path.
+ */
+function assertNoDeadDialects() {
+  const offenders = [];
+  for (const [path, text] of Object.entries(vfs)) {
+    if (path.startsWith("/node_modules/drizzle-orm/")) {
+      const rest = path.slice("/node_modules/drizzle-orm/".length);
+      if (/^(gel|mysql|pg|singlestore)-core\//.test(rest)) {
+        offenders.push(path);
+        continue;
+      }
+    }
+    if (/from "\.\/(gel|mysql|pg|singlestore)-core\/index\.js"/.test(text)) {
+      offenders.push(`${path} (imports a dead dialect)`);
+    }
+  }
+  if (offenders.length > 0) {
+    throw new Error(
+      `types VFS ships ${offenders.length} non-SQLite drizzle dialect file(s) — ` +
+        "sfab-lite apps run on D1 and loading these cost 67 MB of check-worker " +
+        `heap. First: ${offenders[0]}`
+    );
+  }
 }
 
 /**
@@ -440,6 +513,7 @@ function includeFullPackageTypes(pkgName) {
 
 const closure = buildClosureFromTemplateProgram();
 const baseUiExtraFiles = includeFullPackageTypes("@base-ui/react");
+assertNoDeadDialects();
 
 if (!existsSync(coreAmbient)) {
   throw new Error(`cloudflare ambient missing: ${coreAmbient}`);
@@ -478,6 +552,12 @@ const manifest = {
     nodeModulesFiles: closure.nodeModulesFiles,
     packages: closure.packages,
     note: "Only .d.ts (and package.json) reachable from packages/template/app/src via TS program resolution against packages/kernel/universe.",
+    trim: {
+      "drizzle-orm/column-builder.d.ts": {
+        filesRewritten: closure.trimmedFiles,
+        note: "Dialect-dispatching aliases collapsed to their sqlite branch so the pg/mysql/gel/singlestore modules leave the program. sfab-lite runs on D1. See scripts/trim-drizzle-dialects.mjs.",
+      },
+    },
     fullPackageExceptions: {
       "@base-ui/react": {
         extraFiles: baseUiExtraFiles,

@@ -40,12 +40,33 @@ leave every other gate green while the factory kept seeding the old source.
 
 `check:check-memory` runs the check worker over six distinct appIds in one
 process and fails if its LanguageService store holds more than one app or if
-the heap grows. **One TS program over the types VFS retains ~320 MB and a
-Worker isolate gets 128 MB**, so the check worker can afford state for exactly
-one app at a time. Treat that as a standing budget when touching
-`apps/check/src`: anything cached per app, and anything that grows the types
-VFS, spends against it. `apps/check/scripts/measure-memory.mjs` is the
+the heap grows. **One TS program over the types VFS retains ~263 MB and a
+Worker isolate gets 128 MB on every plan**, so the check worker can afford
+state for exactly one app at a time. Treat that as a standing budget when
+touching `apps/check/src`: anything cached per app, and anything that grows the
+types VFS, spends against it. `apps/check/scripts/measure-memory.mjs` is the
 diagnostic that produced these numbers and re-derives them on demand.
+
+Part of that budget is bought by
+`packages/kernel/scripts/trim-drizzle-dialects.mjs`, which drops drizzle's pg /
+mysql / gel / singlestore dialects from the types VFS during the closure build.
+Sub-apps run on D1, so those dialects are unreachable — but TypeScript still
+loaded all four to resolve conditional-type branches it would never take, at a
+cost of 232 source files and 67 MB. That trim carries two build-time
+assertions; if either fires, re-derive the trim rather than deleting the gate.
+Trimming unreachable vendor surface is a sanctioned technique with conditions —
+see [ADR-0004](docs/decisions/0004-trim-unreachable-vendor-surface.md).
+
+**Before proposing a fix for a memory, bundle-size or latency problem, read
+[`docs/engineering/making-it-fit.md`](docs/engineering/making-it-fit.md).** It
+is the catalogue of what worked and what was measured and rejected — shared
+DocumentRegistry, VFS pruning, client/server split, `lib.dom` trimming, CheckDO
+affinity. Re-deriving those is expensive and they are already refuted with
+numbers.
+
+**Anything memory-related must be verified in production.** Local workerd
+applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
+`wrangler tail --format json` against a real deploy and count `exceededMemory`.
 
 ## Layout
 
