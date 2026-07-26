@@ -6,9 +6,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Superseded PR runs are cancelled; runs on main are not. A main run carries
+# the deploy job, and cancelling mid-`wrangler deploy` can leave the three
+# workers on mismatched versions — factory service-binds check and lint.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # One job, one install, every gate as its own named step.
 #
@@ -117,3 +120,70 @@ jobs:
       - name: bundle-size
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.ui-build.outcome == 'success' }}
         run: pnpm check:bundle-size
+
+  # Deploying is part of CI here, not a separate workflow on the same trigger.
+  # sfab splits them, and that split lets a deploy race its own gates and ship
+  # a red commit. `needs: gates` makes that impossible. It matters more in this
+  # repo than in sfab: the lint worker sits at ~95% of Cloudflare's 10 MB
+  # upload limit, so a dependency bump can make the deploy itself fail, and
+  # `check:bundle-size` is what catches it first.
+  deploy:
+    needs: gates
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    # Queue deploys rather than cancelling them; a half-applied deploy leaves
+    # factory bound to workers it was not built against.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # `apps/factory/ui/dist` is gitignored and the factory's `assets`
+      # binding points at it, so the console must exist before its worker
+      # deploys or wrangler uploads an empty asset directory.
+      - name: Build console
+        run: pnpm --filter @sfab-lite/factory build:ui
+
+      - name: Apply D1 migrations
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/factory
+          command: d1 migrations apply sfab-lite-factory --remote
+
+      # Order is load-bearing: factory service-binds check and lint, so they
+      # must already be deployed when it comes up.
+      - name: Deploy check
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/check
+          command: deploy
+
+      - name: Deploy lint
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/lint
+          command: deploy
+
+      - name: Deploy factory
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/factory
+          command: deploy
