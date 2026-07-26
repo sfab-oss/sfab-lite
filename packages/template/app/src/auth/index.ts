@@ -21,6 +21,9 @@ const DEV_ORIGINS = [
   "http://localhost:8787",
 ];
 
+/** Must differ from the factory console's prefix — they share an origin. */
+const APP_COOKIE_PREFIX = "sfab-app";
+
 /**
  * Where this app believes it is mounted.
  *
@@ -44,6 +47,22 @@ export function resolveBaseUrl(env: Env, request: Request): string {
 }
 
 /**
+ * Path this app's cookies are scoped to.
+ *
+ * Every app the factory hosts shares one origin, so a cookie at `Path=/`
+ * belongs to whichever app wrote it last. `APP_BASE_PATH` is the app's public
+ * mount (`/a/<appId>`), which `BETTER_AUTH_URL` cannot supply: the loader
+ * strips that prefix before the app sees the request, so the app is told its
+ * own origin and nothing more.
+ *
+ * Unset means standalone `wrangler dev`, where the app *is* the whole origin.
+ */
+function resolveCookiePath(env: Env): string {
+  const configured = env.APP_BASE_PATH?.trim();
+  return configured?.startsWith("/") ? configured : "/";
+}
+
+/**
  * Better Auth for the lite template.
  * - No framework cookie plugin — Hono/Workers cookie handling is enough.
  * - Invitation and password-reset emails are console stubs (no mail
@@ -63,6 +82,15 @@ export function createAuth(env: Env, baseURL: string) {
     baseURL,
     basePath: "/api/auth",
     secret,
+    // Distinct from the factory console's `sfab-factory`, and scoped to this
+    // app's own path — the two together are what stop apps and the console
+    // from evicting each other's sessions on the shared origin. The name alone
+    // is not enough: two apps would still both hold `Path=/` cookies under one
+    // name, and the browser would send both with no way to tell them apart.
+    advanced: {
+      cookiePrefix: APP_COOKIE_PREFIX,
+      defaultCookieAttributes: { path: resolveCookiePath(env) },
+    },
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema,

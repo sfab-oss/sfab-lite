@@ -12,5 +12,12 @@ export interface Env {
   ASSETS: Fetcher;
   /** Set by the factory when the app is served under its public URL. */
   BETTER_AUTH_URL?: string;
+  /**
+   * The app's public mount (`/a/<appId>`), set by the factory. Cookies are
+   * scoped to it so apps sharing the factory's origin do not overwrite each
+   * other's sessions. Unset under standalone `wrangler dev`, where the app
+   * owns the whole origin.
+   */
+  APP_BASE_PATH?: string;
   BETTER_AUTH_SECRET?: string;
 }
