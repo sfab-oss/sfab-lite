@@ -25,6 +25,10 @@ export interface LintFileResult {
   formatted: string | null;
   /** Total diagnostics Biome produced for this file (before any cap). */
   diagnosticCount: number;
+  /** Error-severity count for this file (uncapped; used by the commit gate). */
+  errorCount: number;
+  /** Warning-severity count for this file (uncapped). */
+  warningCount: number;
   /** True when `diagnostics` was truncated to the response cap. */
   truncated: boolean;
   diagnostics: LintDiagnostic[];
@@ -43,6 +47,10 @@ export interface LintResult {
   coldBootMs: number;
   totalMs: number;
   fileCount: number;
+  /** Error-severity count across all files (uncapped; used by the commit gate). */
+  errorCount: number;
+  /** Warning-severity count across all files (uncapped). */
+  warningCount: number;
   files: LintFileResult[];
   versions: LintVersions;
 }
@@ -52,12 +60,6 @@ export function lintPasses(body: LintResult | null): boolean {
   if (!body?.ok) {
     return false;
   }
-  for (const file of body.files) {
-    for (const d of file.diagnostics) {
-      if (d.severity === "error") {
-        return false;
-      }
-    }
-  }
-  return true;
+  // Gate on uncapped counts — `diagnostics` may be truncated for payload size.
+  return body.errorCount === 0;
 }
