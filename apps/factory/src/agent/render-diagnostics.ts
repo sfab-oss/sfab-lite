@@ -26,7 +26,13 @@ export function renderCheckText(body: CheckResult | null): string {
   const lines: string[] = [];
   for (const d of body.diagnostics) {
     const path = displayCheckPath(d.file);
-    lines.push(`${path}: error TS${d.code}: ${d.message}`);
+    const loc =
+      d.line != null && d.column != null ? `${d.line}:${d.column}` : null;
+    lines.push(
+      loc
+        ? `${path}:${loc}: error TS${d.code}: ${d.message}`
+        : `${path}: error TS${d.code}: ${d.message}`
+    );
   }
   if (body.truncated) {
     lines.push(

@@ -16,6 +16,10 @@ export interface CheckDiagnostic {
   code: number;
   message: string;
   file?: string;
+  /** 1-based line, when the diagnostic has a SourceFile position. */
+  line?: number;
+  /** 1-based column, when the diagnostic has a SourceFile position. */
+  column?: number;
 }
 
 export interface CheckResult {
