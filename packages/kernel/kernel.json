@@ -1,5 +1,6 @@
 {
   "version": "0.3.0",
+  "serverSurfaceHash": "sha256:43caeaf74f0fbccc082e89a19b90ede6ef3a423bdcf028ad2baaf46e0f75ad92",
   "pins": {
     "react": "19.2.8",
     "react-dom": "19.2.8",
