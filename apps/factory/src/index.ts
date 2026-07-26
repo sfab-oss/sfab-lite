@@ -80,9 +80,9 @@ function handleAuth(rc: RouteCtx): Promise<Response> | Response {
   return auth.handler(rc.request);
 }
 
-function handleKernel(rc: RouteCtx): Response {
+async function handleKernel(rc: RouteCtx): Promise<Response> {
   const rest = rc.match[1] ?? "";
-  const res = serveKernel(rc.request, rest);
+  const res = await serveKernel(rc.request, rest, rc.env);
   return res ?? new Response("unknown kernel path\n", { status: 404 });
 }
 

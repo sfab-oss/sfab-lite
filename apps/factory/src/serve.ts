@@ -13,7 +13,6 @@ import {
   KERNEL_REACT,
   KERNEL_REACT_DOM,
   KERNEL_REACT_DOM_SERVER,
-  KERNEL_VERSION,
   KERNEL_ZOD,
 } from "@sfab-lite/kernel";
 import type { AppDO, VersionRecord } from "./app-do.js";
@@ -234,20 +233,6 @@ export async function serveSubApp(
         appId,
       },
       { status: 404 }
-    );
-  }
-
-  if (version.kernelVersion !== KERNEL_VERSION) {
-    return Response.json(
-      {
-        ok: false,
-        error: "kernel_version_mismatch",
-        appId,
-        versionId: version.id,
-        versionKernel: version.kernelVersion,
-        hostKernel: KERNEL_VERSION,
-      },
-      { status: 409 }
     );
   }
 
