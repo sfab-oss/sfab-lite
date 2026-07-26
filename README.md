@@ -197,10 +197,13 @@ branching — a product this does not have. Versions are append-only rows in
 the app's Durable Object: no per-app git repo, no per-app CI.
 
 When the host's `KERNEL_VERSION` advances (see
-`packages/kernel/scripts/pins.mjs`), every app still on the previous
-version gets **HTTP 409** `kernel_version_mismatch` on serve — not a blank
-page. **Republish the app** against the new host kernel; until then it
-will not render.
+`packages/kernel/scripts/pins.mjs`), already-published apps keep serving:
+their import maps still point at `/kernel/<old-version>/…`, and the factory
+streams those chunks from the `sfab-lite-kernel` R2 bucket (uploaded by
+`pnpm upload-kernel-r2` on deploy). Only a version that was never uploaded
+returns **HTTP 409** `kernel_version_mismatch`. Republish remains useful to
+pick up new kernel APIs, but it is no longer required to keep the fleet
+online.
 
 ### A commit costs 10–25 seconds of work — but you do not wait for it
 

@@ -100,15 +100,27 @@ has not been exercised, because it needs real credentials.
 
 ## Checklist
 
-1. `wrangler deploy` all three workers.
-2. Set the secrets above. `ADMIN_TOKEN` three times, same value.
-3. `curl .../admin/health` and confirm `adminToken.agree` is `true`.
-4. Confirm `passwordAuth` / `githubAuth` / `githubSecrets` describe what you
+1. Create the R2 bucket once (first deploy that includes the binding):
+   `wrangler r2 bucket create sfab-lite-kernel`
+2. Upload the current kernel's client chunks (idempotent — no-ops when the
+   version manifest already exists):
+   `pnpm upload-kernel-r2 -- --remote`
+3. `wrangler deploy` all three workers.
+4. Set the secrets above. `ADMIN_TOKEN` three times, same value.
+5. `curl .../admin/health` and confirm `adminToken.agree` is `true`.
+6. Confirm `passwordAuth` / `githubAuth` / `githubSecrets` describe what you
    intended — `githubSecrets` reports the two separately because exactly one
    set is the plausible mistake and is otherwise indistinguishable from
    "GitHub off on purpose".
-5. Create an app and let it reach `ready`. That exercises check, lint, the
+7. Create an app and let it reach `ready`. That exercises check, lint, the
    loader, and D1 in one pass; nothing shorter proves the set is wired.
+
+Upload **before** deploy so a freshly bumped `KERNEL_VERSION` is already in
+R2 when the new Worker starts serving — older apps keep resolving their
+pinned `/kernel/<old>/…` import maps. Re-running the upload for an unchanged
+version exits 0 without rewriting; a version bump uploads only the new key
+prefix. Do not pass `--remote` from a laptop unless you mean to touch the
+production bucket.
 
 **Anything memory-related must be verified here, not locally** — local workerd
 applies no memory limit at all, so `wrangler dev` cannot observe an OOM. Use
