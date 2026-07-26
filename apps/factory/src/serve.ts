@@ -138,6 +138,12 @@ async function serveApiRoute(
       BETTER_AUTH_SECRET: secret,
       // Origin only — LOADER sees stripped `/api/auth/*` paths.
       BETTER_AUTH_URL: url.origin,
+      // Which is exactly why the mount has to travel separately: the app
+      // scopes its cookies to this path so it cannot clobber the console's
+      // session, or another app's, on the origin they all share. Deliberately
+      // the *live* prefix in both modes — preview is a subpath of it, so the
+      // two keep sharing one session rather than asking for a second sign-in.
+      APP_BASE_PATH: `/a/${encodeURIComponent(appId)}`,
     },
     globalOutbound: null,
   }));

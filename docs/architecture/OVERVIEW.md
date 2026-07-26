@@ -32,6 +32,12 @@ agent-workspace `archive/explore-edge-native-lite/artifacts/t5/`.
 ```
 
 - **Host + AppDO** per app: files, versions, pointer, SQLite via ScopedSql.
+- **The seed is a snapshot, not a link.** `TEMPLATE_SEED.sourceFiles` is copied
+  into an app once, at creation; every later commit rebuilds from that app's
+  own stored `sourceFiles`. So a fix to `packages/template` reaches *new* apps
+  only — existing apps never pick it up, and republishing them does not help.
+  Changing behaviour for apps already out there needs a source migration or a
+  host-side workaround, and that cost belongs in the design, not the rollout.
 - **LOADER** child isolates for serve.
 - **Plain async check worker** — CheckDO was measured and refuted (T4.2).
 - **Stateless Biome lint worker** — sync on edit.
@@ -46,7 +52,7 @@ Shared contracts live in `packages/core`.
 | S2 | kernel + host + check + lint (T5 loop on new deploys) |
 | S3 | factory UI + tasks-lite + auth (needs domain decision) |
 | S4 | agent over the same admin API |
-| S5 | quotas, cookie scoping, schema evolution, eject |
+| S5 | quotas, schema evolution, eject |
 
 ## Related
 

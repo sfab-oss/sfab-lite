@@ -255,6 +255,9 @@ const RE_LOCAL_ORIGIN = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
 
 const RE_PORT = /^\d{2,5}$/;
 
+/** Must differ from the generated apps' prefix — they share an origin. */
+const FACTORY_COOKIE_PREFIX = "sfab-factory";
+
 function viteDevOrigins(baseURL: string, uiPort: string | undefined): string[] {
   if (!RE_LOCAL_ORIGIN.test(baseURL)) {
     return [];
@@ -286,6 +289,13 @@ export function createAuth(env: Env, baseURL: string) {
     baseURL,
     basePath: "/api/auth",
     secret,
+    // The factory and every generated app share one origin, and better-auth's
+    // default cookie name is derived from `appName` — so without this they all
+    // issue `__Secure-better-auth.session_token` at `Path=/` and evict each
+    // other. Signing into an app logged you out of the console and back again.
+    // The app side takes `sfab-app` plus a per-app path; see the template's
+    // `createAuth`.
+    advanced: { cookiePrefix: FACTORY_COOKIE_PREFIX },
     // Spread rather than always passing a `github` key: registering the
     // provider with empty strings would mount a sign-in path that fails at
     // the token exchange instead of simply not existing.

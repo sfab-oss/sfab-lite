@@ -4,3 +4,8 @@ BETTER_AUTH_SECRET=dev-secret-change-me-min-32-chars!!
 # Optional: pin the auth base URL. In the factory the host sets this per app.
 # Leave unset for standalone dev and the request origin is used (allowlisted).
 # BETTER_AUTH_URL=http://127.0.0.1:5173
+
+# Optional: the app's public mount path. The factory sets this to /a/<appId>
+# so each app's cookies are scoped to itself on the shared origin. Leave unset
+# for standalone dev, where the app owns the whole origin.
+# APP_BASE_PATH=/a/app_example
