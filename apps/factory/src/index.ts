@@ -21,6 +21,7 @@
  * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
 import { dispatchAdmin } from "./admin.js";
+import { dispatchAgents } from "./agent/dispatch.js";
 import {
   createAuth,
   githubAuthEnabled,
@@ -32,6 +33,9 @@ import { matchRoute } from "./routes.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
 
+/** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
+export { CodemodeRuntime } from "@cloudflare/codemode";
+export { AppThread } from "./agent/app-thread.js";
 export { AppDO } from "./app-do.js";
 export { ScopedSql } from "./scoped-sql.js";
 
@@ -122,6 +126,12 @@ export default {
     // instead of the SPA.
     if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
       return await dispatchAdmin(rc);
+    }
+
+    // Think / agents — auth + app tenancy + namespace allowlist before any DO
+    // lookup. See `agent/dispatch.ts`.
+    if (url.pathname === "/agents" || url.pathname.startsWith("/agents/")) {
+      return await dispatchAgents(rc);
     }
 
     // Worker-first: every request hits this fetch before assets. Unmatched

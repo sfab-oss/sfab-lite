@@ -12,6 +12,12 @@ const UiKitScreen = import.meta.env.DEV
     )
   : null;
 
+const DevAgentScreen = import.meta.env.DEV
+  ? lazy(() =>
+      import("./screens/dev-agent").then((m) => ({ default: m.DevAgentScreen }))
+    )
+  : null;
+
 const ChatScreen = lazy(() =>
   import("./features/chat/page").then((m) => ({ default: m.ChatScreen }))
 );
@@ -47,6 +53,21 @@ export function App() {
         }
       >
         <UiKitScreen />
+      </Suspense>
+    );
+  }
+
+  if (import.meta.env.DEV && route.name === "dev-agent" && DevAgentScreen) {
+    if (!signedIn) {
+      return <SignInScreen />;
+    }
+    return (
+      <Suspense
+        fallback={
+          <main className="px-6 py-16 text-muted-foreground">Loading…</main>
+        }
+      >
+        <DevAgentScreen />
       </Suspense>
     );
   }

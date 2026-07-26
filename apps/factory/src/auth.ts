@@ -201,6 +201,14 @@ async function provisionOwnerOrganization(
  * - On sign-up, `user.create.after` inserts the org + owner membership so
  *   the session hook has a row to stamp.
  */
+const RE_LOCAL_ORIGIN = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
+
+function viteDevOrigins(baseURL: string): string[] {
+  return RE_LOCAL_ORIGIN.test(baseURL)
+    ? ["http://127.0.0.1:5173", "http://localhost:5173"]
+    : [];
+}
+
 export function createAuth(env: Env, baseURL: string) {
   const secret = env.BETTER_AUTH_SECRET;
   if (!secret || secret.length < 32) {
@@ -240,7 +248,11 @@ export function createAuth(env: Env, baseURL: string) {
         return Promise.resolve();
       },
     },
-    trustedOrigins: [baseURL],
+    // Vite serves the console on :5173 and proxies `/api` to wrangler, so the
+    // browser Origin is the Vite host while `baseURL` is the worker origin.
+    // Gated on a local `baseURL`: this widens CSRF origin checking, and a
+    // deployed factory must never trust an origin it does not serve.
+    trustedOrigins: [baseURL, ...viteDevOrigins(baseURL)],
     plugins: [
       organization({
         allowUserToCreateOrganization: false,

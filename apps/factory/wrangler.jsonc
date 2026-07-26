@@ -30,6 +30,12 @@
       {
         "name": "APP_DO",
         "class_name": "AppDO"
+      },
+      // Binding name = class name so routeAgentRequest maps
+      // `/agents/app-thread/<name>` → this namespace.
+      {
+        "name": "AppThread",
+        "class_name": "AppThread"
       }
     ]
   },
@@ -37,6 +43,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["AppDO"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["AppThread"]
     }
   ],
   "services": [

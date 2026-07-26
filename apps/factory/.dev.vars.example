@@ -18,3 +18,10 @@ ADMIN_TOKEN=dev-admin-token
 # Use the app's Client ID (Iv23…), not its App ID or private key.
 # GITHUB_CLIENT_ID=
 # GITHUB_CLIENT_SECRET=
+# Z.AI coding-plan key for the factory agent (S4). Required for /dev/agent.
+# Never commit the real value; set as a Worker secret in production.
+# ZAI_API_KEY=
+# Enables AppThread harness callables (inspectWorkspace). Local only — never
+# set this on a deployed Worker. Off unless you are driving /dev/agent without
+# a model key.
+# AGENT_HARNESS=true
