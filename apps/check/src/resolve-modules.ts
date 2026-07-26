@@ -1,13 +1,14 @@
 /**
  * Module resolution against the types VFS (+ per-app overlay).
  *
- * Side-aware for app sources: client files under `/app/src/ui/` (the directory
- * of TEMPLATE_MANIFEST.client.entry) resolve against CLIENT_IMPORT_MAP only,
- * and may not value-import app modules outside that tree. Server files keep
- * the union gate. One LanguageService / one VFS — classification only changes
+ * Side-aware for app sources: client files under the directory of
+ * TEMPLATE_MANIFEST.client.entry resolve against CLIENT_IMPORT_MAP only, and
+ * may not value-import app modules outside that tree. Server files keep the
+ * union gate. One LanguageService / one VFS — classification only changes
  * which specifiers resolve, not how many programs are built.
  */
 import { CLIENT_IMPORT_MAP, SERVER_IMPORT_MAP } from "@sfab-lite/kernel";
+import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import { joinPath, normalizePath, readVfs } from "./vfs.js";
 
 /**
@@ -35,20 +36,29 @@ const SERVER_SERVED: ReadonlySet<string> = new Set(
   Object.keys(SERVER_IMPORT_MAP)
 );
 
+const LEADING_SLASHES = /^\/+/;
+
 /**
- * Client compile tree. Matches dirname(TEMPLATE_MANIFEST.client.entry) under
- * the check overlay root `/app/`. The factory's client bundler starts at
- * `src/ui/main.tsx` and only emits what that graph reaches; classifying by
- * this prefix is the same boundary, without a second program or VFS copy.
+ * Client compile tree = dirname(TEMPLATE_MANIFEST.client.entry) under `/app/`.
+ * Derived at module load so relocating the client entry moves classification
+ * with it (same source compile-client.ts reads).
  */
-const CLIENT_APP_PREFIX = "/app/src/ui/";
+function clientTreeFromManifest(): { relDir: string; prefix: string } {
+  const entry = TEMPLATE_MANIFEST.client.entry.replace(LEADING_SLASHES, "");
+  const slash = entry.lastIndexOf("/");
+  const relDir = slash >= 0 ? entry.slice(0, slash) : "";
+  return { relDir, prefix: `${normalizePath(`/app/${relDir}`)}/` };
+}
+
+const { relDir: CLIENT_TREE_REL, prefix: CLIENT_APP_PREFIX } =
+  clientTreeFromManifest();
 
 function isClientAppPath(path: string | undefined): boolean {
-  return path?.startsWith(CLIENT_APP_PREFIX) ?? false;
+  return path != null && normalizePath(path).startsWith(CLIENT_APP_PREFIX);
 }
 
 function isAppSourcePath(path: string): boolean {
-  return path.startsWith("/app/");
+  return normalizePath(path).startsWith("/app/");
 }
 
 /**
@@ -63,7 +73,10 @@ function isAppSourcePath(path: string): boolean {
  * the VFS happens to type. Only the VFS itself is rooted at `/node_modules/`.
  */
 function isVfsInternal(containingFile: string | undefined): boolean {
-  return containingFile?.startsWith("/node_modules/") ?? false;
+  return (
+    containingFile != null &&
+    normalizePath(containingFile).startsWith("/node_modules/")
+  );
 }
 
 const D_TS_TO_D_MTS = /\.d\.ts$/;
@@ -346,10 +359,10 @@ export function sideAwareUnresolvedMessage(
     const target = resolveRelativePath(moduleName, containingFile, overlay);
     if (target && isAppSourcePath(target) && !isClientAppPath(target)) {
       return (
-        `Module '${moduleName}' resolves outside the client tree (src/ui/) and ` +
+        `Module '${moduleName}' resolves outside the client tree (${CLIENT_TREE_REL}/) and ` +
         "cannot be imported as a value from client code. Use `import type` if " +
         "you only need types, or call the server through the typed API client " +
-        "(hono/client) instead of importing server modules into src/ui/."
+        `(hono/client) instead of importing server modules into ${CLIENT_TREE_REL}/.`
       );
     }
     return;
@@ -359,7 +372,7 @@ export function sideAwareUnresolvedMessage(
     return (
       `Module '${moduleName}' is server-only (served by the server import map, ` +
       "not the client import map) and cannot be imported from client code under " +
-      "src/ui/. Move the usage to a server route and reach it via the typed API " +
+      `${CLIENT_TREE_REL}/. Move the usage to a server route and reach it via the typed API ` +
       "client (hono/client), or use a client-safe package from the client import map."
     );
   }

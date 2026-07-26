@@ -34,7 +34,22 @@ export function normalizePath(path: string): string {
   if (q >= 0) {
     p = p.slice(0, q);
   }
-  return p;
+  const absolute = p.startsWith("/");
+  const out: string[] = [];
+  for (const part of p.split("/")) {
+    if (!part || part === ".") {
+      continue;
+    }
+    if (part === "..") {
+      out.pop();
+    } else {
+      out.push(part);
+    }
+  }
+  if (absolute) {
+    return `/${out.join("/")}`;
+  }
+  return out.join("/");
 }
 
 function remapLibPath(path: string, overlay: Map<string, string>): string {

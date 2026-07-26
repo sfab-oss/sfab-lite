@@ -167,15 +167,15 @@ the stack has no use for.
 
 So the resolver enforces the invariant instead: **`resolvePackage` resolves a
 bare specifier from app source only when the kernel serves it**, and for
-client files under `src/ui/` (the template client entry tree) only when the
-**client** import map serves it. Relative value imports from that tree may
-not leave it either — `import type` may still cross for typed RPC. Unserved
-or wrong-side imports fail at check time with TS2307 (rewritten to name the
-module and the fix) rather than at runtime with an empty `#root`. Files
-inside `/node_modules/` are exempt — `.d.ts` files reference their
-transitive dependencies by bare specifier (better-auth's types import
-`better-call`, which the kernel bundles rather than serves), and those are
-type-graph internals, not app imports.
+client files under `dirname(TEMPLATE_MANIFEST.client.entry)` (today `src/ui/`)
+only when the **client** import map serves it. Relative value imports from
+that tree may not leave it either — `import type` may still cross for typed
+RPC. Unserved or wrong-side imports fail at check time with TS2307/TS2882
+(rewritten to name the module and the fix) rather than at runtime with an
+empty `#root`. Files inside `/node_modules/` are exempt — `.d.ts` files
+reference their transitive dependencies by bare specifier (better-auth's
+types import `better-call`, which the kernel bundles rather than serves),
+and those are type-graph internals, not app imports.
 
 ### Apps cannot add dependencies
 

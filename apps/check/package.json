@@ -20,6 +20,7 @@
   "dependencies": {
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
+    "@sfab-lite/template": "workspace:*",
     "typescript": "6.0.3"
   },
   "devDependencies": {

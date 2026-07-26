@@ -3,6 +3,7 @@
  *
  * Bundled by the companion .mjs runner so Node can load workspace TS.
  */
+import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import seed from "../../factory/src/generated/seed.json" with { type: "json" };
 import { type LsStore, runCheck } from "../src/run-check.ts";
 
@@ -15,6 +16,11 @@ for (const [path, text] of Object.entries(
   }
 }
 
+const clientEntry = TEMPLATE_MANIFEST.client.entry;
+const clientDir = clientEntry.includes("/")
+  ? clientEntry.slice(0, clientEntry.lastIndexOf("/"))
+  : "";
+
 const store: LsStore = new Map();
 
 function check(
@@ -23,27 +29,55 @@ function check(
 ): {
   ok: boolean;
   diagnostics: { code: number; message: string; file?: string }[];
+  threw?: string;
 } {
-  const result = runCheck(
-    { appId: `side-proof-${label}`, files, forceCold: true },
-    { store }
+  try {
+    const result = runCheck(
+      { appId: `side-proof-${label}`, files, forceCold: true },
+      { store }
+    );
+    console.log(
+      JSON.stringify(
+        {
+          label,
+          ok: result.ok,
+          diagnosticCount: result.diagnosticCount,
+          diagnostics: result.diagnostics,
+        },
+        null,
+        2
+      )
+    );
+    return result;
+  } catch (err) {
+    const threw = err instanceof Error ? err.message : String(err);
+    console.log(JSON.stringify({ label, threw }, null, 2));
+    return { ok: false, diagnostics: [], threw };
+  }
+}
+
+function hasServerOnlyDiag(
+  result: { diagnostics: { message: string; file?: string }[] },
+  moduleName: string,
+  fileHint: string
+): boolean {
+  return result.diagnostics.some(
+    (d) =>
+      d.message.includes(moduleName) &&
+      d.message.includes("server-only") &&
+      (d.file?.includes(fileHint) ?? false)
   );
-  console.log(
-    JSON.stringify(
-      {
-        label,
-        ok: result.ok,
-        diagnosticCount: result.diagnosticCount,
-        diagnostics: result.diagnostics,
-      },
-      null,
-      2
-    )
-  );
-  return result;
 }
 
 let failed = false;
+
+console.log(
+  JSON.stringify({
+    label: "0-manifest-derived-tree",
+    clientEntry,
+    clientDir,
+  })
+);
 
 const seedResult = check("1-seed-clean", baseFiles);
 if (!seedResult.ok) {
@@ -53,16 +87,13 @@ if (!seedResult.ok) {
 
 const drizzleFiles = {
   ...baseFiles,
-  "src/ui/lib/bad-drizzle.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
+  [`${clientDir}/lib/bad-drizzle.tsx`]: `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
 };
 const drizzleResult = check("2-client-drizzle", drizzleFiles);
-const drizzleHit = drizzleResult.diagnostics.some(
-  (d) =>
-    d.message.includes("drizzle-orm/d1") &&
-    d.message.includes("server-only") &&
-    (d.file?.includes("bad-drizzle.tsx") ?? false)
-);
-if (drizzleResult.ok || !drizzleHit) {
+if (
+  drizzleResult.ok ||
+  !hasServerOnlyDiag(drizzleResult, "drizzle-orm/d1", "bad-drizzle.tsx")
+) {
   console.error(
     "FAIL: client importing drizzle-orm/d1 must diagnose server-only"
   );
@@ -71,7 +102,7 @@ if (drizzleResult.ok || !drizzleHit) {
 
 const dbFiles = {
   ...baseFiles,
-  "src/ui/lib/bad-db.tsx": `import { createDb } from "../../db";\nexport const x = createDb;\n`,
+  [`${clientDir}/lib/bad-db.tsx`]: `import { createDb } from "../../db";\nexport const x = createDb;\n`,
 };
 const dbResult = check("3-client-relative-db", dbFiles);
 const dbHit = dbResult.diagnostics.some(
@@ -100,6 +131,96 @@ if (!serverResult.ok) {
   console.error(
     "FAIL: server file importing drizzle-orm/d1 and ../../db must stay clean",
     serverResult.diagnostics
+  );
+  failed = true;
+}
+
+// Classification follows dirname(manifest.client.entry): a sibling tree is
+// not client-gated, so the same bare server import resolves (union gate).
+const outsideClientFiles = {
+  ...baseFiles,
+  "src/spa/not-client.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
+};
+const outsideResult = check("5-outside-client-tree", outsideClientFiles);
+if (outsideResult.ok) {
+  console.log(
+    JSON.stringify({
+      label: "5-outside-client-tree-note",
+      observed:
+        "drizzle-orm/d1 resolves (server classification) — prefix tracks manifest",
+    })
+  );
+} else {
+  console.error(
+    "FAIL: file outside dirname(client.entry) must not get client-side gate",
+    outsideResult.diagnostics
+  );
+  failed = true;
+}
+
+const slashFiles = {
+  ...baseFiles,
+  "src//ui/lib/slashy.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
+};
+const slashResult = check("6-double-slash-key", slashFiles);
+if (
+  slashResult.threw ||
+  slashResult.ok ||
+  !hasServerOnlyDiag(slashResult, "drizzle-orm/d1", "slashy.tsx")
+) {
+  console.error(
+    "FAIL: // key must normalize into client tree and reject server-only import",
+    slashResult
+  );
+  failed = true;
+}
+
+const dotdotFiles = {
+  ...baseFiles,
+  "src/ui/lib/../routes/dotdot.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
+};
+const dotdotResult = check("7-dotdot-key", dotdotFiles);
+if (
+  dotdotResult.threw ||
+  dotdotResult.ok ||
+  !hasServerOnlyDiag(dotdotResult, "drizzle-orm/d1", "dotdot.tsx")
+) {
+  console.error(
+    "FAIL: .. key that lands in client tree must reject server-only import",
+    dotdotResult
+  );
+  failed = true;
+}
+
+const sideEffectFiles = {
+  ...baseFiles,
+  [`${clientDir}/lib/bad-side-effect.tsx`]: `import "drizzle-orm/d1";\nexport const x = 1;\n`,
+};
+const sideEffectResult = check("8-side-effect-import", sideEffectFiles);
+const sideEffectHit = sideEffectResult.diagnostics.some(
+  (d) =>
+    d.code === 2882 &&
+    d.message.includes("drizzle-orm/d1") &&
+    d.message.includes("server-only") &&
+    (d.file?.includes("bad-side-effect.tsx") ?? false)
+);
+if (sideEffectResult.ok || !sideEffectHit) {
+  console.error(
+    "FAIL: side-effect import of drizzle-orm/d1 must get guided server-only message",
+    sideEffectResult.diagnostics
+  );
+  failed = true;
+}
+
+const importTypeFiles = {
+  ...baseFiles,
+  [`${clientDir}/lib/type-cross.tsx`]: `import type { AppType } from "../../hono";\nexport type X = AppType;\n`,
+};
+const importTypeResult = check("9-import-type-crosses", importTypeFiles);
+if (!importTypeResult.ok) {
+  console.error(
+    "FAIL: import type across client/server boundary must stay clean",
+    importTypeResult.diagnostics
   );
   failed = true;
 }
