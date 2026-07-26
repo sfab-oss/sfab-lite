@@ -13,6 +13,7 @@ import {
   getLanguageService,
   rootsForState,
 } from "./ls-host.js";
+import { sideAwareUnresolvedMessage } from "./resolve-modules.js";
 import {
   type Diagnostic,
   flattenDiagnosticMessageText,
@@ -69,12 +70,32 @@ function stateFor(appId: string, store: LsStore): AppLsState {
   return s;
 }
 
-function summarize(diags: Diagnostic[]): CheckDiagnostic[] {
-  return diags.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => ({
-    code: d.code,
-    message: flattenDiagnosticMessageText(d.messageText, "\n"),
-    file: d.file?.fileName,
-  }));
+/** TS2307 — Cannot find module '…' or its corresponding type declarations. */
+const TS_CANNOT_FIND_MODULE = 2307;
+const MODULE_NAME_IN_2307 = /Cannot find module '([^']+)'/;
+
+function summarize(
+  diags: Diagnostic[],
+  overlay: Map<string, string>
+): CheckDiagnostic[] {
+  return diags.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => {
+    let message = flattenDiagnosticMessageText(d.messageText, "\n");
+    if (d.code === TS_CANNOT_FIND_MODULE) {
+      const mod = MODULE_NAME_IN_2307.exec(message)?.[1];
+      const sideMsg =
+        mod == null
+          ? undefined
+          : sideAwareUnresolvedMessage(mod, d.file?.fileName, overlay);
+      if (sideMsg) {
+        message = sideMsg;
+      }
+    }
+    return {
+      code: d.code,
+      message,
+      file: d.file?.fileName,
+    };
+  });
 }
 
 function resetAppOverlay(st: AppLsState): void {
@@ -197,7 +218,7 @@ export function runCheck(
     pass: forceCold ? "cold" : "incremental",
     diagnosticCount: diags.length,
     truncated: diags.length > MAX_REPORTED_DIAGNOSTICS,
-    diagnostics: summarize(diags),
+    diagnostics: summarize(diags, st.overlay),
     checkMs,
     wallMs: Date.now() - wallT0,
     rootFileCount: roots.length,

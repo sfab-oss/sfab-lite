@@ -1,5 +1,11 @@
 /**
  * Module resolution against the types VFS (+ per-app overlay).
+ *
+ * Side-aware for app sources: client files under `/app/src/ui/` (the directory
+ * of TEMPLATE_MANIFEST.client.entry) resolve against CLIENT_IMPORT_MAP only,
+ * and may not value-import app modules outside that tree. Server files keep
+ * the union gate. One LanguageService / one VFS — classification only changes
+ * which specifiers resolve, not how many programs are built.
  */
 import { CLIENT_IMPORT_MAP, SERVER_IMPORT_MAP } from "@sfab-lite/kernel";
 import { joinPath, normalizePath, readVfs } from "./vfs.js";
@@ -14,15 +20,36 @@ import { joinPath, normalizePath, readVfs } from "./vfs.js";
  * `Failed to resolve module specifier` in the browser with an empty `#root`.
  * That is the S3.1 failure mode; `@base-ui/react` was one instance of it.
  *
- * Union of both halves rather than per-side: this host checks an app's client
- * and server sources in one program and does not know which half a file
- * compiles into. A client file importing a server-only specifier therefore
- * still passes here — see `docs/architecture/OVERVIEW.md`.
+ * Client app files narrow further to CLIENT_IMPORT_MAP (see isClientAppPath).
  */
 const KERNEL_SERVED: ReadonlySet<string> = new Set([
   ...Object.keys(CLIENT_IMPORT_MAP),
   ...Object.keys(SERVER_IMPORT_MAP),
 ]);
+
+const CLIENT_SERVED: ReadonlySet<string> = new Set(
+  Object.keys(CLIENT_IMPORT_MAP)
+);
+
+const SERVER_SERVED: ReadonlySet<string> = new Set(
+  Object.keys(SERVER_IMPORT_MAP)
+);
+
+/**
+ * Client compile tree. Matches dirname(TEMPLATE_MANIFEST.client.entry) under
+ * the check overlay root `/app/`. The factory's client bundler starts at
+ * `src/ui/main.tsx` and only emits what that graph reaches; classifying by
+ * this prefix is the same boundary, without a second program or VFS copy.
+ */
+const CLIENT_APP_PREFIX = "/app/src/ui/";
+
+function isClientAppPath(path: string | undefined): boolean {
+  return path?.startsWith(CLIENT_APP_PREFIX) ?? false;
+}
+
+function isAppSourcePath(path: string): boolean {
+  return path.startsWith("/app/");
+}
 
 /**
  * `.d.ts` files inside the VFS reference each other and their transitive
@@ -95,6 +122,30 @@ const KNOWN_PACKAGES = [
 ] as const;
 
 type VfsRead = (p: string) => string | undefined;
+
+export interface ResolveOpts {
+  /** `import type` / type-only named bindings — erased at emit; may cross sides. */
+  typeOnly?: boolean;
+}
+
+function bareAllowed(
+  name: string,
+  containingFile: string | undefined,
+  typeOnly: boolean
+): boolean {
+  if (isVfsInternal(containingFile)) {
+    return true;
+  }
+  if (isClientAppPath(containingFile)) {
+    if (CLIENT_SERVED.has(name)) {
+      return true;
+    }
+    // Type-only may resolve any kernel-served specifier (e.g. inferring a
+    // server type). Value imports may not.
+    return typeOnly && KERNEL_SERVED.has(name);
+  }
+  return KERNEL_SERVED.has(name);
+}
 
 function candidatesForPackage(pkg: string, rest: string): string[] {
   const base = `/node_modules/${pkg}`;
@@ -195,12 +246,44 @@ function resolveKnownPackage(
   }
 }
 
+function relativeCandidates(name: string, containingFile: string): string[] {
+  const base = normalizePath(containingFile);
+  const dir = base.slice(0, base.lastIndexOf("/") + 1);
+  const stripped = name.replace(JS_SUFFIX, "").replace(MJS_SUFFIX, "");
+  return [
+    joinPath(dir, name),
+    joinPath(dir, `${name}.ts`),
+    joinPath(dir, `${name}.tsx`),
+    joinPath(dir, `${name}.d.ts`),
+    joinPath(dir, `${name}.d.mts`),
+    joinPath(dir, `${stripped}.d.ts`),
+    joinPath(dir, `${stripped}.d.mts`),
+    joinPath(dir, `${stripped}.ts`),
+    joinPath(dir, `${name}/index.ts`),
+    joinPath(dir, `${stripped}/index.d.ts`),
+    joinPath(dir, `${stripped}/index.d.mts`),
+  ];
+}
+
+/** Resolve a relative specifier with no side gate (used for diagnostics). */
+function resolveRelativePath(
+  name: string,
+  containingFile: string,
+  overlay: Map<string, string>
+): string | undefined {
+  return firstExisting(relativeCandidates(name, containingFile), (p) =>
+    readVfs(p, overlay)
+  );
+}
+
 export function resolvePackage(
   name: string,
   overlay: Map<string, string>,
-  containingFile?: string
+  containingFile?: string,
+  opts?: ResolveOpts
 ): string | undefined {
-  if (!(isVfsInternal(containingFile) || KERNEL_SERVED.has(name))) {
+  const typeOnly = opts?.typeOnly === true;
+  if (!bareAllowed(name, containingFile, typeOnly)) {
     return;
   }
   const read: VfsRead = (p) => readVfs(p, overlay);
@@ -228,23 +311,56 @@ export function resolvePackage(
 export function resolveRelative(
   name: string,
   containingFile: string,
+  overlay: Map<string, string>,
+  opts?: ResolveOpts
+): string | undefined {
+  const resolved = resolveRelativePath(name, containingFile, overlay);
+  if (!resolved) {
+    return;
+  }
+  if (
+    isClientAppPath(containingFile) &&
+    opts?.typeOnly !== true &&
+    isAppSourcePath(resolved) &&
+    !isClientAppPath(resolved)
+  ) {
+    return;
+  }
+  return resolved;
+}
+
+/**
+ * Agent-facing message when a client file fails to resolve for a side reason.
+ * Returns undefined when the failure is not side-related (unknown module, etc.).
+ */
+export function sideAwareUnresolvedMessage(
+  moduleName: string,
+  containingFile: string | undefined,
   overlay: Map<string, string>
 ): string | undefined {
-  const base = normalizePath(containingFile);
-  const dir = base.slice(0, base.lastIndexOf("/") + 1);
-  const stripped = name.replace(JS_SUFFIX, "").replace(MJS_SUFFIX, "");
-  const candidates = [
-    joinPath(dir, name),
-    joinPath(dir, `${name}.ts`),
-    joinPath(dir, `${name}.tsx`),
-    joinPath(dir, `${name}.d.ts`),
-    joinPath(dir, `${name}.d.mts`),
-    joinPath(dir, `${stripped}.d.ts`),
-    joinPath(dir, `${stripped}.d.mts`),
-    joinPath(dir, `${stripped}.ts`),
-    joinPath(dir, `${name}/index.ts`),
-    joinPath(dir, `${stripped}/index.d.ts`),
-    joinPath(dir, `${stripped}/index.d.mts`),
-  ];
-  return firstExisting(candidates, (p) => readVfs(p, overlay));
+  if (!(containingFile && isClientAppPath(containingFile))) {
+    return;
+  }
+
+  if (moduleName.startsWith(".")) {
+    const target = resolveRelativePath(moduleName, containingFile, overlay);
+    if (target && isAppSourcePath(target) && !isClientAppPath(target)) {
+      return (
+        `Module '${moduleName}' resolves outside the client tree (src/ui/) and ` +
+        "cannot be imported as a value from client code. Use `import type` if " +
+        "you only need types, or call the server through the typed API client " +
+        "(hono/client) instead of importing server modules into src/ui/."
+      );
+    }
+    return;
+  }
+
+  if (SERVER_SERVED.has(moduleName) && !CLIENT_SERVED.has(moduleName)) {
+    return (
+      `Module '${moduleName}' is server-only (served by the server import map, ` +
+      "not the client import map) and cannot be imported from client code under " +
+      "src/ui/. Move the usage to a server route and reach it via the typed API " +
+      "client (hono/client), or use a client-safe package from the client import map."
+    );
+  }
 }

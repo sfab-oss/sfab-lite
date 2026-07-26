@@ -166,19 +166,16 @@ a blank page into wrong output. The remaining 235 would mean vendoring code
 the stack has no use for.
 
 So the resolver enforces the invariant instead: **`resolvePackage` resolves a
-bare specifier from app source only when the kernel serves it**, deriving the
-allowed set from `CLIENT_IMPORT_MAP ∪ SERVER_IMPORT_MAP`. Unserved imports
-fail at check time with TS2307 rather than at runtime with an empty `#root`.
-Files inside `/node_modules/` are exempt — `.d.ts` files reference their
+bare specifier from app source only when the kernel serves it**, and for
+client files under `src/ui/` (the template client entry tree) only when the
+**client** import map serves it. Relative value imports from that tree may
+not leave it either — `import type` may still cross for typed RPC. Unserved
+or wrong-side imports fail at check time with TS2307 (rewritten to name the
+module and the fix) rather than at runtime with an empty `#root`. Files
+inside `/node_modules/` are exempt — `.d.ts` files reference their
 transitive dependencies by bare specifier (better-auth's types import
 `better-call`, which the kernel bundles rather than serves), and those are
 type-graph internals, not app imports.
-
-**Known gap:** the allowed set is the *union* of both maps, because the check
-worker builds one program over an app's client and server sources and cannot
-tell which half a file compiles into. A client component importing
-`drizzle-orm` — server-only, no client chunk — still passes check and still
-blanks the page. Closing that needs the resolver to know a file's side.
 
 ### Apps cannot add dependencies
 

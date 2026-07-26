@@ -13,6 +13,11 @@ import {
   Extension,
   getDefaultLibFileName,
   type IScriptSnapshot,
+  isExportDeclaration,
+  isImportDeclaration,
+  isImportEqualsDeclaration,
+  isNamedExports,
+  isNamedImports,
   JsxEmit,
   type LanguageService,
   type LanguageServiceHost,
@@ -20,6 +25,8 @@ import {
   ModuleResolutionKind,
   ScriptSnapshot,
   ScriptTarget,
+  type StringLiteralLike,
+  SyntaxKind,
 } from "./typescript-runtime.js";
 import { directoryExists, normalizePath, readVfs } from "./vfs.js";
 
@@ -99,6 +106,71 @@ function extensionForResolved(resolved: string) {
   return Extension.Ts;
 }
 
+function namedBindingsAreTypeOnly(
+  bindings: import("typescript").NamedImportBindings | undefined
+): boolean {
+  if (!bindings || bindings.kind === SyntaxKind.NamespaceImport) {
+    return false;
+  }
+  return (
+    isNamedImports(bindings) &&
+    bindings.elements.length > 0 &&
+    bindings.elements.every((el) => el.isTypeOnly)
+  );
+}
+
+function importDeclarationIsTypeOnly(
+  decl: import("typescript").ImportDeclaration
+): boolean {
+  const clause = decl.importClause;
+  if (!clause) {
+    return false;
+  }
+  if (clause.isTypeOnly) {
+    return true;
+  }
+  if (clause.name) {
+    return false;
+  }
+  return namedBindingsAreTypeOnly(clause.namedBindings);
+}
+
+function exportDeclarationIsTypeOnly(
+  decl: import("typescript").ExportDeclaration
+): boolean {
+  if (decl.isTypeOnly) {
+    return true;
+  }
+  const clause = decl.exportClause;
+  if (!(clause && isNamedExports(clause))) {
+    return false;
+  }
+  return (
+    clause.elements.length > 0 && clause.elements.every((el) => el.isTypeOnly)
+  );
+}
+
+/**
+ * Whether the module specifier is type-only (erased at emit). Value imports
+ * of server modules from client code must fail; `import type` may cross.
+ */
+function moduleSpecifierIsTypeOnly(literal: StringLiteralLike): boolean {
+  const parent = literal.parent;
+  if (!parent) {
+    return false;
+  }
+  if (isImportDeclaration(parent)) {
+    return importDeclarationIsTypeOnly(parent);
+  }
+  if (isExportDeclaration(parent)) {
+    return exportDeclarationIsTypeOnly(parent);
+  }
+  if (isImportEqualsDeclaration(parent)) {
+    return parent.isTypeOnly;
+  }
+  return false;
+}
+
 export function getLanguageService(st: AppLsState): LanguageService {
   if (st.service) {
     return st.service;
@@ -136,10 +208,11 @@ export function getLanguageService(st: AppLsState): LanguageService {
     resolveModuleNameLiterals: (moduleLiterals, containingFile) =>
       moduleLiterals.map((lit) => {
         const name = lit.text;
+        const opts = { typeOnly: moduleSpecifierIsTypeOnly(lit) };
         const resolved =
-          resolvePackage(name, st.overlay, containingFile) ??
+          resolvePackage(name, st.overlay, containingFile, opts) ??
           (name.startsWith(".")
-            ? resolveRelative(name, containingFile, st.overlay)
+            ? resolveRelative(name, containingFile, st.overlay, opts)
             : undefined);
         if (!resolved) {
           return { resolvedModule: undefined };
