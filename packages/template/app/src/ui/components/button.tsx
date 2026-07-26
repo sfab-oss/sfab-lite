@@ -21,9 +21,14 @@ const buttonVariants = cva(
       size: {
         default:
           "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        sm: "h-8 gap-1 rounded-[min(var(--radius-md),10px)] px-2.5",
-        lg: "h-10 gap-1.5 px-2.5",
+        xs: "h-6 gap-1 rounded-[min(var(--radius-md),8px)] px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-8 gap-1 rounded-[min(var(--radius-md),10px)] px-2.5 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5",
+        lg: "h-10 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         icon: "size-9",
+        "icon-xs":
+          "size-6 rounded-[min(var(--radius-md),8px)] [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-8 rounded-[min(var(--radius-md),10px)]",
+        "icon-lg": "size-10",
       },
     },
     defaultVariants: {
@@ -48,7 +53,4 @@ function Button({
   );
 }
 
-// `buttonVariants` is intentionally not exported: nothing in the seed uses
-// it, and every unused export ships in every app made from this template.
-// Export it in your own app if you need button styling on an anchor.
 export { Button };
