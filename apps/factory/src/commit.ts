@@ -5,7 +5,7 @@
  * accepted-attempt / conflict contract used by both ordinary commits and
  * app creation.
  */
-import type { CheckResult, LintResult } from "@sfab-lite/core";
+import { type CheckResult, type LintResult, lintPasses } from "@sfab-lite/core";
 import type {
   AttemptKind,
   AttemptRecord,
@@ -144,7 +144,7 @@ async function callLint(
       body: JSON.stringify({
         appId,
         files,
-        mode: "both",
+        mode: "lint",
       }),
     })
   );
@@ -284,6 +284,28 @@ export async function runCommitAttempt(
       return "error";
     }
 
+    if (lint.body == null) {
+      await stub.failAttempt(attemptId, "error", {
+        error: "lint_failed",
+        lintHttp: lint.http,
+        lintWallMs: lint.wallMs,
+        lint: null,
+      });
+      return "error";
+    }
+
+    if (!lintPasses(lint.body)) {
+      await stub.failAttempt(attemptId, "fail", {
+        error: "lint_failed",
+        lintHttp: lint.http,
+        lintWallMs: lint.wallMs,
+        lint: lint.body,
+        publishGate: false,
+        totalMs: Date.now() - tAll0,
+      });
+      return "fail";
+    }
+
     let compiled: Awaited<ReturnType<typeof compileAll>>;
     try {
       compiled = await compileAll(files);
@@ -335,6 +357,7 @@ export async function runCommitAttempt(
         lintWallMs: lint.wallMs,
         lintDiagnosticCount: lintDiagCount,
         lintFileCount: lint.body?.fileCount ?? null,
+        lint: lint.body,
         checkHttp: check.http,
         checkWallMs: check.wallMs,
         checkMs: check.body?.checkMs ?? null,

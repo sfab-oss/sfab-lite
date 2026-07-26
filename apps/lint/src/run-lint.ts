@@ -80,6 +80,22 @@ function diagnosticMessage(d: { message?: unknown }): string {
   }
 }
 
+function countSeverities(diagnostics: { severity?: string }[]): {
+  errorCount: number;
+  warningCount: number;
+} {
+  let errorCount = 0;
+  let warningCount = 0;
+  for (const d of diagnostics) {
+    if (d.severity === "error") {
+      errorCount++;
+    } else if (d.severity === "warning") {
+      warningCount++;
+    }
+  }
+  return { errorCount, warningCount };
+}
+
 export function runLint(body: LintRequest): LintResult {
   const mode: LintMode = body.mode ?? "both";
   const appId = body.appId;
@@ -97,6 +113,8 @@ export function runLint(body: LintRequest): LintResult {
     let formatChanged: boolean | null = null;
     let diagnostics: LintFileResult["diagnostics"] = [];
     let diagnosticCount = 0;
+    let errorCount = 0;
+    let warningCount = 0;
     let truncated = false;
     let error: string | null = null;
     try {
@@ -109,6 +127,9 @@ export function runLint(body: LintRequest): LintResult {
         const lr = biome.lintContent(projectKey, content, { filePath: path });
         const all = lr.diagnostics ?? [];
         diagnosticCount = all.length;
+        const counts = countSeverities(all);
+        errorCount = counts.errorCount;
+        warningCount = counts.warningCount;
         truncated = diagnosticCount > MAX_REPORTED_DIAGNOSTICS;
         diagnostics = all.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => ({
           category: d.category,
@@ -124,6 +145,8 @@ export function runLint(body: LintRequest): LintResult {
       formatChanged,
       formatted,
       diagnosticCount,
+      errorCount,
+      warningCount,
       truncated,
       diagnostics,
       error,
@@ -131,12 +154,17 @@ export function runLint(body: LintRequest): LintResult {
     });
   }
 
+  const errorCount = results.reduce((n, r) => n + r.errorCount, 0);
+  const warningCount = results.reduce((n, r) => n + r.warningCount, 0);
+
   return {
     ok: results.every((r) => !r.error),
     appId,
     coldBootMs: cold,
     totalMs: Date.now() - t0,
     fileCount: results.length,
+    errorCount,
+    warningCount,
     files: results,
     versions: { ...LINT_VERSIONS },
   };

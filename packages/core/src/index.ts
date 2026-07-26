@@ -22,4 +22,5 @@ export type {
   LintResult,
   LintVersions,
 } from "./lint.js";
+export { lintPasses } from "./lint.js";
 export { mergeSources } from "./merge-sources.js";
