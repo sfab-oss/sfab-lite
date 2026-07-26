@@ -20,7 +20,8 @@
     "check:cycles": "madge --circular --extensions ts,tsx --exclude 'generated|vendor|results|\\\\.shims|universe' packages apps",
     "check:dead-code": "knip",
     "prepare": "husky",
-    "check:app-lint": "biome check --config-path=packages/core/app-biome.json packages/template/app/src"
+    "check:app-lint": "biome check --config-path=packages/core/app-biome.json packages/template/app/src",
+    "smoke:canary": "node scripts/smoke-canary.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.2",
