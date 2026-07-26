@@ -46,3 +46,18 @@ export interface LintResult {
   files: LintFileResult[];
   versions: LintVersions;
 }
+
+/** True when the linter ran cleanly and no error-severity diagnostics remain. */
+export function lintPasses(body: LintResult | null): boolean {
+  if (!body?.ok) {
+    return false;
+  }
+  for (const file of body.files) {
+    for (const d of file.diagnostics) {
+      if (d.severity === "error") {
+        return false;
+      }
+    }
+  }
+  return true;
+}
