@@ -95,7 +95,9 @@ window, so it is also safe to leave configured.
 
 The two never combine into an open door: the allowlist only ever *restricts*,
 so `SIGNUP_OPEN=true` beside one leaves the allowlist in force rather than
-lifting it.
+lifting it. That holds even when the list is malformed — a value that is set
+but parses to no addresses (a stray comma, a botched paste) means *nobody*
+rather than falling back to `SIGNUP_OPEN`.
 
 Both gate registration only. Turning either off does not sign anyone out and
 does not disable sign-in — better-auth's `disableSignUp` refuses user creation
@@ -111,7 +113,8 @@ The two paths fail differently, which matters when debugging:
 | password sign-up | `400` `EMAIL_PASSWORD_SIGN_UP_DISABLED` |
 | GitHub, unknown user | redirect to the error URL with `error=signup_disabled` |
 | either, existing user | signs in normally |
-| either, unlisted address under an allowlist | `403` `SIGNUP_NOT_ALLOWLISTED` |
+| password sign-up, unlisted address under an allowlist | `403` `SIGNUP_NOT_ALLOWLISTED` |
+| GitHub, unlisted address under an allowlist | redirect to the error URL; better-auth's OAuth path catches the error and mangles the message rather than passing the `403` through |
 
 The password row and the sign-in behaviour were observed against a running
 factory; the GitHub row is read from better-auth 1.6.19's `callback.mjs` and

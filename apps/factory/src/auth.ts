@@ -50,8 +50,12 @@ const RE_ALLOWLIST_SEPARATOR = /[\s,]+/;
  * hook, so an entry differing only in case would never match and would read as
  * "the allowlist is broken" rather than "the entry is wrong".
  */
+function allowlistRaw(env: Env): string {
+  return env.SIGNUP_ALLOWLIST?.trim() ?? "";
+}
+
 export function signUpAllowlist(env: Env): ReadonlySet<string> {
-  const raw = env.SIGNUP_ALLOWLIST?.trim();
+  const raw = allowlistRaw(env);
   if (!raw) {
     return NO_ALLOWLIST;
   }
@@ -72,7 +76,14 @@ export function signUpAllowlist(env: Env): ReadonlySet<string> {
  * of widening it back open. Both unset still means closed.
  */
 export function signUpAvailable(env: Env): boolean {
-  return signUpOpen(env) || signUpAllowlist(env).size > 0;
+  // A list that is set but parses to nothing — a stray comma, a botched paste —
+  // means *nobody*, not "fall back to SIGNUP_OPEN". Falling back would let a
+  // typo in the value reopen the door the value was written to close, which is
+  // the one direction this must never fail in.
+  if (allowlistRaw(env)) {
+    return signUpAllowlist(env).size > 0;
+  }
+  return signUpOpen(env);
 }
 
 /**
@@ -233,8 +244,10 @@ async function provisionOwnerOrganization(
  * - `emailAndPassword.enabled` follows `PASSWORD_AUTH` (default off).
  * - GitHub is registered only when both credentials are set — the intended
  *   production front door, where password auth is the local convenience.
- * - `disableSignUp` follows `SIGNUP_OPEN` (default off) on **both** providers,
- *   so a deployed factory does not hand an account to anyone with the URL.
+ * - `disableSignUp` follows `signUpAvailable` (default off) on **both**
+ *   providers, so a deployed factory does not hand an account to anyone with
+ *   the URL. Under an allowlist it stays *off* and `user.create.before`
+ *   refuses the addresses that are not on the list.
  * - On sign-up, `user.create.after` inserts the org + owner membership so
  *   the session hook has a row to stamp.
  */

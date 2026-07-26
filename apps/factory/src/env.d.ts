@@ -79,8 +79,10 @@ declare global {
      * with `error=signup_disabled` (read from better-auth 1.6.19's
      * `callback.mjs`; not exercised, since it needs real credentials).
      *
-     * Reported by `/api/config` so the sign-in screen can hide the sign-up
-     * form rather than offer a button that cannot succeed.
+     * Folded into `/api/config`'s `signUpAvailable` — not reported directly —
+     * so the sign-in screen can hide the sign-up form rather than offer a
+     * button that cannot succeed. `/admin/health` still reports this one
+     * verbatim, where "open to anyone" is the question being asked.
      */
     SIGNUP_OPEN?: string;
     /**
