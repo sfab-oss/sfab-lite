@@ -202,3 +202,25 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/factory
           command: deploy
+
+      # The only check that runs against what was actually deployed. Every
+      # gate above reads the source tree, and the failure this catches is
+      # invisible there: an app's HTML pins `/kernel/<its version>/client/*`,
+      # so bumping the kernel moves those chunks out of the Worker bundle and
+      # into R2. If the upload did not happen, every published app renders an
+      # empty #root while the whole repo stays green.
+      #
+      # Skipped rather than failed when unconfigured: a repo with no canary
+      # yet should still be able to deploy. The step name says so, so a run
+      # that silently proves nothing does not read as a run that passed.
+      - name: Smoke test canary app
+        if: ${{ vars.CANARY_APP_ID != '' && vars.SFAB_LITE_ORIGIN != '' }}
+        env:
+          SFAB_LITE_ORIGIN: ${{ vars.SFAB_LITE_ORIGIN }}
+          CANARY_APP_ID: ${{ vars.CANARY_APP_ID }}
+        run: pnpm smoke:canary
+
+      - name: Canary not configured
+        if: ${{ vars.CANARY_APP_ID == '' || vars.SFAB_LITE_ORIGIN == '' }}
+        run: |
+          echo "::warning title=No canary::CANARY_APP_ID / SFAB_LITE_ORIGIN are unset, so this deploy was not smoke-tested. Set them as repo variables."
