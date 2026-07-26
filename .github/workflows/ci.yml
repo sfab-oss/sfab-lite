@@ -210,17 +210,13 @@ jobs:
       # into R2. If the upload did not happen, every published app renders an
       # empty #root while the whole repo stays green.
       #
-      # Skipped rather than failed when unconfigured: a repo with no canary
-      # yet should still be able to deploy. The step name says so, so a run
-      # that silently proves nothing does not read as a run that passed.
+      # Unconditional. An earlier draft skipped when the variables were unset,
+      # so that a repo without a canary could still deploy — but both are set
+      # now, and that shape means deleting a variable silently turns the smoke
+      # test off forever. Failing on absence is the only version that cannot be
+      # disabled by accident; the script exits 2 with what to set.
       - name: Smoke test canary app
-        if: ${{ vars.CANARY_APP_ID != '' && vars.SFAB_LITE_ORIGIN != '' }}
         env:
           SFAB_LITE_ORIGIN: ${{ vars.SFAB_LITE_ORIGIN }}
           CANARY_APP_ID: ${{ vars.CANARY_APP_ID }}
         run: pnpm smoke:canary
-
-      - name: Canary not configured
-        if: ${{ vars.CANARY_APP_ID == '' || vars.SFAB_LITE_ORIGIN == '' }}
-        run: |
-          echo "::warning title=No canary::CANARY_APP_ID / SFAB_LITE_ORIGIN are unset, so this deploy was not smoke-tested. Set them as repo variables."

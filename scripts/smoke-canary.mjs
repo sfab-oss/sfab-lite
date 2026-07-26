@@ -55,6 +55,40 @@ function pass(what, detail) {
   console.log(`  ok    ${what}${detail ? ` (${detail})` : ""}`);
 }
 
+/** Surfaces in the Actions UI, not just in a log nobody opens. */
+function warn(message) {
+  console.log(`::warning title=Canary::${message}`);
+  notes.push(message);
+}
+
+/**
+ * Only these are worth another attempt. A 409 or 500 is the signal this test
+ * exists to raise, so retrying one would just delay a true red.
+ */
+const TRANSIENT = new Set([0, 502, 503, 504]);
+
+async function fetchChunk(path, attempt = 0) {
+  const url = `${origin}${path}`;
+  try {
+    const res = await fetch(url);
+    if (TRANSIENT.has(res.status) && attempt < 2) {
+      await sleep(500 * 2 ** attempt);
+      return fetchChunk(path, attempt + 1);
+    }
+    return { path, status: res.status, body: res.ok ? "" : await res.text() };
+  } catch (err) {
+    if (attempt < 2) {
+      await sleep(500 * 2 ** attempt);
+      return fetchChunk(path, attempt + 1);
+    }
+    return { path, status: 0, body: err.message };
+  }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /** 409 and 500 mean different upload faults; conflating them misdirects the fix. */
 function explainChunkFailure(r) {
   if (r.status === 409) {
@@ -123,35 +157,30 @@ async function main() {
   // Whether this run proved anything depends on the two versions differing.
   // While the canary pins the version the host still bundles, its chunks are
   // served straight from the Worker and R2 is never consulted — the test goes
-  // green without touching the path it exists to protect. Say so, rather than
-  // letting a green check be read as evidence it is not.
+  // green without touching the path it exists to protect.
+  //
+  // The same equality also catches the way this test decays: republishing the
+  // canary recompiles it against the *current* kernel, silently retiring it as
+  // a canary forever. One signal covers both, so it is worth surfacing where
+  // someone will actually see it rather than in stdout nobody reads.
   const pinned = chunkUrls[0].match(KERNEL_VERSION_RE)?.[1];
-  notes.push(
-    pinned === hostKernelVersion
-      ? `canary pins kernel ${pinned}, which is also the deployed version — ` +
-          "chunks came from the Worker bundle, so THIS RUN DID NOT EXERCISE R2. " +
-          "It starts covering the fleet-blanking case at the next kernel bump."
-      : `canary pins kernel ${pinned}, deployed host is ${hostKernelVersion} — ` +
-          "chunks resolved through R2, which is the case this test exists for."
-  );
+  if (pinned === hostKernelVersion) {
+    warn(
+      `canary pins kernel ${pinned}, which is also the deployed version — ` +
+        "chunks came from the Worker bundle, so this run did not exercise R2. " +
+        "Expected before the first kernel bump; after one, it means the canary " +
+        "was republished and needs replacing with an app that predates the bump."
+    );
+  } else {
+    notes.push(
+      `canary pins kernel ${pinned}, deployed host is ${hostKernelVersion} — ` +
+        "chunks resolved through R2, which is the case this test exists for."
+    );
+  }
 
   // Every chunk, not a sample: a partial R2 upload is exactly the shape of
   // failure this catches, and it does not distribute evenly.
-  const results = await Promise.all(
-    chunkUrls.map(async (path) => {
-      const url = `${origin}${path}`;
-      try {
-        const res = await fetch(url, { method: "GET" });
-        return {
-          path,
-          status: res.status,
-          body: res.ok ? "" : await res.text(),
-        };
-      } catch (err) {
-        return { path, status: 0, body: err.message };
-      }
-    })
-  );
+  const results = await Promise.all(chunkUrls.map((path) => fetchChunk(path)));
 
   const bad = results.filter((r) => r.status !== 200);
   if (bad.length === 0) {
