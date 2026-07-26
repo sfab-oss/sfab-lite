@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS _sfab_versions (
   server_bundle TEXT,
   assets TEXT,
   kernel_version TEXT,
+  server_surface_hash TEXT,
   FOREIGN KEY (parent_id) REFERENCES _sfab_versions(id)
 );
 CREATE TABLE IF NOT EXISTS _sfab_live (
@@ -176,6 +177,8 @@ export interface PutVersionInput {
   serverBundle: string;
   assets: Record<string, string>;
   kernelVersion: string;
+  /** Null only when reverting a pre-column version row. */
+  serverSurfaceHash: string | null;
 }
 
 export interface VersionRecord {
@@ -186,6 +189,8 @@ export interface VersionRecord {
   serverBundle: string;
   assets: Record<string, string>;
   kernelVersion: string;
+  /** Null on versions published before the server-surface column existed. */
+  serverSurfaceHash: string | null;
 }
 
 export class AppDO extends DurableObject {
@@ -206,6 +211,18 @@ export class AppDO extends DurableObject {
     // deployed before S2.6 still carry the old table and `CREATE TABLE IF NOT
     // EXISTS` cannot remove it, so drop it here.
     this.ctx.storage.sql.exec("DROP TABLE IF EXISTS _sfab_check_status;");
+    this.#ensureServerSurfaceHashColumn();
+  }
+
+  #ensureServerSurfaceHashColumn(): void {
+    const cols = this.ctx.storage.sql
+      .exec("PRAGMA table_info(_sfab_versions)")
+      .toArray() as { name: string }[];
+    if (!cols.some((c) => c.name === "server_surface_hash")) {
+      this.ctx.storage.sql.exec(
+        "ALTER TABLE _sfab_versions ADD COLUMN server_surface_hash TEXT"
+      );
+    }
   }
 
   /**
@@ -367,15 +384,17 @@ export class AppDO extends DurableObject {
     const createdAt = Date.now();
     this.ctx.storage.sql.exec(
       `INSERT INTO _sfab_versions
-        (id, parent_id, created_at, source_files, server_bundle, assets, kernel_version)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (id, parent_id, created_at, source_files, server_bundle, assets,
+         kernel_version, server_surface_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       input.parentId,
       createdAt,
       JSON.stringify(input.sourceFiles),
       input.serverBundle,
       JSON.stringify(input.assets),
-      input.kernelVersion
+      input.kernelVersion,
+      input.serverSurfaceHash
     );
     // A version only exists if checks passed, and on creation it is live.
     this.ctx.storage.sql.exec(
@@ -434,6 +453,7 @@ export class AppDO extends DurableObject {
         serverBundle: version.serverBundle,
         assets: version.assets,
         kernelVersion: version.kernelVersion,
+        serverSurfaceHash: version.serverSurfaceHash,
       },
       { source: "revert", restoredFrom: versionId, trusted: true }
     );
@@ -506,7 +526,8 @@ export class AppDO extends DurableObject {
   } {
     const row = this.ctx.storage.sql
       .exec(
-        `SELECT id, parent_id, created_at, source_files, server_bundle, assets, kernel_version
+        `SELECT id, parent_id, created_at, source_files, server_bundle, assets,
+                kernel_version, server_surface_hash
          FROM _sfab_versions WHERE id = ?`,
         versionId
       )
@@ -519,6 +540,7 @@ export class AppDO extends DurableObject {
           server_bundle: string;
           assets: string;
           kernel_version: string;
+          server_surface_hash: string | null;
         }
       | undefined;
     if (!row) {
@@ -536,6 +558,7 @@ export class AppDO extends DurableObject {
         serverBundle: row.server_bundle,
         assets: JSON.parse(row.assets) as Record<string, string>,
         kernelVersion: row.kernel_version,
+        serverSurfaceHash: row.server_surface_hash ?? null,
       },
     };
   }

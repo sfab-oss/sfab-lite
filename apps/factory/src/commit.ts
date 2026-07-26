@@ -42,6 +42,7 @@ export interface AppStub {
     serverBundle: string;
     assets: Record<string, string>;
     kernelVersion: string;
+    serverSurfaceHash: string | null;
   }) => Promise<{
     ok: true;
     id: string;
@@ -328,6 +329,7 @@ export async function runCommitAttempt(
         serverBundle: compiled.compiled.serverBundle,
         assets: compiled.assets,
         kernelVersion: compiled.compiled.kernelVersion,
+        serverSurfaceHash: compiled.compiled.serverSurfaceHash,
       },
       {
         live: true,
@@ -352,6 +354,7 @@ export async function runCommitAttempt(
         cssBytes: compiled.css.css.length,
         cssCandidates: compiled.css.candidateCount,
         kernelVersion: compiled.compiled.kernelVersion,
+        serverSurfaceHash: compiled.compiled.serverSurfaceHash,
         clientBailouts: compiled.client.bailouts,
         warnings: compiled.compiled.warnings,
       }

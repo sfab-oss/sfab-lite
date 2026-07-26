@@ -14,6 +14,7 @@ import {
   KERNEL_REACT_DOM,
   KERNEL_REACT_DOM_SERVER,
   KERNEL_ZOD,
+  SERVER_SURFACE_HASH,
 } from "@sfab-lite/kernel";
 import type { AppDO, VersionRecord } from "./app-do.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
@@ -233,6 +234,25 @@ export async function serveSubApp(
         appId,
       },
       { status: 404 }
+    );
+  }
+
+  // Pre-column versions have no stored hash. Serving them is deliberate —
+  // 409ing would recreate the fleet-blanking bug this guard replaces.
+  if (
+    version.serverSurfaceHash != null &&
+    version.serverSurfaceHash !== SERVER_SURFACE_HASH
+  ) {
+    return Response.json(
+      {
+        ok: false,
+        error: "server_surface_mismatch",
+        appId,
+        versionId: version.id,
+        versionServerSurface: version.serverSurfaceHash,
+        hostServerSurface: SERVER_SURFACE_HASH,
+      },
+      { status: 409 }
     );
   }
 
