@@ -28,9 +28,12 @@ export async function dispatchAgents(rc: RequestCtx): Promise<Response> {
     return jsonError("agent_not_found", 404);
   }
 
+  // The raw segment, undecoded: `routePartykitRequest` passes it to
+  // `idFromName` verbatim, so decoding here would authorize one identity and
+  // instantiate another.
   let appId: string;
   try {
-    ({ appId } = parseThreadName(decodeURIComponent(match[1])));
+    ({ appId } = parseThreadName(match[1]));
   } catch {
     return jsonError("agent_not_found", 404);
   }
