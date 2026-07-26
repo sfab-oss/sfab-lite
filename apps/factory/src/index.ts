@@ -20,6 +20,7 @@
  * `tenancy.ts`. Admin handlers and dispatch live in `admin.ts`; commit
  * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
+import { routeAgentRequest } from "agents";
 import { dispatchAdmin } from "./admin.js";
 import {
   createAuth,
@@ -32,6 +33,9 @@ import { matchRoute } from "./routes.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
 
+/** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
+export { CodemodeRuntime } from "@cloudflare/codemode";
+export { AppThread } from "./agent/app-thread.js";
 export { AppDO } from "./app-do.js";
 export { ScopedSql } from "./scoped-sql.js";
 
@@ -122,6 +126,15 @@ export default {
     // instead of the SPA.
     if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
       return await dispatchAdmin(rc);
+    }
+
+    // Think / agents SDK — `/agents/app-thread/<appId:threadId>`. Bound as
+    // `AppThread` so routeAgentRequest resolves the kebab path to this class.
+    if (url.pathname === "/agents" || url.pathname.startsWith("/agents/")) {
+      return (
+        (await routeAgentRequest(request, env)) ??
+        new Response("agent not found\n", { status: 404 })
+      );
     }
 
     // Worker-first: every request hits this fetch before assets. Unmatched

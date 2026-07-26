@@ -12,6 +12,12 @@ const UiKitScreen = import.meta.env.DEV
     )
   : null;
 
+const DevAgentScreen = import.meta.env.DEV
+  ? lazy(() =>
+      import("./screens/dev-agent").then((m) => ({ default: m.DevAgentScreen }))
+    )
+  : null;
+
 const ChatScreen = lazy(() =>
   import("./features/chat/page").then((m) => ({ default: m.ChatScreen }))
 );
@@ -27,17 +33,19 @@ export function App() {
   const { data: session, isPending } = authClient.useSession();
   const signedIn = Boolean(session?.user);
   const devChat = import.meta.env.DEV && route.name === "dev-chat";
+  const devAgent = import.meta.env.DEV && route.name === "dev-agent";
 
   useEffect(() => {
     if (
       !(isPending || signedIn) &&
       route.name !== "sign-in" &&
       !(import.meta.env.DEV && route.name === "ui-kit") &&
-      !devChat
+      !devChat &&
+      !devAgent
     ) {
       navigate({ name: "sign-in" }, true);
     }
-  }, [isPending, signedIn, route.name, navigate, devChat]);
+  }, [isPending, signedIn, route.name, navigate, devChat, devAgent]);
 
   if (import.meta.env.DEV && route.name === "ui-kit" && UiKitScreen) {
     return (
@@ -47,6 +55,18 @@ export function App() {
         }
       >
         <UiKitScreen />
+      </Suspense>
+    );
+  }
+
+  if (devAgent && DevAgentScreen) {
+    return (
+      <Suspense
+        fallback={
+          <main className="px-6 py-16 text-muted-foreground">Loading…</main>
+        }
+      >
+        <DevAgentScreen />
       </Suspense>
     );
   }

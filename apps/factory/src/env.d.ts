@@ -1,3 +1,4 @@
+import type { AppThread } from "./agent/app-thread.js";
 import type { AppDO } from "./app-do.js";
 
 declare global {
@@ -6,6 +7,11 @@ declare global {
     ASSETS: Fetcher;
     LOADER: WorkerLoader;
     APP_DO: DurableObjectNamespace<AppDO>;
+    /**
+     * Per-thread Think agent. Instance name is `appId:threadId`. Binding
+     * name matches the class so `routeAgentRequest` can resolve it.
+     */
+    AppThread: DurableObjectNamespace<AppThread>;
     /**
      * The factory's own D1 — auth and organizations now, the app registry in
      * S3b.
@@ -113,5 +119,10 @@ declare global {
      */
     GITHUB_CLIENT_ID?: string;
     GITHUB_CLIENT_SECRET?: string;
+    /**
+     * Z.AI coding-plan API key for the factory agent (S4). Worker secret —
+     * never expose via `/api/config` or any response.
+     */
+    ZAI_API_KEY?: string;
   }
 }

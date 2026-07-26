@@ -29,6 +29,11 @@ export default defineConfig({
     proxy: {
       "/api": { target: "http://localhost:8790", changeOrigin: true },
       "/admin": { target: "http://localhost:8790", changeOrigin: true },
+      "/agents": {
+        target: "http://localhost:8790",
+        changeOrigin: true,
+        ws: true,
+      },
       "^/a/": { target: "http://localhost:8790", changeOrigin: true },
       "/kernel": { target: "http://localhost:8790", changeOrigin: true },
     },

@@ -38,6 +38,7 @@ the gallery (and streamdown) from the main chunk.
 pnpm --filter @sfab-lite/factory dev:ui
 # → http://localhost:5173/dev/ui
 # → http://localhost:5173/dev/chat  (chat graft on mocks, DEV-only)
+# → http://localhost:5173/dev/agent (Think substrate harness, DEV-only)
 ```
 
 ## Imports
