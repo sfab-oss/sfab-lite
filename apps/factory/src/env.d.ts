@@ -129,5 +129,11 @@ declare global {
      * Local `.dev.vars` only — never set in production.
      */
     AGENT_HARNESS?: string;
+    /**
+     * Port the Vite console dev server is on, so its Origin can be trusted for
+     * CSRF (see `viteDevOrigins`). Only consulted when `baseURL` is local, and
+     * only needed by a worktree running on offset ports. Local `.dev.vars`.
+     */
+    UI_PORT?: string;
   }
 }

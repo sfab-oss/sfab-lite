@@ -81,6 +81,17 @@ string `/a`, because Vite matches a plain string context with
 `url.startsWith(context)` — `/a` would also capture the console's own `/apps`
 and `/assets/*`.
 
+**Running two worktrees at once.** Both ports are env-driven, and so is
+wrangler's inspector port — which collides between concurrent `wrangler dev`
+instances even when the HTTP ports differ. Set them in both terminals:
+
+```bash
+export FACTORY_PORT=8890 FACTORY_INSPECTOR_PORT=9329 UI_PORT=5273
+```
+
+Also put `UI_PORT` in that worktree's `.dev.vars`, or sign-in fails CSRF: the
+worker only trusts the console's Origin when it knows which port it is on.
+
 ## Known limitations
 
 Surprises worth knowing before they bite again, and the things "lite"

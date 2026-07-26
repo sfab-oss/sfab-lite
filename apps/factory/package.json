@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.ui.json",
     "build": "pnpm build:ui",
     "build:ui": "vite build --config ui/vite.config.ts",
-    "dev": "wrangler dev -c wrangler.jsonc -c ../check/wrangler.jsonc -c ../lint/wrangler.jsonc --port 8790",
+    "dev": "wrangler dev -c wrangler.jsonc -c ../check/wrangler.jsonc -c ../lint/wrangler.jsonc --port ${FACTORY_PORT:-8790} --inspector-port ${FACTORY_INSPECTOR_PORT:-9229}",
     "dev:ui": "vite --config ui/vite.config.ts",
     "deploy": "wrangler deploy",
     "bake-seed": "node scripts/bake-seed.mjs"

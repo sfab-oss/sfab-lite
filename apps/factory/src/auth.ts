@@ -203,10 +203,15 @@ async function provisionOwnerOrganization(
  */
 const RE_LOCAL_ORIGIN = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/;
 
-function viteDevOrigins(baseURL: string): string[] {
-  return RE_LOCAL_ORIGIN.test(baseURL)
-    ? ["http://127.0.0.1:5173", "http://localhost:5173"]
-    : [];
+const RE_PORT = /^\d{2,5}$/;
+
+function viteDevOrigins(baseURL: string, uiPort: string | undefined): string[] {
+  if (!RE_LOCAL_ORIGIN.test(baseURL)) {
+    return [];
+  }
+  const port = uiPort?.trim();
+  const resolved = port && RE_PORT.test(port) ? port : "5173";
+  return [`http://127.0.0.1:${resolved}`, `http://localhost:${resolved}`];
 }
 
 export function createAuth(env: Env, baseURL: string) {
@@ -248,11 +253,11 @@ export function createAuth(env: Env, baseURL: string) {
         return Promise.resolve();
       },
     },
-    // Vite serves the console on :5173 and proxies `/api` to wrangler, so the
-    // browser Origin is the Vite host while `baseURL` is the worker origin.
-    // Gated on a local `baseURL`: this widens CSRF origin checking, and a
-    // deployed factory must never trust an origin it does not serve.
-    trustedOrigins: [baseURL, ...viteDevOrigins(baseURL)],
+    // Vite serves the console and proxies `/api` to wrangler, so the browser
+    // Origin is the Vite host while `baseURL` is the worker origin. Gated on a
+    // local `baseURL`: this widens CSRF origin checking, and a deployed factory
+    // must never trust an origin it does not serve.
+    trustedOrigins: [baseURL, ...viteDevOrigins(baseURL, env.UI_PORT)],
     plugins: [
       organization({
         allowUserToCreateOrganization: false,
