@@ -16,7 +16,7 @@ import { renderCheckText, renderLintText } from "./render-diagnostics.js";
 import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
 const FROZEN_IMPORT_MAP_MSG = `This app runs on sfab-lite's frozen kernel import map — dependencies are pinned at the factory, not installed per app.
-pnpm add / install / dev / test are not available in this shell.
+pnpm add / install are not available in this shell.
 Use pnpm typecheck, pnpm lint, and pnpm run deploy (or wrangler deploy) instead.
 `;
 
@@ -97,6 +97,13 @@ async function runLint(
   return ok(text || "lint passed\n");
 }
 
+/**
+ * Await the commit on the agent turn (exit codes must be real). Justified
+ * against DO limits: factory `limits.cpu_ms` is 300_000 and a commit is
+ * measured at 10–24s. Unlike HTTP `waitUntil`, we must settle before returning
+ * — but abort must still fail the attempt so bash timeout cannot leave it
+ * pending until STALE_ATTEMPT_MS.
+ */
 async function runDeploy(
   deps: ShellCommandDeps,
   ctx: CommandContext
@@ -107,33 +114,36 @@ async function runDeploy(
   if (!(live.version?.sourceFiles && live.liveVersionId)) {
     return fail("deploy: app has no live version to publish from\n", 1);
   }
+  if (ctx.signal?.aborted) {
+    return fail("deploy: aborted before start\n", 124);
+  }
   const start = await stub.startAttempt("commit", live.liveVersionId);
   if (!start.ok) {
     return fail(`deploy: attempt already in flight (${start.attemptId})\n`, 1);
   }
-  try {
-    const result = await runCommitAttempt(
-      deps.env,
-      deps.appId,
-      start.attemptId,
-      files,
-      live.liveVersionId
-    );
-    if (result === "pass") {
-      return ok(
-        `deploy: published successfully (attempt ${start.attemptId})\n`
-      );
-    }
-    const { attempt } = await stub.getAttempt(start.attemptId);
-    const detail =
-      attempt?.payload == null
-        ? "\n"
-        : `\n${JSON.stringify(attempt.payload, null, 2)}\n`;
-    const kind = result === "fail" ? "publish gate failed" : "publish error";
-    return fail(`deploy: ${kind} (attempt ${start.attemptId})${detail}`, 1);
-  } catch (e) {
-    return fail(`deploy: ${e instanceof Error ? e.message : String(e)}\n`, 1);
+
+  const result = await runCommitAttempt(
+    deps.env,
+    deps.appId,
+    start.attemptId,
+    files,
+    live.liveVersionId,
+    { signal: ctx.signal }
+  );
+
+  if (result === "aborted") {
+    return fail(`deploy: aborted (attempt ${start.attemptId})\n`, 124);
   }
+  if (result === "pass") {
+    return ok(`deploy: published successfully (attempt ${start.attemptId})\n`);
+  }
+  const { attempt } = await stub.getAttempt(start.attemptId);
+  const detail =
+    attempt?.payload == null
+      ? "\n"
+      : `\n${JSON.stringify(attempt.payload, null, 2)}\n`;
+  const kind = result === "fail" ? "publish gate failed" : "publish error";
+  return fail(`deploy: ${kind} (attempt ${start.attemptId})${detail}`, 1);
 }
 
 function parsePnpmInvocation(args: string[]): {
@@ -148,9 +158,6 @@ function parsePnpmInvocation(args: string[]): {
   }
   if (head === "add" || head === "install" || head === "i") {
     return { kind: "refuse", name: head === "i" ? "install" : head };
-  }
-  if (head === "dev" || head === "test") {
-    return { kind: "refuse", name: head };
   }
   if (head === "run") {
     if (!rest[0]) {
