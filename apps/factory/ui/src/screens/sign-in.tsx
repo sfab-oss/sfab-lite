@@ -231,7 +231,7 @@ function SignInBody({
           {/* Hidden, not disabled, when registration is closed: the sign-up
               request would fail at the end of a form the user already filled
               in, and `EMAIL_PASSWORD_SIGN_UP_DISABLED` does not explain why. */}
-          {config.signUpOpen ? (
+          {config.signUpAvailable ? (
             <p className="text-center text-muted-foreground text-sm">
               {mode === "signin"
                 ? "Need an account? "

@@ -15,8 +15,11 @@ export interface AppRecord {
 export interface AuthConfig {
   passwordAuth: boolean;
   githubAuth: boolean;
-  /** Whether new accounts may be created. Sign-in is unaffected by this. */
-  signUpOpen: boolean;
+  /**
+   * Whether the sign-up form may be offered. An allowlisted factory reports
+   * `true` and rejects unlisted addresses on submit. Sign-in is unaffected.
+   */
+  signUpAvailable: boolean;
 }
 
 export interface AttemptRecord {

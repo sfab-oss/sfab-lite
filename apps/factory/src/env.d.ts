@@ -79,10 +79,22 @@ declare global {
      * with `error=signup_disabled` (read from better-auth 1.6.19's
      * `callback.mjs`; not exercised, since it needs real credentials).
      *
-     * Reported by `/api/config` so the sign-in screen can hide the sign-up
-     * form rather than offer a button that cannot succeed.
+     * Folded into `/api/config`'s `signUpAvailable` — not reported directly —
+     * so the sign-in screen can hide the sign-up form rather than offer a
+     * button that cannot succeed. `/admin/health` still reports this one
+     * verbatim, where "open to anyone" is the question being asked.
      */
     SIGNUP_OPEN?: string;
+    /**
+     * Addresses allowed to register, separated by commas or whitespace.
+     *
+     * The narrow alternative to `SIGNUP_OPEN`: a deployed factory can hand
+     * accounts to a named few without opening the door to anyone with the URL.
+     * Only ever restricts — setting it beside `SIGNUP_OPEN=true` keeps the
+     * restriction rather than lifting it, so the pair cannot combine into an
+     * open front door by accident.
+     */
+    SIGNUP_ALLOWLIST?: string;
     /**
      * Gates every `/admin/*` route, and **must be byte-identical in all three
      * workers** — factory, check, and lint. The factory presents it over the

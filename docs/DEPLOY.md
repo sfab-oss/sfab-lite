@@ -60,7 +60,8 @@ an expensive endpoint — to anyone who found the worker's URL.)
 | `APP_BETTER_AUTH_SECRET` | ● | | | injected into every sub-app; without it no app serves |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | ● | | | both or neither — the provider registers only when both are non-blank |
 | `PASSWORD_AUTH` | ● | | | `"true"` enables email+password; default off |
-| `SIGNUP_OPEN` | ● | | | `"true"` allows **new accounts**; default off |
+| `SIGNUP_OPEN` | ● | | | `"true"` allows **new accounts** from anyone; default off |
+| `SIGNUP_ALLOWLIST` | ● | | | addresses that may register, comma/space separated; only ever restricts |
 
 ```bash
 wrangler secret put ADMIN_TOKEN --name sfab-lite-factory
@@ -76,15 +77,34 @@ the mismatch above.
 
 ## Registration is closed by default
 
-`SIGNUP_OPEN` unset means **nobody can create an account**, including the first
-one. A fresh deploy therefore needs it set to `"true"` long enough to create the
-accounts that should exist, then unset.
+With neither `SIGNUP_OPEN` nor `SIGNUP_ALLOWLIST` set, **nobody can create an
+account**, including the first one.
 
-It gates registration only. Turning it off does not sign anyone out and does
-not disable sign-in — better-auth's `disableSignUp` refuses user creation and
-leaves authentication alone. Leaving it off is the intended production state,
-and `/api/config` reports it so the console hides the sign-up form rather than
-offering a button that cannot succeed.
+**Prefer `SIGNUP_ALLOWLIST` to open a fresh deploy.** Naming the addresses that
+may register lets the accounts that should exist get created without ever
+opening registration to whoever has the URL:
+
+```bash
+wrangler secret put SIGNUP_ALLOWLIST --name sfab-lite-factory   # you@example.com, teammate@example.com
+```
+
+The alternative — flipping `SIGNUP_OPEN=true`, registering, then unsetting it —
+leaves a window where anyone with the URL can take an account, and the window
+stays open if anything interrupts the sequence. The allowlist has no such
+window, so it is also safe to leave configured.
+
+The two never combine into an open door: the allowlist only ever *restricts*,
+so `SIGNUP_OPEN=true` beside one leaves the allowlist in force rather than
+lifting it. That holds even when the list is malformed — a value that is set
+but parses to no addresses (a stray comma, a botched paste) means *nobody*
+rather than falling back to `SIGNUP_OPEN`.
+
+Both gate registration only. Turning either off does not sign anyone out and
+does not disable sign-in — better-auth's `disableSignUp` refuses user creation
+and leaves authentication alone. `/api/config` reports `signUpAvailable` so the
+console hides the sign-up form rather than offering a button that cannot
+succeed; with an allowlist the form renders and an unlisted address is refused
+on submit with `SIGNUP_NOT_ALLOWLISTED`.
 
 The two paths fail differently, which matters when debugging:
 
@@ -93,6 +113,8 @@ The two paths fail differently, which matters when debugging:
 | password sign-up | `400` `EMAIL_PASSWORD_SIGN_UP_DISABLED` |
 | GitHub, unknown user | redirect to the error URL with `error=signup_disabled` |
 | either, existing user | signs in normally |
+| password sign-up, unlisted address under an allowlist | `403` `SIGNUP_NOT_ALLOWLISTED` |
+| GitHub, unlisted address under an allowlist | redirect to the error URL; better-auth's OAuth path catches the error and mangles the message rather than passing the `403` through |
 
 The password row and the sign-in behaviour were observed against a running
 factory; the GitHub row is read from better-auth 1.6.19's `callback.mjs` and

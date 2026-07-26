@@ -26,7 +26,7 @@ import {
   createAuth,
   githubAuthEnabled,
   passwordAuthEnabled,
-  signUpOpen,
+  signUpAvailable,
 } from "./auth.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute } from "./routes.js";
@@ -69,7 +69,9 @@ function handleApiConfig(rc: RouteCtx): Response {
       // Whether the sign-up form should render at all. Same reasoning as the two
       // above: closed sign-up does not 404, it fails at the end of a flow the
       // user already committed to, so the screen has to be told rather than probe.
-      signUpOpen: signUpOpen(rc.env),
+      // Availability, not openness — an allowlisted factory renders the form and
+      // rejects the addresses that are not on the list.
+      signUpAvailable: signUpAvailable(rc.env),
     },
     { headers: { "Cache-Control": "no-store" } }
   );
