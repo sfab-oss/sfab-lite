@@ -29,6 +29,10 @@ function AgentSession({
   threadId: string;
 }) {
   const name = `${appId}:${threadId}`;
+  // Streaming a turn here trips "Maximum update depth exceeded" inside the
+  // SDK's own `useSyncExternalStore` subscription. Memoizing these options and
+  // satisfying the `@ai-sdk/react` peer both failed to fix it; the turn still
+  // completes and persists server-side, only the client stops rendering.
   const agent = useAgent({ agent: "AppThread", name });
   const { messages, status, sendMessage, stop } = useAgentChat({ agent });
   const [draft, setDraft] = useState("");
