@@ -201,9 +201,14 @@ When the host's `KERNEL_VERSION` advances (see
 their import maps still point at `/kernel/<old-version>/…`, and the factory
 streams those chunks from the `sfab-lite-kernel` R2 bucket (uploaded by
 `pnpm upload-kernel-r2` on deploy). Only a version that was never uploaded
-returns **HTTP 409** `kernel_version_mismatch`. Republish remains useful to
-pick up new kernel APIs, but it is no longer required to keep the fleet
-online.
+returns **HTTP 409** `kernel_version_mismatch` on the chunk path.
+
+Separately, sub-app **server** modules always come from the host bundle.
+Publish records a `SERVER_SURFACE_HASH` (digest of the eight server chunk
+hashes). At serve time a mismatch returns **HTTP 409**
+`server_surface_mismatch`. A client-only kernel bump leaves that hash
+unchanged and does not 409. Versions published before the column existed
+have a null hash and are served permissively.
 
 ### A commit costs 10–25 seconds of work — but you do not wait for it
 
