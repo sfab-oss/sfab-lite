@@ -99,6 +99,45 @@ declared path stops existing.
 Renaming a payload entry point is therefore a two-line change: move the
 file, update `manifest.json`.
 
+## The shadcn subset, and why it is a subset
+
+The seed carries a deliberately small slice of the starter's shadcn layer:
+`alert`, `avatar`, `badge`, `button`, `card`, `empty`, `field`, `input`,
+`label`, `separator`, `skeleton`, `spinner`, `textarea`.
+
+Two different reasons keep the rest out, and it is worth not confusing them,
+because only one of them is a real constraint:
+
+- **Genuinely blocked** — the upstream shadcn source imports something the
+  kernel does not serve. `lucide-react` is nearly all of this: the
+  overlay/menu/select family (dialog, dropdown-menu, select, sheet, sidebar,
+  command, …) uses icons. So do the third-party-backed ones: `sonner`,
+  `chart` (recharts), `carousel` (embla), `calendar` (react-day-picker),
+  `drawer` (vaul), `resizable`, `markdown` (streamdown). These need a kernel
+  decision before they can be ported at all.
+- **Merely not ported yet** — `tabs`, `tooltip`, `switch`, `table`,
+  `popover`, `progress`, `slider`, `toggle`, `radio-group`, `collapsible`,
+  `hover-card`, `aspect-ratio` and friends need only `@base-ui/react` and
+  `cn`, both of which the kernel already serves. They are absent because
+  **every file here ships into every app**, and `knip` rejects a seed file
+  nothing imports. Add one the moment a route actually uses it.
+
+That second list is the useful one: it is not a wishlist, it is a set of
+components already known to work under the frozen kernel.
+
+The same rule explains the partial ports. `field` exports four of the
+starter's ten pieces, and `FieldError` is not among them — the seed's forms
+surface errors through `Alert`, which already carries `role="alert"`, so a
+per-field error component would be an unused file. Port the rest of `Field`
+together with the first form that needs inline validation, not before.
+
+The `spinner` is the one hand-written divergence: a small inline SVG rather
+than a Lucide icon, so pending buttons work without the blocked dependency.
+It is a one-off today. **Before porting anything else that wants an icon,
+decide whether this becomes inline-SVG-per-component or a minimal vendored
+icon set** — drifting into a dozen hand-drawn SVGs without choosing is the
+failure mode.
+
 ## What the app does
 
 Enough to prove the stack end to end, and no more: email/password auth

@@ -451,6 +451,12 @@ function assertNoDeadDialects() {
  * Only `.d.ts` (not sibling `.d.mts`) — base-ui ships both for every file;
  * pulling both would roughly double the package for no resolution gain when
  * the `.d.ts` side is present.
+ *
+ * Consequence worth knowing before reading `packageTypeCounts` as evidence:
+ * an excepted package's count still moves when the template imports more of
+ * it, because `ensureDualDeclSiblings` adds `.d.mts` siblings from the program
+ * closure that this walk deliberately skipped. A rising count therefore does
+ * not mean the exception is leaking; every `.d.ts` is already here.
  */
 /** @param {string} vfsPath */
 function recordPackageTypeFromVfsPath(vfsPath) {
