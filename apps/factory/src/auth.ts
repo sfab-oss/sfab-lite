@@ -240,7 +240,9 @@ export function createAuth(env: Env, baseURL: string) {
         return Promise.resolve();
       },
     },
-    trustedOrigins: [baseURL],
+    // Vite serves the console on :5173 and proxies `/api` to wrangler; the
+    // browser Origin is the Vite host while `baseURL` is the worker origin.
+    trustedOrigins: [baseURL, "http://127.0.0.1:5173", "http://localhost:5173"],
     plugins: [
       organization({
         allowUserToCreateOrganization: false,

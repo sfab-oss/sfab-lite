@@ -20,8 +20,8 @@
  * `tenancy.ts`. Admin handlers and dispatch live in `admin.ts`; commit
  * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
-import { routeAgentRequest } from "agents";
 import { dispatchAdmin } from "./admin.js";
+import { dispatchAgents } from "./agent/dispatch.js";
 import {
   createAuth,
   githubAuthEnabled,
@@ -128,13 +128,10 @@ export default {
       return await dispatchAdmin(rc);
     }
 
-    // Think / agents SDK — `/agents/app-thread/<appId:threadId>`. Bound as
-    // `AppThread` so routeAgentRequest resolves the kebab path to this class.
+    // Think / agents — auth + app tenancy + namespace allowlist before any DO
+    // lookup. See `agent/dispatch.ts`.
     if (url.pathname === "/agents" || url.pathname.startsWith("/agents/")) {
-      return (
-        (await routeAgentRequest(request, env)) ??
-        new Response("agent not found\n", { status: 404 })
-      );
+      return await dispatchAgents(rc);
     }
 
     // Worker-first: every request hits this fetch before assets. Unmatched

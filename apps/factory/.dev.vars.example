@@ -21,3 +21,5 @@ ADMIN_TOKEN=dev-admin-token
 # Z.AI coding-plan key for the factory agent (S4). Required for /dev/agent.
 # Never commit the real value; set as a Worker secret in production.
 # ZAI_API_KEY=
+# Enables AppThread harness callables (inspectWorkspace). Local only.
+AGENT_HARNESS=true

@@ -34,10 +34,10 @@ export async function seedWorkspaceFromLive(
   storage: DurableObjectStorage,
   workspace: WorkspaceFsLike,
   appId: string
-): Promise<{ liveVersionId: string; fileCount: number }> {
+): Promise<{ liveVersionId: string }> {
   const already = await storage.get<string>(SEEDED_KEY);
   if (already) {
-    return { liveVersionId: already, fileCount: -1 };
+    return { liveVersionId: already };
   }
 
   const live = await appStub(env, appId).getLive();
@@ -48,11 +48,10 @@ export async function seedWorkspaceFromLive(
     );
   }
 
-  const entries = Object.entries(files);
-  for (const [path, content] of entries) {
+  for (const [path, content] of Object.entries(files)) {
     await workspace.writeFile(toWorkspacePath(path), content);
   }
 
   await storage.put(SEEDED_KEY, live.liveVersionId);
-  return { liveVersionId: live.liveVersionId, fileCount: entries.length };
+  return { liveVersionId: live.liveVersionId };
 }

@@ -33,19 +33,17 @@ export function App() {
   const { data: session, isPending } = authClient.useSession();
   const signedIn = Boolean(session?.user);
   const devChat = import.meta.env.DEV && route.name === "dev-chat";
-  const devAgent = import.meta.env.DEV && route.name === "dev-agent";
 
   useEffect(() => {
     if (
       !(isPending || signedIn) &&
       route.name !== "sign-in" &&
       !(import.meta.env.DEV && route.name === "ui-kit") &&
-      !devChat &&
-      !devAgent
+      !devChat
     ) {
       navigate({ name: "sign-in" }, true);
     }
-  }, [isPending, signedIn, route.name, navigate, devChat, devAgent]);
+  }, [isPending, signedIn, route.name, navigate, devChat]);
 
   if (import.meta.env.DEV && route.name === "ui-kit" && UiKitScreen) {
     return (
@@ -59,7 +57,10 @@ export function App() {
     );
   }
 
-  if (devAgent && DevAgentScreen) {
+  if (import.meta.env.DEV && route.name === "dev-agent" && DevAgentScreen) {
+    if (!signedIn) {
+      return <SignInScreen />;
+    }
     return (
       <Suspense
         fallback={

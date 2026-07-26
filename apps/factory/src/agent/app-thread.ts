@@ -53,13 +53,16 @@ export class AppThread extends Think<Env> {
     }
   }
 
-  /** Harness probe: prove the scratch workspace was seeded from live. */
+  /** Local harness only — set `AGENT_HARNESS=true` in `.dev.vars`. */
   @callable()
   async inspectWorkspace(): Promise<{
     appId: string;
     liveVersionId: string | null;
     paths: string[];
   }> {
+    if (this.env.AGENT_HARNESS !== "true") {
+      throw new Error("inspectWorkspace is harness-only");
+    }
     const appId = this.#appId ?? parseThreadName(this.name).appId;
     const files = await this.workspace.glob("**/*");
     const paths = files.map((f) => f.path).sort((a, b) => a.localeCompare(b));
