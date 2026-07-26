@@ -88,6 +88,12 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:seed
 
+      # Vendored Think bash tool must stay byte-identical to upstream plus the
+      # intentional customCommands delta. Silent drift is the vendoring risk.
+      - name: vendored-bash
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:vendored-bash
+
       # One TS program over the types VFS retains ~320 MB against a 128 MB
       # isolate, so the check worker may hold state for at most one app. When
       # it held one per appId, the second distinct app in an isolate killed it

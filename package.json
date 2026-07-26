@@ -13,6 +13,7 @@
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:kernel": "node scripts/check-kernel.mjs",
     "check:seed": "node scripts/check-seed.mjs",
+    "check:vendored-bash": "node scripts/check-vendored-bash.mjs",
     "check:check-memory": "node apps/check/scripts/regression-store-bound-inprocess.mjs",
     "check:export-agreement": "node scripts/check-export-agreement.mjs",
     "upload-kernel-r2": "pnpm --filter @sfab-lite/factory upload-kernel-r2",

@@ -19,7 +19,7 @@ factory tooling. Architecture:
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:dead-code`, `pnpm check:seed`,
-`pnpm check:check-memory`.
+`pnpm check:vendored-bash`, `pnpm check:check-memory`.
 
 `check:app-lint` is the odd one: it checks `packages/template/app/src` —
 the seed payload — against `packages/core/app-biome.json`, the config the

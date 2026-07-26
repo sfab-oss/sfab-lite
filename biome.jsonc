@@ -16,7 +16,8 @@
       "!!**/packages/kernel/kernel.json",
       "!!**/packages/kernel/results",
       "!!**/packages/kernel/scripts/.shims",
-      "!!**/packages/kernel/scripts/.shims-client"
+      "!!**/packages/kernel/scripts/.shims-client",
+      "!!**/apps/factory/src/agent/vendor"
     ]
   },
   // Same assist/noise offs as starter — presets turn these on; not worth
