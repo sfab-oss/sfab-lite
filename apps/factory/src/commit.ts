@@ -284,6 +284,16 @@ export async function runCommitAttempt(
       return "error";
     }
 
+    if (lint.body == null) {
+      await stub.failAttempt(attemptId, "error", {
+        error: "lint_failed",
+        lintHttp: lint.http,
+        lintWallMs: lint.wallMs,
+        lint: null,
+      });
+      return "error";
+    }
+
     if (!lintPasses(lint.body)) {
       await stub.failAttempt(attemptId, "fail", {
         error: "lint_failed",
