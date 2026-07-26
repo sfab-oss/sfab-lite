@@ -25,6 +25,18 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Historical client kernel chunks, keyed by KERNEL_VERSION. The in-bundle
+  // path still serves the current version; R2 is only consulted for older
+  // versions so a kernel bump does not 409 the fleet. Create the remote
+  // bucket once (`wrangler r2 bucket create sfab-lite-kernel`) before the
+  // first deploy that includes this binding — local `wrangler dev` simulates
+  // it for free.
+  "r2_buckets": [
+    {
+      "binding": "KERNEL_R2",
+      "bucket_name": "sfab-lite-kernel"
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {

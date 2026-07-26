@@ -8,3 +8,4 @@ export const KERNEL_BETTER_AUTH: string;
 export const KERNEL_HONO: string;
 export const KERNEL_ZOD: string;
 export const KERNEL_VERSION: string;
+export const SERVER_SURFACE_HASH: string;

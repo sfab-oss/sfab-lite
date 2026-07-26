@@ -407,8 +407,39 @@ const zodEntry = join(root, "scripts", "vendor-entries", "zod.mjs");
   console.log(`wrote zod.js (${bytes} bytes)`);
 }
 
+const serverChunks = [
+  "react.js",
+  "jsx-runtime.js",
+  "react-dom.js",
+  "react-dom-server.js",
+  "drizzle-orm.js",
+  "better-auth.js",
+  "hono.js",
+  "zod.js",
+];
+
+/** @type {Record<string, string>} */
+const hashes = {};
+for (const name of serverChunks) {
+  const buf = readFileSync(join(vendorDir, name));
+  hashes[name] = `sha256:${createHash("sha256").update(buf).digest("hex")}`;
+}
+
+/**
+ * Order-independent digest over server chunk hashes only. Client-only bumps
+ * must not change this value.
+ */
+const serverSurfaceMaterial = [...serverChunks]
+  .sort()
+  .map((name) => `${name}=${hashes[name]}`)
+  .join("\n");
+const SERVER_SURFACE_HASH = `sha256:${createHash("sha256")
+  .update(serverSurfaceMaterial)
+  .digest("hex")}`;
+
 exportsOut.push(
   `export const KERNEL_VERSION = ${JSON.stringify(KERNEL_VERSION)};`,
+  `export const SERVER_SURFACE_HASH = ${JSON.stringify(SERVER_SURFACE_HASH)};`,
   ""
 );
 writeFileSync(join(generatedDir, "server-kernel.js"), exportsOut.join("\n"));
@@ -431,24 +462,6 @@ const gzipSizes = {
 };
 const rawTotal = Object.values(sizes).reduce((a, b) => a + b, 0);
 const gzipTotal = Object.values(gzipSizes).reduce((a, b) => a + b, 0);
-
-const serverChunks = [
-  "react.js",
-  "jsx-runtime.js",
-  "react-dom.js",
-  "react-dom-server.js",
-  "drizzle-orm.js",
-  "better-auth.js",
-  "hono.js",
-  "zod.js",
-];
-
-/** @type {Record<string, string>} */
-const hashes = {};
-for (const name of serverChunks) {
-  const buf = readFileSync(join(vendorDir, name));
-  hashes[name] = `sha256:${createHash("sha256").update(buf).digest("hex")}`;
-}
 
 function runScript(name) {
   const result = spawnSync(process.execPath, [join(root, "scripts", name)], {
@@ -529,6 +542,7 @@ const hostBakeGzip = gzipTotal + typesGzip + clientGzip + cssGzip;
 
 const kernelJson = {
   version: KERNEL_VERSION,
+  serverSurfaceHash: SERVER_SURFACE_HASH,
   pins: PINS,
   serverChunks,
   clientChunks: clientSizes.clientChunks ?? [],

@@ -35,5 +35,6 @@ export {
   KERNEL_REACT_DOM_SERVER,
   KERNEL_VERSION,
   KERNEL_ZOD,
+  SERVER_SURFACE_HASH,
 } from "./generated/server-kernel.js";
 export { TYPES_VFS, TYPES_VFS_MANIFEST } from "./generated/types-vfs.js";

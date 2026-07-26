@@ -15,6 +15,7 @@
     "check:seed": "node scripts/check-seed.mjs",
     "check:check-memory": "node apps/check/scripts/regression-store-bound-inprocess.mjs",
     "check:export-agreement": "node scripts/check-export-agreement.mjs",
+    "upload-kernel-r2": "pnpm --filter @sfab-lite/factory upload-kernel-r2",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "check:cycles": "madge --circular --extensions ts,tsx --exclude 'generated|vendor|results|\\\\.shims|universe' packages apps",
     "check:dead-code": "knip",

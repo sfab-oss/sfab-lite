@@ -85,11 +85,16 @@ every package in the same commit and rebuild the kernel.
 ## `KERNEL_VERSION` bumps (operator consequence)
 
 `scripts/pins.mjs` exports `KERNEL_VERSION`, which is baked into every
-published app version and into the host's served kernel. When the host's
-version and an app's `version.kernelVersion` differ, `serve.ts` /
-`serve-kernel.ts` respond with **HTTP 409** and
-`error: "kernel_version_mismatch"` instead of serving a blank page.
+published app version and into the host's in-bundle kernel. The factory
+serves the current version from the Worker bundle and older versions from
+the `sfab-lite-kernel` R2 bucket (`pnpm upload-kernel-r2` on deploy). A
+version that was never uploaded still returns **HTTP 409**
+`error: "kernel_version_mismatch"` on `/kernel/…`.
 
-**Existing live apps must be republished** after a host kernel bump. Until
-they are, every `/a/:appId` and `/preview` request for that app returns
-409. There is no automatic migration — republish is the fix.
+`SERVER_SURFACE_HASH` is a separate digest over the eight **server** chunk
+hashes. Sub-app server modules always come from the host bundle, so a
+mismatch at serve time is **HTTP 409** `server_surface_mismatch`. Client-only
+bumps leave the hash unchanged. Legacy rows with a null hash are served.
+
+Republish picks up new kernel APIs and a matching server surface; it is not
+required for client-only bumps after R2 history is uploaded.

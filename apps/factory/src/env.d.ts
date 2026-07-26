@@ -22,6 +22,11 @@ declare global {
      * app's own rows live in its AppDO.
      */
     DB: D1Database;
+    /**
+     * Versioned client kernel chunks (`kernels/<version>/…`). Current
+     * `KERNEL_VERSION` stays in-bundle; older versions are served from here.
+     */
+    KERNEL_R2: R2Bucket;
     /** Service binding → sfab-lite-check */
     CHECK: Fetcher;
     /** Service binding → sfab-lite-lint */

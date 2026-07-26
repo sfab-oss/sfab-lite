@@ -3,7 +3,7 @@
  * Server entry + export name come from TEMPLATE_MANIFEST.
  */
 import { createWorker } from "@cloudflare/worker-bundler";
-import { KERNEL_VERSION } from "@sfab-lite/kernel";
+import { KERNEL_VERSION, SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 
 const KERNEL_PATHS = {
@@ -109,6 +109,7 @@ export interface CompileServerResult {
   serverBundle: string;
   compileMs: number;
   kernelVersion: string;
+  serverSurfaceHash: string;
   mainModule: string;
   warnings: unknown[];
 }
@@ -145,6 +146,7 @@ export async function compileServer(
     serverBundle,
     compileMs,
     kernelVersion: KERNEL_VERSION,
+    serverSurfaceHash: SERVER_SURFACE_HASH,
     mainModule: result.mainModule,
     warnings: result.warnings ?? [],
   };
