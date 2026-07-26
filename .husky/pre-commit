@@ -8,4 +8,3 @@ pnpm check:cycles
 pnpm check:dead-code
 pnpm check:kernel
 pnpm check:seed
-pnpm check:vendored-bash

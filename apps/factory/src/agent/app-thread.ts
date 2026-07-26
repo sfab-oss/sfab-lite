@@ -7,13 +7,12 @@ import {
 } from "@cloudflare/shell";
 import { Think } from "@cloudflare/think";
 import { createExecuteTool } from "@cloudflare/think/tools/execute";
-import type { BashOperations } from "@cloudflare/think/tools/workspace";
+import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel, ToolSet } from "ai";
 import { createZaiCodingModel, requireZaiApiKey } from "./model.js";
 import { parseThreadName, seedWorkspaceFromLive } from "./seed-workspace.js";
 import { createAppShellCommands } from "./shell-commands.js";
-import { createBashTool } from "./vendor/bash-tool.js";
 
 /**
  * One Think Durable Object per chat thread. Workspace is a scratch checkout
@@ -22,12 +21,6 @@ import { createBashTool } from "./vendor/bash-tool.js";
  */
 export class AppThread extends Think<Env> {
   override maxSteps = 40;
-
-  /**
-   * Stock Think bash cannot take `customCommands` (createBashTool has no
-   * pass-through). Disable it and register the vendored tool instead.
-   */
-  override workspaceBash = false as const;
 
   /**
    * Full filesystem surface for code mode's `state.*`. Think's default
@@ -60,6 +53,18 @@ export class AppThread extends Think<Env> {
     if (key) {
       this.#model = createZaiCodingModel(key);
     }
+
+    // Parent ctor sets workspaceBash=true; replace after construct so Think's
+    // createWorkspaceTools picks up customCommands. Stock createBashTool
+    // omitted that field from `new Bash(...)` — forwarded by
+    // patches/@cloudflare__think@0.13.0.patch.
+    this.workspaceBash = {
+      timeout: 120_000,
+      customCommands: createAppShellCommands({
+        env: this.env,
+        appId,
+      }),
+    };
   }
 
   /** Local harness only — set `AGENT_HARNESS=true` in `.dev.vars`. */
@@ -82,6 +87,44 @@ export class AppThread extends Think<Env> {
     };
   }
 
+  /** Harness-only: exercise bash customCommands without a model turn. */
+  @callable()
+  async harnessBash(script: string): Promise<{
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+  }> {
+    if (this.env.AGENT_HARNESS !== "true") {
+      throw new Error("harnessBash is harness-only");
+    }
+    const { bash } = createWorkspaceTools(this.workspace, {
+      bash: this.workspaceBash,
+    });
+    if (!bash?.execute) {
+      throw new Error("bash tool unavailable");
+    }
+    const raw = await bash.execute(
+      { script },
+      {
+        toolCallId: "harness",
+        messages: [],
+      }
+    );
+    if (!raw || typeof raw !== "object" || Symbol.asyncIterator in raw) {
+      throw new Error("bash tool returned a stream; expected a single result");
+    }
+    const result = raw as {
+      stdout: string;
+      stderr: string;
+      exitCode: number;
+    };
+    return {
+      stdout: result.stdout,
+      stderr: result.stderr,
+      exitCode: result.exitCode,
+    };
+  }
+
   override getModel(): LanguageModel {
     if (!this.#model) {
       this.#model = createZaiCodingModel(requireZaiApiKey(this.env));
@@ -101,7 +144,7 @@ export class AppThread extends Think<Env> {
       "  pnpm lint               — lint via the lint worker",
       "  pnpm lint --fix         — lint and write formatting fixes back to the workspace",
       "  pnpm run deploy         — publish (also: wrangler deploy)",
-      "pnpm add / install / dev / test refuse — the import map is frozen.",
+      "pnpm add / install refuse — the import map is frozen.",
       "Branch on real exit codes the way you would in any shell.",
       "Answer from the workspace contents; do not guess from the app id alone.",
       "",
@@ -110,45 +153,12 @@ export class AppThread extends Think<Env> {
   }
 
   override getTools(): ToolSet {
-    const appId = this.#appId ?? parseThreadName(this.name).appId;
-    const ops = workspaceBashOps(this.workspace);
     return {
       execute: createExecuteTool({
         ctx: this.ctx,
         state: createWorkspaceStateBackend(this.workspace),
         loader: this.env.LOADER,
       }),
-      bash: createBashTool({
-        ops,
-        // Commit can take 10–24s beside typecheck; keep headroom under DO limits.
-        timeout: 120_000,
-        customCommands: createAppShellCommands({
-          env: this.env,
-          appId,
-        }),
-      }),
     };
   }
-}
-
-function workspaceBashOps(ws: WorkspaceFsLike): BashOperations {
-  const maybeBytesWriter = ws as WorkspaceFsLike & {
-    writeFileBytes?: (path: string, content: Uint8Array) => Promise<void>;
-  };
-  return {
-    readDir: (dir, opts) => ws.readDir(dir, opts),
-    readFileBytes: (path) => ws.readFileBytes(path),
-    writeFile: (path, content) => ws.writeFile(path, content),
-    writeFileBytes: maybeBytesWriter.writeFileBytes
-      ? (path, content) => {
-          const write = maybeBytesWriter.writeFileBytes;
-          if (!write) {
-            return Promise.resolve();
-          }
-          return write(path, content);
-        }
-      : undefined,
-    mkdir: (path, opts) => ws.mkdir(path, opts),
-    rm: (path, opts) => ws.rm(path, opts),
-  };
 }
