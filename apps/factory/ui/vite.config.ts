@@ -8,9 +8,13 @@ import { defineConfig } from "vite";
  * Invoked from the package root as `vite --config ui/vite.config.ts`, so
  * `root` is pinned to this config's directory (Vite's default is cwd).
  *
- * Dev proxies API routes to the wrangler worker on :8790 so UI edits do not
- * require a worker rebuild.
+ * Dev proxies API routes to the wrangler worker so UI edits do not require a
+ * worker rebuild. Both ports are env-driven so several worktrees can run their
+ * own factory at once; the defaults are the canonical pair.
  */
+const uiPort = Number(process.env.UI_PORT ?? 5173);
+const workerTarget = `http://localhost:${process.env.FACTORY_PORT ?? 8790}`;
+
 export default defineConfig({
   root: import.meta.dirname,
   plugins: [react(), tailwindcss()],
@@ -20,22 +24,22 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: uiPort,
     // `^/a/` is a regex on purpose. Vite matches a plain string context with
     // `url.startsWith(context)` (`doesProxyContextMatchUrl`), so a bare "/a"
     // would also capture `/apps`, `/apps/:id` and `/assets/*` — the console's
     // own routes — and proxy them to the worker instead of serving them from
     // Vite. Only a context beginning with `^` is treated as a pattern.
     proxy: {
-      "/api": { target: "http://localhost:8790", changeOrigin: true },
-      "/admin": { target: "http://localhost:8790", changeOrigin: true },
+      "/api": { target: workerTarget, changeOrigin: true },
+      "/admin": { target: workerTarget, changeOrigin: true },
       "/agents": {
-        target: "http://localhost:8790",
+        target: workerTarget,
         changeOrigin: true,
         ws: true,
       },
-      "^/a/": { target: "http://localhost:8790", changeOrigin: true },
-      "/kernel": { target: "http://localhost:8790", changeOrigin: true },
+      "^/a/": { target: workerTarget, changeOrigin: true },
+      "/kernel": { target: workerTarget, changeOrigin: true },
     },
   },
   build: {

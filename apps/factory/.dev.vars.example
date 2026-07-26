@@ -25,3 +25,7 @@ ADMIN_TOKEN=dev-admin-token
 # set this on a deployed Worker. Off unless you are driving /dev/agent without
 # a model key.
 # AGENT_HARNESS=true
+# Only when this worktree runs the console on a non-default Vite port: the
+# worker has to trust that Origin for CSRF. Pair it with UI_PORT/FACTORY_PORT
+# in the shell that starts the dev servers.
+# UI_PORT=5273
