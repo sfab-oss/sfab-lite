@@ -13,10 +13,12 @@ import {
   getLanguageService,
   rootsForState,
 } from "./ls-host.js";
+import { sideAwareUnresolvedMessage } from "./resolve-modules.js";
 import {
   type Diagnostic,
   flattenDiagnosticMessageText,
 } from "./typescript-runtime.js";
+import { normalizePath } from "./vfs.js";
 
 /** Cap on diagnostics returned in the response (sibling of lint's cap). */
 const MAX_REPORTED_DIAGNOSTICS = 40;
@@ -69,12 +71,45 @@ function stateFor(appId: string, store: LsStore): AppLsState {
   return s;
 }
 
-function summarize(diags: Diagnostic[]): CheckDiagnostic[] {
-  return diags.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => ({
-    code: d.code,
-    message: flattenDiagnosticMessageText(d.messageText, "\n"),
-    file: d.file?.fileName,
-  }));
+/** TS2307 — Cannot find module '…' or its corresponding type declarations. */
+const TS_CANNOT_FIND_MODULE = 2307;
+/** TS2882 — Cannot find module or type declarations for side-effect import of '…'. */
+const TS_SIDE_EFFECT_IMPORT = 2882;
+const MODULE_NAME_IN_DIAG =
+  /(?:Cannot find module '|side-effect import of ')([^']+)'/;
+
+function overlayPathForRel(rel: string): string {
+  const path = normalizePath(`/app/${rel.replace(LEADING_SLASH, "")}`);
+  if (path === "/app" || path.startsWith("/app/")) {
+    return path;
+  }
+  // `..` segments escaped /app — re-root under /app so classification and
+  // roots never key the overlay outside the app tree.
+  return normalizePath(`/app/${path.replace(LEADING_SLASH, "")}`);
+}
+
+function summarize(
+  diags: Diagnostic[],
+  overlay: Map<string, string>
+): CheckDiagnostic[] {
+  return diags.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => {
+    let message = flattenDiagnosticMessageText(d.messageText, "\n");
+    if (d.code === TS_CANNOT_FIND_MODULE || d.code === TS_SIDE_EFFECT_IMPORT) {
+      const mod = MODULE_NAME_IN_DIAG.exec(message)?.[1];
+      const sideMsg =
+        mod == null
+          ? undefined
+          : sideAwareUnresolvedMessage(mod, d.file?.fileName, overlay);
+      if (sideMsg) {
+        message = sideMsg;
+      }
+    }
+    return {
+      code: d.code,
+      message,
+      file: d.file?.fileName,
+    };
+  });
 }
 
 function resetAppOverlay(st: AppLsState): void {
@@ -99,12 +134,16 @@ function syncOverlay(
 ): { bumpedFiles: string[]; fileSetChanged: boolean } {
   const bumpedFiles: string[] = [];
   let fileSetChanged = false;
+  const wanted = new Map<string, string>();
 
   for (const [rel, text] of Object.entries(files)) {
     if (rel === "package.json") {
       continue;
     }
-    const path = `/app/${rel.replace(LEADING_SLASH, "")}`;
+    wanted.set(overlayPathForRel(rel), text);
+  }
+
+  for (const [path, text] of wanted) {
     if (!st.overlay.has(path)) {
       fileSetChanged = true;
     }
@@ -124,8 +163,7 @@ function syncOverlay(
     if (!path.startsWith("/app/")) {
       continue;
     }
-    const rel = path.slice("/app/".length);
-    if (rel in files) {
+    if (wanted.has(path)) {
       continue;
     }
     st.overlay.delete(path);
@@ -197,7 +235,7 @@ export function runCheck(
     pass: forceCold ? "cold" : "incremental",
     diagnosticCount: diags.length,
     truncated: diags.length > MAX_REPORTED_DIAGNOSTICS,
-    diagnostics: summarize(diags),
+    diagnostics: summarize(diags, st.overlay),
     checkMs,
     wallMs: Date.now() - wallT0,
     rootFileCount: roots.length,

@@ -17,11 +17,17 @@ export const {
   Extension,
   flattenDiagnosticMessageText,
   getDefaultLibFileName,
+  isExportDeclaration,
+  isImportDeclaration,
+  isImportEqualsDeclaration,
+  isNamedExports,
+  isNamedImports,
   JsxEmit,
   ModuleKind,
   ModuleResolutionKind,
   ScriptSnapshot,
   ScriptTarget,
+  SyntaxKind,
 } = ts;
 
 export type CompilerOptions = import("typescript").CompilerOptions;
@@ -29,3 +35,4 @@ export type Diagnostic = import("typescript").Diagnostic;
 export type IScriptSnapshot = import("typescript").IScriptSnapshot;
 export type LanguageService = import("typescript").LanguageService;
 export type LanguageServiceHost = import("typescript").LanguageServiceHost;
+export type StringLiteralLike = import("typescript").StringLiteralLike;
