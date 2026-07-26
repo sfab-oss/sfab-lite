@@ -5,6 +5,14 @@ BETTER_AUTH_SECRET=dev-only-change-me-32chars-min!!
 APP_BETTER_AUTH_SECRET=dev-only-app-secret-min-32-chars!!
 # Exact string "true" enables factory email+password. Default off.
 PASSWORD_AUTH=true
+# Exact string "true" lets ANYONE with the URL register. Fine locally, which is
+# why it is on here; on a deployed factory prefer SIGNUP_ALLOWLIST below.
+SIGNUP_OPEN=true
+# Commas or whitespace between addresses. Names who may register without
+# opening the door to everyone, so a deployed factory never needs a window
+# where sign-up is briefly open to the internet. Only ever restricts: set
+# beside SIGNUP_OPEN=true it still wins.
+# SIGNUP_ALLOWLIST=you@example.com, teammate@example.com
 # Root credential for /admin/* (header: X-Admin-Token). Since S3c every
 # /admin request needs *a* credential — this token or a signed-in session —
 # so leaving this unset no longer opens the surface, it just means curl gets

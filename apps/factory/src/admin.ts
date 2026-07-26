@@ -10,6 +10,7 @@ import {
   githubAuthEnabled,
   githubSecretsPresent,
   passwordAuthEnabled,
+  signUpAllowlist,
   signUpOpen,
 } from "./auth.js";
 import {
@@ -437,8 +438,11 @@ async function handleHealth(rc: AdminCtx): Promise<Response> {
     githubSecrets: githubSecretsPresent(rc.env),
     // Registration, not sign-in. `false` is the intended production state and
     // is reported so "can anyone still create an account here?" is answerable
-    // without reading the deploy's env.
+    // without reading the deploy's env. The allowlist size is reported beside
+    // it because it is the other way that answer can be yes — the count alone,
+    // since the addresses themselves are not the admin surface's business.
     signUpOpen: signUpOpen(rc.env),
+    signUpAllowlisted: signUpAllowlist(rc.env).size,
   });
 }
 

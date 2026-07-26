@@ -84,6 +84,16 @@ declare global {
      */
     SIGNUP_OPEN?: string;
     /**
+     * Addresses allowed to register, separated by commas or whitespace.
+     *
+     * The narrow alternative to `SIGNUP_OPEN`: a deployed factory can hand
+     * accounts to a named few without opening the door to anyone with the URL.
+     * Only ever restricts — setting it beside `SIGNUP_OPEN=true` keeps the
+     * restriction rather than lifting it, so the pair cannot combine into an
+     * open front door by accident.
+     */
+    SIGNUP_ALLOWLIST?: string;
+    /**
      * Gates every `/admin/*` route, and **must be byte-identical in all three
      * workers** — factory, check, and lint. The factory presents it over the
      * service bindings; check and lint compare it. A mismatch surfaces

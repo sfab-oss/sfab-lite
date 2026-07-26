@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError } from "better-auth/api";
 import { organization } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { ulid } from "ulid";
@@ -36,6 +37,42 @@ export function passwordAuthEnabled(env: Env): boolean {
  */
 export function signUpOpen(env: Env): boolean {
   return env.SIGNUP_OPEN === "true";
+}
+
+const NO_ALLOWLIST: ReadonlySet<string> = new Set();
+
+const RE_ALLOWLIST_SEPARATOR = /[\s,]+/;
+
+/**
+ * The addresses permitted to register, or an empty set when none is configured.
+ *
+ * Lowercased because better-auth normalises the address before it reaches the
+ * hook, so an entry differing only in case would never match and would read as
+ * "the allowlist is broken" rather than "the entry is wrong".
+ */
+export function signUpAllowlist(env: Env): ReadonlySet<string> {
+  const raw = env.SIGNUP_ALLOWLIST?.trim();
+  if (!raw) {
+    return NO_ALLOWLIST;
+  }
+  return new Set(
+    raw
+      .split(RE_ALLOWLIST_SEPARATOR)
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+/**
+ * Whether a registration path exists at all — sign-up open to everyone, or an
+ * allowlist naming who may take it.
+ *
+ * The two are not competing switches: the allowlist only ever *restricts*, so
+ * setting `SIGNUP_OPEN=true` beside one leaves the allowlist in force instead
+ * of widening it back open. Both unset still means closed.
+ */
+export function signUpAvailable(env: Env): boolean {
+  return signUpOpen(env) || signUpAllowlist(env).size > 0;
 }
 
 /**
@@ -227,7 +264,10 @@ export function createAuth(env: Env, baseURL: string) {
   // One value drives both providers. Two independent switches could disagree,
   // and the disagreement would be a quietly open registration path on whichever
   // one was forgotten.
-  const disableSignUp = !signUpOpen(env);
+  const disableSignUp = !signUpAvailable(env);
+  // `disableSignUp` is all-or-nothing, so an allowlisted factory must leave the
+  // registration path open and reject per address in the create hook below.
+  const allowlist = signUpAllowlist(env);
 
   return betterAuth({
     baseURL,
@@ -275,6 +315,29 @@ export function createAuth(env: Env, baseURL: string) {
     databaseHooks: {
       user: {
         create: {
+          /**
+           * The allowlist's enforcement point, covering both providers:
+           * password sign-up and GitHub both land here. `disableSignUp` cannot
+           * express "these addresses only", so it stays off whenever a list is
+           * configured and this hook carries the restriction.
+           *
+           * Throws rather than returning `false`: better-auth rethrows an
+           * `APIError` unchanged but turns `false` into a generic
+           * `FAILED_TO_CREATE_USER`, which reads as a factory bug to the one
+           * person who can fix the list.
+           */
+          before: (candidate) => {
+            if (
+              allowlist.size > 0 &&
+              !allowlist.has(candidate.email.toLowerCase())
+            ) {
+              throw new APIError("FORBIDDEN", {
+                message: "This address is not on the sign-up allowlist.",
+                code: "SIGNUP_NOT_ALLOWLISTED",
+              });
+            }
+            return Promise.resolve();
+          },
           /**
            * better-auth queues `create.after` until after the sign-up
            * "transaction" returns. With the drizzle adapter's default
