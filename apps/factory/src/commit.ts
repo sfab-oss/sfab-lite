@@ -5,7 +5,12 @@
  * accepted-attempt / conflict contract used by both ordinary commits and
  * app creation.
  */
-import { type CheckResult, type LintResult, lintPasses } from "@sfab-lite/core";
+import {
+  type CheckResult,
+  type LintMode,
+  type LintResult,
+  lintPasses,
+} from "@sfab-lite/core";
 import type {
   AttemptKind,
   AttemptRecord,
@@ -132,10 +137,11 @@ export function checkPasses(body: CheckResult | null): boolean {
   return body.diagnosticCount === 0;
 }
 
-async function callLint(
+export async function callLint(
   env: Env,
   appId: string,
-  files: Record<string, string>
+  files: Record<string, string>,
+  mode: LintMode = "lint"
 ): Promise<{ http: number; wallMs: number; body: LintResult | null }> {
   const t0 = Date.now();
   const res = await env.LINT.fetch(
@@ -145,7 +151,7 @@ async function callLint(
       body: JSON.stringify({
         appId,
         files,
-        mode: "lint",
+        mode,
       }),
     })
   );

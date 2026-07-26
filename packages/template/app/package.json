@@ -1,0 +1,12 @@
+{
+  "name": "@sfab-lite/app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "echo \"no test runner configured\" && exit 1"
+  }
+}
