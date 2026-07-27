@@ -32,6 +32,13 @@ declare global {
     /** Service binding → sfab-lite-lint */
     LINT: Fetcher;
     /**
+     * Service binding → this same worker. `pnpm seed` runs inside the AppAgent
+     * DO, which has no `ExecutionContext` and therefore cannot call
+     * `serveSubApp` directly; going back through the front door gives the app
+     * worker the same environment a browser request would.
+     */
+    SELF: Fetcher;
+    /**
      * The **factory's** better-auth secret — its own sign-in, not any app's.
      *
      * Per GLOSSARY.md, factory terms go unqualified and app-side ones take the

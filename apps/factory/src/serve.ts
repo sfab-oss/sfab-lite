@@ -72,7 +72,8 @@ async function serveApiRoute(
   version: VersionRecord,
   rest: string,
   publicBase: string,
-  mode: ServeMode
+  mode: ServeMode,
+  stub: DurableObjectStub<AppDO>
 ): Promise<Response> {
   // `APP_BETTER_AUTH_SECRET` on the host, injected into the sub-app as plain
   // `BETTER_AUTH_SECRET` below. The host now runs better-auth for the factory
@@ -92,7 +93,10 @@ async function serveApiRoute(
   const workerKey = `app:${appId}:${mode}:${version.id}`;
 
   const ex = ctx.exports as unknown as HostExports;
-  const worker = env.LOADER.get(workerKey, () => ({
+  // Async, so the seed token costs a DO round-trip only when the worker is
+  // actually built. Resolving it before this call would put a second RPC on
+  // every request the app serves, on top of the one `loadVersion` already made.
+  const worker = env.LOADER.get(workerKey, async () => ({
     compatibilityDate: "2026-07-23",
     compatibilityFlags: ["nodejs_compat"],
     mainModule: "index.js",
@@ -111,6 +115,9 @@ async function serveApiRoute(
       // the *live* prefix in both modes — preview is a subpath of it, so the
       // two keep sharing one session rather than asking for a second sign-in.
       APP_BASE_PATH: `/a/${encodeURIComponent(appId)}`,
+      // Authorizes the app's own seed route. Held here rather than in the
+      // template so the published source carries no working credential.
+      SEED_TOKEN: (await stub.seedCredentials()).token,
     },
     globalOutbound: null,
   }));
@@ -251,7 +258,8 @@ export async function serveSubApp(
       version,
       rest,
       publicBase,
-      mode
+      mode,
+      stub
     );
     return withVersionHeader(res);
   }

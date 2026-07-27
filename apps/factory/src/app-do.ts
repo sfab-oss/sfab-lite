@@ -74,6 +74,20 @@ function d1Meta(cursor: { rowsRead: number; rowsWritten: number }): SqlMeta {
   };
 }
 
+const SEED_CREDENTIALS_KEY = "seed:credentials";
+
+/**
+ * 24 bytes of CSPRNG, base64url so it survives a header, a JSON body and a
+ * copy-paste out of a terminal without escaping.
+ */
+function randomSecret(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
 /** Host-owned meta DDL (prefixed `_sfab_` to avoid colliding with app tables). */
 const META_DDL = `
 ${SCHEMA_VERSION_DDL}
@@ -759,6 +773,39 @@ export class AppDO extends DurableObject {
       return { ok: true, version: null };
     }
     return this.getVersion(row.id);
+  }
+
+  /**
+   * The app's demo login, minted once and then stable.
+   *
+   * It lives here rather than in the template because the template is public
+   * source: a password written there is a published owner login for every app
+   * that ever seeded. The token is the same idea from the other direction —
+   * the app cannot authorize its own seed route, so the host holds the value
+   * and injects it.
+   *
+   * Deliberately recoverable, not one-shot. `pnpm seed` has to be able to
+   * reprint a working login, and an app whose only demo credential scrolled
+   * past in a terminal is an app you have to reset to get back into.
+   *
+   * Key-value storage, not a `_sfab_` table: the app's own `DB` binding and
+   * `/admin/apps/:id/sql` both run unfiltered SQL against this Durable
+   * Object's database, and app code is agent-written. The key-value namespace
+   * is one neither of them can address.
+   */
+  async seedCredentials(): Promise<{ token: string; password: string }> {
+    const stored = await this.ctx.storage.get<{
+      token: string;
+      password: string;
+    }>(SEED_CREDENTIALS_KEY);
+
+    if (stored?.token && stored.password) {
+      return stored;
+    }
+
+    const minted = { token: randomSecret(), password: randomSecret() };
+    await this.ctx.storage.put(SEED_CREDENTIALS_KEY, minted);
+    return minted;
   }
 
   async getLive(): Promise<{
