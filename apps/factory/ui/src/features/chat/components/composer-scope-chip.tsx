@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -51,7 +52,9 @@ export function ComposerScopeChip({
         </Badge>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="min-w-48" side="top">
-        <DropdownMenuLabel>Send to</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Send to</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup
           onValueChange={(next) => {
