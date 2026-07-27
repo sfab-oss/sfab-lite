@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
 import { describe, it } from "node:test";
-import { collectMigrations, nextMigrationPath } from "./app-migrations.ts";
+import {
+  type AppMigration,
+  applyPendingMigrations,
+  collectMigrations,
+  type ExecSql,
+  nextMigrationPath,
+  readSchemaVersion,
+  SCHEMA_VERSION_DDL,
+} from "./app-migrations.ts";
 
 function workspace(...paths: string[]): Record<string, string> {
   const files: Record<string, string> = {
@@ -87,5 +96,106 @@ describe("nextMigrationPath", () => {
       nextMigrationPath(workspace(), "///"),
       "migrations/0001_schema.sql"
     );
+  });
+});
+
+/**
+ * Run against real SQLite, because the bug this guards against was a property
+ * of SQLite rather than of the loop: `version` is the primary key, so
+ * `INSERT OR REPLACE` inserted a *second* row instead of replacing the first,
+ * and reading one arbitrarily re-ran a migration that had already been applied.
+ * A deploy then failed with "table already exists" — on the second deploy of
+ * any app whose schema had ever changed.
+ */
+function database(): ExecSql {
+  const db = new DatabaseSync(":memory:");
+  db.exec(SCHEMA_VERSION_DDL);
+  return (query, ...binds) =>
+    db.prepare(query).all(...(binds as [])) as Record<string, unknown>[];
+}
+
+const MIGRATIONS: AppMigration[] = [
+  { id: "0001_auth", sql: "CREATE TABLE user (id TEXT PRIMARY KEY);" },
+  { id: "0002_notes", sql: "CREATE TABLE note (id TEXT PRIMARY KEY);" },
+];
+
+function tableNames(exec: ExecSql): string[] {
+  return exec(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '_sfab_%' ORDER BY name"
+  ).map((row) => String(row.name));
+}
+
+describe("applyPendingMigrations", () => {
+  it("runs every migration on an empty database", () => {
+    const exec = database();
+    assert.deepEqual(applyPendingMigrations(exec, MIGRATIONS), {
+      previousVersion: 0,
+      applied: 2,
+    });
+    assert.deepEqual(tableNames(exec), ["note", "user"]);
+    assert.equal(readSchemaVersion(exec), 2);
+  });
+
+  it("does nothing when the database is already current", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    assert.deepEqual(applyPendingMigrations(exec, MIGRATIONS), {
+      previousVersion: 2,
+      applied: 0,
+    });
+  });
+
+  it("runs only the new migration when one is appended", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    const grown = [
+      ...MIGRATIONS,
+      {
+        id: "0003_expenses",
+        sql: "CREATE TABLE expense (id TEXT PRIMARY KEY);",
+      },
+    ];
+    assert.deepEqual(applyPendingMigrations(exec, grown), {
+      previousVersion: 2,
+      applied: 1,
+    });
+    assert.deepEqual(tableNames(exec), ["expense", "note", "user"]);
+  });
+
+  /**
+   * The regression itself: growing the list then re-applying it must not
+   * re-run `0003`. Before the fix this threw "table `expense` already exists".
+   */
+  it("stays idempotent after the migration list grows", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    const grown = [
+      ...MIGRATIONS,
+      {
+        id: "0003_expenses",
+        sql: "CREATE TABLE expense (id TEXT PRIMARY KEY);",
+      },
+    ];
+    applyPendingMigrations(exec, grown);
+    assert.deepEqual(applyPendingMigrations(exec, grown), {
+      previousVersion: 3,
+      applied: 0,
+    });
+    assert.equal(
+      exec("SELECT COUNT(*) AS n FROM _sfab_schema_version")[0]?.n,
+      1
+    );
+  });
+
+  /** A database an older build left with several rows must still read true. */
+  it("recovers a database that already has duplicate version rows", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    exec("INSERT INTO _sfab_schema_version (version) VALUES (1)");
+    assert.equal(readSchemaVersion(exec), 2);
+    assert.deepEqual(applyPendingMigrations(exec, MIGRATIONS), {
+      previousVersion: 2,
+      applied: 0,
+    });
   });
 });
