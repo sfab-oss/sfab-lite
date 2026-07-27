@@ -7,9 +7,7 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
-import { listApps } from "@/api";
 import type { Thread } from "../model/types";
 import { useChatData } from "./chat-data-context";
 import type { RealChatData } from "./create-real-chat-data";
@@ -28,7 +26,6 @@ export interface AppAgentHandle {
 
 interface AppAgentRegistryValue {
   getHandle: (appId: string) => AppAgentHandle | null;
-  registerApp: (appId: string, appName: string | null) => void;
   waitForHandle: (appId: string) => Promise<AppAgentHandle>;
 }
 
@@ -118,12 +115,21 @@ function AppAgentBridge({
   return null;
 }
 
+/**
+ * Holds at most one live AppAgent WebSocket — the app under attention
+ * (active thread or scoped blank composer). listApps stays on D1; threads
+ * for other apps load when that app becomes attended, not via N forever
+ * connections that wake every AppAgent on console open.
+ */
 export function AppAgentRegistryProvider({
+  attendedAppId,
+  attendedAppName,
   children,
 }: {
+  attendedAppId: string | null;
+  attendedAppName: string | null;
   children: ReactNode;
 }) {
-  const [apps, setApps] = useState<Array<{ id: string; name: string }>>([]);
   const handlesRef = useRef(new Map<string, AppAgentHandle>());
   const waitersRef = useRef(
     new Map<string, Array<(handle: AppAgentHandle) => void>>()
@@ -147,17 +153,6 @@ export function AppAgentRegistryProvider({
     []
   );
 
-  const registerApp = useCallback((appId: string, appName: string | null) => {
-    setApps((current) => {
-      if (current.some((app) => app.id === appId)) {
-        return current.map((app) =>
-          app.id === appId ? { id: appId, name: appName ?? app.name } : app
-        );
-      }
-      return [...current, { id: appId, name: appName ?? appId }];
-    });
-  }, []);
-
   const waitForHandle = useCallback((appId: string) => {
     const existing = handlesRef.current.get(appId);
     if (existing) {
@@ -175,46 +170,21 @@ export function AppAgentRegistryProvider({
     []
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    listApps()
-      .then(({ apps: listed }) => {
-        if (cancelled) {
-          return;
-        }
-        setApps((current) => {
-          const byId = new Map(current.map((app) => [app.id, app]));
-          for (const app of listed) {
-            if (app.status === "ready") {
-              byId.set(app.id, { id: app.id, name: app.name });
-            }
-          }
-          return [...byId.values()];
-        });
-      })
-      .catch((error: unknown) => {
-        console.error("[chat] listApps failed", error);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const value = useMemo<AppAgentRegistryValue>(
-    () => ({ getHandle, registerApp, waitForHandle }),
-    [getHandle, registerApp, waitForHandle]
+    () => ({ getHandle, waitForHandle }),
+    [getHandle, waitForHandle]
   );
 
   return (
     <AppAgentRegistryContext.Provider value={value}>
-      {apps.map((app) => (
+      {attendedAppId ? (
         <AppAgentBridge
-          appId={app.id}
-          appName={app.name}
-          key={app.id}
+          appId={attendedAppId}
+          appName={attendedAppName}
+          key={attendedAppId}
           onHandle={onHandle}
         />
-      ))}
+      ) : null}
       {children}
     </AppAgentRegistryContext.Provider>
   );

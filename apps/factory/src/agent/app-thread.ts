@@ -10,7 +10,6 @@ import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel, ToolSet } from "ai";
 import { AppAgent } from "./app-agent.js";
-import { registerAppThreadClass } from "./facet-registry.js";
 import { createZaiCodingModel, requireZaiApiKey } from "./model.js";
 import { SharedWorkspace } from "./shared-workspace.js";
 import { createAppShellCommands } from "./shell-commands.js";
@@ -145,5 +144,3 @@ export class AppThread extends Think<Env> {
     return appId;
   }
 }
-
-registerAppThreadClass(AppThread);

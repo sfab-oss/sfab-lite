@@ -3,7 +3,7 @@ import { Think } from "@cloudflare/think";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
 import { appStub } from "../commit.js";
-import { requireAppThreadClass } from "./facet-registry.js";
+import { AppThread } from "./app-thread.js";
 import { seedWorkspaceFromLive } from "./seed-workspace.js";
 
 export interface ThreadSummary {
@@ -44,12 +44,15 @@ export class AppAgent extends Think<Env> {
       updated_at INTEGER NOT NULL
     )`;
 
-    await seedWorkspaceFromLive(
+    const seeded = await seedWorkspaceFromLive(
       this.env,
       this.ctx.storage,
       this.workspace,
       this.name
     );
+    if ("skipped" in seeded) {
+      console.warn(`[AppAgent] ${this.name}: ${seeded.reason}`);
+    }
   }
 
   override onBeforeSubAgent(
@@ -95,7 +98,7 @@ export class AppAgent extends Think<Env> {
     const now = Date.now();
     const title = opts?.title?.trim() || defaultThreadTitle(now);
 
-    await this.subAgent(requireAppThreadClass(), id);
+    await this.subAgent(AppThread, id);
     this.sql`INSERT INTO thread_meta (id, title, created_at, updated_at)
       VALUES (${id}, ${title}, ${now}, ${now})`;
 
@@ -118,7 +121,7 @@ export class AppAgent extends Think<Env> {
 
   @callable()
   async deleteThread(id: string): Promise<void> {
-    await this.deleteSubAgent(requireAppThreadClass(), id);
+    await this.deleteSubAgent(AppThread, id);
     this.sql`DELETE FROM thread_meta WHERE id = ${id}`;
   }
 

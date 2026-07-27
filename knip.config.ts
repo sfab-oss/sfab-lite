@@ -6,6 +6,8 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
   workspaces: {
     ".": {
+      // check-cycles.mjs is the madge gate; see its header for the AppAgent ↔
+      // AppThread exclude rationale (intrinsic root/facet class-name cycle).
       entry: ["scripts/**/*.mjs!"],
       project: ["scripts/**/*.mjs"],
       // check-bundle-size.mjs runs `pnpm exec wrangler` with cwd set to each
