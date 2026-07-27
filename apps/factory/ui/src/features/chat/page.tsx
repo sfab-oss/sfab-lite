@@ -1,13 +1,6 @@
 import { ListTree, PanelRight } from "lucide-react";
-import {
-  type Dispatch,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { createApp, getApp } from "@/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createApp, getApp, listApps } from "@/api";
 import {
   AppLayout,
   AppLayoutHeader,
@@ -81,13 +74,57 @@ export function ChatScreen() {
   const [chatData] = useState<RealChatData>(() => createRealChatData());
   return (
     <ChatDataProvider value={chatData}>
-      <ChatScreenInner />
+      <AppAgentRegistryProvider>
+        <ChatScreenInner />
+      </AppAgentRegistryProvider>
     </ChatDataProvider>
   );
 }
 
+function routeAttention(route: ReturnType<typeof useRouter>["route"]): {
+  appId: string | null;
+  threadId: string | null;
+} {
+  if (route.name === "thread" || route.name === "dev-chat") {
+    return {
+      appId: route.appId ?? null,
+      threadId: route.threadId ?? null,
+    };
+  }
+  return { appId: null, threadId: null };
+}
+
+function resolveActiveThread(
+  activeThreadId: string | null,
+  threads: Thread[],
+  routeAppId: string | null,
+  scopeAppName: string | null
+): Thread | null {
+  if (!activeThreadId) {
+    return null;
+  }
+  const found = threads.find((thread) => thread.id === activeThreadId);
+  if (found) {
+    return found;
+  }
+  if (!routeAppId) {
+    return null;
+  }
+  return {
+    id: activeThreadId,
+    appId: routeAppId,
+    appName: scopeAppName,
+    readOnly: false,
+    status: "idle",
+    title: "Loading…",
+    createdAt: 0,
+    updatedAt: 0,
+  };
+}
+
 function ChatScreenInner() {
   const chatData = useChatData();
+  const { attend, clearAttention, waitForHandle } = useAppAgentRegistry();
   const threads = chatData.listThreads();
   const isMobile = useIsMobile();
   const { route, navigate } = useRouter();
@@ -96,6 +133,9 @@ function ChatScreenInner() {
   const [seedByThread, setSeedByThread] = useState<Record<string, string>>({});
   const [scopeAppId, setScopeAppId] = useState<string | null>(null);
   const [scopeAppName, setScopeAppName] = useState<string | null>(null);
+  const [readyApps, setReadyApps] = useState<
+    Array<{ appId: string; appName: string }>
+  >([]);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -104,20 +144,43 @@ function ChatScreenInner() {
   const { canDock, setContainerNode } = useSidePanelLayout();
 
   useEffect(() => {
-    if (route.name === "dev-chat") {
-      setActiveThreadId(route.threadId ?? null);
+    let cancelled = false;
+    listApps()
+      .then(({ apps }) => {
+        if (cancelled) {
+          return;
+        }
+        setReadyApps(
+          apps
+            .filter((app) => app.status === "ready")
+            .map((app) => ({ appId: app.id, appName: app.name }))
+        );
+      })
+      .catch((error: unknown) => {
+        console.error("[chat] listApps failed", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const { appId: routeAppId, threadId: routeThreadId } = routeAttention(route);
+
+  useEffect(() => {
+    if (route.name === "thread" || (route.name === "dev-chat" && route.appId)) {
+      setActiveThreadId(routeThreadId);
+      if (routeAppId) {
+        setScopeAppId(routeAppId);
+        const known = readyApps.find((app) => app.appId === routeAppId);
+        setScopeAppName(known?.appName ?? null);
+        attend(routeAppId, known?.appName ?? null);
+      }
       return;
     }
-    if (route.name === "thread") {
-      setActiveThreadId((current) =>
-        current === route.threadId ? current : route.threadId
-      );
-      return;
-    }
-    if (route.name === "chat") {
+    if (route.name === "chat" || route.name === "dev-chat") {
       setActiveThreadId(null);
     }
-  }, [route]);
+  }, [attend, readyApps, route, routeAppId, routeThreadId]);
 
   const goChatHome = useCallback(() => {
     if (import.meta.env.DEV && route.name === "dev-chat") {
@@ -128,117 +191,23 @@ function ChatScreenInner() {
   }, [navigate, route.name]);
 
   const goThread = useCallback(
-    (threadId: string) => {
+    (appId: string, threadId: string) => {
       if (import.meta.env.DEV && route.name === "dev-chat") {
-        navigate({ name: "dev-chat", threadId });
+        navigate({ name: "dev-chat", appId, threadId });
         return;
       }
-      navigate({ name: "thread", threadId });
+      navigate({ name: "thread", appId, threadId });
     },
     [navigate, route.name]
   );
 
   const activeThread = useMemo(
-    () => threads.find((thread) => thread.id === activeThreadId) ?? null,
-    [activeThreadId, threads]
+    () =>
+      resolveActiveThread(activeThreadId, threads, routeAppId, scopeAppName),
+    [activeThreadId, routeAppId, scopeAppName, threads]
   );
 
   const attendedAppId = activeThread?.appId ?? scopeAppId;
-  const attendedAppName =
-    activeThread?.appName ?? scopeAppName ?? scopeAppId ?? null;
-
-  return (
-    <AppAgentRegistryProvider
-      attendedAppId={attendedAppId}
-      attendedAppName={attendedAppName}
-    >
-      <ChatScreenAttended
-        activeThread={activeThread}
-        activeThreadId={activeThreadId}
-        attendedAppId={attendedAppId}
-        canDock={canDock}
-        createError={createError}
-        creating={creating}
-        goChatHome={goChatHome}
-        goThread={goThread}
-        isMobile={isMobile}
-        search={search}
-        seedByThread={seedByThread}
-        setActiveThreadId={setActiveThreadId}
-        setContainerNode={setContainerNode}
-        setCreateError={setCreateError}
-        setCreating={setCreating}
-        setScopeAppId={setScopeAppId}
-        setScopeAppName={setScopeAppName}
-        setSearch={setSearch}
-        setSeedByThread={setSeedByThread}
-        setSummaryOpen={setSummaryOpen}
-        setWorkspaceOpen={setWorkspaceOpen}
-        scopeAppId={scopeAppId}
-        summaryOpen={summaryOpen}
-        threads={threads}
-        workspaceOpen={workspaceOpen}
-      />
-    </AppAgentRegistryProvider>
-  );
-}
-
-function ChatScreenAttended({
-  activeThread,
-  activeThreadId,
-  attendedAppId,
-  canDock,
-  createError,
-  creating,
-  goChatHome,
-  goThread,
-  isMobile,
-  search,
-  seedByThread,
-  setActiveThreadId,
-  setContainerNode,
-  setCreateError,
-  setCreating,
-  setScopeAppId,
-  setScopeAppName,
-  setSearch,
-  setSeedByThread,
-  setSummaryOpen,
-  setWorkspaceOpen,
-  scopeAppId,
-  summaryOpen,
-  threads,
-  workspaceOpen,
-}: {
-  activeThread: Thread | null;
-  activeThreadId: string | null;
-  attendedAppId: string | null;
-  canDock: boolean;
-  createError: string | null;
-  creating: boolean;
-  goChatHome: () => void;
-  goThread: (threadId: string) => void;
-  isMobile: boolean;
-  search: string;
-  seedByThread: Record<string, string>;
-  setActiveThreadId: (id: string | null) => void;
-  setContainerNode: (node: HTMLElement | null) => void;
-  setCreateError: (error: string | null) => void;
-  setCreating: (creating: boolean) => void;
-  setScopeAppId: (id: string | null) => void;
-  setScopeAppName: (name: string | null) => void;
-  setSearch: (search: string) => void;
-  setSeedByThread: Dispatch<SetStateAction<Record<string, string>>>;
-  setSummaryOpen: Dispatch<SetStateAction<boolean>>;
-  setWorkspaceOpen: (open: boolean) => void;
-  scopeAppId: string | null;
-  summaryOpen: boolean;
-  threads: Thread[];
-  workspaceOpen: boolean;
-}) {
-  const chatData = useChatData();
-  const { waitForHandle } = useAppAgentRegistry();
-  const { route, navigate } = useRouter();
 
   useEffect(() => {
     chatData.refreshApp(attendedAppId).catch((error: unknown) => {
@@ -256,71 +225,67 @@ function ChatScreenAttended({
     if (!scopeAppId) {
       return null;
     }
+    const known = readyApps.find((app) => app.appId === scopeAppId);
     const sample = threads.find((thread) => thread.appId === scopeAppId);
-    return sample
-      ? { appId: sample.appId, appName: sample.appName }
-      : { appId: scopeAppId, appName: scopeAppId };
-  }, [activeThread, scopeAppId, threads]);
+    return {
+      appId: scopeAppId,
+      appName: known?.appName ?? sample?.appName ?? scopeAppName,
+    };
+  }, [activeThread, readyApps, scopeAppId, scopeAppName, threads]);
 
   const selectThread = useCallback(
     (threadId: string) => {
       const thread = threads.find((entry) => entry.id === threadId);
-      if (thread?.appId) {
-        setScopeAppId(thread.appId);
-        setScopeAppName(thread.appName);
+      if (!thread?.appId) {
+        return;
       }
+      setScopeAppId(thread.appId);
+      setScopeAppName(thread.appName);
+      attend(thread.appId, thread.appName);
       setActiveThreadId(threadId);
       setSummaryOpen(false);
-      goThread(threadId);
+      goThread(thread.appId, threadId);
     },
-    [
-      goThread,
-      setActiveThreadId,
-      setScopeAppId,
-      setScopeAppName,
-      setSummaryOpen,
-      threads,
-    ]
+    [attend, goThread, threads]
+  );
+
+  const attendApp = useCallback(
+    (appId: string, appName: string) => {
+      setScopeAppId(appId);
+      setScopeAppName(appName);
+      attend(appId, appName);
+      setActiveThreadId(null);
+      setSummaryOpen(false);
+      setWorkspaceOpen(false);
+      setCreateError(null);
+      goChatHome();
+    },
+    [attend, goChatHome, setWorkspaceOpen]
   );
 
   const goHome = useCallback(() => {
     setActiveThreadId(null);
     setScopeAppId(null);
     setScopeAppName(null);
+    clearAttention();
     setSummaryOpen(false);
     setWorkspaceOpen(false);
     setCreateError(null);
     goChatHome();
-  }, [
-    goChatHome,
-    setActiveThreadId,
-    setCreateError,
-    setScopeAppId,
-    setScopeAppName,
-    setSummaryOpen,
-    setWorkspaceOpen,
-  ]);
+  }, [clearAttention, goChatHome, setWorkspaceOpen]);
 
   const newThread = useCallback(() => {
     if (activeThread?.appId) {
       setScopeAppId(activeThread.appId);
       setScopeAppName(activeThread.appName);
+      attend(activeThread.appId, activeThread.appName);
     }
     setActiveThreadId(null);
     setSummaryOpen(false);
     setWorkspaceOpen(false);
     setCreateError(null);
     goChatHome();
-  }, [
-    activeThread,
-    goChatHome,
-    setActiveThreadId,
-    setCreateError,
-    setScopeAppId,
-    setScopeAppName,
-    setSummaryOpen,
-    setWorkspaceOpen,
-  ]);
+  }, [activeThread, attend, goChatHome, setWorkspaceOpen]);
 
   const createThreadFromBlank = useCallback(
     async (text: string) => {
@@ -331,14 +296,25 @@ function ChatScreenAttended({
       setCreateError(null);
       try {
         let appId = scopedApp?.appId ?? null;
-        const appName = scopedApp?.appName ?? titleFromText(text);
+        let appName: string | null = scopedApp?.appName ?? null;
         if (!appId) {
+          appName = titleFromText(text);
           const created = await createApp(appName);
           appId = created.appId;
           await waitForAppReady(appId);
+          setReadyApps((current) => {
+            if (current.some((app) => app.appId === appId)) {
+              return current;
+            }
+            return [
+              ...current,
+              { appId: appId as string, appName: appName as string },
+            ];
+          });
         }
         setScopeAppId(appId);
         setScopeAppName(appName);
+        attend(appId, appName);
         const handle = await waitForHandle(appId);
         const summary = await createServerThread(handle, {
           title: titleFromText(text),
@@ -356,41 +332,26 @@ function ChatScreenAttended({
         chatData.upsertThread(thread);
         setSeedByThread((current) => ({ ...current, [summary.id]: text }));
         setActiveThreadId(summary.id);
-        goThread(summary.id);
+        goThread(appId, summary.id);
       } catch (error: unknown) {
         setCreateError(error instanceof Error ? error.message : String(error));
       } finally {
         setCreating(false);
       }
     },
-    [
-      chatData,
-      creating,
-      goThread,
-      scopedApp,
-      setActiveThreadId,
-      setCreateError,
-      setCreating,
-      setScopeAppId,
-      setScopeAppName,
-      setSeedByThread,
-      waitForHandle,
-    ]
+    [attend, chatData, creating, goThread, scopedApp, waitForHandle]
   );
 
-  const consumeSeed = useCallback(
-    (threadId: string) => {
-      setSeedByThread((current) => {
-        if (!(threadId in current)) {
-          return current;
-        }
-        const next = { ...current };
-        delete next[threadId];
-        return next;
-      });
-    },
-    [setSeedByThread]
-  );
+  const consumeSeed = useCallback((threadId: string) => {
+    setSeedByThread((current) => {
+      if (!(threadId in current)) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[threadId];
+      return next;
+    });
+  }, []);
 
   const onSetWorkspaceOpen = (
     value: boolean | ((open: boolean) => boolean)
@@ -404,6 +365,12 @@ function ChatScreenAttended({
     navigate({ name: "sign-in" }, true);
   };
 
+  const displayThread =
+    activeThread && activeThread.title === "Loading…"
+      ? (threads.find((thread) => thread.id === activeThread.id) ??
+        activeThread)
+      : activeThread;
+
   return (
     <TooltipProvider>
       <AppLayout
@@ -415,6 +382,8 @@ function ChatScreenAttended({
               (route.name === "chat" ||
                 (route.name === "dev-chat" && !route.threadId))
             }
+            knownApps={readyApps}
+            onAttendApp={attendApp}
             onGoHome={goHome}
             onNewThread={newThread}
             onSearchChange={setSearch}
@@ -428,7 +397,7 @@ function ChatScreenAttended({
         <AppLayoutPage>
           {isMobile ? (
             <MobileLayout
-              activeThread={activeThread}
+              activeThread={displayThread}
               canDock={canDock}
               createError={createError}
               creating={creating}
@@ -446,7 +415,7 @@ function ChatScreenAttended({
             />
           ) : (
             <DesktopLayout
-              activeThread={activeThread}
+              activeThread={displayThread}
               canDock={canDock}
               createError={createError}
               creating={creating}

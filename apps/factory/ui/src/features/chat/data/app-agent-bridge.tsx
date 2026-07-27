@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import type { Thread } from "../model/types";
 import { useChatData } from "./chat-data-context";
@@ -25,7 +26,8 @@ export interface AppAgentHandle {
 }
 
 interface AppAgentRegistryValue {
-  getHandle: (appId: string) => AppAgentHandle | null;
+  attend: (appId: string, appName: string | null) => void;
+  clearAttention: () => void;
   waitForHandle: (appId: string) => Promise<AppAgentHandle>;
 }
 
@@ -116,20 +118,18 @@ function AppAgentBridge({
 }
 
 /**
- * Holds at most one live AppAgent WebSocket — the app under attention
- * (active thread or scoped blank composer). listApps stays on D1; threads
- * for other apps load when that app becomes attended, not via N forever
- * connections that wake every AppAgent on console open.
+ * Holds at most one live AppAgent WebSocket — the app the child declares via
+ * attend(). Mount with no props; the child drives attention through context.
  */
 export function AppAgentRegistryProvider({
-  attendedAppId,
-  attendedAppName,
   children,
 }: {
-  attendedAppId: string | null;
-  attendedAppName: string | null;
   children: ReactNode;
 }) {
+  const [attended, setAttended] = useState<{
+    appId: string;
+    appName: string | null;
+  } | null>(null);
   const handlesRef = useRef(new Map<string, AppAgentHandle>());
   const waitersRef = useRef(
     new Map<string, Array<(handle: AppAgentHandle) => void>>()
@@ -153,6 +153,19 @@ export function AppAgentRegistryProvider({
     []
   );
 
+  const attend = useCallback((appId: string, appName: string | null) => {
+    setAttended((current) => {
+      if (current?.appId === appId && current.appName === appName) {
+        return current;
+      }
+      return { appId, appName };
+    });
+  }, []);
+
+  const clearAttention = useCallback(() => {
+    setAttended(null);
+  }, []);
+
   const waitForHandle = useCallback((appId: string) => {
     const existing = handlesRef.current.get(appId);
     if (existing) {
@@ -165,23 +178,18 @@ export function AppAgentRegistryProvider({
     });
   }, []);
 
-  const getHandle = useCallback(
-    (appId: string) => handlesRef.current.get(appId) ?? null,
-    []
-  );
-
   const value = useMemo<AppAgentRegistryValue>(
-    () => ({ getHandle, waitForHandle }),
-    [getHandle, waitForHandle]
+    () => ({ attend, clearAttention, waitForHandle }),
+    [attend, clearAttention, waitForHandle]
   );
 
   return (
     <AppAgentRegistryContext.Provider value={value}>
-      {attendedAppId ? (
+      {attended ? (
         <AppAgentBridge
-          appId={attendedAppId}
-          appName={attendedAppName}
-          key={attendedAppId}
+          appId={attended.appId}
+          appName={attended.appName}
+          key={attended.appId}
           onHandle={onHandle}
         />
       ) : null}

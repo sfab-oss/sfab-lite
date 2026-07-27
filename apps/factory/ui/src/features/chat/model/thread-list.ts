@@ -15,7 +15,10 @@ function sortByUpdated(threads: Thread[]): Thread[] {
   return [...threads].sort((left, right) => right.updatedAt - left.updatedAt);
 }
 
-export function groupInactiveByApp(threads: Thread[]): {
+export function groupInactiveByApp(
+  threads: Thread[],
+  knownApps: Array<{ appId: string; appName: string }> = []
+): {
   appId: string;
   appName: string;
   threads: Thread[];
@@ -26,13 +29,27 @@ export function groupInactiveByApp(threads: Thread[]): {
     { appId: string; appName: string; threads: Thread[] }
   >();
 
+  for (const app of knownApps) {
+    byApp.set(app.appId, {
+      appId: app.appId,
+      appName: app.appName,
+      threads: [],
+    });
+  }
+
   for (const thread of sortByUpdated(inactive)) {
-    if (!(thread.appId && thread.appName)) {
+    if (!thread.appId) {
       continue;
     }
     const existing = byApp.get(thread.appId);
     if (existing) {
       existing.threads.push(thread);
+      if (thread.appName) {
+        existing.appName = thread.appName;
+      }
+      continue;
+    }
+    if (!thread.appName) {
       continue;
     }
     byApp.set(thread.appId, {

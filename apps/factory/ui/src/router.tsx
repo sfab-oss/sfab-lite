@@ -10,15 +10,15 @@ export type Route =
   | { name: "sign-in" }
   | { name: "chat" }
   | { name: "apps" }
-  | { name: "thread"; threadId: string }
+  | { name: "thread"; appId: string; threadId: string }
   | { name: "app"; appId: string }
   | { name: "create" }
   | { name: "ui-kit" }
-  | { name: "dev-chat"; threadId?: string };
+  | { name: "dev-chat"; appId?: string; threadId?: string };
 
 const RE_APP = /^\/apps\/([^/]+)$/;
-const RE_THREAD = /^\/t\/([^/]+)$/;
-const RE_DEV_CHAT_THREAD = /^\/dev\/chat\/t\/([^/]+)$/;
+const RE_THREAD = /^\/apps\/([^/]+)\/t\/([^/]+)$/;
+const RE_DEV_CHAT_THREAD = /^\/dev\/chat\/apps\/([^/]+)\/t\/([^/]+)$/;
 const RE_TRAILING_SLASHES = /\/+$/;
 
 function parsePath(pathname: string): Route {
@@ -31,10 +31,11 @@ function parsePath(pathname: string): Route {
   }
   if (import.meta.env.DEV) {
     const devThread = path.match(RE_DEV_CHAT_THREAD);
-    if (devThread?.[1]) {
+    if (devThread?.[1] && devThread[2]) {
       return {
         name: "dev-chat",
-        threadId: decodeURIComponent(devThread[1]),
+        appId: decodeURIComponent(devThread[1]),
+        threadId: decodeURIComponent(devThread[2]),
       };
     }
     if (path === "/dev/chat") {
@@ -45,8 +46,12 @@ function parsePath(pathname: string): Route {
     return { name: "create" };
   }
   const threadMatch = path.match(RE_THREAD);
-  if (threadMatch?.[1]) {
-    return { name: "thread", threadId: decodeURIComponent(threadMatch[1]) };
+  if (threadMatch?.[1] && threadMatch[2]) {
+    return {
+      name: "thread",
+      appId: decodeURIComponent(threadMatch[1]),
+      threadId: decodeURIComponent(threadMatch[2]),
+    };
   }
   const appMatch = path.match(RE_APP);
   if (appMatch?.[1]) {
@@ -68,15 +73,15 @@ function pathFor(route: Route): string {
     case "ui-kit":
       return "/dev/ui";
     case "dev-chat":
-      return route.threadId
-        ? `/dev/chat/t/${encodeURIComponent(route.threadId)}`
+      return route.appId && route.threadId
+        ? `/dev/chat/apps/${encodeURIComponent(route.appId)}/t/${encodeURIComponent(route.threadId)}`
         : "/dev/chat";
     case "create":
       return "/apps/new";
     case "app":
       return `/apps/${encodeURIComponent(route.appId)}`;
     case "thread":
-      return `/t/${encodeURIComponent(route.threadId)}`;
+      return `/apps/${encodeURIComponent(route.appId)}/t/${encodeURIComponent(route.threadId)}`;
     case "apps":
       return "/apps";
     default:
