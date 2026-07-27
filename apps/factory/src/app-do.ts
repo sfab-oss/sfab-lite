@@ -14,10 +14,6 @@ import {
   applyPendingMigrations,
   SCHEMA_VERSION_DDL,
 } from "./app-migrations.js";
-import {
-  introspectSchema as readSchemaSnapshot,
-  type SchemaSnapshot,
-} from "./schema-ddl.js";
 
 /**
  * Version ids are monotonic ULIDs: 48-bit ms timestamp + 80 bits entropy,
@@ -289,22 +285,6 @@ export class AppDO extends DurableObject {
       appSchemaVersion: info.appSchemaVersion,
       bootstrapMs: info.ms,
     };
-  }
-
-  /**
-   * The tables this app really has, as `diffSchema` wants them.
-   *
-   * This is the half that was missing. `src/db/schema.ts` describes tables;
-   * only this says what exists. Reading it here rather than through `execAll`
-   * keeps the PRAGMA walk on the single writer, so it cannot observe a shape
-   * halfway through a migration.
-   */
-  introspectSchema(): SchemaSnapshot {
-    this.#ensureMeta();
-    return readSchemaSnapshot(
-      (query) =>
-        this.ctx.storage.sql.exec(query).toArray() as Record<string, unknown>[]
-    );
   }
 
   /**

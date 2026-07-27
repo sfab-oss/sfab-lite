@@ -22,8 +22,9 @@ import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
 import type { AttemptResolver } from "./registry.js";
-import { diffSchema, type SchemaSnapshot } from "./schema-ddl.js";
+import { diffSchema } from "./schema-ddl.js";
 import { probeSchema } from "./schema-probe.js";
+import { latestSnapshot } from "./schema-snapshots.js";
 
 /** Explicit stub surface — DO Rpc generics erase method returns under tsc alone. */
 export interface AppStub {
@@ -40,7 +41,6 @@ export interface AppStub {
     appSchemaVersion: number;
     bootstrapMs: number;
   }>;
-  introspectSchema: () => Promise<SchemaSnapshot>;
   seedCredentials: () => Promise<{ token: string; password: string }>;
   destroy: () => Promise<
     | { ok: true; bytesFreed: number }
@@ -247,37 +247,34 @@ export async function callCheck(
 }
 
 interface SchemaGateFailure {
-  error: "schema_migration_missing" | "schema_unsafe" | "schema_probe_failed";
+  error:
+    | "schema_migration_missing"
+    | "schema_unsafe"
+    | "schema_probe_failed"
+    | "schema_snapshot_unreadable"
+    | "schema_history_changed";
   message: string;
   detail: unknown;
 }
 
 /**
- * Make the database match the code, or refuse to publish.
+ * Check for drift, then apply the migrations, or refuse to publish.
  *
- * Runs after the check gate and before a version is minted, so an app can never
- * go live declaring tables its Durable Object does not have — which is exactly
- * what shipped before this existed, and it failed at the first query rather
- * than at deploy.
+ * Two stages that an ordinary project keeps apart, and so do we. Drift — the
+ * schema declaring something no migration creates — is a CI question, answered
+ * from the files alone by diffing `migrations/meta/` against what the code
+ * declares. Applying the pending migrations is the deploy step, and it runs
+ * only once that question comes back clean.
  *
- * The order matters. Pending migrations are applied first, because they are the
- * app's own account of how its schema should change and the agent authored them
- * deliberately. Only then is the result compared against what the code
- * declares. Anything still outstanding at that point is a schema edit nobody
- * wrote a migration for, and the answer is to refuse and say so — generating
- * one silently here would put a schema change into production that never
- * appeared in the diff anyone reviewed.
+ * That order is the reverse of what this did when it read the live database,
+ * and it is the safer one: refusing *after* applying migrations leaves an app
+ * whose database moved for a deploy that never happened.
  */
 async function gateSchema(
   env: Env,
   stub: AppStub,
   files: Record<string, string>
 ): Promise<SchemaGateFailure | null> {
-  const migrations = collectMigrations(files);
-  if (migrations.length > 0) {
-    await stub.bootstrap(migrations);
-  }
-
   const probe = await probeSchema(env, files);
   if (!probe.ok) {
     return {
@@ -287,7 +284,16 @@ async function gateSchema(
     };
   }
 
-  const diff = diffSchema(await stub.introspectSchema(), probe.snapshot);
+  let diff: ReturnType<typeof diffSchema>;
+  try {
+    diff = diffSchema(latestSnapshot(files), probe.snapshot);
+  } catch (cause) {
+    return {
+      error: "schema_snapshot_unreadable",
+      message: cause instanceof Error ? cause.message : String(cause),
+      detail: null,
+    };
+  }
 
   if (diff.blocking.length > 0) {
     return {
@@ -302,9 +308,25 @@ async function gateSchema(
     return {
       error: "schema_migration_missing",
       message:
-        "The schema declares tables or columns the database does not have, and no migration adds them. Run `pnpm db:generate` to write one, then deploy again.",
+        "The schema declares tables or columns no migration creates. Run `pnpm db:generate` to write one, then deploy again.",
       detail: { pending: diff.additive, statements: diff.statements },
     };
+  }
+
+  const migrations = collectMigrations(files);
+  if (migrations.length > 0) {
+    try {
+      await stub.bootstrap(migrations);
+    } catch (cause) {
+      // The ledger refusing: a migration that already ran has been edited,
+      // renamed, or removed. Publishing anyway would leave the database
+      // describing a history the workspace no longer contains.
+      return {
+        error: "schema_history_changed",
+        message: cause instanceof Error ? cause.message : String(cause),
+        detail: null,
+      };
+    }
   }
 
   return null;
