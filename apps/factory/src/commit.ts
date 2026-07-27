@@ -41,6 +41,7 @@ export interface AppStub {
     bootstrapMs: number;
   }>;
   introspectSchema: () => Promise<SchemaSnapshot>;
+  seedCredentials: () => Promise<{ token: string; password: string }>;
   destroy: () => Promise<
     | { ok: true; bytesFreed: number }
     | { ok: false; error: "attempt_in_flight"; attemptId: string }

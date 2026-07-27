@@ -20,4 +20,10 @@ export interface Env {
    */
   APP_BASE_PATH?: string;
   BETTER_AUTH_SECRET?: string;
+  /**
+   * Authorizes `POST /api/dev/seed`, set per app by the factory and never
+   * sent to the browser. Unset disables seeding outright — see the route:
+   * refusing is the safe direction when the value goes missing.
+   */
+  SEED_TOKEN?: string;
 }

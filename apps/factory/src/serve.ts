@@ -72,7 +72,8 @@ async function serveApiRoute(
   version: VersionRecord,
   rest: string,
   publicBase: string,
-  mode: ServeMode
+  mode: ServeMode,
+  seedToken: string
 ): Promise<Response> {
   // `APP_BETTER_AUTH_SECRET` on the host, injected into the sub-app as plain
   // `BETTER_AUTH_SECRET` below. The host now runs better-auth for the factory
@@ -111,6 +112,9 @@ async function serveApiRoute(
       // the *live* prefix in both modes — preview is a subpath of it, so the
       // two keep sharing one session rather than asking for a second sign-in.
       APP_BASE_PATH: `/a/${encodeURIComponent(appId)}`,
+      // Authorizes the app's own seed route. Held here rather than in the
+      // template so the published source carries no working credential.
+      SEED_TOKEN: seedToken,
     },
     globalOutbound: null,
   }));
@@ -251,7 +255,8 @@ export async function serveSubApp(
       version,
       rest,
       publicBase,
-      mode
+      mode,
+      (await stub.seedCredentials()).token
     );
     return withVersionHeader(res);
   }

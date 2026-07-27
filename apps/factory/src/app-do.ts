@@ -74,6 +74,18 @@ function d1Meta(cursor: { rowsRead: number; rowsWritten: number }): SqlMeta {
   };
 }
 
+/**
+ * 24 bytes of CSPRNG, base64url so it survives a header, a JSON body and a
+ * copy-paste out of a terminal without escaping.
+ */
+function randomSecret(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
 /** Host-owned meta DDL (prefixed `_sfab_` to avoid colliding with app tables). */
 const META_DDL = `
 ${SCHEMA_VERSION_DDL}
@@ -105,6 +117,11 @@ CREATE TABLE IF NOT EXISTS _sfab_commit_attempts (
 );
 CREATE INDEX IF NOT EXISTS _sfab_commit_attempts_status
   ON _sfab_commit_attempts (status);
+CREATE TABLE IF NOT EXISTS _sfab_seed (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  token TEXT NOT NULL,
+  password TEXT NOT NULL
+);
 `.trim();
 
 /**
@@ -759,6 +776,37 @@ export class AppDO extends DurableObject {
       return { ok: true, version: null };
     }
     return this.getVersion(row.id);
+  }
+
+  /**
+   * The app's demo login, minted once and then stable.
+   *
+   * It lives here rather than in the template because the template is public
+   * source: a password written there is a published owner login for every app
+   * that ever seeded. The token is the same idea from the other direction —
+   * the app cannot authorize its own seed route, so the host holds the value
+   * and injects it.
+   *
+   * Deliberately recoverable, not one-shot. `pnpm seed` has to be able to
+   * reprint a working login, and an app whose only demo credential scrolled
+   * past in a terminal is an app you have to reset to get back into.
+   */
+  seedCredentials(): { token: string; password: string } {
+    const row = this.ctx.storage.sql
+      .exec("SELECT token, password FROM _sfab_seed WHERE singleton = 1")
+      .toArray()[0] as { token?: string; password?: string } | undefined;
+
+    if (row?.token && row.password) {
+      return { token: row.token, password: row.password };
+    }
+
+    const minted = { token: randomSecret(), password: randomSecret() };
+    this.ctx.storage.sql.exec(
+      "INSERT OR REPLACE INTO _sfab_seed (singleton, token, password) VALUES (1, ?, ?)",
+      minted.token,
+      minted.password
+    );
+    return minted;
   }
 
   async getLive(): Promise<{

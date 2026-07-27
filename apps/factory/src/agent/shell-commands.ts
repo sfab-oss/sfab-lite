@@ -20,7 +20,7 @@ import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
 const FROZEN_IMPORT_MAP_MSG = `This app runs on sfab-lite's frozen kernel import map — dependencies are pinned at the factory, not installed per app.
 pnpm add / install are not available in this shell.
-Use pnpm typecheck, pnpm lint, pnpm db:generate, and pnpm run deploy (or wrangler deploy) instead.
+Use pnpm typecheck, pnpm lint, pnpm db:generate, pnpm seed, and pnpm run deploy (or wrangler deploy) instead.
 `;
 
 function ok(stdout: string): ExecResult {
@@ -152,6 +152,66 @@ async function runDbGenerate(
 }
 
 /**
+ * The origin is arbitrary — a service binding routes by binding, not by host —
+ * but it must parse, because `serve.ts` derives the app's `BETTER_AUTH_URL`
+ * and public base from it.
+ */
+const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
+
+/**
+ * Put the demo account and sample rows into the live app.
+ *
+ * The credentials are the host's, not the template's: a password committed to
+ * the seed source would be a working owner login for every app ever generated
+ * from it. The factory mints one per app and this is how you read it back —
+ * re-running prints the same login rather than a new one, so the answer to
+ * "what was the password" is always to run this again.
+ */
+async function runSeed(deps: ShellCommandDeps): Promise<ExecResult> {
+  const stub = appStub(deps.env, deps.appId);
+  const live = await stub.getLive();
+  if (!live.liveVersionId) {
+    return fail(
+      "seed: app has no live version yet — run `pnpm run deploy` first\n",
+      1
+    );
+  }
+
+  const { token, password } = await stub.seedCredentials();
+  const path = `/a/${encodeURIComponent(deps.appId)}/api/dev/seed`;
+  const res = await deps.env.SELF.fetch(
+    new Request(`${LOOPBACK_ORIGIN}${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-sfab-seed": token,
+      },
+      body: JSON.stringify({ password }),
+    })
+  );
+
+  if (!res.ok) {
+    return fail(
+      `seed: app returned HTTP ${res.status}\n${await res.text()}\n`,
+      1
+    );
+  }
+
+  const body = (await res.json()) as {
+    seeded: boolean;
+    email: string;
+    organization: string;
+  };
+
+  return ok(
+    `${body.seeded ? "seed: created the demo organization and sample rows" : "seed: already seeded — credentials unchanged"}\n\n` +
+      `  organization  ${body.organization}\n` +
+      `  email         ${body.email}\n` +
+      `  password      ${password}\n`
+  );
+}
+
+/**
  * Await the commit on the agent turn (exit codes must be real). Justified
  * against DO limits: factory `limits.cpu_ms` is 300_000 and a commit is
  * measured at 10–24s. Unlike HTTP `waitUntil`, we must settle before returning
@@ -247,6 +307,9 @@ export function createAppShellCommands(
     }
     if (script === "deploy") {
       return await runDeploy(deps, ctx);
+    }
+    if (script === "seed") {
+      return await runSeed(deps);
     }
     return fail(
       `pnpm ${script}: not supported in this shell.\n${FROZEN_IMPORT_MAP_MSG}`,
