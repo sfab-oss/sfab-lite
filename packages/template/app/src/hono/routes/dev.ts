@@ -26,11 +26,6 @@ const SEED_NAME = "Demo User";
 const SEED_ORG = "Demo Company";
 const SEED_ORG_SLUG = "demo-company";
 
-/**
- * Sample rows, chosen so the app has something to show on every screen: two
- * parties, two products, and one document that is already issued so the
- * finalized state is visible without anyone having to build it first.
- */
 const PARTIES = [
   {
     kind: "customer" as const,
@@ -49,102 +44,106 @@ const PRODUCTS = [
   { sku: "GAD-002", name: "Gadget", unitPriceCents: 4950 },
 ];
 
-/**
- * Development helpers. Seeding is idempotent — it answers with the same
- * credentials whether it just created the account or found it already there,
- * so the factory can call it at creation and you can call it again later
- * without a second account appearing.
- */
+const ISSUED_QUANTITY = 3;
+
+const credentials = {
+  email: SEED_EMAIL,
+  password: SEED_PASSWORD,
+  organization: SEED_ORG,
+};
+
 export const devRoutes = new Hono<AppEnv>().post("/seed", async (c) => {
   const auth = c.get("auth");
   const db = c.get("db");
 
-  const existing = await db.query.user.findFirst({
-    where: eq(user.email, SEED_EMAIL),
+  /**
+   * The organization is the completion marker, not the account.
+   *
+   * Keying on the account would call a half-seeded app finished: the account
+   * is created first, so any later failure would leave every retry answering
+   * "already seeded" for an app with no organization and no rows, and nothing
+   * short of a database reset could repair it.
+   */
+  const seededOrg = await db.query.organization.findFirst({
+    where: eq(organization.slug, SEED_ORG_SLUG),
   });
-
-  if (existing) {
-    return c.json({
-      seeded: false as const,
-      email: SEED_EMAIL,
-      password: SEED_PASSWORD,
-      organization: SEED_ORG,
-    });
+  if (seededOrg) {
+    return c.json({ seeded: false as const, ...credentials });
   }
 
   // better-auth owns password hashing, so the account is created through its
-  // API rather than by writing the `account` row directly.
-  const created = await auth.api.signUpEmail({
-    body: { email: SEED_EMAIL, password: SEED_PASSWORD, name: SEED_NAME },
+  // API rather than by writing the `account` row. Reused when a previous
+  // attempt got this far and then failed.
+  const existingUser = await db.query.user.findFirst({
+    where: eq(user.email, SEED_EMAIL),
   });
+  const userId =
+    existingUser?.id ??
+    (
+      await auth.api.signUpEmail({
+        body: { email: SEED_EMAIL, password: SEED_PASSWORD, name: SEED_NAME },
+      })
+    ).user.id;
 
   const organizationId = crypto.randomUUID();
-  await db.insert(organization).values({
-    id: organizationId,
-    name: SEED_ORG,
-    slug: SEED_ORG_SLUG,
-  });
-  await db.insert(member).values({
+  const parties = PARTIES.map((party) => ({
     id: crypto.randomUUID(),
     organizationId,
-    userId: created.user.id,
-    role: "owner",
-  });
-
-  const parties = await db
-    .insert(entity)
-    .values(
-      PARTIES.map((party) => ({
-        id: crypto.randomUUID(),
-        organizationId,
-        ...party,
-      }))
-    )
-    .returning();
-
-  const catalog = await db
-    .insert(product)
-    .values(
-      PRODUCTS.map((item) => ({
-        id: crypto.randomUUID(),
-        organizationId,
-        ...item,
-      }))
-    )
-    .returning();
+    ...party,
+  }));
+  const catalog = PRODUCTS.map((item) => ({
+    id: crypto.randomUUID(),
+    organizationId,
+    ...item,
+  }));
 
   const customer = parties[0];
   const widget = catalog[0];
+  if (!(customer && widget)) {
+    return c.json({ error: "seed_data_empty" as const }, 500);
+  }
 
-  if (customer && widget) {
-    const quantity = 3;
-    const totalCents = quantity * widget.unitPriceCents;
-    const documentId = crypto.randomUUID();
+  const documentId = crypto.randomUUID();
 
-    await db.insert(document).values({
+  /**
+   * One batch, so the sample graph either exists whole or not at all. A
+   * document that committed without its line would be a finalized total with
+   * nothing behind it — a state `routes/documents.ts` cannot produce, since
+   * finalize requires a line and recomputes the total from the lines.
+   */
+  await db.batch([
+    db.insert(organization).values({
+      id: organizationId,
+      name: SEED_ORG,
+      slug: SEED_ORG_SLUG,
+    }),
+    db.insert(member).values({
+      id: crypto.randomUUID(),
+      organizationId,
+      userId,
+      role: "owner",
+    }),
+    db.insert(entity).values(parties),
+    db.insert(product).values(catalog),
+    db.insert(document).values({
       id: documentId,
       organizationId,
       entityId: customer.id,
       entityNameSnapshot: customer.name,
       status: "finalized",
       number: 1,
-      totalCents,
+      totalCents: ISSUED_QUANTITY * widget.unitPriceCents,
       issuedAt: new Date(),
-    });
-    await db.insert(documentLine).values({
+    }),
+    db.insert(documentLine).values({
       id: crypto.randomUUID(),
       documentId,
       productId: widget.id,
       nameSnapshot: widget.name,
-      quantity,
+      quantity: ISSUED_QUANTITY,
       unitPriceCents: widget.unitPriceCents,
-    });
-  }
+    }),
+  ]);
 
-  return c.json({
-    seeded: true as const,
-    email: SEED_EMAIL,
-    password: SEED_PASSWORD,
-    organization: SEED_ORG,
-  });
+  return c.json({ seeded: true as const, ...credentials });
 });
