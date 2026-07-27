@@ -49,10 +49,25 @@ import type { Thread } from "./model/types";
 const TITLE_FIRST_LINE = /\n/;
 const APP_READY_POLL_MS = 800;
 const APP_READY_TIMEOUT_MS = 120_000;
+const WORDS = /\s+/;
+const APP_NAME_WORDS = 5;
+const APP_NAME_MAX = 40;
 
 function titleFromText(text: string): string {
   const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "New thread";
   return first.length > 64 ? `${first.slice(0, 61)}…` : first;
+}
+
+/** The prompt's opening words, verbatim. Display truncates what is too long. */
+function appNameFromText(text: string): string {
+  const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "";
+  const name = first
+    .split(WORDS)
+    .slice(0, APP_NAME_WORDS)
+    .join(" ")
+    .slice(0, APP_NAME_MAX)
+    .trim();
+  return name || "New app";
 }
 
 async function waitForAppReady(appId: string): Promise<void> {
@@ -342,7 +357,7 @@ function ChatScreenInner() {
         let appId = scopedApp?.appId ?? null;
         let appName: string | null = scopedApp?.appName ?? null;
         if (!appId) {
-          appName = titleFromText(text);
+          appName = appNameFromText(text);
           const created = await createApp(appName);
           appId = created.appId;
           await waitForAppReady(appId);
