@@ -19,19 +19,19 @@ export function ConsoleChrome({
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-6 py-10">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-[var(--line)] border-b pb-4">
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-[var(--border)] border-b pb-4">
         <div>
           <p className="m-0 font-medium text-[var(--muted-foreground)] text-xs uppercase tracking-wide">
             <Link
               to={{ name: "chat" }}
-              className="text-[var(--muted-foreground)] no-underline"
+              className="text-[var(--muted-foreground)] no-underline hover:underline"
             >
               sfab-lite
             </Link>
-            <span className="mx-1.5 text-[var(--line)]">/</span>
+            <span className="mx-1.5 text-[var(--border)]">/</span>
             <Link
               to={{ name: "apps" }}
-              className="text-[var(--muted-foreground)] no-underline"
+              className="text-[var(--muted-foreground)] no-underline hover:underline"
             >
               Apps
             </Link>
@@ -49,7 +49,7 @@ export function ConsoleChrome({
           <button
             type="button"
             onClick={onSignOut}
-            className="border border-[var(--line)] bg-transparent px-2 py-1 text-[var(--ink)]"
+            className="border border-[var(--border)] bg-transparent px-2 py-1 text-[var(--foreground)]"
           >
             Sign out
           </button>

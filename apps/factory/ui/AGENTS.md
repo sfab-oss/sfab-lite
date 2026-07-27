@@ -18,13 +18,11 @@ Use Tailwind utilities (`bg-muted`, `text-muted-foreground`, `bg-primary`,
 | `--accent` | subtle hover / secondary **surface** |
 | `--accent-foreground` | text on that surface |
 | `--primary` | primary action fill (ink here) |
-| `--brand` | factory brand link hue (not shadcn; use for identity links) |
+| `--brand` | sfab rosa mexicano (not shadcn; focus ring; deliberate `text-brand` only) |
 
-Do **not** use `var(--muted)` for text or `var(--accent)` for brand blue.
+Do **not** use `var(--muted)` for text or `var(--accent)` for brand colour.
 Do **not** reintroduce `--muted-bg` / `--accent-bg` collision shims.
-
-Legacy aliases `--ink`, `--line`, `--surface`, `--bg`, `--danger` still exist
-for unconverted screens only. New code should not add more of them.
+Do **not** reintroduce `--ink` / `--line` / `--surface` / `--bg` / `--danger`.
 
 Defined in [`src/styles.css`](src/styles.css).
 

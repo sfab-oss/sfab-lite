@@ -79,7 +79,7 @@ export function AppsListScreen() {
   // still the last thing the server said, and blanking the page over one bad
   // response loses more than it protects.
   if (error && apps === null) {
-    body = <p className="text-[var(--danger)]">{error}</p>;
+    body = <p className="text-[var(--destructive)]">{error}</p>;
   } else if (apps === null) {
     body = <p className="text-[var(--muted-foreground)]">Loading apps…</p>;
   } else if (apps.length === 0) {
@@ -90,18 +90,18 @@ export function AppsListScreen() {
     );
   } else {
     body = (
-      <ul className="m-0 list-none divide-y divide-[var(--line)] border border-[var(--line)] p-0">
+      <ul className="m-0 list-none divide-y divide-[var(--border)] border border-[var(--border)] p-0">
         {apps.map((app) => (
           // The delete control is a sibling of the Link, not inside it —
           // nesting a button in an anchor gives one row two conflicting
           // activation targets.
           <li
             key={app.id}
-            className="flex items-center hover:bg-[var(--surface)]"
+            className="flex items-center hover:bg-[var(--muted)]"
           >
             <Link
               to={{ name: "app", appId: app.id }}
-              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-[var(--ink)] no-underline"
+              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-[var(--foreground)] no-underline hover:underline"
             >
               <span>
                 <span className="font-medium">{app.name}</span>
@@ -131,18 +131,20 @@ export function AppsListScreen() {
         <div>
           <p className="m-0 text-[var(--muted-foreground)] text-sm">
             Organization{" "}
-            <code className="text-[var(--ink)]">{organizationId ?? "…"}</code>
+            <code className="text-[var(--foreground)]">
+              {organizationId ?? "…"}
+            </code>
           </p>
         </div>
         <Link
           to={{ name: "create" }}
-          className="border border-[var(--ink)] bg-[var(--ink)] px-3 py-1.5 text-sm text-white no-underline"
+          className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-primary-foreground text-sm no-underline"
         >
           New app
         </Link>
       </div>
       {error && apps !== null && (
-        <p className="mb-4 text-[var(--danger)] text-sm">
+        <p className="mb-4 text-[var(--destructive)] text-sm">
           Could not refresh: {error}
         </p>
       )}
@@ -185,7 +187,9 @@ function DeleteAppButton({
 
   if (error) {
     return (
-      <span className="px-3 py-3 text-[var(--danger)] text-xs">{error}</span>
+      <span className="px-3 py-3 text-[var(--destructive)] text-xs">
+        {error}
+      </span>
     );
   }
 
@@ -195,7 +199,7 @@ function DeleteAppButton({
         type="button"
         onClick={() => setArmed(true)}
         aria-label={`Delete ${app.name}`}
-        className="border-0 bg-transparent px-3 py-3 text-[var(--muted-foreground)] text-xs hover:text-[var(--danger)]"
+        className="border-0 bg-transparent px-3 py-3 text-[var(--muted-foreground)] text-xs hover:text-[var(--destructive)]"
       >
         Delete
       </button>
@@ -208,7 +212,7 @@ function DeleteAppButton({
         type="button"
         disabled={busy}
         onClick={onDelete}
-        className="border-0 bg-transparent p-0 font-medium text-[var(--danger)] disabled:opacity-50"
+        className="border-0 bg-transparent p-0 font-medium text-[var(--destructive)] disabled:opacity-50"
       >
         {busy ? "Deleting…" : "Confirm"}
       </button>
@@ -229,7 +233,7 @@ export function StatusBadge({ status }: { status: AppRecord["status"] }) {
   if (status === "ready") {
     color = "var(--ok)";
   } else if (status === "failed") {
-    color = "var(--danger)";
+    color = "var(--destructive)";
   }
   return (
     <span
