@@ -111,7 +111,7 @@ export function AppDetailScreen({ appId }: { appId: string }) {
         </Link>
       </p>
 
-      {error ? <p className="text-[var(--danger)]">{error}</p> : null}
+      {error ? <p className="text-[var(--destructive)]">{error}</p> : null}
 
       {app || error ? null : (
         <p className="text-[var(--muted-foreground)]">Loading…</p>
@@ -164,7 +164,7 @@ function AppBody({
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
             <a
               href={`/a/${encodeURIComponent(app.id)}/`}
-              className="border border-[var(--ink)] bg-[var(--ink)] px-3 py-1.5 text-white no-underline"
+              className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-white no-underline"
               target="_blank"
               rel="noreferrer"
             >
@@ -172,7 +172,7 @@ function AppBody({
             </a>
             <a
               href={`/a/${encodeURIComponent(app.id)}/preview`}
-              className="border border-[var(--line)] px-3 py-1.5 text-[var(--ink)] no-underline"
+              className="border border-[var(--border)] px-3 py-1.5 text-[var(--foreground)] no-underline"
               target="_blank"
               rel="noreferrer"
             >
@@ -191,7 +191,7 @@ function AppBody({
       <AttemptSection app={app} attempt={attempt} />
 
       {app.status === "failed" && !app.createAttemptId ? (
-        <p className="text-[var(--danger)] text-sm">
+        <p className="text-[var(--destructive)] text-sm">
           Create failed during bootstrap (no attempt id).
         </p>
       ) : null}
@@ -227,12 +227,12 @@ function AttemptSection({
         </div>
       </dl>
       {attempt.payload == null ? null : (
-        <pre className="mt-3 overflow-x-auto border border-[var(--line)] bg-[var(--surface)] p-3 text-xs">
+        <pre className="mt-3 overflow-x-auto border border-[var(--border)] bg-[var(--muted)] p-3 text-xs">
           {formatPayload(attempt.payload)}
         </pre>
       )}
       {app.status === "failed" && attempt.payload == null ? (
-        <p className="mt-2 text-[var(--danger)] text-sm">
+        <p className="mt-2 text-[var(--destructive)] text-sm">
           Create failed before an attempt payload was recorded.
         </p>
       ) : null}
@@ -255,7 +255,7 @@ function VersionsSection({
           No versions yet.
         </p>
       ) : (
-        <ul className="m-0 list-none divide-y divide-[var(--line)] border border-[var(--line)] p-0 text-sm">
+        <ul className="m-0 list-none divide-y divide-[var(--border)] border border-[var(--border)] p-0 text-sm">
           {versions.map((v) => (
             <li
               key={v.id}

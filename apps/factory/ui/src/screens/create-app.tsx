@@ -48,24 +48,24 @@ export function CreateAppScreen() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="my-app"
-            className="border border-[var(--line)] bg-white px-2 py-1.5"
+            className="border border-[var(--border)] bg-white px-2 py-1.5"
             disabled={busy}
           />
         </label>
         {error ? (
-          <p className="m-0 text-[var(--danger)] text-sm">{error}</p>
+          <p className="m-0 text-[var(--destructive)] text-sm">{error}</p>
         ) : null}
         <div className="flex gap-3">
           <button
             type="submit"
             disabled={busy}
-            className="border border-[var(--ink)] bg-[var(--ink)] px-3 py-2 text-white disabled:opacity-50"
+            className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-2 text-white disabled:opacity-50"
           >
             {busy ? "Creating…" : "Create"}
           </button>
           <Link
             to={{ name: "chat" }}
-            className="border border-[var(--line)] px-3 py-2 text-[var(--ink)] no-underline"
+            className="border border-[var(--border)] px-3 py-2 text-[var(--foreground)] no-underline"
           >
             Cancel
           </Link>
