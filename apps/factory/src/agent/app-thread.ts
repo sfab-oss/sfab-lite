@@ -15,6 +15,8 @@ import { SharedWorkspace } from "./shared-workspace.js";
 import { createAppShellCommands } from "./shell-commands.js";
 import { buildSystemPrompt } from "./system-prompt.js";
 
+const LEADING_SLASH = /^\//;
+
 /**
  * One conversation facet under AppAgent. Workspace is a SharedWorkspace
  * proxy into the parent's shared checkout — not a per-thread scratch copy.
@@ -33,6 +35,7 @@ export class AppThread extends Think<Env> {
   #appId: string | null = null;
   #liveVersionId: string | null = null;
   #model: LanguageModel | null = null;
+  #sourceFiles: string[] = [];
 
   override async onStart(): Promise<void> {
     const appId = this.requireAppId();
@@ -40,6 +43,7 @@ export class AppThread extends Think<Env> {
 
     const parent = await this.parentAgent(AppAgent);
     this.#liveVersionId = await parent.liveVersionId();
+    this.#sourceFiles = await this.#listSourceFiles();
 
     const key = this.env.ZAI_API_KEY?.trim();
     if (key) {
@@ -104,11 +108,30 @@ export class AppThread extends Think<Env> {
     return this.#model;
   }
 
+  /**
+   * Read once at start rather than per turn: the agent's own edits land in
+   * this workspace, so re-listing would rewrite the system prompt mid-session
+   * and invalidate the prefix cache on every file it creates.
+   */
+  async #listSourceFiles(): Promise<string[]> {
+    try {
+      const found = await this.workspace.glob("**/*");
+      return found
+        .filter((entry) => entry.type === "file")
+        .map((entry) => entry.path.replace(LEADING_SLASH, ""))
+        .sort();
+    } catch (e) {
+      console.warn(`[AppThread] ${this.name}: workspace listing failed`, e);
+      return [];
+    }
+  }
+
   override getSystemPrompt(): string {
     return [
       buildSystemPrompt({
         appId: this.#appId ?? this.requireAppId(),
         liveVersionId: this.#liveVersionId ?? "unknown",
+        sourceFiles: this.#sourceFiles,
       }),
       "",
       STATE_SYSTEM_PROMPT.replace("{{types}}", STATE_TYPES),

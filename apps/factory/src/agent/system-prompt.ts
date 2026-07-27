@@ -39,18 +39,41 @@ function clientSpecifiers(): string {
   ].join("\n");
 }
 
+const FILE_LIST_CAP = 250;
+
+/**
+ * The workspace as it actually is, not a description of the template.
+ *
+ * An app diverges from the seed the moment someone changes it, so a written
+ * layout would start being wrong immediately. Listing costs about a line per
+ * file and removes the survey the agent would otherwise open every session
+ * with.
+ */
+function fileList(sourceFiles: string[]): string {
+  if (sourceFiles.length === 0) {
+    return "  (workspace listing unavailable — use the file tools to look)";
+  }
+  const shown = sourceFiles.slice(0, FILE_LIST_CAP);
+  const omitted = sourceFiles.length - shown.length;
+  const lines = shown.map((path) => `  ${path}`);
+  if (omitted > 0) {
+    lines.push(`  … and ${omitted} more — use the file tools for the rest`);
+  }
+  return lines.join("\n");
+}
+
 /**
  * What the agent is told before it has read anything.
  *
- * The test for belonging here is not importance but discoverability: the
- * agent has list, grep and read, so the layout and the component set get a
- * pointer rather than an inventory. What it cannot find by looking — which
- * modules the kernel actually serves, what the app is compiled under, what
- * deploy will refuse — is spelled out.
+ * Weighted towards getting it moving. The prompt is paid on every turn, but
+ * a session that opens by rediscovering the same codebase costs more than
+ * carrying the answer, so the file list and the where-to-start table are
+ * here rather than left to the file tools.
  */
 export function buildSystemPrompt(opts: {
   appId: string;
   liveVersionId: string;
+  sourceFiles: string[];
 }): string {
   return [
     `You are a coding agent for sfab-lite factory app ${opts.appId}.`,
@@ -105,15 +128,32 @@ export function buildSystemPrompt(opts: {
     "  or retyping a column, or making an existing one NOT NULL, is refused,",
     "  because it would discard rows: change the schema back, or ask the user.",
     "",
-    "How the app is laid out:",
-    "  worker.ts mounts the Hono server. hono/routes/ is the API, one file per",
-    "  resource, with request bodies validated through hono/validate.ts.",
-    "  ui/router.tsx wires the pages, ui/routes/ holds one file per page,",
-    "  ui/lib/ holds the typed client for each resource, and ui/components/ is",
-    "  the component set already ported — read it before writing a new one.",
-    "  A feature usually runs the whole chain: db/schema.ts, pnpm db:generate,",
-    "  a route under hono/routes/, a client in ui/lib/, a page in ui/routes/",
-    "  registered in ui/router.tsx, and a link in ui/components/app-sidebar.tsx.",
-    "Answer from the workspace contents; do not guess from the app id alone.",
+    "Before you build:",
+    "  If the request leaves something you would otherwise have to guess at, ask",
+    "  one or two short questions and wait. If it already says what it wants,",
+    "  start — do not interview someone who has told you the answer.",
+    "",
+    "What is in the workspace:",
+    fileList(opts.sourceFiles),
+    "",
+    "  This is a working app, not an empty project. Whatever you are asked for,",
+    "  something adjacent to it already exists — read that first and follow it,",
+    "  rather than inventing a second way to do the same thing.",
+    "",
+    "Where to change what:",
+    "  What the app stores    src/db/schema.ts, then pnpm db:generate <name>",
+    "  An API endpoint        src/hono/routes/<resource>.ts, validated through",
+    "                         src/hono/validate.ts",
+    "  How a page looks       src/ui/routes/<page>.tsx",
+    "  A whole new page       src/ui/routes/, registered in src/ui/router.tsx,",
+    "                         linked from src/ui/components/app-sidebar.tsx",
+    "  A new resource         the whole chain: src/db/schema.ts → pnpm db:generate",
+    "                         → src/hono/routes/ → src/ui/lib/ (typed client) →",
+    "                         src/ui/routes/ → src/ui/router.tsx → app-sidebar.tsx",
+    "  src/ui/components/ is already populated. Use what is there before writing",
+    "  your own; a hand-rolled button will not match the rest of the app.",
+    "",
+    "  Finish with pnpm typecheck, then pnpm lint --fix, then pnpm run deploy.",
+    "  Nothing you write reaches the app until deploy succeeds.",
   ].join("\n");
 }
