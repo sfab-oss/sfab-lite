@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, notExists } from "drizzle-orm";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
@@ -105,21 +105,38 @@ export const devRoutes = new Hono<AppEnv>().post(
      * and the membership below would hand them ownership of the demo
      * organization along with whatever the app's real owner puts in it.
      *
-     * Reusing the account outright is what would grant that. Inside this
-     * branch the demo organization does not exist, so an account holding the
-     * address is either a seed that died after creating it or someone who
-     * took it, and neither is worth keeping. An account that has joined an
-     * organization is the one shape the seed could not have produced: that is
-     * a real person, and the seed refuses rather than deleting them.
+     * Reusing the account outright is what would grant that, so the seed takes
+     * the address back instead. Having joined an organization is what buys an
+     * account out of that: it is the one shape a seed that died halfway could
+     * not have produced, and the seed refuses rather than deleting it. An
+     * account that has not — a squatter, a dead seed, or someone who signed up
+     * and abandoned onboarding — is deleted, and the third case is why this is
+     * a reclaim rather than a repair.
+     *
+     * The membership test is a condition on the delete rather than a check
+     * before it. Split in two, an organization created in the gap would be
+     * cascaded away by a delete that had already decided there was none.
      */
     const existingUser = await db.query.user.findFirst({
       where: eq(user.email, SEED_EMAIL),
     });
     if (existingUser) {
-      const membership = await db.query.member.findFirst({
-        where: eq(member.userId, existingUser.id),
-      });
-      if (membership) {
+      const reclaimed = await db
+        .delete(user)
+        .where(
+          and(
+            eq(user.id, existingUser.id),
+            notExists(
+              db
+                .select({ present: member.id })
+                .from(member)
+                .where(eq(member.userId, existingUser.id))
+            )
+          )
+        )
+        .returning({ id: user.id });
+
+      if (reclaimed.length === 0) {
         return c.json(
           {
             error: "seed_email_in_use" as const,
@@ -128,13 +145,13 @@ export const devRoutes = new Hono<AppEnv>().post(
           409
         );
       }
+
       // Explicitly, rather than leaning on the cascade: foreign-key
       // enforcement is a connection pragma, and a leftover session row is a
       // credential that outlives the account it belonged to.
       await db.batch([
         db.delete(session).where(eq(session.userId, existingUser.id)),
         db.delete(account).where(eq(account.userId, existingUser.id)),
-        db.delete(user).where(eq(user.id, existingUser.id)),
       ]);
     }
 
