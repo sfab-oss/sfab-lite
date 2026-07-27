@@ -45,7 +45,9 @@ export function createRealChatData(): RealChatData {
     saveThreads: (next) => {
       threads = next;
       persistThreads(next);
-      notify();
+      // Callers often persist inside a React setState updater; notifying
+      // synchronously would re-enter useSyncExternalStore mid-render.
+      queueMicrotask(notify);
     },
     listCommands: () => [],
     listAttachedFiles: () => [],
