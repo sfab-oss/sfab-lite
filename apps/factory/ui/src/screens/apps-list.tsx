@@ -101,7 +101,7 @@ export function AppsListScreen() {
           >
             <Link
               to={{ name: "app", appId: app.id }}
-              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-[var(--foreground)] no-underline"
+              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-[var(--foreground)] no-underline hover:underline"
             >
               <span>
                 <span className="font-medium">{app.name}</span>
@@ -138,7 +138,7 @@ export function AppsListScreen() {
         </div>
         <Link
           to={{ name: "create" }}
-          className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-sm text-white no-underline"
+          className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-primary-foreground text-sm no-underline"
         >
           New app
         </Link>

@@ -24,14 +24,14 @@ export function ConsoleChrome({
           <p className="m-0 font-medium text-[var(--muted-foreground)] text-xs uppercase tracking-wide">
             <Link
               to={{ name: "chat" }}
-              className="text-[var(--muted-foreground)] no-underline"
+              className="text-[var(--muted-foreground)] no-underline hover:underline"
             >
               sfab-lite
             </Link>
             <span className="mx-1.5 text-[var(--border)]">/</span>
             <Link
               to={{ name: "apps" }}
-              className="text-[var(--muted-foreground)] no-underline"
+              className="text-[var(--muted-foreground)] no-underline hover:underline"
             >
               Apps
             </Link>

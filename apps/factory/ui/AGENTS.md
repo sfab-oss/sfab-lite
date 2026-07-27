@@ -18,7 +18,7 @@ Use Tailwind utilities (`bg-muted`, `text-muted-foreground`, `bg-primary`,
 | `--accent` | subtle hover / secondary **surface** |
 | `--accent-foreground` | text on that surface |
 | `--primary` | primary action fill (ink here) |
-| `--brand` | sfab rosa mexicano (not shadcn; focus ring + identity links) |
+| `--brand` | sfab rosa mexicano (not shadcn; focus ring; deliberate `text-brand` only) |
 
 Do **not** use `var(--muted)` for text or `var(--accent)` for brand colour.
 Do **not** reintroduce `--muted-bg` / `--accent-bg` collision shims.

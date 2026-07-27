@@ -106,7 +106,10 @@ export function AppDetailScreen({ appId }: { appId: string }) {
   return (
     <ConsoleChrome title={app?.name ?? "App"}>
       <p className="mt-0 mb-6">
-        <Link to={{ name: "apps" }} className="text-sm">
+        <Link
+          to={{ name: "apps" }}
+          className="text-muted-foreground text-sm no-underline hover:underline"
+        >
           ← Apps
         </Link>
       </p>
@@ -164,7 +167,7 @@ function AppBody({
           <div className="mt-4 flex flex-wrap gap-3 text-sm">
             <a
               href={`/a/${encodeURIComponent(app.id)}/`}
-              className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-white no-underline"
+              className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-primary-foreground no-underline"
               target="_blank"
               rel="noreferrer"
             >
@@ -182,7 +185,7 @@ function AppBody({
         ) : null}
 
         {app.status === "creating" ? (
-          <p className="mt-4 text-[var(--warn)] text-sm">
+          <p className="mt-4 text-sm text-warn">
             Seeding the template while check runs. Polling automatically.
           </p>
         ) : null}
@@ -268,7 +271,7 @@ function VersionsSection({
                     {/* A literal space, not just the margin: without it the
                         DOM text reads `v_01…live`, which is what a screen
                         reader announces and what a copy-paste produces. */}{" "}
-                    <span className="text-[var(--ok)]">live</span>
+                    <span className="text-ok">live</span>
                   </>
                 ) : null}
               </span>
