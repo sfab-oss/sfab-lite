@@ -104,10 +104,19 @@ function summarize(
         message = sideMsg;
       }
     }
+    let line: number | undefined;
+    let column: number | undefined;
+    if (d.file && d.start != null) {
+      const pos = d.file.getLineAndCharacterOfPosition(d.start);
+      line = pos.line + 1;
+      column = pos.character + 1;
+    }
     return {
       code: d.code,
       message,
       file: d.file?.fileName,
+      line,
+      column,
     };
   });
 }

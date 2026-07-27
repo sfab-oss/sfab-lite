@@ -1,0 +1,26 @@
+diff --git a/dist/tools/workspace.js b/dist/tools/workspace.js
+index 511074a4212900711855dc9686ec8aa0f66b35b2..e597c8d4e8f12a429d9c7d62b65b0f7a5f3ff29f 100644
+--- a/dist/tools/workspace.js
++++ b/dist/tools/workspace.js
+@@ -608,7 +608,8 @@ function createBashTool(options) {
+ 				files: snapshot.files,
+ 				cwd: normalizeWorkspacePath(cwd ?? "/"),
+ 				defenseInDepth: true,
+-				network: options.network ? {} : void 0
++				network: options.network ? {} : void 0,
++				customCommands: options.customCommands
+ 			});
+ 			const controller = new AbortController();
+ 			const timer = setTimeout(() => controller.abort(), timeout);
+diff --git a/dist/workspace-BZXdZcuw.d.ts b/dist/workspace-BZXdZcuw.d.ts
+index 11b27c7d903e52e922f277d8ee8c4ddd27613d0d..2d2e18ec0f3ebaf54c51786f05fb8e0efd666b4f 100644
+--- a/dist/workspace-BZXdZcuw.d.ts
++++ b/dist/workspace-BZXdZcuw.d.ts
+@@ -279,6 +279,7 @@ interface BashToolOptions {
+   maxWorkspaceFiles?: number;
+   maxWorkspaceFileBytes?: number;
+   maxOutputBytes?: number;
++  customCommands?: import("just-bash").CustomCommand[];
+ }
+ declare function createBashTool(options: BashToolOptions): import("ai").Tool<
+   {

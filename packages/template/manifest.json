@@ -13,7 +13,7 @@
   "source": {
     "dirs": ["src"],
     "extensions": [".ts", ".tsx", ".css"],
-    "files": ["safelist.txt"],
+    "files": ["safelist.txt", "package.json"],
     "exclude": ["src/worker.ts"]
   }
 }

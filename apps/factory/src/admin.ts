@@ -158,7 +158,11 @@ async function handleCreateApp(rc: OrgCtx): Promise<Response> {
         null,
         { forceColdCheck: true }
       );
-      await settleCreateApp(createDb(rc.env), appId, status);
+      await settleCreateApp(
+        createDb(rc.env),
+        appId,
+        status === "aborted" ? "error" : status
+      );
     })()
   );
 

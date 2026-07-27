@@ -5,7 +5,12 @@
  * accepted-attempt / conflict contract used by both ordinary commits and
  * app creation.
  */
-import { type CheckResult, type LintResult, lintPasses } from "@sfab-lite/core";
+import {
+  type CheckResult,
+  type LintMode,
+  type LintResult,
+  lintPasses,
+} from "@sfab-lite/core";
 import type {
   AttemptKind,
   AttemptRecord,
@@ -132,10 +137,11 @@ export function checkPasses(body: CheckResult | null): boolean {
   return body.diagnosticCount === 0;
 }
 
-async function callLint(
+export async function callLint(
   env: Env,
   appId: string,
-  files: Record<string, string>
+  files: Record<string, string>,
+  mode: LintMode = "lint"
 ): Promise<{ http: number; wallMs: number; body: LintResult | null }> {
   const t0 = Date.now();
   const res = await env.LINT.fetch(
@@ -145,7 +151,7 @@ async function callLint(
       body: JSON.stringify({
         appId,
         files,
-        mode: "lint",
+        mode,
       }),
     })
   );
@@ -249,6 +255,57 @@ async function compileAll(files: Record<string, string>) {
   return { compiled, client, css, assets };
 }
 
+class DeployAbortedError extends Error {
+  constructor() {
+    super("deploy_aborted");
+    this.name = "DeployAbortedError";
+  }
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw new DeployAbortedError();
+  }
+}
+
+async function gateLint(
+  stub: AppStub,
+  attemptId: string,
+  lint: Awaited<ReturnType<typeof callLint>>,
+  tAll0: number
+): Promise<"fail" | "error" | null> {
+  if (lint.http >= 500 || lint.body?.ok === false) {
+    await stub.failAttempt(attemptId, "error", {
+      error: "lint_failed",
+      lintHttp: lint.http,
+      lintWallMs: lint.wallMs,
+      lint: lint.body,
+    });
+    return "error";
+  }
+  if (lint.body == null) {
+    await stub.failAttempt(attemptId, "error", {
+      error: "lint_failed",
+      lintHttp: lint.http,
+      lintWallMs: lint.wallMs,
+      lint: null,
+    });
+    return "error";
+  }
+  if (!lintPasses(lint.body)) {
+    await stub.failAttempt(attemptId, "fail", {
+      error: "lint_failed",
+      lintHttp: lint.http,
+      lintWallMs: lint.wallMs,
+      lint: lint.body,
+      publishGate: false,
+      totalMs: Date.now() - tAll0,
+    });
+    return "fail";
+  }
+  return null;
+}
+
 /**
  * The work half of a commit: lint → compile → check → version.
  *
@@ -261,6 +318,11 @@ async function compileAll(files: Record<string, string>) {
  * `fail` means the submitted code did not pass the gate; `error` means we
  * broke. The distinction is what tells an agent whether to fix its diff or
  * retry the same one.
+ *
+ * Optional `signal`: agent bash deploy awaits this function on the turn so
+ * exit codes stay real (factory `cpu_ms` is 300_000; commits measure 10–24s).
+ * When the bash AbortController fires, we fail the attempt instead of leaving
+ * it pending until STALE_ATTEMPT_MS.
  */
 export async function runCommitAttempt(
   env: Env,
@@ -268,43 +330,19 @@ export async function runCommitAttempt(
   attemptId: string,
   files: Record<string, string>,
   parentId: string | null,
-  opts?: { forceColdCheck?: boolean }
-): Promise<"pass" | "fail" | "error"> {
+  opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
+): Promise<"pass" | "fail" | "error" | "aborted"> {
   const stub = appStub(env, appId);
   const tAll0 = Date.now();
+  const signal = opts?.signal;
 
   try {
+    throwIfAborted(signal);
     const lint = await callLint(env, appId, files);
-    if (lint.http >= 500 || lint.body?.ok === false) {
-      await stub.failAttempt(attemptId, "error", {
-        error: "lint_failed",
-        lintHttp: lint.http,
-        lintWallMs: lint.wallMs,
-        lint: lint.body,
-      });
-      return "error";
-    }
-
-    if (lint.body == null) {
-      await stub.failAttempt(attemptId, "error", {
-        error: "lint_failed",
-        lintHttp: lint.http,
-        lintWallMs: lint.wallMs,
-        lint: null,
-      });
-      return "error";
-    }
-
-    if (!lintPasses(lint.body)) {
-      await stub.failAttempt(attemptId, "fail", {
-        error: "lint_failed",
-        lintHttp: lint.http,
-        lintWallMs: lint.wallMs,
-        lint: lint.body,
-        publishGate: false,
-        totalMs: Date.now() - tAll0,
-      });
-      return "fail";
+    throwIfAborted(signal);
+    const lintGate = await gateLint(stub, attemptId, lint, tAll0);
+    if (lintGate) {
+      return lintGate;
     }
 
     let compiled: Awaited<ReturnType<typeof compileAll>>;
@@ -319,12 +357,14 @@ export async function runCommitAttempt(
       return "error";
     }
 
+    throwIfAborted(signal);
     const check = await callCheck(
       env,
       appId,
       files,
       opts?.forceColdCheck ?? false
     );
+    throwIfAborted(signal);
     if (!(check.http < 500 && checkPasses(check.body))) {
       await stub.failAttempt(attemptId, "fail", {
         error: "check_failed",
@@ -384,6 +424,15 @@ export async function runCommitAttempt(
     );
     return "pass";
   } catch (e) {
+    if (e instanceof DeployAbortedError || signal?.aborted) {
+      await stub
+        .failAttempt(attemptId, "error", {
+          error: "deploy_aborted",
+          totalMs: Date.now() - tAll0,
+        })
+        .catch(() => undefined);
+      return "aborted";
+    }
     // Last resort. If even this write fails there is nothing left to record
     // with — the stale sweep in the AppDO is the backstop for that case.
     await stub

@@ -35,3 +35,6 @@ allowBuilds:
 # Retire once 5.0.8 (or later) has matured past minimumReleaseAge.
 overrides:
   brace-expansion: "5.0.7"
+
+patchedDependencies:
+  '@cloudflare/think@0.13.0': patches/@cloudflare__think@0.13.0.patch
