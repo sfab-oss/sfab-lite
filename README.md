@@ -1,11 +1,34 @@
 # sfab-lite
 
-Edge-native **lite factory**: host + check + lint workers, a frozen kernel,
-and a starter-lite template. Private monorepo under [`sfab-oss`](https://github.com/sfab-oss).
+**sfab** is short for *software fabricator*. This repo is an experiment on how
+to keep cost cheaper and things faster: an app factory — typecheck, lint,
+publish, serve — on Cloudflare Workers with no build container and no
+per-app `npm install`.
 
-This is the productionization of the measured explore-edge-native-lite
-architecture (T5 loop). Stages and layout live in the agent-workspace packet
-`active/sfab-lite/` (not in this repo).
+Three questions, not one. Is it cheaper? Is it faster? And does it fit at all —
+a TypeScript program and a linter are not obviously things you can run inside a
+128 MB isolate with no filesystem. Making it fit turned out to be most of the
+engineering, so what had to be given up to get there is part of the result
+rather than a footnote. Measured numbers live under
+[Known limitations](#known-limitations); approaches that were measured and
+rejected are in
+[`docs/engineering/making-it-fit.md`](docs/engineering/making-it-fit.md).
+
+This is a personal exploration of that question, not a product and not
+something seeking users or contributors. There is no public deploy — that is
+deliberate. There is no support commitment and no stability promise.
+
+**Lite** means hosted apps run inside a **frozen kernel** (pinned deps, no
+per-app `npm install`). The factory itself is ordinary software. Packages are
+`@sfab-lite/*`.
+
+## What the console does
+
+Sign in, create an app, talk to it in a thread. The agent writes into a
+shared per-app workspace; check and lint gate every publish; a ready app
+serves at `/a/:appId`. There is no separate publish button — the agent
+deploys through the same gate as seed creation. Tasks-lite and a diff UI
+are not built.
 
 ## Layout
 
@@ -15,7 +38,7 @@ apps/
   check/     # TypeScript check worker
   lint/      # Biome lint worker
 packages/
-  template/      # starter-lite seed (independently runnable later)
+  template/      # starter-lite seed (independently runnable)
   kernel/        # frozen dependency universe + prebuild
   core/          # shared contracts
   tsconfig/      # shared TS configs
@@ -94,9 +117,11 @@ worker only trusts the console's Origin when it knows which port it is on.
 
 ## Known limitations
 
-Surprises worth knowing before they bite again, and the things "lite"
-deliberately does not do. Add to this list when something surprises you —
-that is what it is for.
+What shrinking a full stack into this shape actually cost. Some of these are
+trade-offs taken on purpose, some are platform limits found the hard way, and
+some are surprises worth knowing before they bite again. They belong here
+rather than in a footnote: an experiment that only reported its wins would not
+be worth much.
 
 ### The kernel's types can promise more than its runtime delivers
 
@@ -113,11 +138,11 @@ advertise. When it didn't, app code **typechecked clean, passed the publish
 gate, and threw at runtime** — the one failure the check worker exists to
 prevent.
 
-Found this way (2026-07-24, S2d): `vendor-entries/hono.mjs` was
+Found this way (2026-07-24): `vendor-entries/hono.mjs` was
 `export * from "hono"`, so `hono.js` exported only `Hono` — while the VFS
 shipped hono's full `validator` and `factory` types. `validator("query", …)`
 typechecked clean and threw when the route was hit. Fixed by adding the
-subpath exports to the entry. Found again (2026-07-25, S3.1):
+subpath exports to the entry. Found again (2026-07-25):
 `@base-ui/react` was on `CLIENT_BAILOUTS` while the types VFS still
 advertised it — apps importing button/input typechecked and rendered a blank
 `#root`.
@@ -216,7 +241,7 @@ Measured on real Cloudflare deploys, against the full 32-file template:
 | Cold app create (32 files) | 18.5–25.2s | 16.7–23.0s | 0.6–2.2s |
 | Incremental commit (+1 file) | 10.6–21.3s | 10.1–24.2s | 0.14–1.9s |
 
-Since S2.6 the HTTP request does not wait for any of that — see below.
+The HTTP request does not wait for any of that — see below.
 
 Local numbers (~1.4s cold, ~4ms warm) do **not** predict this. The cause:
 plain Workers have no isolate affinity, so the check worker's per-isolate
@@ -229,7 +254,7 @@ That was measured and refuted: DO warmth survives ~5s of idle but not
 30s, and full template checks inside a DO never stay warm at all.
 
 Commit is therefore **asynchronous in transport, synchronous in
-semantics** (S2.6). `POST /admin/apps/:appId/commit` and `POST /admin/apps`
+semantics**. `POST /admin/apps/:appId/commit` and `POST /admin/apps`
 return **202 with an `attemptId`**; poll
 `GET /admin/apps/:appId/attempts/:attemptId`.
 
@@ -313,7 +338,7 @@ and never reuses the GitHub token after the sign-in exchange.
 
 ### `/admin/*` takes two credentials, and they are not equivalent
 
-Since S3c every admin request needs one of:
+Every admin request needs one of:
 
 | Credential | Scope | How it names an organization |
 | --- | --- | --- |
@@ -336,8 +361,8 @@ committing to the org's apps until their cookie expired.
 
 Two consequences worth stating plainly:
 
-- **No credential is `401`, whatever the config says.** Before S3c an unset
-  `ADMIN_TOKEN` meant the gate returned "allowed" — a factory deployed
+- **No credential is `401`, whatever the config says.** An unset
+  `ADMIN_TOKEN` used to mean the gate returned "allowed" — a factory deployed
   without that secret had a fully open admin surface. A missing secret must
   never be the thing that grants access. Local development sets
   `ADMIN_TOKEN` in `.dev.vars` like any other secret.
@@ -377,12 +402,12 @@ as a side-channel defence, so a Worker cannot time itself. Fields measured
 around a `fetch` (`checkWallMs`, `lintWallMs` in the factory) are real,
 because I/O advances the clock. **Trust client-side walls.**
 
-### Not built yet (staged, not cut)
+### Not built yet
 
-Tasks-lite, the agent, and diffs are S3+. Auth, organizations, the app
-registry, and the factory console (S3d) are in. See
-[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for what
-lands where.
+Tasks-lite and a diff UI are not built. Auth, organizations, the app
+registry, the factory console, and the in-console agent loop are in. See
+[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for the
+settled shape and what is still open.
 
 ## Docs
 

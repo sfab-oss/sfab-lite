@@ -10,7 +10,7 @@
  *   - `packages/template/tsconfig.app.json` includes it, so the template
  *     typechecks locally against exactly what the factory resolves.
  *   - `packages/kernel`'s prebuild bakes it into the types VFS as
- *     `/types/cloudflare-ambient.d.ts` (S2).
+ *     `/types/cloudflare-ambient.d.ts`.
  *
  * Anything added here becomes visible to every app, so add deliberately:
  * a binding an app can reference but the runtime does not provide is a

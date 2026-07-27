@@ -1,5 +1,5 @@
 /**
- * Behavioural proof for side-aware client resolution (A2 / S3.4).
+ * Behavioural proof for side-aware client resolution.
  *
  * Bundled by the companion .mjs runner so Node can load workspace TS.
  */

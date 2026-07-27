@@ -2,7 +2,7 @@
  * AppDO — one Durable Object per sub-app (`idFromName(appId)`).
  * Owns SQLite: application tables + append-only version store + live pointer.
  *
- * Storage rules (S3 folded into S2):
+ * Storage rules:
  * - `_sfab_versions` is append-only (INSERT only; never UPDATE a version row)
  * - every version has `parent_id` (null for the seed tip's parent)
  * - `_sfab_live` is a pointer only — live source is never stored inline
@@ -205,10 +205,10 @@ export class AppDO extends DurableObject {
   #ensureMeta(): void {
     this.ctx.storage.sql.exec("PRAGMA foreign_keys = ON;");
     this.ctx.storage.sql.exec(META_DDL);
-    // S2.6 removed `_sfab_check_status`. It was keyed by version_id and only
+    // An earlier design removed `_sfab_check_status`. It was keyed by version_id and only
     // ever written *after* a version existed, so it could never describe a
     // commit still in flight — `_sfab_commit_attempts` replaces it. DOs
-    // deployed before S2.6 still carry the old table and `CREATE TABLE IF NOT
+    // deployed before that change still carry the old table and `CREATE TABLE IF NOT
     // EXISTS` cannot remove it, so drop it here.
     this.ctx.storage.sql.exec("DROP TABLE IF EXISTS _sfab_check_status;");
     this.#ensureServerSurfaceHashColumn();

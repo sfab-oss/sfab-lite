@@ -1,4 +1,4 @@
-# ADR-0002: Monorepo tooling matches starter/platform; "lite" is the product
+# ADR-0002: Monorepo tooling is full-weight; lite is a kernel constraint
 
 **Status:** Accepted
 **Date:** 2026-07-24
@@ -6,10 +6,12 @@
 
 ## Context
 
-S0 initially bootstrapped sfab-lite with a one-off root `tsconfig.base.json`
-and a minimal Biome config. That read as "the monorepo itself is lite." The
-product intent is different: **lite** is the frozen-kernel template / sub-app
-constraint. The factory monorepo should feel like `sfab` / `sfab-starter`.
+Initial bootstrap used a one-off root `tsconfig.base.json` and a minimal Biome
+config. That read as "the monorepo itself is lite." The intent is different:
+**lite** names the frozen-kernel constraint on hosted sub-apps (pinned deps,
+no per-app `npm install`). The factory monorepo is ordinary engineering
+tooling — shared configs, real gates — not a probe, and not a product being
+shipped.
 
 ## Decision
 
@@ -18,16 +20,15 @@ constraint. The factory monorepo should feel like `sfab` / `sfab-starter`.
 2. Gates: Turbo + husky + lint-staged + madge + knip; pre-commit is
    platform-closer (workspace, typecheck, cycles, dead-code); pre-push blocks
    `main`.
-3. Package names `@sfab-lite/*`; license **AGPL-3.0-only** (same posture as
-   the sfab platform).
-4. Product "lite" constraints apply to sub-apps / kernel / template — not to
-   factory tooling or documentation depth.
+3. Package names `@sfab-lite/*`; license **AGPL-3.0-only**.
+4. "Lite" constraints apply to sub-apps / kernel / template — not to factory
+   tooling or documentation depth.
 
 ## Consequences
 
 ### Positive
 
-- Agents and humans reuse starter/platform muscle memory.
+- Agents and humans reuse familiar monorepo muscle memory.
 - Hygiene gates exist before real code lands.
 
 ### Negative
@@ -36,8 +37,7 @@ constraint. The factory monorepo should feel like `sfab` / `sfab-starter`.
 
 ### Mitigations
 
-- Keep product packages empty until their stage; don't invent lite-specific
-  tooling forks.
+- Do not invent lite-specific tooling forks; keep factory packages ordinary.
 
 ## Related
 

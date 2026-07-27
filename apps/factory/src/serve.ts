@@ -3,7 +3,7 @@
  * Routing seam is path-based; host-header routing can replace the matcher later.
  *
  * No `/api/` string rewrite — the template builds URLs from
- * `window.__SFAB_PUBLIC_BASE__` (S1).
+ * `window.__SFAB_PUBLIC_BASE__`.
  */
 import {
   KERNEL_BETTER_AUTH,

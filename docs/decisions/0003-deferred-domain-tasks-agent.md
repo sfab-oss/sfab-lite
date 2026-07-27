@@ -6,38 +6,43 @@
 
 ## Context
 
-S0 needed a clean monorepo before UI, auth, or agent work. Several product
-questions are real but block later stages, not bootstrap.
+Bootstrap needed a clean monorepo before UI, auth, or agent work. Several
+scope questions were real but blocked later slices, not the first loop. This
+ADR records that sequencing choice. It is not a roadmap and not a commitment
+to build anything listed here.
 
 ## Decision
 
-Defer until the named check-in:
+Defer until the named check-in (as of bootstrap):
 
-| Topic | Decide at |
+| Topic | Decide when |
 | --- | --- |
-| Domain (auth / hosting) | Before S3 |
-| Tasks-lite scope | S3 check-in |
-| Agent substrate | S4 check-in |
+| Domain (auth / hosting) | Before factory UI, auth, and organizations |
+| Tasks-lite scope | When tasks-lite work starts |
+| Agent substrate | When agent work starts |
 
-Lite factory UI/UX is also not settled at S0 — sharpen when that work starts
-(S3+). Do not invent interim auth-less admin panels or speculative agent
-harnesses.
+Factory UI/UX was also unsettled at bootstrap — sharpen when that work
+starts. Do not invent interim auth-less admin panels or speculative agent
+harnesses ahead of the loop that needs them.
 
 ## Consequences
 
 ### Positive
 
-- S1–S2 stay focused on template + runtime port.
-- Product questions get a real sharpening pass with a working loop.
+- Early work stayed focused on template + runtime port.
+- Scope questions got a real pass only when a working loop needed them.
 
 ### Negative
 
-- S3 cannot start until domain is decided.
+- At bootstrap, factory UI / auth / organizations could not start until
+  domain was decided.
 
 ### Mitigations
 
-- Call out the blockers explicitly in stage handoffs.
+- Call out the blockers explicitly when handing off between slices.
+- Treat this ADR as recorded context for *why* some surfaces were absent
+  early — not as a backlog of product features to ship.
 
 ## Related
 
-- Packet plan stages S3–S4 (agent-workspace `active/sfab-lite/PLAN.md`)
+- [ADR-0001](./0001-edge-native-lite-architecture.md)

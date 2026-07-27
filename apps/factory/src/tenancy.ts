@@ -43,7 +43,7 @@ function unauthorized(): Response {
 /**
  * Resolve the caller's credential, or return the 401 to send.
  *
- * **Stricter than before S3c on purpose.** The old gate returned "allowed"
+ * **Stricter than the original gate on purpose.** The old gate returned "allowed"
  * whenever `ADMIN_TOKEN` was unset, so a factory deployed without that secret
  * left every admin route wide open — a missing secret should never be the
  * thing that grants access. Now a request with no usable credential is 401
@@ -143,8 +143,8 @@ export function resolveOrganization(
  *
  * Returns the error to send, or `null` when the caller may proceed.
  *
- * A token caller is root and addresses the Durable Object directly, as it did
- * before S3c — no registry read, so the ops path costs nothing new. A session
+ * A token caller is root and addresses the Durable Object directly, as it has always
+ * done — no registry read, so the ops path costs nothing new. A session
  * caller is checked against the registry, because otherwise any signed-in
  * user could commit to, revert, or run SQL against **any** app by id: these
  * routes take an app id and nothing else, and the app id is the only thing

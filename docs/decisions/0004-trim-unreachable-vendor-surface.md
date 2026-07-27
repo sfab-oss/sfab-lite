@@ -8,8 +8,8 @@
 
 The frozen kernel decides what a sub-app can do. `CLIENT_IMPORT_MAP` /
 `SERVER_IMPORT_MAP` are the complete list of specifiers a sub-app may import,
-and `resolve-modules.ts` already refuses anything outside that set (the S3.1
-gate). Sub-apps run on D1 and nothing else.
+and `resolve-modules.ts` already refuses anything outside that set (the
+import-map resolution gate). Sub-apps run on D1 and nothing else.
 
 That makes a category of weight **dead by construction**: vendored surface for
 capability the kernel does not serve. A sub-app cannot reach it, no matter what
@@ -144,4 +144,4 @@ the check worker; measure bytes when the target is the upload limit.
 - [`../notes/2026-07-25-check-worker-memory.md`](../notes/2026-07-25-check-worker-memory.md)
   — the incident, the measurements, and the five rejected alternatives.
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and
-  the S3.1 resolution gate.
+  the resolution gate.

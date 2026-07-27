@@ -115,8 +115,8 @@ export function UiKitScreen() {
         </p>
         <h1 className="mt-1 mb-2 font-semibold text-2xl">UI kit</h1>
         <p className="mt-0 mb-0 text-muted-foreground text-sm">
-          Scratch mount of every S3.9 ported primitive. Not linked from console
-          nav — open <code>/dev/ui</code> directly.
+          Scratch mount of every ported primitive. Not linked from console nav —
+          open <code>/dev/ui</code> directly.
         </p>
 
         <Section title="Button / Badge / Label / Separator">

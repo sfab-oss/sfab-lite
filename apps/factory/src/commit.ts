@@ -164,7 +164,7 @@ export async function callLint(
  *
  * A full TypeScript program over the frozen types VFS sits right at the edge of
  * a Worker isolate's 128 MB, so the check worker dies with `exceededMemory` on
- * roughly half of all requests — measured, see `S3.5` and
+ * roughly half of all requests — measured, see
  * `apps/check/scripts/measure-split.mjs`. That is a property of the template's
  * dependency graph (drizzle-orm, better-auth and zod together account for ~550
  * of the 877 `.d.ts` files the program loads), not of any app's code, so no
@@ -450,7 +450,7 @@ export async function runCommitAttempt(
  * Open an attempt and hand the work to `waitUntil`.
  *
  * Returns in milliseconds; the commit itself takes 10–24s (measured in
- * production, S2.5). The guarantee is unchanged — check is still the gate and
+ * production). The guarantee is unchanged — check is still the gate and
  * no version exists without a pass. Only the waiting moved off the request.
  */
 /**

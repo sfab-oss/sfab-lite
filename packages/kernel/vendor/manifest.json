@@ -123,8 +123,8 @@
   },
   "typesVfs": {
     "fileCount": 1823,
-    "rawBytes": 8648998,
-    "gzipBytes": 1233563,
+    "rawBytes": 8648993,
+    "gzipBytes": 1233558,
     "packages": {
       "@base-ui/react": 812,
       "@better-auth/core": 90,
@@ -213,10 +213,10 @@
   "totals": {
     "raw": 7463426,
     "gzip": 1295386,
-    "typesGzip": 1233563,
+    "typesGzip": 1233558,
     "cssGzip": 13148,
     "clientGzip": 564502,
-    "hostBakeGzip": 2542097
+    "hostBakeGzip": 2542092
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,

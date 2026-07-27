@@ -18,7 +18,7 @@ export interface Env {
  * This used to return `null` — allowed — when the secret was missing, so a
  * deploy that forgot it exposed `/check` to anyone who found the worker's URL.
  * A missing secret must never be the thing that grants access; the factory's
- * own gate made this same correction in S3c.
+ * own gate made this same correction.
  */
 function unauthorized(env: Env, request: Request): Response | null {
   if (
