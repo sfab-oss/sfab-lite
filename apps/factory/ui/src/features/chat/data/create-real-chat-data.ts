@@ -23,6 +23,10 @@ export function createRealChatData(): RealChatData {
   let threads: Thread[] = [];
   let revision = 0;
   const syncedApps = new Set<string>();
+  // A listThreads snapshot in flight when a thread is created predates it, so
+  // pruning against that snapshot would delete the thread the user is entering.
+  // Locally created threads survive until a snapshot actually reports them.
+  const unconfirmed = new Set<string>();
   const listeners = new Set<() => void>();
 
   const notify = () => {
@@ -47,6 +51,7 @@ export function createRealChatData(): RealChatData {
     },
     listThreads: () => threads,
     upsertThread: (thread) => {
+      unconfirmed.add(thread.id);
       const without = threads.filter((entry) => entry.id !== thread.id);
       writeThreads([thread, ...without]);
     },
@@ -55,6 +60,7 @@ export function createRealChatData(): RealChatData {
       syncedApps.add(ownerAppId);
       const byId = new Map(threads.map((thread) => [thread.id, thread]));
       const owned = incoming.map((thread) => {
+        unconfirmed.delete(thread.id);
         const existing = byId.get(thread.id);
         return existing
           ? {
@@ -65,9 +71,14 @@ export function createRealChatData(): RealChatData {
             }
           : thread;
       });
-      const others = threads.filter((thread) => thread.appId !== ownerAppId);
+      const incomingIds = new Set(owned.map((thread) => thread.id));
+      const kept = threads.filter(
+        (thread) =>
+          thread.appId !== ownerAppId ||
+          (unconfirmed.has(thread.id) && !incomingIds.has(thread.id))
+      );
       writeThreads(
-        [...others, ...owned].sort((a, b) => b.updatedAt - a.updatedAt)
+        [...kept, ...owned].sort((a, b) => b.updatedAt - a.updatedAt)
       );
     },
     patchThread: (threadId, patch) => {
