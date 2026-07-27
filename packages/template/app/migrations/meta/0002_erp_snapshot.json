@@ -1,0 +1,926 @@
+{
+  "tables": [
+    {
+      "name": "account",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "account_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "provider_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "user_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "access_token",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "refresh_token",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "id_token",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "access_token_expires_at",
+          "type": "integer",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "refresh_token_expires_at",
+          "type": "integer",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "scope",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "password",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "account_userId_idx",
+          "columns": [
+            "user_id"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "refTable": "user",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      ]
+    },
+    {
+      "name": "document",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "organization_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "entity_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "entity_name_snapshot",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": "'draft'"
+        },
+        {
+          "name": "number",
+          "type": "integer",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "total_cents",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "0"
+        },
+        {
+          "name": "issued_at",
+          "type": "integer",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "document_organizationId_idx",
+          "columns": [
+            "organization_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "document_entityId_idx",
+          "columns": [
+            "entity_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "document_organizationId_number_unique",
+          "columns": [
+            "organization_id",
+            "number"
+          ],
+          "unique": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "organization_id"
+          ],
+          "refTable": "organization",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        {
+          "columns": [
+            "entity_id"
+          ],
+          "refTable": "entity",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      ]
+    },
+    {
+      "name": "document_line",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "document_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "product_id",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "name_snapshot",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "1"
+        },
+        {
+          "name": "unit_price_cents",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "0"
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "document_line_documentId_idx",
+          "columns": [
+            "document_id"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "document_id"
+          ],
+          "refTable": "document",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        {
+          "columns": [
+            "product_id"
+          ],
+          "refTable": "product",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      ]
+    },
+    {
+      "name": "entity",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "organization_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": "'customer'"
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "tax_id",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "entity_organizationId_idx",
+          "columns": [
+            "organization_id"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "organization_id"
+          ],
+          "refTable": "organization",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      ]
+    },
+    {
+      "name": "invitation",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "organization_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "expires_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "inviter_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "invitation_organizationId_idx",
+          "columns": [
+            "organization_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "invitation_email_idx",
+          "columns": [
+            "email"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "organization_id"
+          ],
+          "refTable": "organization",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        {
+          "columns": [
+            "inviter_id"
+          ],
+          "refTable": "user",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      ]
+    },
+    {
+      "name": "member",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "organization_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "user_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "role",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "member_organizationId_idx",
+          "columns": [
+            "organization_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "member_userId_idx",
+          "columns": [
+            "user_id"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "organization_id"
+          ],
+          "refTable": "organization",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        {
+          "columns": [
+            "user_id"
+          ],
+          "refTable": "user",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      ]
+    },
+    {
+      "name": "organization",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "logo",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "metadata",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "organization_slug_unique",
+          "columns": [
+            "slug"
+          ],
+          "unique": true
+        },
+        {
+          "name": "organization_slug_idx",
+          "columns": [
+            "slug"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "product",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "organization_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "sku",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "unit_price_cents",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "0"
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "product_organizationId_idx",
+          "columns": [
+            "organization_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "product_organizationId_sku_unique",
+          "columns": [
+            "organization_id",
+            "sku"
+          ],
+          "unique": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "organization_id"
+          ],
+          "refTable": "organization",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      ]
+    },
+    {
+      "name": "session",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "expires_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "token",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "ip_address",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "user_agent",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "user_id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "active_organization_id",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "session_token_unique",
+          "columns": [
+            "token"
+          ],
+          "unique": true
+        },
+        {
+          "name": "session_userId_idx",
+          "columns": [
+            "user_id"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "refTable": "user",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        {
+          "columns": [
+            "active_organization_id"
+          ],
+          "refTable": "organization",
+          "refColumns": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        }
+      ]
+    },
+    {
+      "name": "user",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "email_verified",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "false"
+        },
+        {
+          "name": "image",
+          "type": "text",
+          "notNull": false,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "user_email_unique",
+          "columns": [
+            "email"
+          ],
+          "unique": true
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "verification",
+      "columns": [
+        {
+          "name": "id",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "identifier",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "expires_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": null
+        },
+        {
+          "name": "created_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        },
+        {
+          "name": "updated_at",
+          "type": "integer",
+          "notNull": true,
+          "defaultSql": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "indexes": [
+        {
+          "name": "verification_identifier_idx",
+          "columns": [
+            "identifier"
+          ],
+          "unique": false
+        }
+      ],
+      "foreignKeys": []
+    }
+  ]
+}

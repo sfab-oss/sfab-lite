@@ -13,7 +13,7 @@
   "schema": "src/db/schema.ts",
   "source": {
     "dirs": ["src", "migrations"],
-    "extensions": [".ts", ".tsx", ".css", ".sql"],
+    "extensions": [".ts", ".tsx", ".css", ".sql", ".json"],
     "files": ["safelist.txt", "package.json"],
     "exclude": ["src/worker.ts"]
   }

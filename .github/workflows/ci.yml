@@ -92,6 +92,14 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:seed
 
+      # The template's snapshot is what a seeded app's first `db:generate`
+      # diffs against. Editing the template schema without re-baking it would
+      # have that first migration propose creating tables the seed already
+      # created.
+      - name: template snapshot
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:template-snapshot
+
       # One TS program over the types VFS retains ~320 MB against a 128 MB
       # isolate, so the check worker may hold state for at most one app. When
       # it held one per appId, the second distinct app in an isolate killed it

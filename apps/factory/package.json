@@ -15,7 +15,8 @@
     "dev:ui": "vite --config ui/vite.config.ts",
     "deploy": "wrangler deploy",
     "bake-seed": "node scripts/bake-seed.mjs",
-    "upload-kernel-r2": "node scripts/upload-kernel-r2.mjs"
+    "upload-kernel-r2": "node scripts/upload-kernel-r2.mjs",
+    "bake-template-snapshot": "node --experimental-strip-types scripts/bake-template-snapshot.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "2.0.48",
