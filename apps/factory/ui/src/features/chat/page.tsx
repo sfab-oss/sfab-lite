@@ -307,6 +307,31 @@ function ChatScreenInner() {
     goChatHome();
   }, [activeThread, attend, goChatHome, setWorkspaceOpen]);
 
+  const handleThreadDeleted = useCallback(
+    (thread: Thread) => {
+      setSeedByThread((current) => {
+        if (!(thread.id in current)) {
+          return current;
+        }
+        const next = { ...current };
+        delete next[thread.id];
+        return next;
+      });
+      const appName =
+        thread.appName ??
+        readyApps.find((app) => app.appId === thread.appId)?.appName ??
+        null;
+      if (activeThreadId === thread.id || !activeThreadId) {
+        if (thread.appId) {
+          attendApp(thread.appId, appName ?? "App");
+        } else {
+          goHome();
+        }
+      }
+    },
+    [activeThreadId, attendApp, goHome, readyApps]
+  );
+
   const createThreadFromBlank = useCallback(
     async (text: string) => {
       if (creating) {
@@ -420,6 +445,7 @@ function ChatScreenInner() {
             onSearchChange={setSearch}
             onSelectThread={selectThread}
             onSignOut={onSignOut}
+            onThreadDeleted={handleThreadDeleted}
             search={search}
             threads={threads}
           />
@@ -438,6 +464,7 @@ function ChatScreenInner() {
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
               onSetWorkspaceOpen={onSetWorkspaceOpen}
+              onThreadDeleted={handleThreadDeleted}
               scope={composerScope}
               seedMessage={
                 activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
@@ -457,6 +484,7 @@ function ChatScreenInner() {
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
               onSetWorkspaceOpen={onSetWorkspaceOpen}
+              onThreadDeleted={handleThreadDeleted}
               scope={composerScope}
               seedMessage={
                 activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
@@ -482,6 +510,7 @@ interface ChatChromeProps {
   onSetContainerNode: (node: HTMLElement | null) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
+  onThreadDeleted: (thread: Thread) => void;
   scope: ComposerScope;
   seedMessage: string | null;
   summaryOpen: boolean;
@@ -556,6 +585,7 @@ function ChatColumn({
   onSetContainerNode,
   onSetSummaryOpen,
   onSetWorkspaceOpen,
+  onThreadDeleted,
   scope,
   seedMessage,
   summaryOpen,
@@ -567,6 +597,7 @@ function ChatColumn({
         activeThread={activeThread}
         onSetSummaryOpen={onSetSummaryOpen}
         onSetWorkspaceOpen={onSetWorkspaceOpen}
+        onThreadDeleted={onThreadDeleted}
         summaryOpen={summaryOpen}
         workspaceOpen={workspaceOpen}
       />
@@ -625,12 +656,14 @@ function ThreadHeader({
   activeThread,
   onSetSummaryOpen,
   onSetWorkspaceOpen,
+  onThreadDeleted,
   summaryOpen,
   workspaceOpen,
 }: {
   activeThread: Thread | null;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
+  onThreadDeleted: (thread: Thread) => void;
   summaryOpen: boolean;
   workspaceOpen: boolean;
 }) {
@@ -643,7 +676,10 @@ function ThreadHeader({
               {activeThread.title}
             </span>
             <ThreadBindingBadge thread={activeThread} />
-            <ThreadHeaderMenu />
+            <ThreadHeaderMenu
+              onDeleted={onThreadDeleted}
+              thread={activeThread}
+            />
           </div>
           <AppLayoutHeaderActions>
             <Button
