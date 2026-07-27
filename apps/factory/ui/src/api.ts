@@ -170,6 +170,32 @@ export async function listVersions(appId: string): Promise<{
   }>(res);
 }
 
+export async function getLiveSources(appId: string): Promise<{
+  liveVersionId: string;
+  sourceFiles: Record<string, string>;
+}> {
+  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}/live`, {
+    credentials: "include",
+  });
+  if (res.status === 401) {
+    throw new AuthRequiredError();
+  }
+  if (!res.ok) {
+    throw new Error(
+      await errorMessage(res, `get live sources failed (${res.status})`)
+    );
+  }
+  const body = await readJson<{
+    ok: true;
+    liveVersionId: string;
+    sourceFiles: Record<string, string>;
+  }>(res);
+  return {
+    liveVersionId: body.liveVersionId,
+    sourceFiles: body.sourceFiles,
+  };
+}
+
 export async function getAttempt(
   appId: string,
   attemptId: string
