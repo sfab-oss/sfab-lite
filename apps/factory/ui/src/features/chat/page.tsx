@@ -215,6 +215,25 @@ function ChatScreenInner() {
     });
   }, [attendedAppId, chatData]);
 
+  // resolveActiveThread synthesises a placeholder so a cold URL can attend its
+  // app before the thread arrives. Once the registry has answered for that app,
+  // a still-missing thread is gone, not late — drop to the app's composer
+  // rather than leaving the placeholder loading forever.
+  useEffect(() => {
+    if (!(activeThreadId && routeAppId)) {
+      return;
+    }
+    if (!chatData.hasSyncedApp(routeAppId)) {
+      return;
+    }
+    if (threads.some((thread) => thread.id === activeThreadId)) {
+      return;
+    }
+    setActiveThreadId(null);
+    goChatHome();
+    setCreateError("That conversation no longer exists.");
+  }, [activeThreadId, chatData, goChatHome, routeAppId, threads]);
+
   const scopedApp = useMemo(() => {
     if (activeThread?.appId) {
       return {

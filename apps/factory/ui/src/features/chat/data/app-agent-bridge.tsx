@@ -102,7 +102,8 @@ function AppAgentBridge({
         if (cancelled || !Array.isArray(list)) {
           return;
         }
-        chatData.mergeThreads(
+        chatData.syncAppThreads(
+          appId,
           list.map((row) => toThread(row, appId, appNameRef.current))
         );
       })

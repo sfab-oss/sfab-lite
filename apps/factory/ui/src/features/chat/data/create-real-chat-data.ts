@@ -22,6 +22,7 @@ export function createRealChatData(): RealChatData {
   let versions: AppVersion[] = [];
   let threads: Thread[] = [];
   let revision = 0;
+  const syncedApps = new Set<string>();
   const listeners = new Set<() => void>();
 
   const notify = () => {
@@ -49,24 +50,24 @@ export function createRealChatData(): RealChatData {
       const without = threads.filter((entry) => entry.id !== thread.id);
       writeThreads([thread, ...without]);
     },
-    mergeThreads: (incoming) => {
+    hasSyncedApp: (id) => syncedApps.has(id),
+    syncAppThreads: (ownerAppId, incoming) => {
+      syncedApps.add(ownerAppId);
       const byId = new Map(threads.map((thread) => [thread.id, thread]));
-      for (const thread of incoming) {
+      const owned = incoming.map((thread) => {
         const existing = byId.get(thread.id);
-        byId.set(
-          thread.id,
-          existing
-            ? {
-                ...thread,
-                status: existing.status,
-                readOnly: existing.readOnly,
-                appName: thread.appName ?? existing.appName,
-              }
-            : thread
-        );
-      }
+        return existing
+          ? {
+              ...thread,
+              status: existing.status,
+              readOnly: existing.readOnly,
+              appName: thread.appName ?? existing.appName,
+            }
+          : thread;
+      });
+      const others = threads.filter((thread) => thread.appId !== ownerAppId);
       writeThreads(
-        [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt)
+        [...others, ...owned].sort((a, b) => b.updatedAt - a.updatedAt)
       );
     },
     patchThread: (threadId, patch) => {
