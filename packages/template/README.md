@@ -102,9 +102,14 @@ file, update `manifest.json`.
 
 ## The shadcn subset, and why it is a subset
 
-The seed carries a deliberately small slice of the starter's shadcn layer:
-`alert`, `avatar`, `badge`, `button`, `card`, `empty`, `field`, `input`,
-`label`, `native-select`, `separator`, `skeleton`, `spinner`, `table`.
+The seed carries a slice of the starter's shadcn layer: `alert`, `avatar`,
+`badge`, `button`, `card`, `dropdown-menu`, `empty`, `field`, `input`,
+`label`, `native-select`, `sheet`, `sidebar`, `skeleton`, `spinner`,
+`table`, `tooltip`.
+
+`separator` left with the flat header the sidebar replaced — the same rule
+that took `textarea` out with the notes form. Port it back with the first
+route that needs it.
 
 Two different reasons keep the rest out, and it is worth not confusing them,
 because only one of them is a real constraint:
@@ -114,17 +119,17 @@ because only one of them is a real constraint:
   (recharts), `carousel` (embla), `calendar` (react-day-picker), `drawer`
   (vaul), `resizable`, `markdown` (streamdown). These need a kernel decision
   before they can be ported at all.
-- **Merely not ported yet** — `tabs`, `tooltip`, `switch`, `popover`,
-  `progress`, `slider`, `toggle`, `radio-group`, `collapsible`,
-  `hover-card`, `aspect-ratio` and friends need only `@base-ui/react` and
-  `cn`, both of which the kernel already serves. So does the overlay/menu/
-  select family (dialog, dropdown-menu, select, sheet, sidebar, …) — now that
-  the kernel serves an icon set, every Base UI primitive those need is in the
-  import map, and porting one means swapping its `lucide-react` import for the
-  matching Radix icon. `command` is the exception in that family: it is built
-  on `cmdk`, which no icon set makes available. They are absent because
-  **every file here ships into every app**, and `knip` rejects a seed file
-  nothing imports. Add one the moment a route actually uses it.
+- **Merely not ported yet** — `tabs`, `switch`, `popover`, `progress`,
+  `slider`, `toggle`, `radio-group`, `collapsible`, `hover-card`,
+  `aspect-ratio` and friends need only `@base-ui/react` and `cn`, both of
+  which the kernel already serves. So do the rest of the overlay/menu/select
+  family — `dialog`, `select`, and the like: `dropdown-menu`, `sheet`,
+  `tooltip`, and `sidebar` from that family already ship, and porting another
+  means swapping its `lucide-react` import for the matching Radix icon.
+  `command` is the exception: it is built on `cmdk`, which no icon set makes
+  available. They are absent because **every file here ships into every app**,
+  and `knip` rejects a seed file nothing imports. Add one the moment a route
+  actually uses it.
 
 That rule cuts the other way too, and the ERP port is where it bit:
 `textarea` left with the notes form, and `CardAction` and `EmptyMedia` left

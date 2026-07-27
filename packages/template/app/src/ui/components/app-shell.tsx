@@ -1,91 +1,52 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Outlet } from "@tanstack/react-router";
 import type * as React from "react";
-import { authClient } from "../lib/auth-client";
-import { sessionQueryOptions } from "../lib/session";
-import { Avatar, AvatarFallback } from "./avatar";
-import { Badge } from "./badge";
-import { Button } from "./button";
-import { Separator } from "./separator";
+import { AppSidebar } from "./app-sidebar";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "./sidebar";
 
-const WHITESPACE = /\s+/;
-
-const NAV = [
-  { to: "/documents", label: "Documents" },
-  { to: "/entities", label: "Parties" },
-  { to: "/catalog", label: "Catalog" },
-] as const;
-
-function initials(name: string | undefined, email: string | undefined): string {
-  const source = name?.trim() || email?.trim() || "?";
-  const parts = source.split(WHITESPACE).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
-  }
-  return source.slice(0, 2).toUpperCase();
+/**
+ * The signed-in chrome, mounted once by the layout route rather than by each
+ * page. `SidebarProvider` holds the collapsed state in React state, so a page
+ * that rendered its own would reset the sidebar on every navigation.
+ */
+export function AppLayout() {
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <Outlet />
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }
 
 /**
- * Chrome shared by every signed-in page: who you are, which organization you
- * are in, and the way between the three resources.
+ * One page inside that chrome: a header carrying the title, then the content.
+ * The trigger repeats here because the one in the sidebar header is hidden
+ * once the sidebar collapses to icons.
  */
 export function AppShell({
   title,
+  actions,
   children,
 }: {
   title: string;
+  actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const session = useQuery(sessionQueryOptions);
-
-  const userName = session.data?.user?.name;
-  const userEmail = session.data?.user?.email;
-  const orgName = session.data?.organization?.name ?? "Organization";
-
-  async function onSignOut() {
-    await authClient.signOut();
-    queryClient.clear();
-    await navigate({ to: "/sign-in" });
-  }
-
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 p-8">
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <h1 className="font-medium text-xl">{title}</h1>
-            <Badge variant="secondary">{orgName}</Badge>
+    <>
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <SidebarTrigger className="-ml-1" />
+        <h1 className="truncate font-medium text-sm">{title}</h1>
+        {actions ? (
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {actions}
           </div>
-          <p className="text-muted-foreground text-sm">{userEmail}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Avatar size="sm">
-            <AvatarFallback>{initials(userName, userEmail)}</AvatarFallback>
-          </Avatar>
-          <Button onClick={onSignOut} type="button" variant="outline">
-            Sign out
-          </Button>
-        </div>
+        ) : null}
       </header>
-
-      <nav className="flex items-center gap-1">
-        {NAV.map((item) => (
-          <Link
-            activeProps={{ className: "bg-muted text-foreground" }}
-            className="rounded-md px-3 py-1.5 font-medium text-muted-foreground text-sm hover:text-foreground"
-            key={item.to}
-            to={item.to}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      <Separator />
-
-      {children}
-    </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto p-6">
+        {children}
+      </div>
+    </>
   );
 }
