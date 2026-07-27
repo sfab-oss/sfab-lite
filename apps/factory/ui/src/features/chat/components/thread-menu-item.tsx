@@ -1,15 +1,27 @@
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  SidebarMenuAction,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useThreadLifecycle } from "../hooks/use-thread-lifecycle";
 import { formatRelativeTime } from "../model/thread-list";
 import type { Thread } from "../model/types";
 import { ThreadBindingBadge } from "./thread-binding-badge";
+import {
+  DeleteThreadDialog,
+  RenameThreadDialog,
+} from "./thread-lifecycle-dialogs";
 
 function ElapsedClock({ since }: { since: number }) {
   const [now, setNow] = useState(() => Date.now());
@@ -65,10 +77,12 @@ export function ThreadMenuItem({
   active,
   dense,
   onSelect,
+  onDeleted,
   quiet = false,
 }: {
   active: boolean;
   dense?: boolean;
+  onDeleted?: (thread: Thread) => void;
   onSelect: () => void;
   quiet?: boolean;
   thread: Thread;
@@ -90,6 +104,11 @@ export function ThreadMenuItem({
   }
 
   const tooltip = [thread.title, statusHint].filter(Boolean).join(" ");
+  const { busy, error, renameThread, deleteThread, clearError } =
+    useThreadLifecycle();
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const showActions = Boolean(onDeleted) && !quiet;
 
   if (quiet) {
     return (
@@ -133,9 +152,78 @@ export function ThreadMenuItem({
           </span>
         )}
       </SidebarMenuButton>
-      <SidebarMenuBadge className={cn("text-[10px]", showStatus && "top-2")}>
+      <SidebarMenuBadge
+        className={cn(
+          "text-[10px]",
+          showStatus && "top-2",
+          showActions &&
+            "group-focus-within/menu-item:opacity-0 group-hover/menu-item:opacity-0"
+        )}
+      >
         {trailing}
       </SidebarMenuBadge>
+      {showActions ? (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <SidebarMenuAction
+                  aria-label={`Actions for ${thread.title}`}
+                  showOnHover
+                />
+              }
+            >
+              <MoreHorizontal />
+              <span className="sr-only">Thread actions</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="bottom">
+              <DropdownMenuItem
+                disabled={busy}
+                onClick={() => {
+                  clearError();
+                  setRenameOpen(true);
+                }}
+              >
+                <Pencil />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={busy}
+                onClick={() => {
+                  clearError();
+                  setDeleteOpen(true);
+                }}
+                variant="destructive"
+              >
+                <Trash2 />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <RenameThreadDialog
+            busy={busy}
+            error={renameOpen ? error : null}
+            onOpenChange={setRenameOpen}
+            onRename={(title) => renameThread(thread, title)}
+            open={renameOpen}
+            thread={thread}
+          />
+          <DeleteThreadDialog
+            busy={busy}
+            error={deleteOpen ? error : null}
+            onConfirm={async () => {
+              const ok = await deleteThread(thread);
+              if (ok) {
+                onDeleted?.(thread);
+              }
+              return ok;
+            }}
+            onOpenChange={setDeleteOpen}
+            open={deleteOpen}
+            thread={thread}
+          />
+        </>
+      ) : null}
     </SidebarMenuItem>
   );
 }

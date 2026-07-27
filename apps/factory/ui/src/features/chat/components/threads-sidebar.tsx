@@ -38,6 +38,7 @@ export interface SessionThreadsSidebarProps {
   onSearchChange: (search: string) => void;
   onSelectThread: (threadId: string) => void;
   onSignOut?: () => void;
+  onThreadDeleted?: (thread: Thread) => void;
   railClassName?: string;
   search: string;
   showCollapseTrigger?: boolean;
@@ -56,6 +57,7 @@ export function SessionThreadsSidebar({
   onGoHome,
   onNewThread,
   onSignOut,
+  onThreadDeleted,
   homeActive = false,
   showRail = true,
   railClassName = "inset-y-2",
@@ -167,6 +169,7 @@ export function SessionThreadsSidebar({
                 <ThreadMenuItem
                   active={activeThreadId === thread.id}
                   key={thread.id}
+                  onDeleted={onThreadDeleted}
                   onSelect={() => selectThread(thread.id)}
                   quiet={quietRows}
                   thread={thread}
@@ -217,6 +220,7 @@ export function SessionThreadsSidebar({
                   : undefined
               }
               onSelectThread={selectThread}
+              onThreadDeleted={onThreadDeleted}
               quiet={quietRows}
               threads={group.threads}
             />
@@ -235,12 +239,14 @@ function AppBucket({
   activeThreadId,
   onAttendApp,
   onSelectThread,
+  onThreadDeleted,
   quiet = false,
 }: {
   activeThreadId: string | null;
   label: string;
   onAttendApp?: () => void;
   onSelectThread: (threadId: string) => void;
+  onThreadDeleted?: (thread: Thread) => void;
   quiet?: boolean;
   threads: Thread[];
 }) {
@@ -270,6 +276,7 @@ function AppBucket({
               active={activeThreadId === thread.id}
               dense
               key={thread.id}
+              onDeleted={onThreadDeleted}
               onSelect={() => onSelectThread(thread.id)}
               quiet={quiet}
               thread={thread}

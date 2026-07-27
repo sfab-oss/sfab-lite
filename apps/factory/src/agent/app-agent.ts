@@ -78,16 +78,23 @@ export class AppAgent extends Think<Env> {
       SELECT id, title, created_at, updated_at FROM thread_meta`;
     const metaById = new Map(metaRows.map((row) => [row.id, row]));
 
+    // thread_meta is the product existence key. A registry row without meta
+    // (e.g. deleteSubAgent left a sticky facet entry) must not resurface as a
+    // conversation with a synthetic default title.
     return registry
-      .map((entry) => {
+      .flatMap((entry) => {
         const meta = metaById.get(entry.name);
-        const createdAt = meta?.created_at ?? entry.createdAt;
-        return {
-          id: entry.name,
-          title: meta?.title ?? defaultThreadTitle(createdAt),
-          createdAt,
-          updatedAt: meta?.updated_at ?? createdAt,
-        };
+        if (!meta) {
+          return [];
+        }
+        return [
+          {
+            id: entry.name,
+            title: meta.title,
+            createdAt: meta.created_at,
+            updatedAt: meta.updated_at,
+          },
+        ];
       })
       .sort((a, b) => b.updatedAt - a.updatedAt);
   }
@@ -111,11 +118,12 @@ export class AppAgent extends Think<Env> {
     if (!trimmed) {
       return Promise.resolve();
     }
-    this.sql`INSERT INTO thread_meta (id, title, created_at, updated_at)
-      VALUES (${id}, ${trimmed}, ${Date.now()}, ${Date.now()})
-      ON CONFLICT(id) DO UPDATE SET
-        title = excluded.title,
-        updated_at = excluded.updated_at`;
+    // UPDATE, not upsert: meta is the existence key, so inserting here would
+    // let a rename recreate a thread that was deleted — including one whose
+    // registry row came back via the WS re-resolve path.
+    this.sql`UPDATE thread_meta
+      SET title = ${trimmed}, updated_at = ${Date.now()}
+      WHERE id = ${id}`;
     return Promise.resolve();
   }
 
