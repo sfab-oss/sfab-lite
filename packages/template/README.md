@@ -103,7 +103,7 @@ file, update `manifest.json`.
 
 The seed carries a deliberately small slice of the starter's shadcn layer:
 `alert`, `avatar`, `badge`, `button`, `card`, `empty`, `field`, `input`,
-`label`, `separator`, `skeleton`, `spinner`, `textarea`.
+`label`, `native-select`, `separator`, `skeleton`, `spinner`, `table`.
 
 Two different reasons keep the rest out, and it is worth not confusing them,
 because only one of them is a real constraint:
@@ -115,12 +115,19 @@ because only one of them is a real constraint:
   `chart` (recharts), `carousel` (embla), `calendar` (react-day-picker),
   `drawer` (vaul), `resizable`, `markdown` (streamdown). These need a kernel
   decision before they can be ported at all.
-- **Merely not ported yet** — `tabs`, `tooltip`, `switch`, `table`,
-  `popover`, `progress`, `slider`, `toggle`, `radio-group`, `collapsible`,
+- **Merely not ported yet** — `tabs`, `tooltip`, `switch`, `popover`,
+  `progress`, `slider`, `toggle`, `radio-group`, `collapsible`,
   `hover-card`, `aspect-ratio` and friends need only `@base-ui/react` and
   `cn`, both of which the kernel already serves. They are absent because
   **every file here ships into every app**, and `knip` rejects a seed file
   nothing imports. Add one the moment a route actually uses it.
+
+That rule cuts the other way too, and the ERP port is where it bit:
+`textarea` left with the notes form, and `CardAction` and `EmptyMedia` left
+with the page that used them. Deleting an unused part of a ported component
+is the house move, not a regrettable one — `field` was already only four of
+the starter's ten pieces. Port the rest back with the first route that needs
+them.
 
 That second list is the useful one: it is not a wishlist, it is a set of
 components already known to work under the frozen kernel.
@@ -131,17 +138,48 @@ surface errors through `Alert`, which already carries `role="alert"`, so a
 per-field error component would be an unused file. Port the rest of `Field`
 together with the first form that needs inline validation, not before.
 
-The `spinner` is the one hand-written divergence: a small inline SVG rather
-than a Lucide icon, so pending buttons work without the blocked dependency.
-It is a one-off today. **Before porting anything else that wants an icon,
-decide whether this becomes inline-SVG-per-component or a minimal vendored
-icon set** — drifting into a dozen hand-drawn SVGs without choosing is the
-failure mode.
+`spinner` and `native-select` are the two hand-written divergences: each
+draws its one glyph as an inline SVG rather than pulling a Lucide icon, so a
+pending button and a select chevron work without the blocked dependency.
+
+**That is the icon rule, and it is now decided** (the earlier note left the
+choice open): while the kernel serves no icon package, a component may carry
+a single inline glyph of its own, and nothing else draws icons — pages don't,
+and a component wanting a *set* of icons waits for the kernel to serve one.
+Two glyphs is a convention; a dozen hand-drawn SVGs scattered across pages is
+the failure mode that rule exists to prevent.
 
 ## What the app does
 
 Enough to prove the stack end to end, and no more: email/password auth
 (better-auth) with organizations, an onboarding step that creates the first
-org, and per-organization notes CRUD. Every note query is scoped by the
-session's active organization in `app/src/hono/routes/notes.ts` — that
-scoping is the pattern worth copying, not the notes themselves.
+org, and a small per-organization ERP.
+
+- **Parties** (`entity`) — the customers and vendors the org trades with.
+- **Catalog** (`product`) — SKU, name, unit price in minor units.
+- **Documents** (`document`, `document_line`) — invoices, built as drafts and
+  then issued.
+
+Three things in there are the parts worth copying, and each is a rule the
+starter learned the expensive way:
+
+1. **Every query is scoped by the session's active organization**, taken from
+   `requireOrg` and never from the request. Writes match on id *and*
+   organization in a single statement, so an empty `returning()` is the 404
+   and there is no window between checking ownership and acting on it.
+2. **A draft is working state; a finalized document is a record.** Lines,
+   pricing, and deletion are all draft-only, and finalize draws the
+   organization's next number inside the same statement that writes it —
+   two documents finalizing at once cannot read the same highest number and
+   both keep it.
+3. **Lines carry snapshots.** `entity_name_snapshot`, `name_snapshot`, and
+   the line's own `unit_price_cents` mean renaming a customer or re-pricing a
+   product never rewrites an invoice already sent.
+
+What it deliberately does *not* have is the rest of the starter's document
+model: document families and their CHECK constraints, payment projections,
+settlement status, immutable-successor lineage. This is a seed every
+generated app starts from, so weight here is paid by every app that has
+nothing to do with invoicing.
+
+Swap the resource, keep the shape.

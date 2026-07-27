@@ -41,10 +41,13 @@ describe("introspectSchema", () => {
       .filter((n) => !n.startsWith("sqlite_"));
     assert.deepEqual(names, [
       "account",
+      "document",
+      "document_line",
+      "entity",
       "invitation",
       "member",
-      "note",
       "organization",
+      "product",
       "session",
       "user",
       "verification",
@@ -52,28 +55,46 @@ describe("introspectSchema", () => {
   });
 
   it("reads columns, types, nullability, and defaults", () => {
-    const note = tableNamed(seeded(), "note");
-    assert.deepEqual(note.primaryKey, ["id"]);
+    const line = tableNamed(seeded(), "document_line");
+    assert.deepEqual(line.primaryKey, ["id"]);
     assert.deepEqual(
-      note.columns.map((c) => c.name),
-      ["id", "organization_id", "title", "body", "created_at", "updated_at"]
+      line.columns.map((c) => c.name),
+      [
+        "id",
+        "document_id",
+        "product_id",
+        "name_snapshot",
+        "quantity",
+        "unit_price_cents",
+        "created_at",
+      ]
     );
-    const body = note.columns.find((c) => c.name === "body");
-    assert.equal(body?.type, "text");
-    assert.equal(body?.notNull, true);
-    assert.equal(body?.defaultSql, "''");
+    const productId = line.columns.find((c) => c.name === "product_id");
+    assert.equal(productId?.type, "text");
+    assert.equal(productId?.notNull, false);
+    assert.equal(productId?.defaultSql, null);
+    const quantity = line.columns.find((c) => c.name === "quantity");
+    assert.equal(quantity?.type, "integer");
+    assert.equal(quantity?.notNull, true);
+    assert.equal(quantity?.defaultSql, "1");
   });
 
   it("reads a declared index and a unique index alike", () => {
     const exec = seeded();
-    const note = tableNamed(exec, "note");
-    assert.deepEqual(note.indexes, [
+    const line = tableNamed(exec, "document_line");
+    assert.deepEqual(line.indexes, [
       {
-        name: "note_organizationId_idx",
-        columns: ["organization_id"],
+        name: "document_line_documentId_idx",
+        columns: ["document_id"],
         unique: false,
       },
     ]);
+    const product = tableNamed(exec, "product");
+    const sku = product.indexes.find(
+      (i) => i.name === "product_organizationId_sku_unique"
+    );
+    assert.equal(sku?.unique, true);
+    assert.deepEqual(sku?.columns, ["organization_id", "sku"]);
     const user = tableNamed(exec, "user");
     const email = user.indexes.find((i) => i.name === "user_email_unique");
     assert.equal(email?.unique, true);
@@ -212,7 +233,7 @@ describe("emit and introspect round-trip", () => {
 
   it("emits SQLite accepts when adding a column to a live table", () => {
     const exec = seeded();
-    const before = tableNamed(exec, "note");
+    const before = tableNamed(exec, "document");
     const desired: TableSpec = {
       ...before,
       columns: [
@@ -230,7 +251,7 @@ describe("emit and introspect round-trip", () => {
     for (const statement of diff.statements) {
       exec(statement);
     }
-    const after = tableNamed(exec, "note");
+    const after = tableNamed(exec, "document");
     assert.equal(
       after.columns.find((c) => c.name === "archived")?.notNull,
       true

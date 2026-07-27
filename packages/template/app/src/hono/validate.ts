@@ -10,7 +10,7 @@ import { flattenError } from "zod";
  * what it may send; declaring the schema here means a bad request body is a
  * compile error in the UI, and a 400 with field details at runtime.
  *
- *   .post("/", jsonBody(noteCreateSchema), (c) => {
+ *   .post("/", jsonBody(entityCreateSchema), (c) => {
  *     const input = c.req.valid("json");   // typed
  *   })
  */
