@@ -254,14 +254,18 @@ function AppBucket({
     <div className="mt-1">
       {onAttendApp ? (
         <button
-          className="px-2 py-1 text-left font-medium text-[10px] text-muted-foreground uppercase tracking-wide hover:text-foreground group-data-[collapsible=icon]:hidden"
+          className="block w-full truncate px-2 py-1 text-left font-medium text-[10px] text-muted-foreground uppercase tracking-wide hover:text-foreground group-data-[collapsible=icon]:hidden"
           onClick={onAttendApp}
+          title={label}
           type="button"
         >
           {label}
         </button>
       ) : (
-        <p className="px-2 py-1 font-medium text-[10px] text-muted-foreground uppercase tracking-wide group-data-[collapsible=icon]:hidden">
+        <p
+          className="block w-full truncate px-2 py-1 font-medium text-[10px] text-muted-foreground uppercase tracking-wide group-data-[collapsible=icon]:hidden"
+          title={label}
+        >
           {label}
         </p>
       )}
