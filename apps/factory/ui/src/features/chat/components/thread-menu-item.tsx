@@ -104,7 +104,8 @@ export function ThreadMenuItem({
   }
 
   const tooltip = [thread.title, statusHint].filter(Boolean).join(" ");
-  const { busy, renameThread, deleteThread } = useThreadLifecycle();
+  const { busy, error, renameThread, deleteThread, clearError } =
+    useThreadLifecycle();
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const showActions = Boolean(onDeleted) && !quiet;
@@ -178,14 +179,20 @@ export function ThreadMenuItem({
             <DropdownMenuContent align="end" side="bottom">
               <DropdownMenuItem
                 disabled={busy}
-                onClick={() => setRenameOpen(true)}
+                onClick={() => {
+                  clearError();
+                  setRenameOpen(true);
+                }}
               >
                 <Pencil />
                 Rename
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled={busy}
-                onClick={() => setDeleteOpen(true)}
+                onClick={() => {
+                  clearError();
+                  setDeleteOpen(true);
+                }}
                 variant="destructive"
               >
                 <Trash2 />
@@ -195,6 +202,7 @@ export function ThreadMenuItem({
           </DropdownMenu>
           <RenameThreadDialog
             busy={busy}
+            error={renameOpen ? error : null}
             onOpenChange={setRenameOpen}
             onRename={(title) => renameThread(thread, title)}
             open={renameOpen}
@@ -202,18 +210,14 @@ export function ThreadMenuItem({
           />
           <DeleteThreadDialog
             busy={busy}
-            onConfirm={() =>
-              deleteThread(thread, {
-                disconnect: active
-                  ? () => onDeleted?.(thread)
-                  : () => undefined,
-              }).then((ok) => {
-                if (ok && !active) {
-                  onDeleted?.(thread);
-                }
-                return ok;
-              })
-            }
+            error={deleteOpen ? error : null}
+            onConfirm={async () => {
+              const ok = await deleteThread(thread);
+              if (ok) {
+                onDeleted?.(thread);
+              }
+              return ok;
+            }}
             onOpenChange={setDeleteOpen}
             open={deleteOpen}
             thread={thread}

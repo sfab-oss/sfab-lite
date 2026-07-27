@@ -7,6 +7,26 @@ import {
 import { useChatData } from "../data/chat-data-context";
 import type { Thread } from "../model/types";
 
+const RPC_TIMEOUT_MS = 12_000;
+
+function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out — is the factory still running?`));
+    }, RPC_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+}
+
 export function useThreadLifecycle() {
   const chatData = useChatData();
   const { waitForHandle } = useAppAgentRegistry();
@@ -26,7 +46,10 @@ export function useThreadLifecycle() {
       setError(null);
       try {
         const handle = await waitForHandle(thread.appId);
-        await renameServerThread(handle, thread.id, trimmed);
+        await withTimeout(
+          renameServerThread(handle, thread.id, trimmed),
+          "Rename"
+        );
         chatData.patchThread(thread.id, {
           title: trimmed,
           updatedAt: Date.now(),
@@ -43,27 +66,15 @@ export function useThreadLifecycle() {
   );
 
   const deleteThread = useCallback(
-    async (
-      thread: Thread,
-      opts?: { disconnect?: () => void }
-    ): Promise<boolean> => {
+    async (thread: Thread): Promise<boolean> => {
       if (!thread.appId) {
         return false;
       }
       setBusy(true);
       setError(null);
       try {
-        // An open AppThread WebSocket keeps the facet in the parent registry.
-        // Leave that view first so deleteSubAgent can clear it; otherwise
-        // listThreads resurrects a meta-less row with a default title.
-        opts?.disconnect?.();
-        if (opts?.disconnect) {
-          await new Promise<void>((resolve) => {
-            window.setTimeout(resolve, 120);
-          });
-        }
         const handle = await waitForHandle(thread.appId);
-        await deleteServerThread(handle, thread.id);
+        await withTimeout(deleteServerThread(handle, thread.id), "Delete");
         chatData.removeThread(thread.id);
         return true;
       } catch (caught: unknown) {
@@ -76,5 +87,7 @@ export function useThreadLifecycle() {
     [chatData, waitForHandle]
   );
 
-  return { busy, error, renameThread, deleteThread, setError };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { busy, error, renameThread, deleteThread, clearError };
 }

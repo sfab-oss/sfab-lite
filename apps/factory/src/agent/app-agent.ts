@@ -78,16 +78,23 @@ export class AppAgent extends Think<Env> {
       SELECT id, title, created_at, updated_at FROM thread_meta`;
     const metaById = new Map(metaRows.map((row) => [row.id, row]));
 
+    // thread_meta is the product existence key. A registry row without meta
+    // (e.g. deleteSubAgent left a sticky facet entry) must not resurface as a
+    // conversation with a synthetic default title.
     return registry
-      .map((entry) => {
+      .flatMap((entry) => {
         const meta = metaById.get(entry.name);
-        const createdAt = meta?.created_at ?? entry.createdAt;
-        return {
-          id: entry.name,
-          title: meta?.title ?? defaultThreadTitle(createdAt),
-          createdAt,
-          updatedAt: meta?.updated_at ?? createdAt,
-        };
+        if (!meta) {
+          return [];
+        }
+        return [
+          {
+            id: entry.name,
+            title: meta.title,
+            createdAt: meta.created_at,
+            updatedAt: meta.updated_at,
+          },
+        ];
       })
       .sort((a, b) => b.updatedAt - a.updatedAt);
   }

@@ -24,7 +24,8 @@ export function ThreadHeaderMenu({
   thread: Thread;
 }) {
   const resetLocalState = useWorkspaceTabsStore((s) => s.resetLocalState);
-  const { busy, renameThread, deleteThread } = useThreadLifecycle();
+  const { busy, error, renameThread, deleteThread, clearError } =
+    useThreadLifecycle();
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -45,13 +46,22 @@ export function ThreadHeaderMenu({
           <MoreHorizontal className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuItem disabled={busy} onClick={() => setRenameOpen(true)}>
+          <DropdownMenuItem
+            disabled={busy}
+            onClick={() => {
+              clearError();
+              setRenameOpen(true);
+            }}
+          >
             <Pencil className="size-4" />
             Rename
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={busy}
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => {
+              clearError();
+              setDeleteOpen(true);
+            }}
             variant="destructive"
           >
             <Trash2 className="size-4" />
@@ -66,6 +76,7 @@ export function ThreadHeaderMenu({
       </DropdownMenu>
       <RenameThreadDialog
         busy={busy}
+        error={renameOpen ? error : null}
         onOpenChange={setRenameOpen}
         onRename={(title) => renameThread(thread, title)}
         open={renameOpen}
@@ -73,11 +84,14 @@ export function ThreadHeaderMenu({
       />
       <DeleteThreadDialog
         busy={busy}
-        onConfirm={() =>
-          deleteThread(thread, {
-            disconnect: () => onDeleted(thread),
-          })
-        }
+        error={deleteOpen ? error : null}
+        onConfirm={async () => {
+          const ok = await deleteThread(thread);
+          if (ok) {
+            onDeleted(thread);
+          }
+          return ok;
+        }}
         onOpenChange={setDeleteOpen}
         open={deleteOpen}
         thread={thread}

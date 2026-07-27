@@ -28,8 +28,10 @@ export function createRealChatData(): RealChatData {
   // Locally created threads survive until a snapshot actually reports them.
   const unconfirmed = new Set<string>();
   // Symmetrically: a snapshot in flight when a thread is deleted can still list
-  // it. Suppress re-adding until a later snapshot omits the id.
-  const recentlyDeleted = new Set<string>();
+  // it. Suppress re-adding until that app's later snapshot omits the id.
+  // Keyed by thread id → owning appId so a sync for another app cannot clear
+  // the suppression early.
+  const recentlyDeleted = new Map<string, string>();
   const listeners = new Set<() => void>();
 
   const notify = () => {
@@ -62,8 +64,11 @@ export function createRealChatData(): RealChatData {
     hasSyncedApp: (id) => syncedApps.has(id),
     syncAppThreads: (ownerAppId, incoming) => {
       syncedApps.add(ownerAppId);
-      for (const id of [...recentlyDeleted]) {
-        if (!incoming.some((thread) => thread.id === id)) {
+      for (const [id, deletedAppId] of [...recentlyDeleted]) {
+        if (
+          deletedAppId === ownerAppId &&
+          !incoming.some((thread) => thread.id === id)
+        ) {
           recentlyDeleted.delete(id);
         }
       }
@@ -115,8 +120,11 @@ export function createRealChatData(): RealChatData {
     },
     removeThread: (threadId) => {
       unconfirmed.delete(threadId);
-      recentlyDeleted.add(threadId);
-      if (!threads.some((thread) => thread.id === threadId)) {
+      const existing = threads.find((thread) => thread.id === threadId);
+      if (existing?.appId) {
+        recentlyDeleted.set(threadId, existing.appId);
+      }
+      if (!existing) {
         return;
       }
       writeThreads(threads.filter((thread) => thread.id !== threadId));

@@ -18,9 +18,11 @@ export function RenameThreadDialog({
   onOpenChange,
   thread,
   busy,
+  error,
   onRename,
 }: {
   busy: boolean;
+  error: string | null;
   onOpenChange: (open: boolean) => void;
   onRename: (title: string) => Promise<boolean>;
   open: boolean;
@@ -66,6 +68,7 @@ export function RenameThreadDialog({
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={inputId}>Title</Label>
             <Input
+              aria-invalid={Boolean(error)}
               disabled={busy}
               id={inputId}
               onChange={(event) => setDraft(event.target.value)}
@@ -78,6 +81,11 @@ export function RenameThreadDialog({
               ref={inputRef}
               value={draft}
             />
+            {error ? (
+              <p className="text-destructive text-sm" role="alert">
+                {error}
+              </p>
+            ) : null}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy} type="button">
@@ -98,9 +106,11 @@ export function DeleteThreadDialog({
   onOpenChange,
   thread,
   busy,
+  error,
   onConfirm,
 }: {
   busy: boolean;
+  error: string | null;
   onConfirm: () => Promise<boolean>;
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -116,6 +126,11 @@ export function DeleteThreadDialog({
             messages. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {error ? (
+          <p className="text-destructive text-sm" role="alert">
+            {error}
+          </p>
+        ) : null}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
           <AlertDialogAction
