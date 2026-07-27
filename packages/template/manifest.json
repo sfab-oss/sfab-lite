@@ -11,8 +11,8 @@
   "safelist": "safelist.txt",
   "migrations": "migrations",
   "source": {
-    "dirs": ["src"],
-    "extensions": [".ts", ".tsx", ".css"],
+    "dirs": ["src", "migrations"],
+    "extensions": [".ts", ".tsx", ".css", ".sql"],
     "files": ["safelist.txt", "package.json"],
     "exclude": ["src/worker.ts"]
   }
