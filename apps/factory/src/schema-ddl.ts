@@ -25,7 +25,6 @@ export interface ColumnSpec {
   /** SQLite storage type as drizzle reports it: text, integer, real, blob. */
   type: string;
   notNull: boolean;
-  primaryKey: boolean;
   /** Rendered SQL for the default, or null. Expressions arrive parenthesised. */
   defaultSql: string | null;
 }
@@ -36,10 +35,32 @@ interface IndexSpec {
   unique: boolean;
 }
 
+/**
+ * Referential actions are carried as SQLite writes them (`cascade`,
+ * `set null`, `no action`) so a spec round-trips through DDL unchanged.
+ */
+interface ForeignKeySpec {
+  columns: string[];
+  refTable: string;
+  refColumns: string[];
+  onUpdate: string;
+  onDelete: string;
+}
+
 export interface TableSpec {
   name: string;
   columns: ColumnSpec[];
+  /**
+   * Primary key columns in key order — table-level rather than per-column
+   * because that is the only shape both sides can express. `PRAGMA table_info`
+   * marks each member of a composite key with its ordinal, so a per-column
+   * flag would read a two-column key as two independent primary keys and diff
+   * it against a declaration that has neither.
+   */
+  primaryKey: string[];
   indexes: IndexSpec[];
+  /** Emitted when a table is created; never diffed — see `diffSchema`. */
+  foreignKeys: ForeignKeySpec[];
 }
 
 export interface SchemaSnapshot {
@@ -52,7 +73,8 @@ type SchemaChange =
   | { kind: "create_index"; table: string; index: string }
   | { kind: "drop_table"; table: string; reason: string }
   | { kind: "drop_column"; table: string; column: string; reason: string }
-  | { kind: "alter_column"; table: string; column: string; reason: string };
+  | { kind: "alter_column"; table: string; column: string; reason: string }
+  | { kind: "alter_primary_key"; table: string; reason: string };
 
 export interface SchemaDiff {
   /** Changes this module can perform safely, with `statements` to perform them. */
@@ -63,11 +85,18 @@ export interface SchemaDiff {
 }
 
 /**
- * Tables the factory owns inside every app's DO. They are not part of the
- * app's schema and must never be diffed against it — treating them as
- * unexpected would report the factory's own bookkeeping as data loss.
+ * Tables that are not part of the app's schema and must never be diffed
+ * against it — the factory's own bookkeeping (`_sfab_`), SQLite's internals
+ * (`sqlite_`), the Durable Object storage layer's (`_cf_`), and miniflare's
+ * (`__miniflare_`). Treating any of them as unexpected would report
+ * infrastructure as data loss.
+ *
+ * The miniflare entry only ever matches under `wrangler dev`, which is exactly
+ * why it is here: without it, every local deploy would refuse with
+ * `__miniflare_do_name` reported as a dropped table, and the failure would not
+ * reproduce in production.
  */
-const RESERVED_TABLE_PREFIXES = ["_sfab_", "sqlite_"];
+const RESERVED_TABLE_PREFIXES = ["_sfab_", "sqlite_", "_cf_", "__miniflare_"];
 
 function isReservedTable(name: string): boolean {
   return RESERVED_TABLE_PREFIXES.some((p) => name.startsWith(p));
@@ -77,10 +106,14 @@ function quote(identifier: string): string {
   return `\`${identifier.replace(/`/g, "``")}\``;
 }
 
+function quoteList(identifiers: string[]): string {
+  return identifiers.map(quote).join(",");
+}
+
 /** Column definition body, shared by CREATE TABLE and ADD COLUMN. */
-function columnDefinition(column: ColumnSpec): string {
+function columnDefinition(column: ColumnSpec, inlinePrimaryKey: boolean) {
   const parts = [quote(column.name), column.type];
-  if (column.primaryKey) {
+  if (inlinePrimaryKey) {
     parts.push("PRIMARY KEY");
   }
   if (column.defaultSql != null) {
@@ -92,21 +125,38 @@ function columnDefinition(column: ColumnSpec): string {
   return parts.join(" ");
 }
 
+function foreignKeyClause(fk: ForeignKeySpec): string {
+  return (
+    `FOREIGN KEY (${quoteList(fk.columns)}) ` +
+    `REFERENCES ${quote(fk.refTable)}(${quoteList(fk.refColumns)}) ` +
+    `ON UPDATE ${fk.onUpdate} ON DELETE ${fk.onDelete}`
+  );
+}
+
 export function emitCreateTable(table: TableSpec): string {
-  const columns = table.columns
-    .map((c) => `\t${columnDefinition(c)}`)
-    .join(",\n");
-  return `CREATE TABLE ${quote(table.name)} (\n${columns}\n);`;
+  // A single-column key is written on the column, which is both what
+  // drizzle-kit emits and what makes `INTEGER PRIMARY KEY` a rowid alias.
+  const inlinePk = table.primaryKey.length === 1 ? table.primaryKey[0] : null;
+  const lines = table.columns.map((c) =>
+    columnDefinition(c, c.name === inlinePk)
+  );
+  if (table.primaryKey.length > 1) {
+    lines.push(`PRIMARY KEY(${quoteList(table.primaryKey)})`);
+  }
+  for (const fk of table.foreignKeys) {
+    lines.push(foreignKeyClause(fk));
+  }
+  const body = lines.map((line) => `\t${line}`).join(",\n");
+  return `CREATE TABLE ${quote(table.name)} (\n${body}\n);`;
 }
 
 function emitAddColumn(tableName: string, column: ColumnSpec): string {
-  return `ALTER TABLE ${quote(tableName)} ADD ${columnDefinition(column)};`;
+  return `ALTER TABLE ${quote(tableName)} ADD ${columnDefinition(column, false)};`;
 }
 
 function emitCreateIndex(tableName: string, index: IndexSpec): string {
   const unique = index.unique ? "UNIQUE " : "";
-  const columns = index.columns.map(quote).join(",");
-  return `CREATE ${unique}INDEX ${quote(index.name)} ON ${quote(tableName)} (${columns});`;
+  return `CREATE ${unique}INDEX ${quote(index.name)} ON ${quote(tableName)} (${quoteList(index.columns)});`;
 }
 
 /**
@@ -159,7 +209,7 @@ function diffColumns(
       continue;
     }
 
-    if (existing.type !== column.type) {
+    if (existing.type.toLowerCase() !== column.type.toLowerCase()) {
       blocking.push({
         kind: "alter_column",
         table: desired.name,
@@ -174,14 +224,6 @@ function diffColumns(
         reason:
           "column became NOT NULL; existing rows may hold nulls that cannot be filled automatically",
       });
-    } else if (column.primaryKey !== existing.primaryKey) {
-      blocking.push({
-        kind: "alter_column",
-        table: desired.name,
-        column: column.name,
-        reason:
-          "primary key changed; SQLite cannot alter a primary key in place",
-      });
     }
   }
 
@@ -195,6 +237,24 @@ function diffColumns(
       });
     }
   }
+}
+
+function diffPrimaryKey(
+  desired: TableSpec,
+  actual: TableSpec,
+  blocking: SchemaChange[]
+): void {
+  const same =
+    desired.primaryKey.length === actual.primaryKey.length &&
+    desired.primaryKey.every((c, i) => c === actual.primaryKey[i]);
+  if (same) {
+    return;
+  }
+  blocking.push({
+    kind: "alter_primary_key",
+    table: desired.name,
+    reason: `primary key changed from (${actual.primaryKey.join(", ")}) to (${desired.primaryKey.join(", ")}); SQLite cannot alter a primary key in place`,
+  });
 }
 
 function diffIndexes(
@@ -219,13 +279,15 @@ function diffIndexes(
 /**
  * What must happen for `actual` to satisfy `desired`.
  *
- * Reserved factory tables are excluded from both sides before comparing, so
- * the app's schema is diffed only against the app's own tables.
+ * Reserved tables are excluded from both sides before comparing, so the app's
+ * schema is diffed only against the app's own tables.
  *
- * A dropped index is not reported at all: an index carries no data, and its
- * absence from the declaration is far more often a refactor than an intent to
- * drop. Reporting it as blocking would refuse publishes for a change that
- * cannot lose anything.
+ * Two things are deliberately not compared. A dropped index is not reported at
+ * all: an index carries no data, and its absence from the declaration is far
+ * more often a refactor than an intent to drop, so reporting it would refuse
+ * publishes for a change that cannot lose anything. Foreign keys are likewise
+ * only emitted with a new table — SQLite cannot add or remove a constraint on
+ * an existing one, so a diff could describe the change but never perform it.
  */
 export function diffSchema(
   actual: SchemaSnapshot,
@@ -256,6 +318,7 @@ export function diffSchema(
       continue;
     }
     diffColumns(table, existing, additive, blocking, statements);
+    diffPrimaryKey(table, existing, blocking);
     diffIndexes(table, existing, additive, statements);
   }
 
@@ -272,4 +335,140 @@ export function diffSchema(
   }
 
   return { additive, blocking, statements };
+}
+
+/**
+ * Reading a snapshot back out of a real database — the `actual` half.
+ *
+ * It lives beside the emitter rather than in its own module because the two
+ * are one mapping read in opposite directions: whatever `emitCreateTable`
+ * writes, this must recover unchanged. `schema-roundtrip.test.ts` asserts
+ * exactly that against real SQLite, and a disagreement between them would make
+ * a deploy diff a schema against itself and find changes that are not there.
+ *
+ * Takes an exec function rather than a `SqlStorage` so it is testable without
+ * a live Durable Object; `AppDO.introspectSchema` supplies the real one.
+ */
+
+/** One row of a query result, as `SqlStorageCursor.toArray()` returns it. */
+type SqlRow = Record<string, unknown>;
+export type ExecRows = (query: string) => SqlRow[];
+
+function str(value: unknown): string {
+  return typeof value === "string" ? value : String(value ?? "");
+}
+
+function num(value: unknown): number {
+  return typeof value === "number" ? value : Number(value ?? 0);
+}
+
+/**
+ * Everything SQLite accepts as a bare column default. The list is closed: a
+ * default that is not one of these is an expression, and SQLite requires those
+ * to be parenthesised.
+ */
+const LITERAL_DEFAULT_RE =
+  /^(?:null|true|false|current_(?:time|date|timestamp)|[+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?|'(?:[^']|'')*'|x'[0-9a-f]*')$/i;
+
+/**
+ * Put back the parentheses SQLite removes.
+ *
+ * `PRAGMA table_info` reports an expression default with its outer pair
+ * stripped, so `DEFAULT (cast(...))` reads back as `cast(...)` — which is a
+ * syntax error if emitted again. Nothing re-emits an introspected default
+ * today, but restoring it here is what keeps that from becoming true later,
+ * and it is what makes a snapshot compare equal whichever side produced it.
+ */
+function normalizeDefault(raw: string): string {
+  const value = raw.trim();
+  if (LITERAL_DEFAULT_RE.test(value)) {
+    return value;
+  }
+  if (value.startsWith("(") && value.endsWith(")")) {
+    return value;
+  }
+  return `(${value})`;
+}
+
+/**
+ * `PRAGMA` will not accept a bound parameter for its argument, so names are
+ * interpolated. They come from `sqlite_master` and go through the same `quote`
+ * the emitter uses, so a name can only reach here by having been created from
+ * DDL this module already wrote.
+ */
+function readColumns(
+  exec: ExecRows,
+  tableName: string
+): { columns: ColumnSpec[]; primaryKey: string[] } {
+  const rows = exec(`PRAGMA table_info(${quote(tableName)})`);
+  const columns = rows.map((row) => ({
+    name: str(row.name),
+    // SQLite echoes a declared type it does not recognise verbatim, but
+    // rewrites the storage classes it does know to upper case — `text` comes
+    // back `TEXT`. Drizzle reports them lower case, so canonicalising here is
+    // what lets a snapshot from either side be compared, or logged, as one
+    // shape.
+    type: str(row.type).toLowerCase(),
+    notNull: num(row.notnull) !== 0,
+    defaultSql:
+      row.dflt_value == null ? null : normalizeDefault(str(row.dflt_value)),
+  }));
+  // `pk` is a 1-based position within the key, not a boolean, so sorting on it
+  // is what recovers the declared column order of a composite key.
+  const primaryKey = rows
+    .filter((row) => num(row.pk) > 0)
+    .sort((a, b) => num(a.pk) - num(b.pk))
+    .map((row) => str(row.name));
+  return { columns, primaryKey };
+}
+
+/**
+ * Indexes SQLite created on its own are excluded. `origin` is `c` for an
+ * explicit `CREATE INDEX`, `u` for one implied by a UNIQUE column constraint,
+ * and `pk` for one backing a primary key. Only `c` has a counterpart in the
+ * declaration — drizzle emits column-level `.unique()` as its own
+ * `CREATE UNIQUE INDEX`, so those land here as `c` too.
+ */
+function readIndexes(exec: ExecRows, tableName: string): IndexSpec[] {
+  const indexes: IndexSpec[] = [];
+  for (const row of exec(`PRAGMA index_list(${quote(tableName)})`)) {
+    const name = str(row.name);
+    if (str(row.origin) !== "c" || name.startsWith("sqlite_autoindex")) {
+      continue;
+    }
+    const columns = exec(`PRAGMA index_info(${quote(name)})`)
+      .sort((a, b) => num(a.seqno) - num(b.seqno))
+      // A null name marks an expression index, which has no column to compare.
+      .map((r) => (r.name == null ? null : str(r.name)))
+      .filter((c): c is string => c != null);
+    indexes.push({ name, columns, unique: num(row.unique) !== 0 });
+  }
+  return indexes;
+}
+
+/**
+ * Every table the database holds, reserved ones included — `diffSchema` does
+ * the filtering, so it stays the one place that decides what is the app's own.
+ *
+ * Foreign keys come back empty on purpose. They are only ever emitted with a
+ * new table, because SQLite cannot add or drop a constraint on an existing one,
+ * so reading them would produce a field nothing is allowed to act on.
+ */
+export function introspectSchema(exec: ExecRows): SchemaSnapshot {
+  const rows = exec(
+    "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+  );
+  return {
+    tables: rows.map((row) => {
+      const name = str(row.name);
+      const { columns, primaryKey } = readColumns(exec, name);
+      return {
+        name,
+        columns,
+        primaryKey,
+        indexes: readIndexes(exec, name),
+        foreignKeys: [],
+      } satisfies TableSpec;
+    }),
+  };
 }

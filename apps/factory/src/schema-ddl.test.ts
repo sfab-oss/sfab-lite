@@ -13,31 +13,44 @@ function column(name: string, type: string, extra: Partial<ColumnSpec> = {}) {
     name,
     type,
     notNull: false,
-    primaryKey: false,
     defaultSql: null,
     ...extra,
   } satisfies ColumnSpec;
 }
 
-function table(name: string, columns: ColumnSpec[], indexes = []): TableSpec {
-  return { name, columns, indexes };
+function table(
+  name: string,
+  columns: ColumnSpec[],
+  extra: Partial<Omit<TableSpec, "name" | "columns">> = {}
+): TableSpec {
+  return {
+    name,
+    columns,
+    primaryKey: [],
+    indexes: [],
+    foreignKeys: [],
+    ...extra,
+  };
 }
 
 function snapshot(tables: TableSpec[]): SchemaSnapshot {
   return { tables };
 }
 
-const expenses = table("expenses", [
-  column("id", "text", { primaryKey: true, notNull: true }),
-  column("organization_id", "text", { notNull: true }),
-  column("description", "text", { notNull: true }),
-  column("amount", "integer", { notNull: true }),
-  column("date", "integer", { notNull: true }),
-  column("created_at", "integer", {
-    notNull: true,
-    defaultSql: "(cast(unixepoch('subsecond') * 1000 as integer))",
-  }),
-]);
+const NOW_MS = "(cast(unixepoch('subsecond') * 1000 as integer))";
+
+const expenses = table(
+  "expenses",
+  [
+    column("id", "text", { notNull: true }),
+    column("organization_id", "text", { notNull: true }),
+    column("description", "text", { notNull: true }),
+    column("amount", "integer", { notNull: true }),
+    column("date", "integer", { notNull: true }),
+    column("created_at", "integer", { notNull: true, defaultSql: NOW_MS }),
+  ],
+  { primaryKey: ["id"] }
+);
 
 describe("emitCreateTable", () => {
   /**
@@ -54,10 +67,67 @@ describe("emitCreateTable", () => {
       "\t`description` text NOT NULL,",
       "\t`amount` integer NOT NULL,",
       "\t`date` integer NOT NULL,",
-      "\t`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL",
+      `\t\`created_at\` integer DEFAULT ${NOW_MS} NOT NULL`,
       ");",
     ].join("\n");
     assert.equal(emitCreateTable(expenses), expected);
+  });
+
+  /**
+   * The second anchor, and the one that covers foreign keys: this is the
+   * `note` table verbatim from `migrations/0002_notes.sql`, which drizzle-kit
+   * generated. Every per-org table an app adds will have this exact shape.
+   */
+  it("matches drizzle-kit's foreign key output byte for byte", () => {
+    const note = table(
+      "note",
+      [
+        column("id", "text", { notNull: true }),
+        column("organization_id", "text", { notNull: true }),
+        column("title", "text", { notNull: true }),
+        column("body", "text", { notNull: true, defaultSql: "''" }),
+        column("created_at", "integer", { notNull: true, defaultSql: NOW_MS }),
+        column("updated_at", "integer", { notNull: true, defaultSql: NOW_MS }),
+      ],
+      {
+        primaryKey: ["id"],
+        foreignKeys: [
+          {
+            columns: ["organization_id"],
+            refTable: "organization",
+            refColumns: ["id"],
+            onUpdate: "no action",
+            onDelete: "cascade",
+          },
+        ],
+      }
+    );
+    const expected = [
+      "CREATE TABLE `note` (",
+      "\t`id` text PRIMARY KEY NOT NULL,",
+      "\t`organization_id` text NOT NULL,",
+      "\t`title` text NOT NULL,",
+      "\t`body` text DEFAULT '' NOT NULL,",
+      `\t\`created_at\` integer DEFAULT ${NOW_MS} NOT NULL,`,
+      `\t\`updated_at\` integer DEFAULT ${NOW_MS} NOT NULL,`,
+      "\tFOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON UPDATE no action ON DELETE cascade",
+      ");",
+    ].join("\n");
+    assert.equal(emitCreateTable(note), expected);
+  });
+
+  it("writes a composite key as a table constraint", () => {
+    const membership = table(
+      "membership",
+      [
+        column("org_id", "text", { notNull: true }),
+        column("user_id", "text", { notNull: true }),
+      ],
+      { primaryKey: ["org_id", "user_id"] }
+    );
+    const sql = emitCreateTable(membership);
+    assert.ok(!sql.includes("`org_id` text PRIMARY KEY"));
+    assert.ok(sql.includes("\tPRIMARY KEY(`org_id`,`user_id`)"));
   });
 
   it("escapes backticks in identifiers", () => {
@@ -76,11 +146,16 @@ describe("diffSchema — additive", () => {
   });
 
   it("adds a nullable column to an existing table", () => {
-    const before = table("notes", [column("id", "text", { primaryKey: true })]);
-    const after = table("notes", [
-      column("id", "text", { primaryKey: true }),
-      column("body", "text"),
-    ]);
+    const before = table("notes", [column("id", "text")], {
+      primaryKey: ["id"],
+    });
+    const after = table(
+      "notes",
+      [column("id", "text"), column("body", "text")],
+      {
+        primaryKey: ["id"],
+      }
+    );
     const diff = diffSchema(snapshot([before]), snapshot([after]));
     assert.deepEqual(diff.blocking, []);
     assert.deepEqual(diff.statements, ["ALTER TABLE `notes` ADD `body` text;"]);
@@ -118,14 +193,27 @@ describe("diffSchema — additive", () => {
     );
   });
 
-  it("ignores the factory's own bookkeeping tables on both sides", () => {
+  it("ignores factory, SQLite, Durable Object, and miniflare tables", () => {
     const actual = snapshot([
       table("_sfab_versions", [column("id", "text")]),
       table("sqlite_sequence", [column("name", "text")]),
+      table("_cf_KV", [column("key", "text")]),
+      // Local-dev only, and the reason it is here: it exists under
+      // `wrangler dev` and nowhere else, so treating it as the app's would
+      // block every local deploy with a failure production never shows.
+      table("__miniflare_do_name", [column("id", "integer")]),
     ]);
     const diff = diffSchema(actual, snapshot([expenses]));
     assert.deepEqual(diff.blocking, []);
     assert.equal(diff.additive.length, 1);
+  });
+
+  it("accepts a type whose case differs from the declaration", () => {
+    const before = table("notes", [column("id", "TEXT")]);
+    const after = table("notes", [column("id", "text")]);
+    const diff = diffSchema(snapshot([before]), snapshot([after]));
+    assert.deepEqual(diff.blocking, []);
+    assert.deepEqual(diff.statements, []);
   });
 });
 
@@ -175,6 +263,24 @@ describe("diffSchema — blocking", () => {
     const after = table("notes", [column("body", "text", { notNull: true })]);
     const diff = diffSchema(snapshot([before]), snapshot([after]));
     assert.equal(diff.blocking.length, 1);
+  });
+
+  it("refuses a moved primary key", () => {
+    const cols = [column("id", "text"), column("slug", "text")];
+    const before = table("notes", cols, { primaryKey: ["id"] });
+    const after = table("notes", cols, { primaryKey: ["slug"] });
+    const diff = diffSchema(snapshot([before]), snapshot([after]));
+    assert.equal(diff.blocking.length, 1);
+    assert.equal(diff.blocking[0]?.kind, "alter_primary_key");
+  });
+
+  it("refuses widening a single key into a composite one", () => {
+    const cols = [column("id", "text"), column("org_id", "text")];
+    const before = table("notes", cols, { primaryKey: ["id"] });
+    const after = table("notes", cols, { primaryKey: ["id", "org_id"] });
+    const diff = diffSchema(snapshot([before]), snapshot([after]));
+    assert.equal(diff.blocking.length, 1);
+    assert.equal(diff.blocking[0]?.kind, "alter_primary_key");
   });
 
   it("does not report a dropped index, which carries no data", () => {

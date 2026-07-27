@@ -21,6 +21,7 @@ import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
 import type { AttemptResolver } from "./registry.js";
+import type { SchemaSnapshot } from "./schema-ddl.js";
 
 /** Explicit stub surface — DO Rpc generics erase method returns under tsc alone. */
 export interface AppStub {
@@ -37,6 +38,7 @@ export interface AppStub {
     appSchemaVersion: number;
     bootstrapMs: number;
   }>;
+  introspectSchema: () => Promise<SchemaSnapshot>;
   destroy: () => Promise<
     | { ok: true; bytesFreed: number }
     | { ok: false; error: "attempt_in_flight"; attemptId: string }
