@@ -1,11 +1,16 @@
 # sfab-lite
 
-Edge-native **lite factory**: host + check + lint workers, a frozen kernel,
-and a starter-lite template. Private monorepo under [`sfab-oss`](https://github.com/sfab-oss).
+An experiment: can a whole app factory — typecheck, lint, publish, serve —
+run on Cloudflare Workers with no build container?
 
-This is the productionization of the measured explore-edge-native-lite
-architecture (T5 loop). Stages and layout live in the agent-workspace packet
-`active/sfab-lite/` (not in this repo).
+This repo is a personal exploration of that question, not a product and not
+something seeking users or contributors. There is no support commitment and
+no stability promise. What works was measured on real deploys; what does not
+is written down under [Known limitations](#known-limitations).
+
+**Lite** means hosted apps run inside a **frozen kernel** (pinned deps, no
+per-app `npm install`). The factory itself is ordinary software. Packages are
+`@sfab-lite/*`.
 
 ## Layout
 
@@ -15,7 +20,7 @@ apps/
   check/     # TypeScript check worker
   lint/      # Biome lint worker
 packages/
-  template/      # starter-lite seed (independently runnable later)
+  template/      # starter-lite seed (independently runnable)
   kernel/        # frozen dependency universe + prebuild
   core/          # shared contracts
   tsconfig/      # shared TS configs
@@ -95,8 +100,7 @@ worker only trusts the console's Origin when it knows which port it is on.
 ## Known limitations
 
 Surprises worth knowing before they bite again, and the things "lite"
-deliberately does not do. Add to this list when something surprises you —
-that is what it is for.
+deliberately does not do.
 
 ### The kernel's types can promise more than its runtime delivers
 
@@ -113,11 +117,11 @@ advertise. When it didn't, app code **typechecked clean, passed the publish
 gate, and threw at runtime** — the one failure the check worker exists to
 prevent.
 
-Found this way (2026-07-24, S2d): `vendor-entries/hono.mjs` was
+Found this way (2026-07-24): `vendor-entries/hono.mjs` was
 `export * from "hono"`, so `hono.js` exported only `Hono` — while the VFS
 shipped hono's full `validator` and `factory` types. `validator("query", …)`
 typechecked clean and threw when the route was hit. Fixed by adding the
-subpath exports to the entry. Found again (2026-07-25, S3.1):
+subpath exports to the entry. Found again (2026-07-25):
 `@base-ui/react` was on `CLIENT_BAILOUTS` while the types VFS still
 advertised it — apps importing button/input typechecked and rendered a blank
 `#root`.
@@ -216,7 +220,7 @@ Measured on real Cloudflare deploys, against the full 32-file template:
 | Cold app create (32 files) | 18.5–25.2s | 16.7–23.0s | 0.6–2.2s |
 | Incremental commit (+1 file) | 10.6–21.3s | 10.1–24.2s | 0.14–1.9s |
 
-Since S2.6 the HTTP request does not wait for any of that — see below.
+The HTTP request does not wait for any of that — see below.
 
 Local numbers (~1.4s cold, ~4ms warm) do **not** predict this. The cause:
 plain Workers have no isolate affinity, so the check worker's per-isolate
@@ -229,7 +233,7 @@ That was measured and refuted: DO warmth survives ~5s of idle but not
 30s, and full template checks inside a DO never stay warm at all.
 
 Commit is therefore **asynchronous in transport, synchronous in
-semantics** (S2.6). `POST /admin/apps/:appId/commit` and `POST /admin/apps`
+semantics**. `POST /admin/apps/:appId/commit` and `POST /admin/apps`
 return **202 with an `attemptId`**; poll
 `GET /admin/apps/:appId/attempts/:attemptId`.
 
@@ -313,7 +317,7 @@ and never reuses the GitHub token after the sign-in exchange.
 
 ### `/admin/*` takes two credentials, and they are not equivalent
 
-Since S3c every admin request needs one of:
+Every admin request needs one of:
 
 | Credential | Scope | How it names an organization |
 | --- | --- | --- |
@@ -336,8 +340,8 @@ committing to the org's apps until their cookie expired.
 
 Two consequences worth stating plainly:
 
-- **No credential is `401`, whatever the config says.** Before S3c an unset
-  `ADMIN_TOKEN` meant the gate returned "allowed" — a factory deployed
+- **No credential is `401`, whatever the config says.** An unset
+  `ADMIN_TOKEN` used to mean the gate returned "allowed" — a factory deployed
   without that secret had a fully open admin surface. A missing secret must
   never be the thing that grants access. Local development sets
   `ADMIN_TOKEN` in `.dev.vars` like any other secret.
@@ -379,10 +383,10 @@ because I/O advances the clock. **Trust client-side walls.**
 
 ### Not built yet (staged, not cut)
 
-Tasks-lite, the agent, and diffs are S3+. Auth, organizations, the app
-registry, and the factory console (S3d) are in. See
-[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for what
-lands where.
+Tasks-lite, the agent, and diffs are not built. Auth, organizations, the app
+registry, and the factory console are in. See
+[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for the
+settled shape and what is still open.
 
 ## Docs
 
