@@ -98,7 +98,7 @@ const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
  * returned `alreadySeeded: true` on collision — with owning organizations that
  * was a tenancy hole (silently attach to whoever already held the name). Gone.
  *
- * The owning organization comes from the dispatcher (S3c.2): a session acts
+ * The owning organization comes from the dispatcher: a session acts
  * on its own, a token must name one via `?organizationId=`. The body carries
  * only `name`. `registry.ts` was written to take the org as an argument and
  * needed no change.
@@ -108,7 +108,7 @@ async function handleCreateApp(rc: OrgCtx): Promise<Response> {
     organizationId?: unknown;
     name?: string;
   } | null;
-  // Body `organizationId` moved to `?organizationId=` (S3c.2). Reject the
+  // Body `organizationId` moved to `?organizationId=`. Reject the
   // legacy field so a session cannot silently ignore a named-other-org and a
   // token/session do not disagree on the same request shape.
   if (body != null && Object.hasOwn(body, "organizationId")) {

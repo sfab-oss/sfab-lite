@@ -13,7 +13,7 @@ SIGNUP_OPEN=true
 # where sign-up is briefly open to the internet. Only ever restricts: set
 # beside SIGNUP_OPEN=true it still wins.
 # SIGNUP_ALLOWLIST=you@example.com, teammate@example.com
-# Root credential for /admin/* (header: X-Admin-Token). Since S3c every
+# Root credential for /admin/* (header: X-Admin-Token). Every
 # /admin request needs *a* credential — this token or a signed-in session —
 # so leaving this unset no longer opens the surface, it just means curl gets
 # a 401 and you have to drive the API with a session cookie.
@@ -26,7 +26,7 @@ ADMIN_TOKEN=dev-admin-token
 # Use the app's Client ID (Iv23…), not its App ID or private key.
 # GITHUB_CLIENT_ID=
 # GITHUB_CLIENT_SECRET=
-# Z.AI coding-plan key for the factory agent (S4). Required for /dev/agent.
+# Z.AI coding-plan key for the factory agent. Required for /dev/agent.
 # Never commit the real value; set as a Worker secret in production.
 # ZAI_API_KEY=
 # Enables AppThread harness callables (inspectWorkspace). Local only — never

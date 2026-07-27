@@ -14,8 +14,7 @@ declare global {
      */
     AppAgent: DurableObjectNamespace<AppAgent>;
     /**
-     * The factory's own D1 — auth and organizations now, the app registry in
-     * S3b.
+     * The factory's own D1 — auth, organizations, and the app registry.
      *
      * It exists because **Durable Objects cannot be enumerated**:
      * `idFromName(appId)` is a hash, so the factory can address an app it can
@@ -106,7 +105,7 @@ declare global {
      * session. See `docs/DEPLOY.md`.
      *
      * Unset does **not** open the surface — `resolveActor` 401s a request
-     * with no usable credential whatever the config says (S3c).
+     * with no usable credential whatever the config says.
      */
     ADMIN_TOKEN?: string;
     /**
@@ -138,7 +137,7 @@ declare global {
     GITHUB_CLIENT_ID?: string;
     GITHUB_CLIENT_SECRET?: string;
     /**
-     * Z.AI coding-plan API key for the factory agent (S4). Worker secret —
+     * Z.AI coding-plan API key for the factory agent. Worker secret —
      * never expose via `/api/config` or any response.
      */
     ZAI_API_KEY?: string;

@@ -19,7 +19,7 @@ import { joinPath, normalizePath, readVfs } from "./vfs.js";
  * import maps cover — 313 of them export runtime values. Without this gate
  * those resolve here, typecheck clean, pass the publish gate, and then throw
  * `Failed to resolve module specifier` in the browser with an empty `#root`.
- * That is the S3.1 failure mode; `@base-ui/react` was one instance of it.
+ * That is the failure mode; `@base-ui/react` was one instance of it.
  *
  * Client app files narrow further to CLIENT_IMPORT_MAP (see isClientAppPath).
  */
