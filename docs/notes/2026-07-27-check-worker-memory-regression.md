@@ -1,0 +1,152 @@
+# The ADR-0004 memory win has been given back
+
+**Date:** 2026-07-27
+**Status:** cause narrowed, fix not chosen
+**Prompted by:** app creation hanging in the console with "app creation timed out"
+
+## What the user sees
+
+Sending the first message from the blank chat state sits for two minutes and
+then fails. `waitForAppReady` (`apps/factory/ui/src/features/chat/page.tsx`)
+polls for `APP_READY_TIMEOUT_MS = 120_000` and throws.
+
+Measured against the live factory, creating four apps through
+`POST /admin/apps`:
+
+| app | outcome |
+| --- | --- |
+| 1 | ready, 15 s |
+| 2 | **stuck in `creating`**, still stuck 12 min later |
+| 3 | ready, 23 s |
+| 4 | ready, 22 s |
+
+The stuck app's attempt reads `status=pending`, `payload=null` — it never wrote
+a terminal status. That is `runCommitAttempt` dying under `ctx.waitUntil`
+before it could settle, which is the failure `commit.ts` already documents. The
+app is not failed, it is orphaned.
+
+Two separate defects are visible in that one row: the OOM itself, and a stale
+sweep that did not reclaim the app despite `STALE_ATTEMPT_MS` being 5 minutes.
+
+## The regression
+
+Measured with `apps/check/scripts/measure-memory.mjs` — the same script that
+produced the numbers in ADR-0004, so these are comparable.
+
+| | files loaded | retained heap |
+| --- | --- | --- |
+| before ADR-0004 | 877 | 330.5 MB |
+| after ADR-0004 | 645 | 263.1 MB |
+| **2026-07-27** | **1351** | **336.8 MB** |
+
+Retention is above where it sat *before* the trim. ADR-0004 pairs 263 MB with
+0 of 64 production OOMs and 330 MB with 36% — and the ~25% create failure rate
+measured above lands where that table predicts. The metric is not workerd's
+accounting, but as a relative indicator it is tracking the real failure rate.
+
+### The gate did not notice
+
+`check:check-memory` passed throughout, reporting
+`{"storeSize":1,"growthMb":9.1,"limitMb":50}`. It bounds *growth between apps*
+and never looks at the absolute floor, so a 74 MB regression in the first
+program is invisible to it. It wants an absolute ceiling.
+
+This is the third instance of the pattern in `making-it-fit.md`'s last lesson:
+a correct check at one layer certifying a broken product.
+
+## Where the growth is
+
+`measure-program.mjs`:
+
+```
+program: 1351 source files, 5.81 MB of text
+   0.57 MB   373 loaded /  1151 in VFS  @base-ui/react
+   0.09 MB   320 loaded /   321 in VFS  @radix-ui/react-icons
+```
+
+`making-it-fit.md` recorded the `@base-ui/react` exception as "800 files, 22
+loaded". It is now 1151 in the VFS with **373 loaded**. The template imports
+eight subpaths — `use-render`, `merge-props`, `tooltip`, `menu`, `input`,
+`dialog`, `button`, `avatar` — across eight component files. That is real
+usage introduced by the template port, not a packaging accident, which is why
+ADR-0004's technique does not apply: this surface is reachable.
+
+## Heap tracks checking, not loading
+
+The most useful thing measured today, and it redirects the whole search.
+`measure-split.mjs` (a harness only — no split exists in the check worker; it
+seeds programs from `src/ui/main.tsx` or `src/hono/index.ts` and runs a
+semantic pass over those roots alone):
+
+| program | files loaded | retained heap |
+| --- | --- | --- |
+| union (what the worker really does) | 1351 | 337 MB |
+| client-only | 1350 | 170 MB |
+| server-only | 474 | 213 MB |
+| client-only, `AppType` stubbed | 1246 | 144 MB |
+
+Client-only loads **1350 of 1351 files and retains half the heap**. Server-only
+loads a third of the files and retains more. Heap follows the semantic pass
+over the roots, not the number of files resolved into the program.
+
+That predicts, and explains, the icon result below. It also means VFS-shrinking
+and file-count-trimming are the wrong instruments unless they remove work the
+checker is actually doing.
+
+### Splitting still does not fit — for a stronger reason than recorded
+
+`making-it-fit.md` rejects the client/server split because the server half was
+"703 files / 270 MB (~82%)". Re-measured, the real objection is simpler: at 213
+MB and 170 MB, **neither half fits a 128 MB isolate**. There is no partition of
+this program that fits.
+
+## Tried and rejected today: collapsing `@radix-ui/react-icons`
+
+The kernel serves the barrel and refuses deep imports, so one icon opens all
+320 per-icon files. Each is four lines declaring one
+`ForwardRefExoticComponent`. Collapsing the barrel to inline declarations (a
+read filter in the closure build, same mechanism as
+`trim-drizzle-dialects.mjs`):
+
+| | files loaded | retained heap |
+| --- | --- | --- |
+| before | 1351 | 336.8 MB |
+| after | 1033 | 332.7 MB |
+
+**318 files for 4.1 MB**, at or below run-to-run noise. Reverted, and recorded
+in the rejected table.
+
+The forecast that motivated it — 0.29 MB/file from ADR-0004, so ~90 MB — was
+wrong because ADR-0004's 232 files were drizzle's generic-heavy dialect
+modules. File count is not a cost model. `making-it-fit.md` says text size does
+not predict heap; file count does not either.
+
+## What to do
+
+Reducing heap below ~263 MB means shedding ~74 MB from surface the template
+genuinely uses, with the split ruled out and file-count trimming shown to be
+the wrong lever. That is open-ended.
+
+The tractable move is the one `making-it-fit.md` lists as still open:
+
+> Move the create attempt off `ctx.waitUntil` to a DO alarm or Queue consumer.
+> Does not reduce memory; makes retries free. Deliberately unbuilt — it is a
+> mitigation, and the memory problem now has a fix.
+
+The final clause is the premise that expired. `CHECK_ATTEMPTS` is 2 only
+because the ~30 s `waitUntil` budget makes a third attempt turn a 15 s failure
+into a 5 minute hang. Somewhere with a real lifetime, retries cost nothing, an
+OOM becomes latency rather than an orphaned app, and it holds regardless of
+what the heap does next.
+
+Also outstanding, and cheap:
+
+- **An absolute ceiling in `check:check-memory`**, not only a growth bound.
+- **The stale sweep** did not reclaim an app 12 minutes past a 5 minute
+  threshold.
+
+## Related
+
+- [ADR-0004](../decisions/0004-trim-unreachable-vendor-surface.md)
+- [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md)
+- [`2026-07-25-check-worker-memory.md`](2026-07-25-check-worker-memory.md)

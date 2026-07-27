@@ -65,11 +65,15 @@ program reaches, resolved against an isolated install
 (`packages/kernel/universe`) so workspace peers cannot leak in. Whole-package
 dumps would be several times larger.
 
-One deliberate exception: `@base-ui/react` ships whole (800 files, 22 loaded),
-because the client kernel vendors the full runtime surface and the VFS must
-advertise the same vocabulary — otherwise an app importing `dialog` fails the
-check for a component that would have worked. The exception is load bearing;
-do not "optimise" it away.
+One deliberate exception: `@base-ui/react` ships whole, because the client
+kernel vendors the full runtime surface and the VFS must advertise the same
+vocabulary — otherwise an app importing `dialog` fails the check for a
+component that would have worked. The exception is load bearing; do not
+"optimise" it away.
+
+It was 800 files in the VFS with **22 loaded**. As of 2026-07-27 it is 1151 in
+the VFS with **373 loaded** — see the regression below. Shipping whole is still
+right; loading 373 of them is what needs explaining.
 
 ### 3. Bounding per-app state to exactly one app
 
@@ -127,8 +131,9 @@ instead of failing in fifteen seconds. `CHECK_ATTEMPTS` is 2.
 | --- | --- | --- |
 | Share a `DocumentRegistry` across apps | Shared ASTs become permanently resident; peak = shared parse (195 MB) + per-app check (130 MB) ≈ 325 MB. Identical. Buys time, not memory. | arithmetic, this repo |
 | Prune the VFS of never-opened files | 1,196 files are never opened — they cost upload, not heap | `measure-program.mjs` |
-| Split the program into client + server | Client-only still loads 876 of 877 files: `api.ts` does `hc<AppType>` against the server's Hono type, and that one `import type` fuses the graphs. Cutting it still leaves the server half at 703 files / 270 MB (~82%) | `measure-split.mjs` |
+| Split the program into client + server | Client-only still loads 876 of 877 files: `api.ts` does `hc<AppType>` against the server's Hono type, and that one `import type` fuses the graphs. Cutting it still leaves the server half at 703 files / 270 MB (~82%). **Re-measured 2026-07-27: the real objection is simpler — client 170 MB, server 213 MB, so neither half fits 128 MB.** | `measure-split.mjs` |
 | Trim `lib.dom.d.ts` | 40% of loaded text but only **32 MB / ~10%** of heap | phase measurement |
+| Collapse `@radix-ui/react-icons` to one `.d.ts` | The kernel serves the barrel and refuses deep imports, so one icon opens all 320 per-icon files. Collapsing the barrel to inline declarations took the program from **1351 to 1033** source files and the heap from **336.8 to 332.7 MB** — 318 files for 4.1 MB, at or below run-to-run noise. Each file is four lines declaring one `ForwardRefExoticComponent`; nothing like drizzle's dialect modules. | `measure-program.mjs`, `measure-memory.mjs`, 2026-07-27 |
 | `better-auth` deep imports | 157 → 141 files, 2 MB of heap; also blocked by the import-map resolver gate | dep-shape probe |
 | CheckDO for warm affinity | Retention ~30s; full template checks did not stay warm and often 500'd | DO warm-curve ladder |
 | A bigger Worker | 128 MB on Free and Paid alike; no 2026 increase | Cloudflare docs |
@@ -136,9 +141,35 @@ instead of failing in fifteen seconds. `CHECK_ATTEMPTS` is 2.
 
 ## Still open
 
+- **The ADR-0004 win has been given back.** Measured 2026-07-27 with
+  `measure-memory.mjs`, the same script that produced the numbers above:
+
+  | | files loaded | retained heap |
+  | --- | --- | --- |
+  | before ADR-0004 | 877 | 330.5 MB |
+  | after ADR-0004 | 645 | 263.1 MB |
+  | **2026-07-27** | **1351** | **336.8 MB** |
+
+  Retention is now *above* the pre-trim figure. It is felt in production as app
+  creation hanging: the check worker OOMs, `runCommitAttempt` dies under
+  `ctx.waitUntil` without writing a terminal status, and the app sits in
+  `creating` past the stale sweep. One in four creates, measured against the
+  live factory.
+
+  `check:check-memory` passes throughout, because it bounds *growth between
+  apps* (+9.1 MB against a 50 MB limit) and never looks at the absolute floor.
+  It is the third instance of the pattern in the last lesson below, and it
+  wants an absolute ceiling.
+
+  The icon collapse in the rejected table above was the first hypothesis and
+  accounted for 4 MB of it. The open question is `@base-ui/react` at 373 loaded
+  files against the 22 recorded when the exception was written.
+
 - **Move the create attempt off `ctx.waitUntil`** to a DO alarm or Queue
-  consumer. Does not reduce memory; makes retries free. Deliberately unbuilt —
-  it is a mitigation, and the memory problem now has a fix.
+  consumer. Does not reduce memory; makes retries free. Written up as a
+  mitigation not worth building while the memory problem had a fix — that
+  premise no longer holds, and it is now what stands between an OOM and an app
+  stuck in `creating` for five minutes.
 - **Runtime bundle diet.** `apps/lint` is at 95.4% of the upload limit (Biome
   WASM). `apps/factory` at 57.5% carries the vendor bundles, where the
   `better-auth` barrel is 2.1 MB. See ADR-0004's candidate list.
@@ -152,11 +183,19 @@ says so explicitly. A "20/20 clean under `wrangler dev`" result said nothing at
 all about a 36% production OOM rate. Anything memory-shaped must be measured
 with `wrangler tail --format json` against a real deploy, counting outcomes.
 
-**Text size does not predict heap.** `lib.dom.d.ts` is 40% of loaded text and
-~10% of heap; generic-heavy library types cost far more per byte than
-declaration-heavy ones. Measure heap when the target is the check worker;
-measure bytes when the target is the upload limit. They are different problems
-with different answers.
+**Text size does not predict heap, and neither does file count.**
+`lib.dom.d.ts` is 40% of loaded text and ~10% of heap; generic-heavy library
+types cost far more per byte than declaration-heavy ones. Measure heap when the
+target is the check worker; measure bytes when the target is the upload limit.
+They are different problems with different answers.
+
+**Heap follows the semantic pass, not the file graph.** Measured 2026-07-27:
+client-only loads 1350 of 1351 files and retains 170 MB, while server-only
+loads 474 and retains 213 MB — a third of the files, more heap. What costs is
+checking the roots, not resolving files into the program. Removing 318 icon
+files changed nothing because nothing was checking them. Before proposing a
+trim, ask whether it removes work the checker is doing, not files it is
+holding.
 
 **A correct check at one layer can certify a broken product.** This has now
 bitten repeatedly, in the same shape each time: the seed gate passes while the
