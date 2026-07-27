@@ -8,9 +8,9 @@ ADRs under [`../decisions/`](../decisions/).
 ## Hard distinction
 
 1. **Factory is ordinary software.** `apps/factory` (and shared packages it
-   uses for UI) may use the full registry / UI stack. It is fixed software we
-   ship and maintain.
-2. **Sub-apps are data.** Customer/lite apps run inside a **frozen kernel**
+   uses for UI) may use the full registry / UI stack. It is fixed software
+   for the experiment — not a product surface seeking users.
+2. **Sub-apps are data.** Hosted lite apps run inside a **frozen kernel**
    (`packages/kernel`): pinned deps, prebuild (types VFS + client chunks).
    The template (`packages/template`) is the seed + closure source and must
    stay independently runnable.
@@ -52,8 +52,8 @@ Shared contracts live in `packages/core`.
 | In | Not built yet |
 | --- | --- |
 | Template, frozen kernel, host, check, lint | Tasks-lite |
-| Auth, organizations, app registry | Agent over the admin API |
-| Factory console | Diffs, quotas, schema evolution, eject |
+| Auth, organizations, app registry | Diffs, quotas, schema evolution, eject |
+| Factory console + in-console agent loop | Agent over the admin API |
 
 ## Related
 

@@ -7,11 +7,13 @@
 ## Context
 
 Bootstrap needed a clean monorepo before UI, auth, or agent work. Several
-product questions are real but block later slices, not the first loop.
+scope questions were real but blocked later slices, not the first loop. This
+ADR records that sequencing choice. It is not a roadmap and not a commitment
+to build anything listed here.
 
 ## Decision
 
-Defer until the named check-in:
+Defer until the named check-in (as of bootstrap):
 
 | Topic | Decide when |
 | --- | --- |
@@ -19,24 +21,27 @@ Defer until the named check-in:
 | Tasks-lite scope | When tasks-lite work starts |
 | Agent substrate | When agent work starts |
 
-Factory UI/UX is also not settled at bootstrap — sharpen when that work
+Factory UI/UX was also unsettled at bootstrap — sharpen when that work
 starts. Do not invent interim auth-less admin panels or speculative agent
-harnesses.
+harnesses ahead of the loop that needs them.
 
 ## Consequences
 
 ### Positive
 
-- Early work stays focused on template + runtime port.
-- Product questions get a real sharpening pass with a working loop.
+- Early work stayed focused on template + runtime port.
+- Scope questions got a real pass only when a working loop needed them.
 
 ### Negative
 
-- Factory UI / auth / organizations cannot start until domain is decided.
+- At bootstrap, factory UI / auth / organizations could not start until
+  domain was decided.
 
 ### Mitigations
 
 - Call out the blockers explicitly when handing off between slices.
+- Treat this ADR as recorded context for *why* some surfaces were absent
+  early — not as a backlog of product features to ship.
 
 ## Related
 

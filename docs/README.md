@@ -4,7 +4,8 @@ In-repo engineering docs (PR-authored, reviewed like code). Knowledge lives
 with the code under `docs/`.
 
 **Lite** means the hosted template / frozen-kernel sub-apps — not skimpy
-factory tooling or documentation.
+factory tooling or documentation. This tree is for the experiment's
+architecture, decisions, and measured constraints — not operator manuals.
 
 ## Map
 
@@ -23,10 +24,10 @@ are already refuted there with measurements, and re-deriving them is expensive.
 
 House rules for agents also live in [`../AGENTS.md`](../AGENTS.md).
 
-## Not in this tree (yet)
+## Not in this tree
 
-- Product / operator guides and a public docs site (`apps/docs`) — deferred
-  until there is a surface worth documenting that way.
-- Engineering smell/structure guides — `docs/engineering/` now exists for
+- A separate public docs site (`apps/docs`) — there is none; engineering docs
+  here are the surface.
+- Engineering smell/structure guides — `docs/engineering/` holds
   platform-constraint technique; add smell/structure guides alongside it when
   the codebase is thick enough to need them.

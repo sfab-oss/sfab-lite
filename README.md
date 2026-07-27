@@ -1,16 +1,31 @@
 # sfab-lite
 
-An experiment: can a whole app factory — typecheck, lint, publish, serve —
-run on Cloudflare Workers with no build container?
+**sfab** is short for *software fabricator*. This repo is an experiment on how
+to keep cost cheaper and things faster: an app factory — typecheck, lint,
+publish, serve — on Cloudflare Workers with no build container and no
+per-app `npm install`.
 
-This repo is a personal exploration of that question, not a product and not
-something seeking users or contributors. There is no support commitment and
-no stability promise. What works was measured on real deploys; what does not
-is written down under [Known limitations](#known-limitations).
+Feasibility is already demonstrated. The question is whether this shape is
+cheaper and faster than the usual stack, and by how much — wins and losses
+together. Measured numbers live under [Known limitations](#known-limitations);
+approaches that were measured and rejected are part of the result in
+[`docs/engineering/making-it-fit.md`](docs/engineering/making-it-fit.md).
+
+This is a personal exploration of that question, not a product and not
+something seeking users or contributors. There is no public deploy — that is
+deliberate. There is no support commitment and no stability promise.
 
 **Lite** means hosted apps run inside a **frozen kernel** (pinned deps, no
 per-app `npm install`). The factory itself is ordinary software. Packages are
 `@sfab-lite/*`.
+
+## What the console does
+
+Sign in, create an app, talk to it in a thread. The agent writes into a
+shared per-app workspace; check and lint gate every publish; a ready app
+serves at `/a/:appId`. There is no separate publish button — the agent
+deploys through the same gate as seed creation. Tasks-lite and a diff UI
+are not built.
 
 ## Layout
 
@@ -381,10 +396,10 @@ as a side-channel defence, so a Worker cannot time itself. Fields measured
 around a `fetch` (`checkWallMs`, `lintWallMs` in the factory) are real,
 because I/O advances the clock. **Trust client-side walls.**
 
-### Not built yet (staged, not cut)
+### Not built yet
 
-Tasks-lite, the agent, and diffs are not built. Auth, organizations, the app
-registry, and the factory console are in. See
+Tasks-lite and a diff UI are not built. Auth, organizations, the app
+registry, the factory console, and the in-console agent loop are in. See
 [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) for the
 settled shape and what is still open.
 

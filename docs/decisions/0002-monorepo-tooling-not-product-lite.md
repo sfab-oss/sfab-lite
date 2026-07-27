@@ -1,4 +1,4 @@
-# ADR-0002: Monorepo tooling matches starter/platform; "lite" is the product
+# ADR-0002: Monorepo tooling is full-weight; lite is a kernel constraint
 
 **Status:** Accepted
 **Date:** 2026-07-24
@@ -8,9 +8,10 @@
 
 Initial bootstrap used a one-off root `tsconfig.base.json` and a minimal Biome
 config. That read as "the monorepo itself is lite." The intent is different:
-**lite** is the frozen-kernel template / sub-app constraint. The factory
-monorepo should feel like a full platform / starter repo — shared configs,
-real gates — not a probe.
+**lite** names the frozen-kernel constraint on hosted sub-apps (pinned deps,
+no per-app `npm install`). The factory monorepo is ordinary engineering
+tooling — shared configs, real gates — not a probe, and not a product being
+shipped.
 
 ## Decision
 
@@ -20,8 +21,8 @@ real gates — not a probe.
    platform-closer (workspace, typecheck, cycles, dead-code); pre-push blocks
    `main`.
 3. Package names `@sfab-lite/*`; license **AGPL-3.0-only**.
-4. Product "lite" constraints apply to sub-apps / kernel / template — not to
-   factory tooling or documentation depth.
+4. "Lite" constraints apply to sub-apps / kernel / template — not to factory
+   tooling or documentation depth.
 
 ## Consequences
 
@@ -36,8 +37,7 @@ real gates — not a probe.
 
 ### Mitigations
 
-- Keep product packages empty until their work starts; don't invent
-  lite-specific tooling forks.
+- Do not invent lite-specific tooling forks; keep factory packages ordinary.
 
 ## Related
 
