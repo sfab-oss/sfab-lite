@@ -371,6 +371,18 @@ await vendorPkg({
   importKeys: ["@tanstack/react-query"],
 });
 
+// The app's only icon set. A finite, complete library rather than a subset:
+// the agent cannot discover which icons a subset holds, and would learn the
+// boundary one typecheck error at a time. All 318 cost 89.5 KB in the types
+// VFS against lucide's ~1.96 MB, which is what makes shipping them all viable.
+await vendorPkg({
+  name: "@radix-ui/react-icons",
+  entrySource: `export * from "@radix-ui/react-icons";\n`,
+  outfileName: "radix-icons.js",
+  external: ["react", "react/jsx-runtime"],
+  importKeys: ["@radix-ui/react-icons"],
+});
+
 await vendorPkg({
   name: "clsx",
   entrySource: `export * from "clsx";\nexport { default } from "clsx";\n`,

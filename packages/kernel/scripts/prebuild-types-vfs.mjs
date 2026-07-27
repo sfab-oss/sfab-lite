@@ -519,6 +519,10 @@ function includeFullPackageTypes(pkgName) {
 
 const closure = buildClosureFromTemplateProgram();
 const baseUiExtraFiles = includeFullPackageTypes("@base-ui/react");
+// Same reason as base-ui: the client kernel vendors every icon, so an app may
+// import any of them. Pruning to what the template happens to draw would make
+// the check worker reject the other three hundred.
+const iconExtraFiles = includeFullPackageTypes("@radix-ui/react-icons");
 assertNoDeadDialects();
 
 if (!existsSync(coreAmbient)) {
@@ -569,9 +573,13 @@ const manifest = {
         extraFiles: baseUiExtraFiles,
         note: "Whole package included so types match the fully-vendored client kernel surface.",
       },
+      "@radix-ui/react-icons": {
+        extraFiles: iconExtraFiles,
+        note: "Same: every icon is vendored into the client kernel, so every icon must typecheck.",
+      },
     },
   },
-  note: "Pruned types VFS — template app program closure (isolated universe), plus full @base-ui/react.",
+  note: "Pruned types VFS — template app program closure (isolated universe), plus full @base-ui/react and @radix-ui/react-icons.",
 };
 
 writeFileSync(

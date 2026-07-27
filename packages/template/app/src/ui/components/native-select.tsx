@@ -1,3 +1,4 @@
+import { ChevronDownIcon } from "@radix-ui/react-icons";
 import type * as React from "react";
 import { cn } from "../lib/utils";
 
@@ -8,11 +9,8 @@ type NativeSelectProps = Omit<React.ComponentProps<"select">, "size"> & {
 /**
  * The platform's own select, styled to match `Input`.
  *
- * shadcn's rich `Select` is built on a popover and a Lucide chevron, and the
- * kernel serves no icon package — so the chevron is inline, the same way
- * `Spinner` is. That is the seed's icon rule while the kernel has no icon set:
- * a component may carry one inline glyph of its own, and anything wanting a
- * set of icons waits for the kernel to serve one.
+ * shadcn's rich `Select` is built on a popover, which the seed does not carry;
+ * this is the native control wearing the same styling.
  */
 function NativeSelect({
   className,
@@ -33,19 +31,10 @@ function NativeSelect({
         data-slot="native-select"
         {...props}
       />
-      <svg
+      <ChevronDownIcon
         aria-hidden="true"
         className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path d="m6 9 6 6 6-6" />
-      </svg>
+      />
     </div>
   );
 }

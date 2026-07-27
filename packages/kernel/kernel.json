@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.4.0",
   "serverSurfaceHash": "sha256:43caeaf74f0fbccc082e89a19b90ede6ef3a423bdcf028ad2baaf46e0f75ad92",
   "pins": {
     "react": "19.2.8",
@@ -13,6 +13,7 @@
     "@tanstack/react-router": "1.129.0",
     "@tanstack/react-query": "5.83.0",
     "@base-ui/react": "1.6.0",
+    "@radix-ui/react-icons": "1.3.2",
     "zod": "4.3.5"
   },
   "serverChunks": [
@@ -32,6 +33,7 @@
     "react-dom-client.js",
     "tanstack-router.js",
     "tanstack-query.js",
+    "radix-icons.js",
     "clsx.js",
     "cva.js",
     "tailwind-merge.js",
@@ -46,6 +48,7 @@
     "react-dom/client": "./react-dom-client.js",
     "@tanstack/react-router": "./tanstack-router.js",
     "@tanstack/react-query": "./tanstack-query.js",
+    "@radix-ui/react-icons": "./radix-icons.js",
     "clsx": "./clsx.js",
     "class-variance-authority": "./cva.js",
     "tailwind-merge": "./tailwind-merge.js",
@@ -114,6 +117,7 @@
     "client/react-dom-client.js": "sha256:6b0ff0819db093b28e2387568f8b2522f9d4c1f68a6d38fef4af406575ca136d",
     "client/tanstack-router.js": "sha256:84d455086f688ce950814e1bedab98cc8cc2f8ef03b2f2607fe9b3073ddc5250",
     "client/tanstack-query.js": "sha256:4e282af9f59d2d990ff9535659c64a01e19e40d34ddbf2c09efe7b94d8ccd458",
+    "client/radix-icons.js": "sha256:8d213002e7caece0abb635473a37e1670fa81697cf5e55587e4a5a96bf3e0169",
     "client/clsx.js": "sha256:1aeea24e623521bd83abe109fad95707df919ba9c0a85dfce9673a7f98c2cb9d",
     "client/cva.js": "sha256:f2e1b0729df28ed9377e9ddf3b89797a4a4582c0ce6208d3a172aedd9e8f9f94",
     "client/tailwind-merge.js": "sha256:3994632fbf457911c244c2a7f84069d9222a277654bb67b8da19fcf6387f0dcb",
@@ -122,9 +126,9 @@
     "client/base-ui-react.js": "sha256:5c152675dfebc289fe95806e230d5e8d961d10b17106eacced0b06908a4fe345"
   },
   "typesVfs": {
-    "fileCount": 1823,
-    "rawBytes": 8648993,
-    "gzipBytes": 1233558,
+    "fileCount": 2144,
+    "rawBytes": 8740675,
+    "gzipBytes": 1242257,
     "packages": {
       "@base-ui/react": 812,
       "@better-auth/core": 90,
@@ -132,6 +136,7 @@
       "@better-auth/telemetry": 1,
       "@better-auth/utils": 1,
       "@better-fetch/fetch": 1,
+      "@radix-ui/react-icons": 320,
       "@standard-schema/spec": 1,
       "@tanstack/history": 1,
       "@tanstack/query-core": 10,
@@ -189,6 +194,7 @@
     "react-dom/client": 1008152,
     "@tanstack/react-router": 217087,
     "@tanstack/react-query": 106981,
+    "@radix-ui/react-icons": 489823,
     "clsx": 632,
     "class-variance-authority": 2768,
     "tailwind-merge": 91325,
@@ -203,6 +209,7 @@
     "react-dom-client.js": 171440,
     "tanstack-router.js": 43642,
     "tanstack-query.js": 20947,
+    "radix-icons.js": 101911,
     "clsx.js": 334,
     "cva.js": 896,
     "tailwind-merge.js": 14577,
@@ -211,14 +218,14 @@
     "base-ui-react.js": 269583
   },
   "totals": {
-    "raw": 7463426,
-    "gzip": 1295386,
-    "typesGzip": 1233558,
+    "raw": 7953249,
+    "gzip": 1397297,
+    "typesGzip": 1242257,
     "cssGzip": 13148,
-    "clientGzip": 564502,
-    "hostBakeGzip": 2542092
+    "clientGzip": 666413,
+    "hostBakeGzip": 2652702
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,
-  "note": "kernel@0.3.0 — server + types VFS + client chunks + CSS VFS"
+  "note": "kernel@0.4.0 — server + types VFS + client chunks + CSS VFS"
 }

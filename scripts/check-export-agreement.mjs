@@ -388,6 +388,7 @@ const KERNEL_SURFACE_PACKAGES = new Set([
  */
 const CLIENT_ONLY_PACKAGES = new Set([
   "@base-ui/react",
+  "@radix-ui/react-icons",
   "@tanstack/react-query",
   "@tanstack/react-router",
   "class-variance-authority",
