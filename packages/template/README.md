@@ -119,17 +119,17 @@ because only one of them is a real constraint:
   (recharts), `carousel` (embla), `calendar` (react-day-picker), `drawer`
   (vaul), `resizable`, `markdown` (streamdown). These need a kernel decision
   before they can be ported at all.
-- **Merely not ported yet** — `tabs`, `tooltip`, `switch`, `popover`,
-  `progress`, `slider`, `toggle`, `radio-group`, `collapsible`,
-  `hover-card`, `aspect-ratio` and friends need only `@base-ui/react` and
-  `cn`, both of which the kernel already serves. So does the overlay/menu/
-  select family (dialog, dropdown-menu, select, sheet, sidebar, …) — now that
-  the kernel serves an icon set, every Base UI primitive those need is in the
-  import map, and porting one means swapping its `lucide-react` import for the
-  matching Radix icon. `command` is the exception in that family: it is built
-  on `cmdk`, which no icon set makes available. They are absent because
-  **every file here ships into every app**, and `knip` rejects a seed file
-  nothing imports. Add one the moment a route actually uses it.
+- **Merely not ported yet** — `tabs`, `switch`, `popover`, `progress`,
+  `slider`, `toggle`, `radio-group`, `collapsible`, `hover-card`,
+  `aspect-ratio` and friends need only `@base-ui/react` and `cn`, both of
+  which the kernel already serves. So do the rest of the overlay/menu/select
+  family — `dialog`, `select`, and the like: `dropdown-menu`, `sheet`,
+  `tooltip`, and `sidebar` from that family already ship, and porting another
+  means swapping its `lucide-react` import for the matching Radix icon.
+  `command` is the exception: it is built on `cmdk`, which no icon set makes
+  available. They are absent because **every file here ships into every app**,
+  and `knip` rejects a seed file nothing imports. Add one the moment a route
+  actually uses it.
 
 That rule cuts the other way too, and the ERP port is where it bit:
 `textarea` left with the notes form, and `CardAction` and `EmptyMedia` left

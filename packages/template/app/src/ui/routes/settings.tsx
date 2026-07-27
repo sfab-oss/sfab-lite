@@ -52,6 +52,9 @@ export function SettingsPage() {
 
     await invalidateSession();
     await queryClient.invalidateQueries();
+    // Back to following the query: holding the edited string would freeze the
+    // field against a rename that lands from anywhere else.
+    setName(null);
     setSaved(true);
   }
 

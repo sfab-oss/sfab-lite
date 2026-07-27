@@ -32,7 +32,7 @@ import { formatCents } from "../lib/money";
 import { productsQueryOptions } from "../lib/products";
 
 export function DocumentDetailPage() {
-  const { id } = useParams({ from: "/documents/$id" });
+  const { id } = useParams({ from: "/_app/documents/$id" });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 

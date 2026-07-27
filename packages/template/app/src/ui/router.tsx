@@ -5,6 +5,7 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
+import { AppLayout } from "./components/app-shell";
 import { publicBase } from "./lib/public-base";
 import { loadSession } from "./lib/session";
 import { CatalogPage } from "./routes/catalog";
@@ -34,17 +35,6 @@ function Root() {
 
 const rootRoute = createRootRoute({ component: Root });
 
-/**
- * The landing page for a signed-in operator. `requireSession` is a hoisted
- * function declaration, so referring to it above its definition is fine.
- */
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  beforeLoad: requireSession,
-  component: OverviewPage,
-});
-
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sign-in",
@@ -72,12 +62,6 @@ const onboardingRoute = createRoute({
   component: OnboardingPage,
 });
 
-/**
- * What every signed-in page requires, written once. A pathless layout route
- * would express the same thing, but it also prefixes each child's id — and
- * those ids are what `useParams({ from })` is typed against, so the pages
- * would all have to name a route segment that does not exist in any URL.
- */
 async function requireSession() {
   const session = await loadSession();
   if (!session.authenticated) {
@@ -88,51 +72,69 @@ async function requireSession() {
   }
 }
 
-const documentsRoute = createRoute({
+/**
+ * Everything behind a session, sharing one mount of the sidebar chrome. It is
+ * pathless — `_app` names no URL segment — which is what lets the sidebar
+ * survive navigation between its children instead of remounting per page.
+ *
+ * The id still prefixes each child's, so `useParams({ from })` names
+ * `/_app/documents/$id` rather than `/documents/$id`.
+ */
+const appLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/documents",
+  id: "_app",
   beforeLoad: requireSession,
+  component: AppLayout,
+});
+
+const indexRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/",
+  component: OverviewPage,
+});
+
+const documentsRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  path: "/documents",
   component: DocumentsPage,
 });
 
 const documentDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/documents/$id",
-  beforeLoad: requireSession,
   component: DocumentDetailPage,
 });
 
 const entitiesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/entities",
-  beforeLoad: requireSession,
   component: EntitiesPage,
 });
 
 const catalogRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/catalog",
-  beforeLoad: requireSession,
   component: CatalogPage,
 });
 
 const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: "/settings",
-  beforeLoad: requireSession,
   component: SettingsPage,
 });
 
 const routeTree = rootRoute.addChildren([
-  indexRoute,
   signInRoute,
   signUpRoute,
   onboardingRoute,
-  documentsRoute,
-  documentDetailRoute,
-  entitiesRoute,
-  catalogRoute,
-  settingsRoute,
+  appLayoutRoute.addChildren([
+    indexRoute,
+    documentsRoute,
+    documentDetailRoute,
+    entitiesRoute,
+    catalogRoute,
+    settingsRoute,
+  ]),
 ]);
 
 /**
