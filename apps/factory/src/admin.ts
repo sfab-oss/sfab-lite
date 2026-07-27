@@ -6,6 +6,7 @@
  * before a handler sees the request.
  */
 import { mergeSources } from "@sfab-lite/core";
+import { APP_NAME_MAX_LENGTH, pickAppName } from "./app-names.js";
 import {
   githubAuthEnabled,
   githubSecretsPresent,
@@ -29,9 +30,11 @@ import {
   deleteAppUnscoped,
   getAppUnscoped,
   insertCreatingApp,
+  listAppNamesForOrganization,
   listAppsForOrganization,
   markCreateFailed,
   organizationExists,
+  renameAppUnscoped,
   setCreateAttemptId,
   settleCreateApp,
 } from "./registry.js";
@@ -102,6 +105,10 @@ const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
  * on its own, a token must name one via `?organizationId=`. The body carries
  * only `name`. `registry.ts` was written to take the org as an argument and
  * needed no change.
+ *
+ * `name` is optional: the console does not have one to send, because the app
+ * is created from a prompt describing what to build rather than what to call
+ * it. Omitting it draws a placeholder from `app-names.ts`.
  */
 async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
@@ -115,15 +122,19 @@ async function handleCreateApp(rc: OrgCtx): Promise<Response> {
     return jsonError("organizationId_must_be_query_param");
   }
   const { organizationId } = rc;
-  const name = body?.name?.trim();
-  if (!name) {
-    return jsonError("name required");
+  const requested = body?.name?.trim();
+  if (requested && requested.length > APP_NAME_MAX_LENGTH) {
+    return jsonError("name_too_long");
   }
 
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
     return jsonError("organization_not_found", 404);
   }
+
+  const name =
+    requested ||
+    pickAppName(await listAppNamesForOrganization(db, organizationId));
 
   // Row before DO work: the UI needs something to poll during the ~18–25s seed.
   const created = await insertCreatingApp(db, { organizationId, name });
@@ -201,6 +212,28 @@ async function handleGetApp(rc: AppCtx): Promise<Response> {
     rc.appId,
     attemptResolver(rc.env)
   );
+  if (!record) {
+    return jsonError("app_not_found", 404);
+  }
+  return Response.json({ ok: true, app: record });
+}
+
+/**
+ * Rename an app. The generated name is a placeholder, so replacing it is an
+ * ordinary edit rather than a recovery from an error.
+ */
+async function handleRenameApp(rc: AppCtx): Promise<Response> {
+  const body = (await rc.request.json().catch(() => null)) as {
+    name?: string;
+  } | null;
+  const name = body?.name?.trim();
+  if (!name) {
+    return jsonError("name required");
+  }
+  if (name.length > APP_NAME_MAX_LENGTH) {
+    return jsonError("name_too_long");
+  }
+  const record = await renameAppUnscoped(createDb(rc.env), rc.appId, name);
   if (!record) {
     return jsonError("app_not_found", 404);
   }
@@ -535,6 +568,12 @@ const ADMIN_ROUTES: AdminRoute[] = [
   },
   // After `/admin/apps/:id/…` routes so a looser pattern cannot steal them.
   { method: "GET", pattern: RE_ADMIN_APP, scope: "app", handler: handleGetApp },
+  {
+    method: "PATCH",
+    pattern: RE_ADMIN_APP,
+    scope: "app",
+    handler: handleRenameApp,
+  },
   {
     method: "DELETE",
     pattern: RE_ADMIN_APP,

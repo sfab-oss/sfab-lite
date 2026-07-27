@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import type { AppRecord } from "../api";
-import { AuthRequiredError, deleteApp, listApps } from "../api";
+import { AuthRequiredError, deleteApp, listApps, renameApp } from "../api";
 import { endUnusableSession } from "../auth-client";
 import { Link, useRouter } from "../router";
 import { ConsoleChrome } from "./chrome";
@@ -111,6 +111,16 @@ export function AppsListScreen() {
               </span>
               <StatusBadge status={app.status} />
             </Link>
+            <RenameAppButton
+              app={app}
+              onRenamed={(name) =>
+                setApps((prev) =>
+                  prev
+                    ? prev.map((a) => (a.id === app.id ? { ...a, name } : a))
+                    : prev
+                )
+              }
+            />
             <DeleteAppButton
               app={app}
               onDeleted={() =>
@@ -150,6 +160,92 @@ export function AppsListScreen() {
       )}
       {body}
     </ConsoleChrome>
+  );
+}
+
+const APP_NAME_MAX_LENGTH = 64;
+
+/**
+ * Edits in place rather than in a dialog: the row already shows the name and
+ * the id it belongs to, which is everything a rename needs to be unambiguous.
+ */
+function RenameAppButton({
+  app,
+  onRenamed,
+}: {
+  app: AppRecord;
+  onRenamed: (name: string) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const name = draft?.trim();
+    if (!name || name === app.name) {
+      setDraft(null);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await renameApp(app.id, name);
+      onRenamed(updated.name);
+      setDraft(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (draft === null) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setError(null);
+          setDraft(app.name);
+        }}
+        aria-label={`Rename ${app.name}`}
+        className="border-0 bg-transparent px-3 py-3 text-[var(--muted-foreground)] text-xs hover:text-[var(--foreground)]"
+      >
+        Rename
+      </button>
+    );
+  }
+
+  return (
+    <form className="flex items-center gap-2 px-3 py-3" onSubmit={onSubmit}>
+      <input
+        autoFocus
+        aria-label={`New name for ${app.name}`}
+        className="border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-[var(--foreground)] text-xs"
+        disabled={busy}
+        maxLength={APP_NAME_MAX_LENGTH}
+        onChange={(event) => setDraft(event.target.value)}
+        value={draft}
+      />
+      <button
+        type="submit"
+        disabled={busy}
+        className="border-0 bg-transparent p-0 font-medium text-[var(--foreground)] text-xs disabled:opacity-50"
+      >
+        {busy ? "Saving…" : "Save"}
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => setDraft(null)}
+        className="border-0 bg-transparent p-0 text-[var(--muted-foreground)] text-xs disabled:opacity-50"
+      >
+        Cancel
+      </button>
+      {error && (
+        <span className="text-[var(--destructive)] text-xs">{error}</span>
+      )}
+    </form>
   );
 }
 
