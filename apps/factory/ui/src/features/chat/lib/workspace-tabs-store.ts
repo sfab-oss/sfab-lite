@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type WorkspaceKind = "files" | "terminal" | "browser" | "versions";
+export type WorkspaceKind = "files" | "browser" | "versions";
 
 const SINGLETON_KINDS: ReadonlySet<WorkspaceKind> = new Set([
   "files",
