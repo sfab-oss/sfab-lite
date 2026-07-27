@@ -74,6 +74,8 @@ function d1Meta(cursor: { rowsRead: number; rowsWritten: number }): SqlMeta {
   };
 }
 
+const SEED_CREDENTIALS_KEY = "seed:credentials";
+
 /**
  * 24 bytes of CSPRNG, base64url so it survives a header, a JSON body and a
  * copy-paste out of a terminal without escaping.
@@ -117,11 +119,6 @@ CREATE TABLE IF NOT EXISTS _sfab_commit_attempts (
 );
 CREATE INDEX IF NOT EXISTS _sfab_commit_attempts_status
   ON _sfab_commit_attempts (status);
-CREATE TABLE IF NOT EXISTS _sfab_seed (
-  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-  token TEXT NOT NULL,
-  password TEXT NOT NULL
-);
 `.trim();
 
 /**
@@ -790,22 +787,24 @@ export class AppDO extends DurableObject {
    * Deliberately recoverable, not one-shot. `pnpm seed` has to be able to
    * reprint a working login, and an app whose only demo credential scrolled
    * past in a terminal is an app you have to reset to get back into.
+   *
+   * Key-value storage, not a `_sfab_` table: the app's own `DB` binding and
+   * `/admin/apps/:id/sql` both run unfiltered SQL against this Durable
+   * Object's database, and app code is agent-written. The key-value namespace
+   * is one neither of them can address.
    */
-  seedCredentials(): { token: string; password: string } {
-    const row = this.ctx.storage.sql
-      .exec("SELECT token, password FROM _sfab_seed WHERE singleton = 1")
-      .toArray()[0] as { token?: string; password?: string } | undefined;
+  async seedCredentials(): Promise<{ token: string; password: string }> {
+    const stored = await this.ctx.storage.get<{
+      token: string;
+      password: string;
+    }>(SEED_CREDENTIALS_KEY);
 
-    if (row?.token && row.password) {
-      return { token: row.token, password: row.password };
+    if (stored?.token && stored.password) {
+      return stored;
     }
 
     const minted = { token: randomSecret(), password: randomSecret() };
-    this.ctx.storage.sql.exec(
-      "INSERT OR REPLACE INTO _sfab_seed (singleton, token, password) VALUES (1, ?, ?)",
-      minted.token,
-      minted.password
-    );
+    await this.ctx.storage.put(SEED_CREDENTIALS_KEY, minted);
     return minted;
   }
 

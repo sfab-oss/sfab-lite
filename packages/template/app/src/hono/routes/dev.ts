@@ -3,12 +3,14 @@ import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { z } from "zod";
 import {
+  account,
   document,
   documentLine,
   entity,
   member,
   organization,
   product,
+  session,
   user,
 } from "../../db/schema";
 import type { AppEnv } from "../middleware";
@@ -79,7 +81,7 @@ export const devRoutes = new Hono<AppEnv>().post(
     const { password } = c.req.valid("json");
     const auth = c.get("auth");
     const db = c.get("db");
-    const account = { email: SEED_EMAIL, organization: SEED_ORG };
+    const demoLogin = { email: SEED_EMAIL, organization: SEED_ORG };
 
     /**
      * The organization is the completion marker, not the account.
@@ -93,22 +95,55 @@ export const devRoutes = new Hono<AppEnv>().post(
       where: eq(organization.slug, SEED_ORG_SLUG),
     });
     if (seededOrg) {
-      return c.json({ seeded: false as const, ...account });
+      return c.json({ seeded: false as const, ...demoLogin });
     }
 
-    // better-auth owns password hashing, so the account is created through its
-    // API rather than by writing the `account` row. Reused when a previous
-    // attempt got this far and then failed.
+    /**
+     * `demo@example.com` belongs to the seed, not to a person. The app is
+     * public from the moment it deploys and its sign-up page is open, so
+     * anyone who knows the URL can claim that address before anyone seeds —
+     * and the membership below would hand them ownership of the demo
+     * organization along with whatever the app's real owner puts in it.
+     *
+     * Reusing the account outright is what would grant that. Inside this
+     * branch the demo organization does not exist, so an account holding the
+     * address is either a seed that died after creating it or someone who
+     * took it, and neither is worth keeping. An account that has joined an
+     * organization is the one shape the seed could not have produced: that is
+     * a real person, and the seed refuses rather than deleting them.
+     */
     const existingUser = await db.query.user.findFirst({
       where: eq(user.email, SEED_EMAIL),
     });
-    const userId =
-      existingUser?.id ??
-      (
-        await auth.api.signUpEmail({
-          body: { email: SEED_EMAIL, password, name: SEED_NAME },
-        })
-      ).user.id;
+    if (existingUser) {
+      const membership = await db.query.member.findFirst({
+        where: eq(member.userId, existingUser.id),
+      });
+      if (membership) {
+        return c.json(
+          {
+            error: "seed_email_in_use" as const,
+            message: `${SEED_EMAIL} already belongs to an account that has joined an organization. Seeding would make it owner of ${SEED_ORG}, so it is refused.`,
+          },
+          409
+        );
+      }
+      // Explicitly, rather than leaning on the cascade: foreign-key
+      // enforcement is a connection pragma, and a leftover session row is a
+      // credential that outlives the account it belonged to.
+      await db.batch([
+        db.delete(session).where(eq(session.userId, existingUser.id)),
+        db.delete(account).where(eq(account.userId, existingUser.id)),
+        db.delete(user).where(eq(user.id, existingUser.id)),
+      ]);
+    }
+
+    // better-auth owns password hashing, so the account is created through its
+    // API rather than by writing the `account` row.
+    const { user: seedUser } = await auth.api.signUpEmail({
+      body: { email: SEED_EMAIL, password, name: SEED_NAME },
+    });
+    const userId = seedUser.id;
 
     const organizationId = crypto.randomUUID();
     const parties = PARTIES.map((party) => ({
@@ -170,6 +205,6 @@ export const devRoutes = new Hono<AppEnv>().post(
       }),
     ]);
 
-    return c.json({ seeded: true as const, ...account });
+    return c.json({ seeded: true as const, ...demoLogin });
   }
 );
