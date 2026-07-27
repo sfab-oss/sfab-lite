@@ -21,6 +21,7 @@ import {
   type OpenTab,
   useThreadTabs,
   useWorkspaceTabsStore,
+  WORKSPACE_KINDS,
   type WorkspaceKind,
 } from "../lib/workspace-tabs-store";
 import { SessionTabBrowser } from "./session-tab-browser";
@@ -34,8 +35,6 @@ const WORKSPACE_DEFS: Record<
   files: { icon: FolderTree, title: "Published files" },
   versions: { icon: History, title: "Versions" },
 };
-
-const WORKSPACE_KINDS: WorkspaceKind[] = ["files", "browser", "versions"];
 
 function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
   const base = WORKSPACE_DEFS[tab.kind].title;
