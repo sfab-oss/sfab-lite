@@ -12,3 +12,6 @@
 .tmp
 dist
 node_modules
+
+# Written and removed by apps/factory/src/schema-probe-source.test.ts
+__sfab_probe_check.ts

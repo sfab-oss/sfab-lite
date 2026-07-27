@@ -96,6 +96,31 @@ function countSeverities(diagnostics: { severity?: string }[]): {
   return { errorCount, warningCount };
 }
 
+/**
+ * Extensions Biome can actually handle.
+ *
+ * An app's `sourceFiles` is the whole workspace, which now includes
+ * `migrations/*.sql`. Biome has no SQL analyzer, so handing it one throws,
+ * and a throw here sets `error` on the file, which drops `ok` to false and
+ * fails the publish gate. Filtering is what keeps a perfectly good migration
+ * from reading as a lint failure.
+ */
+const LINTABLE_EXTENSIONS = [
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".json",
+  ".jsonc",
+  ".css",
+];
+
+function isLintable(path: string): boolean {
+  return LINTABLE_EXTENSIONS.some((ext) => path.endsWith(ext));
+}
+
 export function runLint(body: LintRequest): LintResult {
   const mode: LintMode = body.mode ?? "both";
   const appId = body.appId;
@@ -108,6 +133,9 @@ export function runLint(body: LintRequest): LintResult {
 
   const results: LintFileResult[] = [];
   for (const [path, content] of Object.entries(files)) {
+    if (!isLintable(path)) {
+      continue;
+    }
     const ft0 = Date.now();
     let formatted: string | null = null;
     let formatChanged: boolean | null = null;

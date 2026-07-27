@@ -88,6 +88,7 @@ const declared = [
   manifest.client.styles,
   manifest.safelist,
   manifest.migrations,
+  manifest.schema,
   ...manifest.source.dirs,
   ...manifest.source.files,
   ...manifest.source.exclude,

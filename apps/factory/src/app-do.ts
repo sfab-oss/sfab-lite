@@ -10,6 +10,14 @@
  */
 import { DurableObject } from "cloudflare:workers";
 import { monotonicFactory } from "ulid";
+import {
+  applyPendingMigrations,
+  SCHEMA_VERSION_DDL,
+} from "./app-migrations.js";
+import {
+  introspectSchema as readSchemaSnapshot,
+  type SchemaSnapshot,
+} from "./schema-ddl.js";
 
 /**
  * Version ids are monotonic ULIDs: 48-bit ms timestamp + 80 bits entropy,
@@ -68,9 +76,7 @@ function d1Meta(cursor: { rowsRead: number; rowsWritten: number }): SqlMeta {
 
 /** Host-owned meta DDL (prefixed `_sfab_` to avoid colliding with app tables). */
 const META_DDL = `
-CREATE TABLE IF NOT EXISTS _sfab_schema_version (
-  version INTEGER PRIMARY KEY NOT NULL
-);
+${SCHEMA_VERSION_DDL}
 CREATE TABLE IF NOT EXISTS _sfab_versions (
   id TEXT PRIMARY KEY NOT NULL,
   parent_id TEXT,
@@ -237,29 +243,17 @@ export class AppDO extends DurableObject {
     const t0 = performance.now();
     this.#ensureMeta();
 
-    const row = this.ctx.storage.sql
-      .exec("SELECT version FROM _sfab_schema_version LIMIT 1")
-      .toArray()[0] as { version?: number } | undefined;
-    const current = row?.version ?? 0;
-    let bootstrapped = false;
-
-    if (migrations.length > 0 && current < migrations.length) {
-      for (let i = current; i < migrations.length; i++) {
-        const migration = migrations[i];
-        if (!migration) {
-          continue;
-        }
-        this.ctx.storage.sql.exec(migration.sql);
-      }
-      this.ctx.storage.sql.exec(
-        "INSERT OR REPLACE INTO _sfab_schema_version (version) VALUES (?)",
-        migrations.length
-      );
-      bootstrapped = current === 0;
-    }
+    const { previousVersion } = applyPendingMigrations(
+      (query, ...binds) =>
+        this.ctx.storage.sql.exec(query, ...binds).toArray() as Record<
+          string,
+          unknown
+        >[],
+      migrations
+    );
 
     return {
-      bootstrapped,
+      bootstrapped: previousVersion === 0 && migrations.length > 0,
       appSchemaVersion: migrations.length,
       ms: performance.now() - t0,
     };
@@ -281,6 +275,22 @@ export class AppDO extends DurableObject {
       appSchemaVersion: info.appSchemaVersion,
       bootstrapMs: info.ms,
     };
+  }
+
+  /**
+   * The tables this app really has, as `diffSchema` wants them.
+   *
+   * This is the half that was missing. `src/db/schema.ts` describes tables;
+   * only this says what exists. Reading it here rather than through `execAll`
+   * keeps the PRAGMA walk on the single writer, so it cannot observe a shape
+   * halfway through a migration.
+   */
+  introspectSchema(): SchemaSnapshot {
+    this.#ensureMeta();
+    return readSchemaSnapshot(
+      (query) =>
+        this.ctx.storage.sql.exec(query).toArray() as Record<string, unknown>[]
+    );
   }
 
   /**

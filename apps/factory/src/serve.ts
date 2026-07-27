@@ -5,45 +5,12 @@
  * No `/api/` string rewrite — the template builds URLs from
  * `window.__SFAB_PUBLIC_BASE__`.
  */
-import {
-  KERNEL_BETTER_AUTH,
-  KERNEL_DRIZZLE,
-  KERNEL_HONO,
-  KERNEL_JSX_RUNTIME,
-  KERNEL_REACT,
-  KERNEL_REACT_DOM,
-  KERNEL_REACT_DOM_SERVER,
-  KERNEL_ZOD,
-  SERVER_SURFACE_HASH,
-} from "@sfab-lite/kernel";
+import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import type { AppDO, VersionRecord } from "./app-do.js";
+import { kernelModules } from "./kernel-modules.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
-const KERNEL_PATHS = {
-  react: "react.js",
-  jsxRuntime: "jsx-runtime.js",
-  reactDom: "react-dom.js",
-  reactDomServer: "react-dom-server.js",
-  drizzle: "drizzle-orm.js",
-  betterAuth: "better-auth.js",
-  hono: "hono.js",
-  zod: "zod.js",
-} as const;
-
 const LEADING_SLASHES_RE = /^\/+/;
-
-function kernelModules(): Record<string, { js: string }> {
-  return {
-    [KERNEL_PATHS.react]: { js: KERNEL_REACT },
-    [KERNEL_PATHS.jsxRuntime]: { js: KERNEL_JSX_RUNTIME },
-    [KERNEL_PATHS.reactDom]: { js: KERNEL_REACT_DOM },
-    [KERNEL_PATHS.reactDomServer]: { js: KERNEL_REACT_DOM_SERVER },
-    [KERNEL_PATHS.drizzle]: { js: KERNEL_DRIZZLE },
-    [KERNEL_PATHS.betterAuth]: { js: KERNEL_BETTER_AUTH },
-    [KERNEL_PATHS.hono]: { js: KERNEL_HONO },
-    [KERNEL_PATHS.zod]: { js: KERNEL_ZOD },
-  };
-}
 
 function contentType(path: string): string {
   if (path.endsWith(".html")) {
