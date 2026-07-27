@@ -5,7 +5,7 @@ import {
   defineCommand,
   type ExecResult,
 } from "just-bash";
-import { collectMigrations, nextMigrationPath } from "../app-migrations.js";
+import { nextMigrationPath } from "../app-migrations.js";
 import {
   appStub,
   callCheck,
@@ -15,6 +15,11 @@ import {
 } from "../commit.js";
 import { describeBlocking, diffSchema } from "../schema-ddl.js";
 import { probeSchema } from "../schema-probe.js";
+import {
+  latestSnapshot,
+  serializeSnapshot,
+  snapshotPathFor,
+} from "../schema-snapshots.js";
 import { renderCheckText, renderLintText } from "./render-diagnostics.js";
 import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
@@ -101,13 +106,18 @@ async function runLint(
 }
 
 /**
- * Write the migration that closes the gap between the schema and the database.
+ * Write the migration that closes the gap between the schema and the last one.
  *
  * The agent does not author migration SQL — it edits `src/db/schema.ts`, and
  * this derives the DDL, the same division of labour `drizzle-kit generate`
  * gives a normal project. Deriving it is what makes the file trustworthy: a
  * hand-written migration can disagree with the schema it claims to implement,
  * and nothing would notice until a query failed.
+ *
+ * Offline, like `drizzle-kit generate` and unlike `drizzle-kit push`. The
+ * previous state comes from `migrations/meta/`, not from the app's database,
+ * so generating a migration touches no Durable Object and can be tested
+ * exactly as it runs.
  *
  * Refuses rather than guesses when the change is destructive. Dropping a column
  * or retyping one needs a human to say what happens to the rows, and there is
@@ -124,9 +134,7 @@ async function runDbGenerate(
     return fail(`db:generate: ${probe.error}\n`, 1);
   }
 
-  const stub = appStub(deps.env, deps.appId);
-  await stub.bootstrap(collectMigrations(files));
-  const diff = diffSchema(await stub.introspectSchema(), probe.snapshot);
+  const diff = diffSchema(latestSnapshot(files), probe.snapshot);
 
   if (diff.blocking.length > 0) {
     const reasons = diff.blocking
@@ -144,11 +152,15 @@ async function runDbGenerate(
 
   const name = args.find((arg) => !arg.startsWith("-")) ?? "schema";
   const path = nextMigrationPath(files, name);
+  const snapshotPath = snapshotPathFor(path);
   await ctx.fs.writeFile(`/${path}`, `${diff.statements.join("\n")}\n`);
+  // The snapshot is what the *next* generate diffs against, so it records the
+  // schema this migration implements rather than the one it started from.
+  await ctx.fs.writeFile(`/${snapshotPath}`, serializeSnapshot(probe.snapshot));
   const summary = diff.additive
     .map((change) => `  ${change.kind} ${change.table}`)
     .join("\n");
-  return ok(`db:generate: wrote ${path}\n${summary}\n`);
+  return ok(`db:generate: wrote ${path} and ${snapshotPath}\n${summary}\n`);
 }
 
 /**

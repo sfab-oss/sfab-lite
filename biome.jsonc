@@ -16,7 +16,10 @@
       "!!**/packages/kernel/kernel.json",
       "!!**/packages/kernel/results",
       "!!**/packages/kernel/scripts/.shims",
-      "!!**/packages/kernel/scripts/.shims-client"
+      "!!**/packages/kernel/scripts/.shims-client",
+      // Baked by bake-template-snapshot.mjs and compared byte-for-byte by
+      // check:template-snapshot. Formatting it here would desync the two.
+      "!!**/packages/template/app/migrations/meta"
     ]
   },
   // Same assist/noise offs as starter — presets turn these on; not worth
