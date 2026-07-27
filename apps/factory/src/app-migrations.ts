@@ -17,7 +17,102 @@ export interface AppMigration {
 export const SCHEMA_VERSION_DDL = `
 CREATE TABLE IF NOT EXISTS _sfab_schema_version (
   version INTEGER PRIMARY KEY NOT NULL
+);
+CREATE TABLE IF NOT EXISTS _sfab_migrations (
+  id TEXT PRIMARY KEY NOT NULL,
+  ordinal INTEGER NOT NULL,
+  checksum TEXT NOT NULL,
+  applied_at INTEGER NOT NULL
+    DEFAULT (cast(unixepoch('subsecond') * 1000 as integer))
 );`;
+
+/**
+ * FNV-1a over the migration's bytes.
+ *
+ * Detection, not defence. The file this guards is edited by an agent or by the
+ * app's owner, never by an adversary constructing a collision — Flyway ships
+ * CRC32 for the same job. A cryptographic digest would mean `crypto.subtle`,
+ * which is async, and would push an `await` through a call chain whose
+ * synchronous shape is what lets it be tested without a Durable Object.
+ */
+export function migrationChecksum(sql: string): string {
+  let hash = 0xcbf29ce484222325n;
+  for (const byte of new TextEncoder().encode(sql)) {
+    // biome-ignore lint/suspicious/noBitwiseOperators: FNV-1a is defined as xor-then-multiply; without the xor it is a different function.
+    hash = BigInt.asUintN(64, (hash ^ BigInt(byte)) * 0x100000001b3n);
+  }
+  return hash.toString(16).padStart(16, "0");
+}
+
+interface AppliedMigration {
+  id: string;
+  checksum: string;
+}
+
+function readLedger(exec: ExecSql): AppliedMigration[] {
+  return exec(
+    "SELECT id, checksum FROM _sfab_migrations ORDER BY ordinal"
+  ) as unknown as AppliedMigration[];
+}
+
+/**
+ * Adopt the files an older database ran before it kept a ledger.
+ *
+ * Those apps recorded only a count, so the first `N` files are what they must
+ * have applied — there is nothing else it could mean. Adopting them is the
+ * only reading available; refusing would strand every app that predates the
+ * ledger, and re-running them would fail on the first `CREATE TABLE`.
+ */
+function adoptCountedMigrations(
+  exec: ExecSql,
+  migrations: AppMigration[]
+): AppliedMigration[] {
+  const counted = Math.min(readSchemaVersion(exec), migrations.length);
+  const adopted: AppliedMigration[] = [];
+  for (let i = 0; i < counted; i++) {
+    const migration = migrations[i];
+    if (!migration) {
+      continue;
+    }
+    const checksum = migrationChecksum(migration.sql);
+    exec(
+      "INSERT INTO _sfab_migrations (id, ordinal, checksum) VALUES (?, ?, ?)",
+      migration.id,
+      i,
+      checksum
+    );
+    adopted.push({ id: migration.id, checksum });
+  }
+  return adopted;
+}
+
+/**
+ * Refuse when the history on disk no longer matches the history that ran.
+ *
+ * A migration is immutable once applied. Nothing in an app workspace enforces
+ * that on its own: an agent can edit `migrations/0002_erp.sql` as easily as any
+ * other file, the applier would not re-run it, and the database would silently
+ * stop matching the files that claim to describe it. In an ordinary project
+ * git history and review are what make this visible; here it is this check.
+ */
+function verifyAppliedUnchanged(
+  applied: AppliedMigration[],
+  migrations: AppMigration[]
+): void {
+  for (const [index, row] of applied.entries()) {
+    const migration = migrations[index];
+    if (!migration || migration.id !== row.id) {
+      throw new Error(
+        `migration ${row.id} has already been applied to this database, but it is no longer file ${index + 1} in migrations/. Restore it — history that has run cannot be rewritten.`
+      );
+    }
+    if (migrationChecksum(migration.sql) !== row.checksum) {
+      throw new Error(
+        `migration ${row.id} has already been applied to this database and its contents have changed since. Restore it and add a new migration for the change you wanted.`
+      );
+    }
+  }
+}
 
 export type ExecSql = (
   query: string,
@@ -25,14 +120,14 @@ export type ExecSql = (
 ) => Record<string, unknown>[];
 
 /**
- * How many migrations this database has already run.
+ * The count a database kept before it kept a ledger. Read once, to adopt it.
  *
- * `version` is itself the primary key, so writing 3 beside an existing 2 adds
+ * `version` is itself the primary key, so writing 3 beside an existing 2 added
  * a row rather than replacing one — a database can hold several. `MAX` is the
- * only reading that stays true there; taking an arbitrary row would under-report
- * the version and re-run a migration that had already been applied.
+ * only reading that stays true there; taking an arbitrary row would
+ * under-report the count and adopt fewer migrations than actually ran.
  */
-export function readSchemaVersion(exec: ExecSql): number {
+function readSchemaVersion(exec: ExecSql): number {
   const rows = exec(
     "SELECT MAX(version) AS version FROM _sfab_schema_version"
   ) as { version?: number | null }[];
@@ -42,29 +137,40 @@ export function readSchemaVersion(exec: ExecSql): number {
 /**
  * Run every migration the database has not run yet, in order.
  *
- * Forward-only, and the version is the count rather than a name — an app's
- * migration list only ever grows, and it travels with the version that
- * introduced it.
+ * Forward-only, and each applied migration is recorded by name and checksum
+ * rather than counted. The count could not tell an edited migration from an
+ * untouched one, or a deleted one from a database that was simply behind.
  */
 export function applyPendingMigrations(
   exec: ExecSql,
   migrations: AppMigration[]
 ): { previousVersion: number; applied: number } {
-  const previousVersion = readSchemaVersion(exec);
-  if (migrations.length === 0 || previousVersion >= migrations.length) {
-    return { previousVersion, applied: 0 };
+  let done = readLedger(exec);
+  if (done.length === 0) {
+    done = adoptCountedMigrations(exec, migrations);
   }
+  const previousVersion = done.length;
+  if (previousVersion > migrations.length) {
+    throw new Error(
+      `this database has run ${previousVersion} migrations but migrations/ holds ${migrations.length}. Restore the missing files — a migration that has run cannot be removed.`
+    );
+  }
+  verifyAppliedUnchanged(done, migrations);
+
   for (let i = previousVersion; i < migrations.length; i++) {
     const migration = migrations[i];
-    if (migration) {
-      exec(migration.sql);
+    if (!migration) {
+      continue;
     }
+    exec(migration.sql);
+    exec(
+      "INSERT INTO _sfab_migrations (id, ordinal, checksum) VALUES (?, ?, ?)",
+      migration.id,
+      i,
+      migrationChecksum(migration.sql)
+    );
   }
-  exec("DELETE FROM _sfab_schema_version");
-  exec(
-    "INSERT INTO _sfab_schema_version (version) VALUES (?)",
-    migrations.length
-  );
+
   return {
     previousVersion,
     applied: migrations.length - previousVersion,
