@@ -119,12 +119,6 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/*
- * Plain CSS on purpose. `@apply border-border outline-ring/50` is invisible
- * to the class extractor the factory uses when it compiles stylesheets, so
- * those utilities would need a safelist entry. Referencing the theme
- * variables directly needs no safelist and renders identically.
- */
 @layer base {
   * {
     border-color: var(--color-border);
