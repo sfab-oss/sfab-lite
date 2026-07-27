@@ -1,4 +1,4 @@
-import type { AppThread } from "./agent/app-thread.js";
+import type { AppAgent } from "./agent/app-agent.js";
 import type { AppDO } from "./app-do.js";
 
 declare global {
@@ -8,10 +8,11 @@ declare global {
     LOADER: WorkerLoader;
     APP_DO: DurableObjectNamespace<AppDO>;
     /**
-     * Per-thread Think agent. Instance name is `appId:threadId`. Binding
-     * name matches the class so `routeAgentRequest` can resolve it.
+     * Per-app Think root. Instance name is `appId`. Owns the shared
+     * workspace and thread registry; AppThread facets hang off it.
+     * Binding name matches the class so `routeAgentRequest` can resolve it.
      */
-    AppThread: DurableObjectNamespace<AppThread>;
+    AppAgent: DurableObjectNamespace<AppAgent>;
     /**
      * The factory's own D1 — auth and organizations now, the app registry in
      * S3b.
@@ -142,7 +143,7 @@ declare global {
      */
     ZAI_API_KEY?: string;
     /**
-     * Enables harness-only `@callable`s on `AppThread` (e.g. harnessBash).
+     * Enables harness-only `@callable`s on AppThread facets (e.g. harnessBash).
      * Local `.dev.vars` only — never set in production.
      */
     AGENT_HARNESS?: string;

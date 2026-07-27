@@ -44,10 +44,12 @@
         "class_name": "AppDO"
       },
       // Binding name = class name so routeAgentRequest maps
-      // `/agents/app-thread/<name>` → this namespace.
+      // `/agents/app-agent/<appId>` → this namespace. AppThread is a facet
+      // of AppAgent (resolved via ctx.exports.AppThread) — no top-level
+      // binding.
       {
-        "name": "AppThread",
-        "class_name": "AppThread"
+        "name": "AppAgent",
+        "class_name": "AppAgent"
       }
     ]
   },
@@ -59,6 +61,11 @@
     {
       "tag": "v2",
       "new_sqlite_classes": ["AppThread"]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["AppAgent"],
+      "deleted_classes": ["AppThread"]
     }
   ],
   "services": [

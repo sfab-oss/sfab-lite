@@ -3,31 +3,13 @@ import { appStub } from "../commit.js";
 
 const SEEDED_KEY = "workspaceSeededFromLive";
 
-/** `app_<ulid>:<threadId>` — app ids never contain `:`. */
-export function parseThreadName(name: string): {
-  appId: string;
-  threadId: string;
-} {
-  const sep = name.indexOf(":");
-  if (sep <= 0 || sep === name.length - 1) {
-    throw new Error(
-      `AppThread name must be appId:threadId, got ${JSON.stringify(name)}`
-    );
-  }
-  return {
-    appId: name.slice(0, sep),
-    threadId: name.slice(sep + 1),
-  };
-}
-
 function toWorkspacePath(sourcePath: string): string {
   return sourcePath.startsWith("/") ? sourcePath : `/${sourcePath}`;
 }
 
 /**
- * Scratch checkout from the app's live version. Once-only per DO instance so
- * a wake does not clobber in-thread edits; a new thread always starts empty
- * and seeds fresh from whatever is live then.
+ * Seed AppAgent's shared workspace from the app's live version once, when
+ * empty. Never auto-re-seed — from then on the workspace is the working copy.
  */
 export async function seedWorkspaceFromLive(
   env: Env,
@@ -44,7 +26,7 @@ export async function seedWorkspaceFromLive(
   const files = live.version?.sourceFiles;
   if (!(live.liveVersionId && files)) {
     throw new Error(
-      `AppThread: app ${appId} has no live version with source_files`
+      `AppAgent: app ${appId} has no live version with source_files`
     );
   }
 

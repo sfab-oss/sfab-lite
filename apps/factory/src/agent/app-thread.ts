@@ -2,7 +2,6 @@ import {
   createWorkspaceStateBackend,
   STATE_SYSTEM_PROMPT,
   STATE_TYPES,
-  Workspace,
   type WorkspaceFsLike,
 } from "@cloudflare/shell";
 import { Think } from "@cloudflare/think";
@@ -10,45 +9,38 @@ import { createExecuteTool } from "@cloudflare/think/tools/execute";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel, ToolSet } from "ai";
+import { AppAgent } from "./app-agent.js";
+import { registerAppThreadClass } from "./facet-registry.js";
 import { createZaiCodingModel, requireZaiApiKey } from "./model.js";
-import { parseThreadName, seedWorkspaceFromLive } from "./seed-workspace.js";
+import { SharedWorkspace } from "./shared-workspace.js";
 import { createAppShellCommands } from "./shell-commands.js";
 
 /**
- * One Think Durable Object per chat thread. Workspace is a scratch checkout
- * of the app's live `source_files` — not a second source of truth until a
- * shell `pnpm run deploy` / `wrangler deploy` publishes it.
+ * One conversation facet under AppAgent. Workspace is a SharedWorkspace
+ * proxy into the parent's shared checkout — not a per-thread scratch copy.
  */
 export class AppThread extends Think<Env> {
   override maxSteps = 40;
 
   /**
    * Full filesystem surface for code mode's `state.*`. Think's default
-   * `WorkspaceLike` is narrower than `createWorkspaceStateBackend` needs.
+   * WorkspaceLike is narrower than createWorkspaceStateBackend needs.
    */
-  override workspace: WorkspaceFsLike = new Workspace({
-    sql: this.ctx.storage.sql,
-    name: () => this.name,
-  });
+  override workspace: WorkspaceFsLike = new SharedWorkspace(() =>
+    this.parentAgent(AppAgent)
+  );
 
   #appId: string | null = null;
   #liveVersionId: string | null = null;
   #model: LanguageModel | null = null;
 
   override async onStart(): Promise<void> {
-    const { appId } = parseThreadName(this.name);
+    const appId = this.requireAppId();
     this.#appId = appId;
 
-    const seeded = await seedWorkspaceFromLive(
-      this.env,
-      this.ctx.storage,
-      this.workspace,
-      appId
-    );
-    this.#liveVersionId = seeded.liveVersionId;
+    const parent = await this.parentAgent(AppAgent);
+    this.#liveVersionId = await parent.liveVersionId();
 
-    // Model is resolved lazily in getModel — missing ZAI_API_KEY must not
-    // block workspace seeding / WS connect; it fails on the first turn.
     const key = this.env.ZAI_API_KEY?.trim();
     if (key) {
       this.#model = createZaiCodingModel(key);
@@ -113,11 +105,11 @@ export class AppThread extends Think<Env> {
   }
 
   override getSystemPrompt(): string {
-    const appId = this.#appId ?? parseThreadName(this.name).appId;
+    const appId = this.#appId ?? this.requireAppId();
     const live = this.#liveVersionId ?? "unknown";
     return [
       `You are a coding agent for sfab-lite factory app ${appId}.`,
-      `Your workspace is a scratch checkout of live version ${live}.`,
+      `Your workspace is a shared checkout of live version ${live}.`,
       "Use the file tools (list, find, grep, read, write, edit, …) and the bash tool for shell-style workflows.",
       "Check and publish are ordinary shell commands in bash:",
       "  pnpm typecheck          — typecheck via the check worker (tsc-style output)",
@@ -141,4 +133,17 @@ export class AppThread extends Think<Env> {
       }),
     };
   }
+
+  private requireAppId(): string {
+    if (this.#appId) {
+      return this.#appId;
+    }
+    const appId = this.parentPath.at(-1)?.name;
+    if (!appId) {
+      throw new Error(`AppThread ${this.name}: missing parent AppAgent name`);
+    }
+    return appId;
+  }
 }
+
+registerAppThreadClass(AppThread);

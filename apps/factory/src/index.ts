@@ -35,6 +35,8 @@ import { serveKernel } from "./serve-kernel.js";
 
 /** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
 export { CodemodeRuntime } from "@cloudflare/codemode";
+export { AppAgent } from "./agent/app-agent.js";
+/** Facet of AppAgent — must load before AppAgent so the class registers. */
 export { AppThread } from "./agent/app-thread.js";
 export { AppDO } from "./app-do.js";
 export { ScopedSql } from "./scoped-sql.js";
