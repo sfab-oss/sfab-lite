@@ -44,10 +44,12 @@
         "class_name": "AppDO"
       },
       // Binding name = class name so routeAgentRequest maps
-      // `/agents/app-thread/<name>` → this namespace.
+      // `/agents/app-agent/<appId>` → this namespace. AppThread is a facet
+      // of AppAgent (resolved via ctx.exports.AppThread) — no top-level
+      // binding.
       {
-        "name": "AppThread",
-        "class_name": "AppThread"
+        "name": "AppAgent",
+        "class_name": "AppAgent"
       }
     ]
   },
@@ -59,6 +61,14 @@
     {
       "tag": "v2",
       "new_sqlite_classes": ["AppThread"]
+    },
+    // AppThread keeps its v2 entry and is deliberately NOT in deleted_classes:
+    // the class is still exported, now as a facet of AppAgent. Deleting it
+    // would declare a class the Worker still defines. Dropping the binding is
+    // enough to strand the old top-level namespace; its data is disposable.
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["AppAgent"]
     }
   ],
   "services": [

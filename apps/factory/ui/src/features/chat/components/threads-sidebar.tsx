@@ -31,6 +31,8 @@ import { ThreadsSidebarFooter } from "./threads-sidebar-footer";
 export interface SessionThreadsSidebarProps {
   activeThreadId: string | null;
   homeActive?: boolean;
+  knownApps?: Array<{ appId: string; appName: string }>;
+  onAttendApp?: (appId: string, appName: string) => void;
   onGoHome: () => void;
   onNewThread: () => void;
   onSearchChange: (search: string) => void;
@@ -45,10 +47,12 @@ export interface SessionThreadsSidebarProps {
 
 export function SessionThreadsSidebar({
   threads,
+  knownApps = [],
   activeThreadId,
   search,
   onSearchChange,
   onSelectThread,
+  onAttendApp,
   onGoHome,
   onNewThread,
   onSignOut,
@@ -70,14 +74,25 @@ export function SessionThreadsSidebar({
     () => sortByLiveness(visible.filter(isActiveThread)),
     [visible]
   );
-  const appGroups = useMemo(() => groupInactiveByApp(visible), [visible]);
+  const appGroups = useMemo(
+    () => groupInactiveByApp(visible, knownApps),
+    [knownApps, visible]
+  );
   const inactiveCount = appGroups.reduce(
     (count, group) => count + group.threads.length,
     0
   );
+  const showEmptyApps = appGroups.some((group) => group.threads.length === 0);
 
   const selectThread = (threadId: string) => {
     onSelectThread(threadId);
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  const attendApp = (appId: string, appName: string) => {
+    onAttendApp?.(appId, appName);
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -180,7 +195,7 @@ export function SessionThreadsSidebar({
             </Button>
           </div>
 
-          {inactiveCount === 0 && active.length === 0 ? (
+          {inactiveCount === 0 && active.length === 0 && !showEmptyApps ? (
             <p className="px-2 py-3 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
               No threads match this search.
             </p>
@@ -196,6 +211,11 @@ export function SessionThreadsSidebar({
               activeThreadId={activeThreadId}
               key={group.appId}
               label={group.appName}
+              onAttendApp={
+                onAttendApp
+                  ? () => attendApp(group.appId, group.appName)
+                  : undefined
+              }
               onSelectThread={selectThread}
               quiet={quietRows}
               threads={group.threads}
@@ -213,36 +233,50 @@ function AppBucket({
   label,
   threads,
   activeThreadId,
+  onAttendApp,
   onSelectThread,
   quiet = false,
 }: {
   activeThreadId: string | null;
   label: string;
+  onAttendApp?: () => void;
   onSelectThread: (threadId: string) => void;
   quiet?: boolean;
   threads: Thread[];
 }) {
-  if (threads.length === 0) {
-    return null;
-  }
-
   return (
     <div className="mt-1">
-      <p className="px-2 py-1 font-medium text-[10px] text-muted-foreground uppercase tracking-wide group-data-[collapsible=icon]:hidden">
-        {label}
-      </p>
-      <SidebarMenu>
-        {threads.map((thread) => (
-          <ThreadMenuItem
-            active={activeThreadId === thread.id}
-            dense
-            key={thread.id}
-            onSelect={() => onSelectThread(thread.id)}
-            quiet={quiet}
-            thread={thread}
-          />
-        ))}
-      </SidebarMenu>
+      {onAttendApp ? (
+        <button
+          className="px-2 py-1 text-left font-medium text-[10px] text-muted-foreground uppercase tracking-wide hover:text-foreground group-data-[collapsible=icon]:hidden"
+          onClick={onAttendApp}
+          type="button"
+        >
+          {label}
+        </button>
+      ) : (
+        <p className="px-2 py-1 font-medium text-[10px] text-muted-foreground uppercase tracking-wide group-data-[collapsible=icon]:hidden">
+          {label}
+        </p>
+      )}
+      {threads.length === 0 ? (
+        <p className="px-2 pb-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+          No threads yet.
+        </p>
+      ) : (
+        <SidebarMenu>
+          {threads.map((thread) => (
+            <ThreadMenuItem
+              active={activeThreadId === thread.id}
+              dense
+              key={thread.id}
+              onSelect={() => onSelectThread(thread.id)}
+              quiet={quiet}
+              thread={thread}
+            />
+          ))}
+        </SidebarMenu>
+      )}
     </div>
   );
 }

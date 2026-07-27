@@ -2,7 +2,6 @@ import { getLiveSources, listVersions } from "@/api";
 import type { AppVersion, Thread } from "../model/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";
-import { loadThreads, saveThreads as persistThreads } from "./thread-store";
 
 function formatCreatedAt(ms: number): string {
   try {
@@ -21,8 +20,13 @@ export function createRealChatData(): RealChatData {
   let appId: string | null = null;
   let sourceFiles: Record<string, string> = {};
   let versions: AppVersion[] = [];
-  let threads = loadThreads();
+  let threads: Thread[] = [];
   let revision = 0;
+  const syncedApps = new Set<string>();
+  // A listThreads snapshot in flight when a thread is created predates it, so
+  // pruning against that snapshot would delete the thread the user is entering.
+  // Locally created threads survive until a snapshot actually reports them.
+  const unconfirmed = new Set<string>();
   const listeners = new Set<() => void>();
 
   const notify = () => {
@@ -34,7 +38,6 @@ export function createRealChatData(): RealChatData {
 
   const writeThreads = (next: Thread[]) => {
     threads = next;
-    persistThreads(next);
     notify();
   };
 
@@ -48,8 +51,35 @@ export function createRealChatData(): RealChatData {
     },
     listThreads: () => threads,
     upsertThread: (thread) => {
+      unconfirmed.add(thread.id);
       const without = threads.filter((entry) => entry.id !== thread.id);
       writeThreads([thread, ...without]);
+    },
+    hasSyncedApp: (id) => syncedApps.has(id),
+    syncAppThreads: (ownerAppId, incoming) => {
+      syncedApps.add(ownerAppId);
+      const byId = new Map(threads.map((thread) => [thread.id, thread]));
+      const owned = incoming.map((thread) => {
+        unconfirmed.delete(thread.id);
+        const existing = byId.get(thread.id);
+        return existing
+          ? {
+              ...thread,
+              status: existing.status,
+              readOnly: existing.readOnly,
+              appName: thread.appName ?? existing.appName,
+            }
+          : thread;
+      });
+      const incomingIds = new Set(owned.map((thread) => thread.id));
+      const kept = threads.filter(
+        (thread) =>
+          thread.appId !== ownerAppId ||
+          (unconfirmed.has(thread.id) && !incomingIds.has(thread.id))
+      );
+      writeThreads(
+        [...kept, ...owned].sort((a, b) => b.updatedAt - a.updatedAt)
+      );
     },
     patchThread: (threadId, patch) => {
       const index = threads.findIndex((thread) => thread.id === threadId);

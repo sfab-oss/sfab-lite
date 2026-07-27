@@ -17,7 +17,7 @@
     "check:export-agreement": "node scripts/check-export-agreement.mjs",
     "upload-kernel-r2": "pnpm --filter @sfab-lite/factory upload-kernel-r2",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
-    "check:cycles": "madge --circular --extensions ts,tsx --exclude 'generated|vendor|results|\\\\.shims|universe' packages apps",
+    "check:cycles": "node scripts/check-cycles.mjs",
     "check:dead-code": "knip",
     "prepare": "husky",
     "check:app-lint": "biome check --config-path=packages/core/app-biome.json packages/template/app/src",

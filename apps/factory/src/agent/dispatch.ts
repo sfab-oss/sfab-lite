@@ -2,15 +2,16 @@ import { routeAgentRequest } from "agents";
 import { createDb } from "../db/index.js";
 import type { RequestCtx } from "../routes.js";
 import { requireAppAccess, resolveActor } from "../tenancy.js";
-import { parseThreadName } from "./seed-workspace.js";
 
 /**
- * `/agents/app-thread/<appId:threadId>[/…]` only. Auth + tenancy run *before*
- * `routeAgentRequest`: that helper enumerates every DO binding with
- * `idFromName` (including `APP_DO` → `app-do`), so an ungated branch is a
- * standing gateway to every namespace this Worker will ever bind.
+ * `/agents/app-agent/<appId>[/sub/app-thread/<threadId>][/…]` only.
+ * Auth + tenancy run *before* `routeAgentRequest`: that helper enumerates
+ * every DO binding with `idFromName` (including `APP_DO` → `app-do`), so an
+ * ungated branch is a standing gateway to every namespace this Worker will
+ * ever bind. Facet gating (`onBeforeSubAgent`) is a second check inside
+ * AppAgent — not a replacement for this tenancy gate.
  */
-const RE_APP_THREAD = /^\/agents\/app-thread\/([^/]+)(?:\/.*)?$/;
+const RE_APP_AGENT = /^\/agents\/app-agent\/([^/]+)(?:\/.*)?$/;
 
 function jsonError(error: string, status: number): Response {
   return Response.json({ ok: false, error }, { status });
@@ -23,18 +24,16 @@ export async function dispatchAgents(rc: RequestCtx): Promise<Response> {
     return actor;
   }
 
-  const match = rc.url.pathname.match(RE_APP_THREAD);
+  const match = rc.url.pathname.match(RE_APP_AGENT);
   if (!match?.[1]) {
     return jsonError("agent_not_found", 404);
   }
 
-  // The raw segment, undecoded: `routePartykitRequest` passes it to
-  // `idFromName` verbatim, so decoding here would authorize one identity and
+  // The raw segment, undecoded: routePartykitRequest passes it to
+  // idFromName verbatim, so decoding here would authorize one identity and
   // instantiate another.
-  let appId: string;
-  try {
-    ({ appId } = parseThreadName(match[1]));
-  } catch {
+  const appId = match[1];
+  if (!appId.startsWith("app_")) {
     return jsonError("agent_not_found", 404);
   }
 

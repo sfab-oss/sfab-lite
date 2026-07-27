@@ -230,7 +230,7 @@ export const accountRelations = relations(account, ({ one }) => ({
  * another's name. The display name lives in `name` and is free to change.
  *
  * `status` exists because creation is three writes with no transaction across
- * them — this row, the AppDO's seed version, and the AppAgentDO's workspace.
+ * them — this row, the AppDO's seed version, and the AppAgent workspace.
  * The row is written *first* so the UI has something to poll during the ~18-25s
  * seed commit; a crash leaves a visible `creating` row rather than an orphan
  * Durable Object that nothing can enumerate.
