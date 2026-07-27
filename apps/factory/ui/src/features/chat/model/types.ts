@@ -27,12 +27,6 @@ export interface AppVersion {
   live: boolean;
 }
 
-export interface SubagentStep {
-  detail?: string;
-  kind: "reasoning" | "text" | "tool";
-  label: string;
-}
-
 export interface Subagent {
   agentType: string;
   durationMs?: number;
@@ -40,7 +34,11 @@ export interface Subagent {
   prompt: string;
   seed: string;
   status: "done" | "failed" | "running";
-  steps: SubagentStep[];
+  steps: {
+    detail?: string;
+    kind: "reasoning" | "text" | "tool";
+    label: string;
+  }[];
   title: string;
 }
 

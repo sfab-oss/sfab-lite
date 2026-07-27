@@ -1,4 +1,3 @@
-import type { AiSdkChat } from "@shadcn/helpers/ai-sdk";
 import type { UIMessage } from "ai";
 import type {
   AppVersion,
@@ -10,12 +9,12 @@ import type {
   WorkspaceFileEntry,
 } from "../model/types";
 
+/**
+ * Data seam for the chat console. Transport is not here: ThreadTranscript
+ * connects with `useAgent({ agent: "AppThread", name })` + `useAgentChat`
+ * (same wiring as the deleted `/dev/agent` harness).
+ */
 export interface ChatData {
-  createThreadChat: (threadId: string) => AiSdkChat;
-  createThreadTransport: (
-    chat: AiSdkChat,
-    timing?: { delayMs?: number; firstTokenMs?: number; toolRunMs?: number }
-  ) => ReturnType<AiSdkChat["transport"]>;
   getWorkspaceDir: (path: string) => {
     entries: WorkspaceFileEntry[];
     path: string;
@@ -29,4 +28,5 @@ export interface ChatData {
   listVersions: () => AppVersion[];
   lookupSubagent: (threadId: string, runId: string) => Subagent | undefined;
   nestedRunToMessages: (run: Subagent) => UIMessage[];
+  saveThreads: (threads: Thread[]) => void;
 }

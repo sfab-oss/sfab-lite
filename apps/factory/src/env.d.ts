@@ -142,7 +142,7 @@ declare global {
      */
     ZAI_API_KEY?: string;
     /**
-     * Enables harness-only `@callable`s on `AppThread` (e.g. inspectWorkspace).
+     * Enables harness-only `@callable`s on `AppThread` (e.g. harnessBash).
      * Local `.dev.vars` only — never set in production.
      */
     AGENT_HARNESS?: string;

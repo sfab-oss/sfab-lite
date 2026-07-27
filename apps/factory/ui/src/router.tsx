@@ -14,8 +14,7 @@ export type Route =
   | { name: "app"; appId: string }
   | { name: "create" }
   | { name: "ui-kit" }
-  | { name: "dev-chat"; threadId?: string }
-  | { name: "dev-agent" };
+  | { name: "dev-chat"; threadId?: string };
 
 const RE_APP = /^\/apps\/([^/]+)$/;
 const RE_THREAD = /^\/t\/([^/]+)$/;
@@ -29,9 +28,6 @@ function parsePath(pathname: string): Route {
   }
   if (import.meta.env.DEV && path === "/dev/ui") {
     return { name: "ui-kit" };
-  }
-  if (import.meta.env.DEV && path === "/dev/agent") {
-    return { name: "dev-agent" };
   }
   if (import.meta.env.DEV) {
     const devThread = path.match(RE_DEV_CHAT_THREAD);
@@ -71,8 +67,6 @@ function pathFor(route: Route): string {
       return "/signin";
     case "ui-kit":
       return "/dev/ui";
-    case "dev-agent":
-      return "/dev/agent";
     case "dev-chat":
       return route.threadId
         ? `/dev/chat/t/${encodeURIComponent(route.threadId)}`

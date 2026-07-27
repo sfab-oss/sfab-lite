@@ -22,7 +22,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useChatData } from "../data/chat-data-context";
 import type { WorkspaceFileContent, WorkspaceFileEntry } from "../model/types";
-import { MockFileCodeView } from "./mock-file-code-view";
+import { FileCodeView } from "./file-code-view";
 
 const INDENT_STEP = 12;
 const BASE_PAD = 8;
@@ -41,7 +41,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function MockSessionTabFiles() {
+export function SessionTabFiles() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -49,15 +49,12 @@ export function MockSessionTabFiles() {
     if (!selectedPath) {
       return (
         <div className="flex h-full min-h-0 flex-col">
-          <MockSessionFileTree
-            activePath={null}
-            onSelectPath={setSelectedPath}
-          />
+          <SessionFileTree activePath={null} onSelectPath={setSelectedPath} />
         </div>
       );
     }
     return (
-      <MockSessionFileViewer
+      <SessionFileViewer
         onBack={() => setSelectedPath(null)}
         path={selectedPath}
       />
@@ -65,7 +62,7 @@ export function MockSessionTabFiles() {
   }
 
   const viewer = selectedPath ? (
-    <MockSessionFileViewer path={selectedPath} />
+    <SessionFileViewer path={selectedPath} />
   ) : (
     <NoFileSelected />
   );
@@ -82,7 +79,7 @@ export function MockSessionTabFiles() {
         maxSize={50}
         minSize={18}
       >
-        <MockSessionFileTree
+        <SessionFileTree
           activePath={selectedPath}
           onSelectPath={setSelectedPath}
         />
@@ -91,7 +88,7 @@ export function MockSessionTabFiles() {
   );
 }
 
-function MockSessionFileTree({
+function SessionFileTree({
   activePath,
   onSelectPath,
 }: {
@@ -230,7 +227,7 @@ function FileNode({
   );
 }
 
-function MockSessionFileViewer({
+function SessionFileViewer({
   path,
   onBack,
 }: {
@@ -297,7 +294,7 @@ function renderFileBody(file: WorkspaceFileContent, path: string) {
     );
   }
 
-  return <MockFileCodeView content={file.content} path={path} />;
+  return <FileCodeView content={file.content} path={path} />;
 }
 
 function FileNotice({ children }: { children: React.ReactNode }) {
