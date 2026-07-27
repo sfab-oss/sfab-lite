@@ -126,16 +126,21 @@
     "client/base-ui-react.js": "sha256:5c152675dfebc289fe95806e230d5e8d961d10b17106eacced0b06908a4fe345"
   },
   "typesVfs": {
-    "fileCount": 2144,
-    "rawBytes": 8740675,
-    "gzipBytes": 1242257,
+    "fileCount": 2498,
+    "rawBytes": 9416637,
+    "gzipBytes": 1282987,
     "packages": {
-      "@base-ui/react": 812,
+      "@base-ui/react": 1150,
+      "@base-ui/utils": 10,
       "@better-auth/core": 90,
       "@better-auth/drizzle-adapter": 1,
       "@better-auth/telemetry": 1,
       "@better-auth/utils": 1,
       "@better-fetch/fetch": 1,
+      "@floating-ui/core": 1,
+      "@floating-ui/dom": 1,
+      "@floating-ui/react-dom": 1,
+      "@floating-ui/utils": 2,
       "@radix-ui/react-icons": 320,
       "@standard-schema/spec": 1,
       "@tanstack/history": 1,
@@ -156,6 +161,7 @@
       "jose": 31,
       "kysely": 265,
       "nanostores": 13,
+      "reselect": 1,
       "tailwind-merge": 1,
       "tiny-invariant": 1,
       "tiny-warning": 1,
@@ -220,10 +226,10 @@
   "totals": {
     "raw": 7953249,
     "gzip": 1397297,
-    "typesGzip": 1242257,
+    "typesGzip": 1282987,
     "cssGzip": 13148,
     "clientGzip": 666413,
-    "hostBakeGzip": 2652702
+    "hostBakeGzip": 2693432
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,

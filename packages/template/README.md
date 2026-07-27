@@ -102,9 +102,14 @@ file, update `manifest.json`.
 
 ## The shadcn subset, and why it is a subset
 
-The seed carries a deliberately small slice of the starter's shadcn layer:
-`alert`, `avatar`, `badge`, `button`, `card`, `empty`, `field`, `input`,
-`label`, `native-select`, `separator`, `skeleton`, `spinner`, `table`.
+The seed carries a slice of the starter's shadcn layer: `alert`, `avatar`,
+`badge`, `button`, `card`, `dropdown-menu`, `empty`, `field`, `input`,
+`label`, `native-select`, `sheet`, `sidebar`, `skeleton`, `spinner`,
+`table`, `tooltip`.
+
+`separator` left with the flat header the sidebar replaced — the same rule
+that took `textarea` out with the notes form. Port it back with the first
+route that needs it.
 
 Two different reasons keep the rest out, and it is worth not confusing them,
 because only one of them is a real constraint:

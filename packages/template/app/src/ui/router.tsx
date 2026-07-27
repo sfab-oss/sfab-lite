@@ -12,6 +12,8 @@ import { DocumentDetailPage } from "./routes/document-detail";
 import { DocumentsPage } from "./routes/documents";
 import { EntitiesPage } from "./routes/entities";
 import { OnboardingPage } from "./routes/onboarding";
+import { OverviewPage } from "./routes/overview";
+import { SettingsPage } from "./routes/settings";
 import { SignInPage } from "./routes/sign-in";
 import { SignUpPage } from "./routes/sign-up";
 
@@ -32,20 +34,15 @@ function Root() {
 
 const rootRoute = createRootRoute({ component: Root });
 
-/** Send people wherever they actually belong right now. */
+/**
+ * The landing page for a signed-in operator. `requireSession` is a hoisted
+ * function declaration, so referring to it above its definition is fine.
+ */
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  beforeLoad: async () => {
-    const session = await loadSession();
-    if (!session.authenticated) {
-      throw redirect({ to: "/sign-in" });
-    }
-    if (session.needsOnboarding) {
-      throw redirect({ to: "/onboarding" });
-    }
-    throw redirect({ to: "/documents" });
-  },
+  beforeLoad: requireSession,
+  component: OverviewPage,
 });
 
 const signInRoute = createRoute({
@@ -119,6 +116,13 @@ const catalogRoute = createRoute({
   component: CatalogPage,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  beforeLoad: requireSession,
+  component: SettingsPage,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -128,6 +132,7 @@ const routeTree = rootRoute.addChildren([
   documentDetailRoute,
   entitiesRoute,
   catalogRoute,
+  settingsRoute,
 ]);
 
 /**
