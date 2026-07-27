@@ -6,53 +6,82 @@
 /*
   Factory console tokens — shadcn semantic names are canonical for all new UI
   (primitives, auth rebuild, chat graft). See apps/factory/ui/AGENTS.md.
+
+  Brand restraint matches the platform: stock shadcn palette + system font;
+  the only brand colour is the focus ring (and identity links via --brand).
 */
 
 :root {
   color-scheme: light;
 
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --card: #ffffff;
-  --card-foreground: #1a1a1a;
-  --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #1a1a1a;
-  --primary-foreground: #ffffff;
-  --secondary: #f7f7f5;
-  --secondary-foreground: #1a1a1a;
-  --muted: #f7f7f5;
-  --muted-foreground: #5c5c5c;
-  --accent: #eef2f7;
-  --accent-foreground: #1a1a1a;
-  --destructive: #9b1c1c;
-  --border: #d4d4d4;
-  --input: #d4d4d4;
-  --ring: #8a9bb5;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: var(--brand);
   --radius: 0.625rem;
-  --sidebar: #f7f7f5;
-  --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #1a1a1a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef2f7;
-  --sidebar-accent-foreground: #1a1a1a;
-  --sidebar-border: #d4d4d4;
-  --sidebar-ring: #8a9bb5;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: var(--brand);
 
-  --brand: #1a4d8c;
-  --warn: #8a5a00;
-  --ok: #1b5e3b;
+  --brand: oklch(0.59 0.24 357);
+  --brand-foreground: oklch(0 0 0);
+  --warn: oklch(0.508 0.108 73.298);
+  --ok: oklch(0.43 0.089 156.353);
 
-  --ink: var(--foreground);
-  --line: var(--border);
-  --surface: var(--muted);
-  --bg: var(--background);
-  --danger: var(--destructive);
-
-  font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  font-family: system-ui, sans-serif;
   line-height: 1.45;
   color: var(--foreground);
   background: var(--background);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: var(--brand);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(0.269 0 0);
+  --sidebar-ring: var(--brand);
 }
 
 @theme inline {
@@ -75,10 +104,13 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-brand: var(--brand);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -97,7 +129,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 80% 50% at 0% 0%, #eef2f7 0%, transparent 55%),
+    radial-gradient(ellipse 80% 50% at 0% 0%, var(--accent) 0%, transparent 55%),
     var(--background);
 }
 
