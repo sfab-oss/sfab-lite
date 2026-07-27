@@ -12,7 +12,6 @@ export type Route =
   | { name: "apps" }
   | { name: "thread"; appId: string; threadId: string }
   | { name: "app"; appId: string }
-  | { name: "create" }
   | { name: "ui-kit" }
   | { name: "dev-chat"; appId?: string; threadId?: string };
 
@@ -41,9 +40,6 @@ function parsePath(pathname: string): Route {
     if (path === "/dev/chat") {
       return { name: "dev-chat" };
     }
-  }
-  if (path === "/apps/new" || path === "/create") {
-    return { name: "create" };
   }
   const threadMatch = path.match(RE_THREAD);
   if (threadMatch?.[1] && threadMatch[2]) {
@@ -76,8 +72,6 @@ function pathFor(route: Route): string {
       return route.appId && route.threadId
         ? `/dev/chat/apps/${encodeURIComponent(route.appId)}/t/${encodeURIComponent(route.threadId)}`
         : "/dev/chat";
-    case "create":
-      return "/apps/new";
     case "app":
       return `/apps/${encodeURIComponent(route.appId)}`;
     case "thread":
