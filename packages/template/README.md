@@ -70,8 +70,9 @@ esbuild + kernel import map there. Only the intersection is safe.
   the kernel — an app can only import what the kernel serves via its client
   and server import maps. `@base-ui/react` (and its public subpaths) is
   vendored into the client kernel and resolved through the import map, not
-  bundled into the app. Prefer deep imports over barrels for anything
-  icon-shaped.
+  bundled into the app. `@radix-ui/react-icons` is vendored the same way but
+  as a barrel only: `@radix-ui/react-icons` resolves, a deep import into its
+  `dist/` does not.
 - **Every file is user-visible.** Unused exports, dead components, and
   commented-out code ship into every app ever created. `knip` runs over
   `app/` with its own entry points for exactly this reason.
@@ -108,17 +109,20 @@ The seed carries a deliberately small slice of the starter's shadcn layer:
 Two different reasons keep the rest out, and it is worth not confusing them,
 because only one of them is a real constraint:
 
-- **Genuinely blocked** — the upstream shadcn source imports something the
-  kernel does not serve. `lucide-react` is nearly all of this: the
-  overlay/menu/select family (dialog, dropdown-menu, select, sheet, sidebar,
-  command, …) uses icons. So do the third-party-backed ones: `sonner`,
-  `chart` (recharts), `carousel` (embla), `calendar` (react-day-picker),
-  `drawer` (vaul), `resizable`, `markdown` (streamdown). These need a kernel
-  decision before they can be ported at all.
+- **Genuinely blocked** — the upstream shadcn source needs a third-party
+  package the kernel does not serve: `command` (cmdk), `sonner`, `chart`
+  (recharts), `carousel` (embla), `calendar` (react-day-picker), `drawer`
+  (vaul), `resizable`, `markdown` (streamdown). These need a kernel decision
+  before they can be ported at all.
 - **Merely not ported yet** — `tabs`, `tooltip`, `switch`, `popover`,
   `progress`, `slider`, `toggle`, `radio-group`, `collapsible`,
   `hover-card`, `aspect-ratio` and friends need only `@base-ui/react` and
-  `cn`, both of which the kernel already serves. They are absent because
+  `cn`, both of which the kernel already serves. So does the overlay/menu/
+  select family (dialog, dropdown-menu, select, sheet, sidebar, …) — now that
+  the kernel serves an icon set, every Base UI primitive those need is in the
+  import map, and porting one means swapping its `lucide-react` import for the
+  matching Radix icon. `command` is the exception in that family: it is built
+  on `cmdk`, which no icon set makes available. They are absent because
   **every file here ships into every app**, and `knip` rejects a seed file
   nothing imports. Add one the moment a route actually uses it.
 
@@ -138,16 +142,26 @@ surface errors through `Alert`, which already carries `role="alert"`, so a
 per-field error component would be an unused file. Port the rest of `Field`
 together with the first form that needs inline validation, not before.
 
-`spinner` and `native-select` are the two hand-written divergences: each
-draws its one glyph as an inline SVG rather than pulling a Lucide icon, so a
-pending button and a select chevron work without the blocked dependency.
+`spinner` and `native-select` are the two hand-written divergences, and both
+now draw a real icon: `UpdateIcon` and `ChevronDownIcon`. `native-select`
+stays native because shadcn's `Select` is a popover the seed does not carry.
 
-**That is the icon rule, and it is now decided** (the earlier note left the
-choice open): while the kernel serves no icon package, a component may carry
-a single inline glyph of its own, and nothing else draws icons — pages don't,
-and a component wanting a *set* of icons waits for the kernel to serve one.
-Two glyphs is a convention; a dozen hand-drawn SVGs scattered across pages is
-the failure mode that rule exists to prevent.
+## Icons
+
+`@radix-ui/react-icons` is the app's icon set, and the whole of it is served
+— all 318, not a curated subset. That completeness is the point: an agent
+cannot see which icons a subset holds, so it would discover the boundary one
+typecheck failure at a time. A finite library it can name from priors beats a
+smaller one it has to probe.
+
+It is affordable because of what icons actually cost. The bundle was never
+the constraint — even all of Lucide would be under 5% of the client kernel.
+The types are: the check worker runs one TypeScript program over the types
+VFS inside a 128 MB isolate. Serving every Radix icon adds 89.5 KB there
+(320 files, +1.06%); Lucide's declarations are ~1.96 MB. That ratio, not the
+icon count, decided this.
+
+Draw icons from the package. Hand-rolled inline SVG is now a smell.
 
 ## What the app does
 

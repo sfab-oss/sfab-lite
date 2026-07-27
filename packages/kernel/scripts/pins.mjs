@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const KERNEL_VERSION = "0.3.0";
+export const KERNEL_VERSION = "0.4.0";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const templatePkg = JSON.parse(
@@ -61,6 +61,7 @@ export const PINS = {
   "@tanstack/react-router": templatePin("@tanstack/react-router"),
   "@tanstack/react-query": templatePin("@tanstack/react-query"),
   "@base-ui/react": templatePin("@base-ui/react"),
+  "@radix-ui/react-icons": templatePin("@radix-ui/react-icons"),
   zod: templatePin("zod"),
 };
 

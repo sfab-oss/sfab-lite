@@ -127,6 +127,7 @@ const KNOWN_PACKAGES = [
   "@tanstack/query-core",
   "@base-ui/react",
   "@base-ui/utils",
+  "@radix-ui/react-icons",
   "clsx",
   "class-variance-authority",
   "tailwind-merge",
