@@ -18,6 +18,7 @@ export interface RealChatData extends ChatData {
 }
 
 export function createRealChatData(): RealChatData {
+  let appId: string | null = null;
   let sourceFiles: Record<string, string> = {};
   let versions: AppVersion[] = [];
   let threads = loadThreads();
@@ -71,20 +72,23 @@ export function createRealChatData(): RealChatData {
       next[index] = merged;
       writeThreads(next);
     },
+    getAppId: () => appId,
     listVersions: () => versions,
     getWorkspaceDir: (path) => dirEntries(sourceFiles, path),
     getWorkspaceFile: (path) => fileContent(sourceFiles, path),
-    async refreshApp(appId) {
-      if (!appId) {
+    async refreshApp(nextAppId) {
+      if (!nextAppId) {
+        appId = null;
         sourceFiles = {};
         versions = [];
         notify();
         return;
       }
       const [listed, live] = await Promise.all([
-        listVersions(appId),
-        getLiveSources(appId).catch(() => null),
+        listVersions(nextAppId),
+        getLiveSources(nextAppId).catch(() => null),
       ]);
+      appId = nextAppId;
       sourceFiles = live?.sourceFiles ?? {};
       versions = listed.versions.map((version, index) => ({
         id: version.id,

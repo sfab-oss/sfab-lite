@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type WorkspaceKind = "files" | "terminal" | "browser" | "versions";
+export const WORKSPACE_KINDS = ["files", "browser", "versions"] as const;
+
+export type WorkspaceKind = (typeof WORKSPACE_KINDS)[number];
+
+const KNOWN_KINDS: ReadonlySet<string> = new Set(WORKSPACE_KINDS);
 
 const SINGLETON_KINDS: ReadonlySet<WorkspaceKind> = new Set([
   "files",
@@ -43,6 +47,29 @@ function setThread(
   next: ThreadTabs
 ): Partial<WorkspaceTabsState> {
   return { byThread: { ...state.byThread, [threadId]: next } };
+}
+
+// Persisted state outlives the code that wrote it: a kind that is renamed or
+// retired stays in localStorage and would otherwise reach a lookup keyed on
+// the current union.
+function reviveByThread(value: unknown): Record<string, ThreadTabs> {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  const revived: Record<string, ThreadTabs> = {};
+  for (const [threadId, raw] of Object.entries(value)) {
+    const stored = raw as Partial<ThreadTabs> | null;
+    const tabs = (Array.isArray(stored?.tabs) ? stored.tabs : []).filter(
+      (tab): tab is OpenTab =>
+        typeof tab?.id === "string" && KNOWN_KINDS.has(tab?.kind)
+    );
+    if (tabs.length === 0) {
+      continue;
+    }
+    const active = tabs.find((tab) => tab.id === stored?.activeId);
+    revived[threadId] = { tabs, activeId: active?.id ?? tabs[0]?.id ?? null };
+  }
+  return revived;
 }
 
 export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
@@ -100,7 +127,16 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
 
       resetLocalState: () => set({ byThread: {}, workspaceOpen: false }),
     }),
-    { name: LAB_WORKSPACE_STORAGE_KEY }
+    {
+      name: LAB_WORKSPACE_STORAGE_KEY,
+      merge: (persisted, current) => ({
+        ...current,
+        ...(persisted as Partial<WorkspaceTabsState>),
+        byThread: reviveByThread(
+          (persisted as { byThread?: unknown } | null)?.byThread
+        ),
+      }),
+    }
   )
 );
 

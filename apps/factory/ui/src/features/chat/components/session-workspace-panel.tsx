@@ -5,7 +5,6 @@ import {
   History,
   type LucideIcon,
   Plus,
-  SquareTerminal,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +21,10 @@ import {
   type OpenTab,
   useThreadTabs,
   useWorkspaceTabsStore,
+  WORKSPACE_KINDS,
   type WorkspaceKind,
 } from "../lib/workspace-tabs-store";
+import { SessionTabBrowser } from "./session-tab-browser";
 import { SessionTabFiles } from "./session-tab-files";
 
 const WORKSPACE_DEFS: Record<
@@ -32,11 +33,8 @@ const WORKSPACE_DEFS: Record<
 > = {
   browser: { icon: Globe, title: "Browser" },
   files: { icon: FolderTree, title: "Published files" },
-  terminal: { icon: SquareTerminal, title: "Terminal" },
   versions: { icon: History, title: "Versions" },
 };
-
-const WORKSPACE_KINDS: WorkspaceKind[] = ["files", "browser", "versions"];
 
 function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
   const base = WORKSPACE_DEFS[tab.kind].title;
@@ -83,28 +81,12 @@ function VersionsBody() {
   );
 }
 
-function TabBody({ tab }: { tab: OpenTab }) {
+function TabBody({ active, tab }: { active: boolean; tab: OpenTab }) {
   if (tab.kind === "files") {
     return <SessionTabFiles />;
   }
-  if (tab.kind === "terminal") {
-    return (
-      <p className="p-3 text-muted-foreground text-sm">
-        Terminal is not connected yet.
-      </p>
-    );
-  }
   if (tab.kind === "browser") {
-    return (
-      <div className="flex h-full flex-col">
-        <div className="border-b px-3 py-2 font-mono text-muted-foreground text-xs">
-          Preview
-        </div>
-        <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
-          App preview is not wired in this cut.
-        </div>
-      </div>
-    );
+    return <SessionTabBrowser active={active} />;
   }
   return <VersionsBody />;
 }
@@ -237,7 +219,7 @@ export function SessionWorkspacePanel({
               key={tab.id}
               value={tab.id}
             >
-              <TabBody tab={tab} />
+              <TabBody active={activeId === tab.id} tab={tab} />
             </TabsContent>
           ))
         )}

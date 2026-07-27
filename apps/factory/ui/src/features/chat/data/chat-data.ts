@@ -11,6 +11,7 @@ import type {
  * (same wiring as the deleted `/dev/agent` harness).
  */
 export interface ChatData {
+  getAppId: () => string | null;
   getWorkspaceDir: (path: string) => {
     entries: WorkspaceFileEntry[];
     path: string;
