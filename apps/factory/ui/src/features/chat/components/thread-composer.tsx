@@ -13,6 +13,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { type ComposerScope, ComposerScopeChip } from "./composer-scope-chip";
 
 function shouldSubmitOnEnter(
   event: ReactKeyboardEvent<HTMLTextAreaElement>,
@@ -37,11 +38,14 @@ export function ThreadComposer({
   onStop,
   placeholder = "Message the agent…",
   running,
+  scope,
 }: {
   onStop: () => void;
   onSubmit: (text: string) => void;
   placeholder?: string;
   running: boolean;
+  /** Omitted inside a thread — only a blank composer can still choose an app. */
+  scope?: ComposerScope;
 }) {
   const isMobile = useIsMobile();
   const [text, setText] = useState("");
@@ -92,6 +96,7 @@ export function ThreadComposer({
               value={text}
             />
             <InputGroupAddon align="block-end" className="pt-1">
+              {scope ? <ComposerScopeChip {...scope} /> : null}
               <div className="ml-auto flex shrink-0 items-center gap-2">
                 <InputGroupButton
                   aria-label={running ? "Stop" : "Send message"}

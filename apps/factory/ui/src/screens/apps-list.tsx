@@ -137,7 +137,7 @@ export function AppsListScreen() {
           </p>
         </div>
         <Link
-          to={{ name: "create" }}
+          to={{ name: "chat" }}
           className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-primary-foreground text-sm no-underline"
         >
           New app

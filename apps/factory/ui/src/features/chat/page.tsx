@@ -22,6 +22,7 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "@/router";
+import type { ComposerScope } from "./components/composer-scope-chip";
 import {
   ResponsiveSidePanel,
   useSidePanelLayout,
@@ -372,6 +373,17 @@ function ChatScreenInner() {
     });
   }, []);
 
+  const composerScope = useMemo<ComposerScope>(
+    () => ({
+      appId: scopeAppId,
+      appName: scopedApp?.appName ?? scopeAppName,
+      apps: readyApps,
+      onAttendApp: attendApp,
+      onClearScope: goHome,
+    }),
+    [attendApp, goHome, readyApps, scopeAppId, scopeAppName, scopedApp]
+  );
+
   const onSetWorkspaceOpen = (
     value: boolean | ((open: boolean) => boolean)
   ) => {
@@ -426,6 +438,7 @@ function ChatScreenInner() {
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
               onSetWorkspaceOpen={onSetWorkspaceOpen}
+              scope={composerScope}
               seedMessage={
                 activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
               }
@@ -444,6 +457,7 @@ function ChatScreenInner() {
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
               onSetWorkspaceOpen={onSetWorkspaceOpen}
+              scope={composerScope}
               seedMessage={
                 activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
               }
@@ -468,6 +482,7 @@ interface ChatChromeProps {
   onSetContainerNode: (node: HTMLElement | null) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
+  scope: ComposerScope;
   seedMessage: string | null;
   summaryOpen: boolean;
   workspaceOpen: boolean;
@@ -541,6 +556,7 @@ function ChatColumn({
   onSetContainerNode,
   onSetSummaryOpen,
   onSetWorkspaceOpen,
+  scope,
   seedMessage,
   summaryOpen,
   workspaceOpen,
@@ -590,6 +606,7 @@ function ChatColumn({
                     : "Describe the app you want to build…"
                 }
                 running={creating}
+                scope={scope}
               />
               {createError ? (
                 <p className="mt-2 text-center text-destructive text-sm">

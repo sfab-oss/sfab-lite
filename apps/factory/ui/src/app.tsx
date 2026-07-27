@@ -3,7 +3,6 @@ import { authClient } from "./auth-client";
 import { useRouter } from "./router";
 import { AppDetailScreen } from "./screens/app-detail";
 import { AppsListScreen } from "./screens/apps-list";
-import { CreateAppScreen } from "./screens/create-app";
 import { SignInScreen } from "./screens/sign-in";
 
 const UiKitScreen = import.meta.env.DEV
@@ -67,10 +66,6 @@ export function App() {
 
   if (route.name === "sign-in" || !signedIn) {
     return <SignInScreen />;
-  }
-
-  if (route.name === "create") {
-    return <CreateAppScreen />;
   }
 
   if (route.name === "apps") {
