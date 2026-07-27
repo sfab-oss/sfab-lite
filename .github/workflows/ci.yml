@@ -67,6 +67,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm lint:check
 
+      - name: test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm test
+
       - name: cycles
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:cycles
