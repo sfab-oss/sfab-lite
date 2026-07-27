@@ -1,15 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
+import { Avatar, AvatarFallback } from "../components/avatar";
+import { Badge } from "../components/badge";
 import { Button } from "../components/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "../components/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "../components/empty";
 import { Input } from "../components/input";
+import { Separator } from "../components/separator";
+import { Skeleton } from "../components/skeleton";
+import { Spinner } from "../components/spinner";
 import { Textarea } from "../components/textarea";
 import { authClient } from "../lib/auth-client";
 import {
@@ -19,6 +32,17 @@ import {
   notesQueryOptions,
 } from "../lib/notes";
 import { sessionQueryOptions } from "../lib/session";
+
+const WHITESPACE = /\s+/;
+
+function initials(name: string | undefined, email: string | undefined): string {
+  const source = name?.trim() || email?.trim() || "?";
+  const parts = source.split(WHITESPACE).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
+  }
+  return source.slice(0, 2).toUpperCase();
+}
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -57,20 +81,31 @@ export function DashboardPage() {
     create.mutate({ title, body });
   }
 
+  const userName = session.data?.user?.name;
+  const userEmail = session.data?.user?.email;
+  const orgName = session.data?.organization?.name ?? "Organization";
+
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-8">
       <header className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-medium text-xl">Notes</h1>
-          <p className="text-muted-foreground text-sm">
-            {session.data?.organization?.name ?? "Organization"} ·{" "}
-            {session.data?.user?.email}
-          </p>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <h1 className="font-medium text-xl">Notes</h1>
+            <Badge variant="secondary">{orgName}</Badge>
+          </div>
+          <p className="text-muted-foreground text-sm">{userEmail}</p>
         </div>
-        <Button onClick={onSignOut} type="button" variant="outline">
-          Sign out
-        </Button>
+        <div className="flex items-center gap-3">
+          <Avatar size="sm">
+            <AvatarFallback>{initials(userName, userEmail)}</AvatarFallback>
+          </Avatar>
+          <Button onClick={onSignOut} type="button" variant="outline">
+            Sign out
+          </Button>
+        </div>
       </header>
+
+      <Separator />
 
       <Card>
         <CardHeader>
@@ -91,6 +126,7 @@ export function DashboardPage() {
               value={body}
             />
             <Button disabled={create.isPending || !title.trim()} type="submit">
+              {create.isPending ? <Spinner data-icon="inline-start" /> : null}
               {create.isPending ? "Saving…" : "Add note"}
             </Button>
           </form>
@@ -99,29 +135,57 @@ export function DashboardPage() {
 
       <section className="flex flex-col gap-3">
         {notes.isLoading ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
         ) : null}
-        {notes.data?.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No notes yet.</p>
+        {!notes.isLoading && notes.data?.length === 0 ? (
+          <Empty className="border border-dashed">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </EmptyMedia>
+              <EmptyTitle>No notes yet</EmptyTitle>
+              <EmptyDescription>
+                Add a note above to get started.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : null}
         {notes.data?.map((note: Note) => (
           <Card key={note.id}>
-            <CardHeader className="flex-row items-start justify-between gap-4">
-              <div>
-                <CardTitle>{note.title}</CardTitle>
-                {note.body ? (
-                  <CardDescription className="mt-1 whitespace-pre-wrap">
-                    {note.body}
-                  </CardDescription>
-                ) : null}
-              </div>
-              <Button
-                onClick={() => remove.mutate(note.id)}
-                type="button"
-                variant="ghost"
-              >
-                Delete
-              </Button>
+            <CardHeader>
+              <CardTitle>{note.title}</CardTitle>
+              {note.body ? (
+                <CardDescription className="mt-1 whitespace-pre-wrap">
+                  {note.body}
+                </CardDescription>
+              ) : null}
+              <CardAction>
+                <Button
+                  disabled={remove.isPending}
+                  onClick={() => remove.mutate(note.id)}
+                  type="button"
+                  variant="ghost"
+                >
+                  Delete
+                </Button>
+              </CardAction>
             </CardHeader>
           </Card>
         ))}

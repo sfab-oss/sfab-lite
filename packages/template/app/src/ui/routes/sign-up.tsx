@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "../components/alert";
 import { AuthShell } from "../components/auth-shell";
 import { Button } from "../components/button";
 import {
@@ -9,7 +10,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/card";
-import { Field } from "../components/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "../components/field";
+import { Input } from "../components/input";
+import { Spinner } from "../components/spinner";
 import { authClient } from "../lib/auth-client";
 import { invalidateSession } from "../lib/session";
 
@@ -51,35 +59,50 @@ export function SignUpPage() {
         </CardHeader>
         <CardContent>
           <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-            <Field
-              autoComplete="name"
-              id="name"
-              label="Name"
-              onChange={(event) => setName(event.target.value)}
-              required
-              value={name}
-            />
-            <Field
-              autoComplete="email"
-              id="email"
-              label="Email"
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              type="email"
-              value={email}
-            />
-            <Field
-              autoComplete="new-password"
-              id="password"
-              label="Password"
-              minLength={8}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              type="password"
-              value={password}
-            />
-            {error ? <p className="text-destructive text-sm">{error}</p> : null}
+            <FieldGroup className="gap-4">
+              <Field>
+                <FieldLabel htmlFor="name">Name</FieldLabel>
+                <Input
+                  autoComplete="name"
+                  id="name"
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  value={name}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  autoComplete="email"
+                  id="email"
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                  type="email"
+                  value={email}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  autoComplete="new-password"
+                  id="password"
+                  minLength={8}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                  type="password"
+                  value={password}
+                />
+                <FieldDescription>At least 8 characters.</FieldDescription>
+              </Field>
+            </FieldGroup>
+            {error ? (
+              <Alert variant="destructive">
+                <AlertTitle>Sign-up failed</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
             <Button disabled={pending} type="submit">
+              {pending ? <Spinner data-icon="inline-start" /> : null}
               {pending ? "Creating…" : "Create account"}
             </Button>
           </form>
