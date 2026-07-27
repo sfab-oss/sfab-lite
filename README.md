@@ -348,7 +348,9 @@ Every admin request needs one of:
 A token belongs to no organization, so it cannot have an active one — that
 asymmetry is the whole reason the two paths differ. An explicit
 `organizationId` is always a query parameter, including on
-`POST /admin/apps` (the JSON body carries only `name`). The dispatcher
+`POST /admin/apps` (the JSON body carries only `name`, and may omit it — the
+host then assigns a placeholder from its own list, renameable via
+`PATCH /admin/apps/:appId`). The dispatcher
 resolves it for organization-scoped routes and puts the result on the
 handler context; no handler branches on which credential arrived.
 

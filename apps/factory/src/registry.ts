@@ -211,6 +211,22 @@ export async function listAppsForOrganization(
 }
 
 /**
+ * Names alone, for choosing one that is not taken. Deliberately not
+ * `listAppsForOrganization`: that runs the stale-`creating` sweep, and app
+ * creation is not the place to pay for reconciling other apps' attempts.
+ */
+export async function listAppNamesForOrganization(
+  db: Db,
+  organizationId: string
+): Promise<string[]> {
+  const rows = await db
+    .select({ name: app.name })
+    .from(app)
+    .where(eq(app.organizationId, organizationId));
+  return rows.map((row) => row.name);
+}
+
+/**
  * Fetch one app by id with **no organization filter**.
  *
  * Unscoped on purpose — the name is the warning. The caller must already have
@@ -227,6 +243,25 @@ export async function getAppUnscoped(
   const row = await db.query.app.findFirst({
     where: eq(app.id, appId),
   });
+  return row ? toRecord(row) : null;
+}
+
+/**
+ * Set the display name, returning the updated row or null if the id is gone.
+ *
+ * Unscoped by id for the same reason as `getAppUnscoped` — the caller must
+ * already have cleared `requireAppAccess`.
+ */
+export async function renameAppUnscoped(
+  db: Db,
+  appId: string,
+  name: string
+): Promise<AppRecord | null> {
+  const [row] = await db
+    .update(app)
+    .set({ name, updatedAt: new Date() })
+    .where(eq(app.id, appId))
+    .returning();
   return row ? toRecord(row) : null;
 }
 

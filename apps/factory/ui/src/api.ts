@@ -89,15 +89,21 @@ export async function listApps(): Promise<{
   return { organizationId: body.organizationId, apps: body.apps };
 }
 
-export async function createApp(name: string): Promise<{
+/**
+ * Omit `name` and the server picks a placeholder. The console does that: it
+ * knows what the app should *do*, from the prompt, which is not the same as
+ * what it should be called.
+ */
+export async function createApp(name?: string): Promise<{
   appId: string;
   attemptId: string;
+  name: string;
 }> {
   const res = await fetch("/admin/apps", {
     method: "POST",
     credentials: "include",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify(name ? { name } : {}),
   });
   if (res.status === 401) {
     throw new AuthRequiredError();
@@ -105,8 +111,32 @@ export async function createApp(name: string): Promise<{
   if (res.status !== 202) {
     throw new Error(await errorMessage(res, `create failed (${res.status})`));
   }
-  const body = await readJson<{ appId: string; attemptId: string }>(res);
-  return { appId: body.appId, attemptId: body.attemptId };
+  const body = await readJson<{
+    appId: string;
+    attemptId: string;
+    name: string;
+  }>(res);
+  return { appId: body.appId, attemptId: body.attemptId, name: body.name };
+}
+
+export async function renameApp(
+  appId: string,
+  name: string
+): Promise<AppRecord> {
+  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (res.status === 401) {
+    throw new AuthRequiredError();
+  }
+  if (!res.ok) {
+    throw new Error(await errorMessage(res, `rename failed (${res.status})`));
+  }
+  const body = await readJson<{ ok: true; app: AppRecord }>(res);
+  return body.app;
 }
 
 export async function getApp(appId: string): Promise<AppRecord> {
