@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import type { AppEnv } from "./middleware";
 import { withAuth } from "./middleware";
-import { noteRoutes } from "./routes/notes";
+import { documentRoutes } from "./routes/documents";
+import { entityRoutes } from "./routes/entities";
+import { productRoutes } from "./routes/products";
 import { sessionRoutes } from "./routes/session";
 
 /**
@@ -17,6 +19,8 @@ export const app = new Hono<AppEnv>()
   .get("/api/health", (c) => c.json({ ok: true, service: "sfab-lite-app" }))
   .all("/api/auth/*", (c) => c.get("auth").handler(c.req.raw))
   .route("/api/session-context", sessionRoutes)
-  .route("/api/notes", noteRoutes);
+  .route("/api/entities", entityRoutes)
+  .route("/api/products", productRoutes)
+  .route("/api/documents", documentRoutes);
 
 export type AppType = typeof app;

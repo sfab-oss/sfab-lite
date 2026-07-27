@@ -41,7 +41,7 @@ export function SignInPage() {
 
     // The guards read the session from the cache; it is stale as of now.
     await invalidateSession();
-    await navigate({ to: "/app" });
+    await navigate({ to: "/documents" });
   }
 
   return (

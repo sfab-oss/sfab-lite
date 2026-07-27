@@ -60,39 +60,64 @@ describe("probeEntrySource", () => {
     const snapshot = await runProbe();
     assert.deepEqual(snapshot.tables.map((t) => t.name).sort(), [
       "account",
+      "document",
+      "document_line",
+      "entity",
       "invitation",
       "member",
-      "note",
       "organization",
+      "product",
       "session",
       "user",
       "verification",
     ]);
   });
 
-  it("reads defaults, keys, indexes, and foreign keys off the note table", async () => {
-    const note = (await runProbe()).tables.find((t) => t.name === "note");
-    assert.ok(note);
-    assert.deepEqual(note.primaryKey, ["id"]);
-    assert.equal(note.columns.find((c) => c.name === "body")?.defaultSql, "''");
+  it("reads defaults, keys, indexes, and foreign keys off the document table", async () => {
+    const document = (await runProbe()).tables.find(
+      (t) => t.name === "document"
+    );
+    assert.ok(document);
+    assert.deepEqual(document.primaryKey, ["id"]);
     assert.equal(
-      note.columns.find((c) => c.name === "created_at")?.defaultSql,
+      document.columns.find((c) => c.name === "status")?.defaultSql,
+      "'draft'"
+    );
+    assert.equal(
+      document.columns.find((c) => c.name === "created_at")?.defaultSql,
       "(cast(unixepoch('subsecond') * 1000 as integer))"
     );
-    assert.deepEqual(note.indexes, [
+    assert.deepEqual(document.indexes, [
       {
-        name: "note_organizationId_idx",
+        name: "document_organizationId_idx",
         columns: ["organization_id"],
         unique: false,
       },
+      {
+        name: "document_entityId_idx",
+        columns: ["entity_id"],
+        unique: false,
+      },
+      {
+        name: "document_organizationId_number_unique",
+        columns: ["organization_id", "number"],
+        unique: true,
+      },
     ]);
-    assert.deepEqual(note.foreignKeys, [
+    assert.deepEqual(document.foreignKeys, [
       {
         columns: ["organization_id"],
         refTable: "organization",
         refColumns: ["id"],
         onUpdate: "no action",
         onDelete: "cascade",
+      },
+      {
+        columns: ["entity_id"],
+        refTable: "entity",
+        refColumns: ["id"],
+        onUpdate: "no action",
+        onDelete: "restrict",
       },
     ]);
   });

@@ -54,13 +54,13 @@ export function OnboardingPage() {
 
     await invalidateSession();
     setPending(false);
-    await navigate({ to: "/app" });
+    await navigate({ to: "/documents" });
   }
 
   return (
     <AuthShell
       heading="Create your organization"
-      tagline="Notes and data are scoped per organization."
+      tagline="Parties, catalog, and documents are scoped per organization."
     >
       <Card>
         <CardContent className="pt-6">

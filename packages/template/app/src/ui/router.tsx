@@ -7,7 +7,10 @@ import {
 } from "@tanstack/react-router";
 import { publicBase } from "./lib/public-base";
 import { loadSession } from "./lib/session";
-import { DashboardPage } from "./routes/dashboard";
+import { CatalogPage } from "./routes/catalog";
+import { DocumentDetailPage } from "./routes/document-detail";
+import { DocumentsPage } from "./routes/documents";
+import { EntitiesPage } from "./routes/entities";
 import { OnboardingPage } from "./routes/onboarding";
 import { SignInPage } from "./routes/sign-in";
 import { SignUpPage } from "./routes/sign-up";
@@ -41,7 +44,7 @@ const indexRoute = createRoute({
     if (session.needsOnboarding) {
       throw redirect({ to: "/onboarding" });
     }
-    throw redirect({ to: "/app" });
+    throw redirect({ to: "/documents" });
   },
 });
 
@@ -66,25 +69,54 @@ const onboardingRoute = createRoute({
       throw redirect({ to: "/sign-in" });
     }
     if (!session.needsOnboarding) {
-      throw redirect({ to: "/app" });
+      throw redirect({ to: "/documents" });
     }
   },
   component: OnboardingPage,
 });
 
-const appRoute = createRoute({
+/**
+ * What every signed-in page requires, written once. A pathless layout route
+ * would express the same thing, but it also prefixes each child's id — and
+ * those ids are what `useParams({ from })` is typed against, so the pages
+ * would all have to name a route segment that does not exist in any URL.
+ */
+async function requireSession() {
+  const session = await loadSession();
+  if (!session.authenticated) {
+    throw redirect({ to: "/sign-in" });
+  }
+  if (session.needsOnboarding) {
+    throw redirect({ to: "/onboarding" });
+  }
+}
+
+const documentsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/app",
-  beforeLoad: async () => {
-    const session = await loadSession();
-    if (!session.authenticated) {
-      throw redirect({ to: "/sign-in" });
-    }
-    if (session.needsOnboarding) {
-      throw redirect({ to: "/onboarding" });
-    }
-  },
-  component: DashboardPage,
+  path: "/documents",
+  beforeLoad: requireSession,
+  component: DocumentsPage,
+});
+
+const documentDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/documents/$id",
+  beforeLoad: requireSession,
+  component: DocumentDetailPage,
+});
+
+const entitiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/entities",
+  beforeLoad: requireSession,
+  component: EntitiesPage,
+});
+
+const catalogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/catalog",
+  beforeLoad: requireSession,
+  component: CatalogPage,
 });
 
 const routeTree = rootRoute.addChildren([
@@ -92,7 +124,10 @@ const routeTree = rootRoute.addChildren([
   signInRoute,
   signUpRoute,
   onboardingRoute,
-  appRoute,
+  documentsRoute,
+  documentDetailRoute,
+  entitiesRoute,
+  catalogRoute,
 ]);
 
 /**
