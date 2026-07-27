@@ -99,8 +99,8 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 2. **Biome only — never ESLint.**
 3. **Never commit secrets** (`.dev.vars` and similar are gitignored).
 4. **No wrangler remote / prod deploys** without an explicit owner ask.
-5. **Registry blocks** are the design source for factory UI (S3+); implement
-   only what the lite loop needs.
+5. **Registry blocks** are the design source for factory UI; implement only
+   what the lite loop needs.
 
 ## Tooling
 
