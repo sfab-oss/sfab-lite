@@ -65,8 +65,11 @@ function BoundThreadTranscript({
   thread: Thread;
 }) {
   const data = useChatData();
-  const name = `${thread.appId}:${thread.id}`;
-  const agent = useAgent({ agent: "AppThread", name });
+  const agent = useAgent({
+    agent: "AppAgent",
+    name: thread.appId as string,
+    sub: [{ agent: "AppThread", name: thread.id }],
+  });
   // Without a throttle, dense tool-input-delta bursts exceed React's nested
   // update limit inside useSyncExternalStore — cloudflare/agents#1361, #1732.
   const { messages, sendMessage, status, stop } = useAgentChat({

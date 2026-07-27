@@ -2,7 +2,6 @@ import { getLiveSources, listVersions } from "@/api";
 import type { AppVersion, Thread } from "../model/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";
-import { loadThreads, saveThreads as persistThreads } from "./thread-store";
 
 function formatCreatedAt(ms: number): string {
   try {
@@ -21,7 +20,7 @@ export function createRealChatData(): RealChatData {
   let appId: string | null = null;
   let sourceFiles: Record<string, string> = {};
   let versions: AppVersion[] = [];
-  let threads = loadThreads();
+  let threads: Thread[] = [];
   let revision = 0;
   const listeners = new Set<() => void>();
 
@@ -34,7 +33,6 @@ export function createRealChatData(): RealChatData {
 
   const writeThreads = (next: Thread[]) => {
     threads = next;
-    persistThreads(next);
     notify();
   };
 
@@ -50,6 +48,26 @@ export function createRealChatData(): RealChatData {
     upsertThread: (thread) => {
       const without = threads.filter((entry) => entry.id !== thread.id);
       writeThreads([thread, ...without]);
+    },
+    mergeThreads: (incoming) => {
+      const byId = new Map(threads.map((thread) => [thread.id, thread]));
+      for (const thread of incoming) {
+        const existing = byId.get(thread.id);
+        byId.set(
+          thread.id,
+          existing
+            ? {
+                ...thread,
+                status: existing.status,
+                readOnly: existing.readOnly,
+                appName: thread.appName ?? existing.appName,
+              }
+            : thread
+        );
+      }
+      writeThreads(
+        [...byId.values()].sort((a, b) => b.updatedAt - a.updatedAt)
+      );
     },
     patchThread: (threadId, patch) => {
       const index = threads.findIndex((thread) => thread.id === threadId);

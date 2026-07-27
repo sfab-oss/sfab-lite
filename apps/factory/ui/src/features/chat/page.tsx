@@ -33,6 +33,11 @@ import { ThreadHeaderMenu } from "./components/thread-header-menu";
 import { ThreadSummaryPanel } from "./components/thread-summary-panel";
 import { ThreadTranscript } from "./components/thread-transcript";
 import { SessionThreadsSidebar } from "./components/threads-sidebar";
+import {
+  AppAgentRegistryProvider,
+  createServerThread,
+  useAppAgentRegistry,
+} from "./data/app-agent-bridge";
 import { ChatDataProvider, useChatData } from "./data/chat-data-context";
 import {
   createRealChatData,
@@ -48,10 +53,6 @@ const APP_READY_TIMEOUT_MS = 120_000;
 function titleFromText(text: string): string {
   const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "New thread";
   return first.length > 64 ? `${first.slice(0, 61)}…` : first;
-}
-
-function newThreadId(): string {
-  return `thr_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 
 async function waitForAppReady(appId: string): Promise<void> {
@@ -73,13 +74,16 @@ export function ChatScreen() {
   const [chatData] = useState<RealChatData>(() => createRealChatData());
   return (
     <ChatDataProvider value={chatData}>
-      <ChatScreenInner />
+      <AppAgentRegistryProvider>
+        <ChatScreenInner />
+      </AppAgentRegistryProvider>
     </ChatDataProvider>
   );
 }
 
 function ChatScreenInner() {
   const chatData = useChatData();
+  const { registerApp, waitForHandle } = useAppAgentRegistry();
   const threads = chatData.listThreads();
   const isMobile = useIsMobile();
   const { route, navigate } = useRouter();
@@ -205,30 +209,33 @@ function ChatScreenInner() {
           appId = created.appId;
           await waitForAppReady(appId);
         }
-        const now = Date.now();
-        const id = newThreadId();
+        registerApp(appId, appName);
+        const handle = await waitForHandle(appId);
+        const summary = await createServerThread(handle, {
+          title: titleFromText(text),
+        });
         const thread: Thread = {
-          id,
+          id: summary.id,
           appId,
           appName,
           readOnly: false,
           status: "idle",
-          title: titleFromText(text),
-          createdAt: now,
-          updatedAt: now,
+          title: summary.title,
+          createdAt: summary.createdAt,
+          updatedAt: summary.updatedAt,
         };
         chatData.upsertThread(thread);
-        setSeedByThread((current) => ({ ...current, [id]: text }));
+        setSeedByThread((current) => ({ ...current, [summary.id]: text }));
         setScopeAppId(appId);
-        setActiveThreadId(id);
-        goThread(id);
+        setActiveThreadId(summary.id);
+        goThread(summary.id);
       } catch (error: unknown) {
         setCreateError(error instanceof Error ? error.message : String(error));
       } finally {
         setCreating(false);
       }
     },
-    [chatData, creating, goThread, scopedApp]
+    [chatData, creating, goThread, registerApp, scopedApp, waitForHandle]
   );
 
   const consumeSeed = useCallback((threadId: string) => {
