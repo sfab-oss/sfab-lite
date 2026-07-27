@@ -2,7 +2,6 @@
 
 **Date:** 2026-07-25
 **Status:** resolved — 36% `exceededMemory` → 0 of 64 in production
-**Task:** S3.5
 
 ## What happened
 
@@ -150,7 +149,7 @@ cheaper per byte than generic-heavy library types. Do not expect 40% of heap
 from 40% of text.
 
 **Deep-importing `better-auth/plugins/organization`** instead of the barrel:
-157 → 141 files, **2 MB**. Also blocked by the S3.1 gate in
+157 → 141 files, **2 MB**. Also blocked by the import-map resolution gate in
 `resolve-modules.ts`, which refuses any specifier the runtime kernel does not
 serve — so it needs a kernel import-map and vendor-entry change. Not worth it
 for 2 MB of heap, but worth revisiting for *bundle* size, where the same change

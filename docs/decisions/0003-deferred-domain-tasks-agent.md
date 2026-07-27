@@ -6,38 +6,38 @@
 
 ## Context
 
-S0 needed a clean monorepo before UI, auth, or agent work. Several product
-questions are real but block later stages, not bootstrap.
+Bootstrap needed a clean monorepo before UI, auth, or agent work. Several
+product questions are real but block later slices, not the first loop.
 
 ## Decision
 
 Defer until the named check-in:
 
-| Topic | Decide at |
+| Topic | Decide when |
 | --- | --- |
-| Domain (auth / hosting) | Before S3 |
-| Tasks-lite scope | S3 check-in |
-| Agent substrate | S4 check-in |
+| Domain (auth / hosting) | Before factory UI, auth, and organizations |
+| Tasks-lite scope | When tasks-lite work starts |
+| Agent substrate | When agent work starts |
 
-Lite factory UI/UX is also not settled at S0 — sharpen when that work starts
-(S3+). Do not invent interim auth-less admin panels or speculative agent
+Factory UI/UX is also not settled at bootstrap — sharpen when that work
+starts. Do not invent interim auth-less admin panels or speculative agent
 harnesses.
 
 ## Consequences
 
 ### Positive
 
-- S1–S2 stay focused on template + runtime port.
+- Early work stays focused on template + runtime port.
 - Product questions get a real sharpening pass with a working loop.
 
 ### Negative
 
-- S3 cannot start until domain is decided.
+- Factory UI / auth / organizations cannot start until domain is decided.
 
 ### Mitigations
 
-- Call out the blockers explicitly in stage handoffs.
+- Call out the blockers explicitly when handing off between slices.
 
 ## Related
 
-- Packet plan stages S3–S4 (agent-workspace `active/sfab-lite/PLAN.md`)
+- [ADR-0001](./0001-edge-native-lite-architecture.md)

@@ -6,10 +6,11 @@
 
 ## Context
 
-S0 initially bootstrapped sfab-lite with a one-off root `tsconfig.base.json`
-and a minimal Biome config. That read as "the monorepo itself is lite." The
-product intent is different: **lite** is the frozen-kernel template / sub-app
-constraint. The factory monorepo should feel like `sfab` / `sfab-starter`.
+Initial bootstrap used a one-off root `tsconfig.base.json` and a minimal Biome
+config. That read as "the monorepo itself is lite." The intent is different:
+**lite** is the frozen-kernel template / sub-app constraint. The factory
+monorepo should feel like a full platform / starter repo — shared configs,
+real gates — not a probe.
 
 ## Decision
 
@@ -18,8 +19,7 @@ constraint. The factory monorepo should feel like `sfab` / `sfab-starter`.
 2. Gates: Turbo + husky + lint-staged + madge + knip; pre-commit is
    platform-closer (workspace, typecheck, cycles, dead-code); pre-push blocks
    `main`.
-3. Package names `@sfab-lite/*`; license **AGPL-3.0-only** (same posture as
-   the sfab platform).
+3. Package names `@sfab-lite/*`; license **AGPL-3.0-only**.
 4. Product "lite" constraints apply to sub-apps / kernel / template — not to
    factory tooling or documentation depth.
 
@@ -27,7 +27,7 @@ constraint. The factory monorepo should feel like `sfab` / `sfab-starter`.
 
 ### Positive
 
-- Agents and humans reuse starter/platform muscle memory.
+- Agents and humans reuse familiar monorepo muscle memory.
 - Hygiene gates exist before real code lands.
 
 ### Negative
@@ -36,8 +36,8 @@ constraint. The factory monorepo should feel like `sfab` / `sfab-starter`.
 
 ### Mitigations
 
-- Keep product packages empty until their stage; don't invent lite-specific
-  tooling forks.
+- Keep product packages empty until their work starts; don't invent
+  lite-specific tooling forks.
 
 ## Related
 

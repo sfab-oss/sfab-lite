@@ -1,8 +1,9 @@
 # Architecture overview — sfab-lite
 
-Settled by the `explore-edge-native-lite` exploration (T5). Do not relitigate
-without a new ADR. Evidence:
-agent-workspace `archive/explore-edge-native-lite/artifacts/t5/`.
+Settled by measured exploration of edge-native runtime shapes. Do not
+relitigate without a new ADR. The numbers that pinned this shape live in
+[`../engineering/making-it-fit.md`](../engineering/making-it-fit.md) and the
+ADRs under [`../decisions/`](../decisions/).
 
 ## Hard distinction
 
@@ -14,7 +15,7 @@ agent-workspace `archive/explore-edge-native-lite/artifacts/t5/`.
    The template (`packages/template`) is the seed + closure source and must
    stay independently runnable.
 
-## Runtime shape (T5)
+## Runtime shape
 
 ```text
                     ┌─────────────────────────┐
@@ -39,20 +40,20 @@ agent-workspace `archive/explore-edge-native-lite/artifacts/t5/`.
   Changing behaviour for apps already out there needs a source migration or a
   host-side workaround, and that cost belongs in the design, not the rollout.
 - **LOADER** child isolates for serve.
-- **Plain async check worker** — CheckDO was measured and refuted (T4.2).
+- **Plain async check worker** — putting the LanguageService in a Durable
+  Object was measured and refuted (warmth lasts ~5s idle, not ~30s; full
+  template checks never stay warm).
 - **Stateless Biome lint worker** — sync on edit.
 
 Shared contracts live in `packages/core`.
 
-## Stages (where code lands)
+## What is in, what is not
 
-| Stage | Lands |
+| In | Not built yet |
 | --- | --- |
-| S1 | `packages/template` port + refactor |
-| S2 | kernel + host + check + lint (T5 loop on new deploys) |
-| S3 | factory UI + tasks-lite + auth (needs domain decision) |
-| S4 | agent over the same admin API |
-| S5 | quotas, schema evolution, eject |
+| Template, frozen kernel, host, check, lint | Tasks-lite |
+| Auth, organizations, app registry | Agent over the admin API |
+| Factory console | Diffs, quotas, schema evolution, eject |
 
 ## Related
 

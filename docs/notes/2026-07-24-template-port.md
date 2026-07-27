@@ -1,10 +1,10 @@
-# S1 — template port: what S2 inherits
+# Template port: what the host inherits
 
 Non-authoritative working note. The template now lives in
 `packages/template`, runs standalone, and is clean under the repo's gates.
-Porting it surfaced things the host must do differently in S2. They are
-recorded here rather than in the code, because the code they concern does
-not exist yet.
+Porting it surfaced things the host must do differently. They are recorded
+here rather than in the code, because the code they concern did not exist
+yet when this was written.
 
 ## Delete on arrival
 
@@ -39,11 +39,10 @@ a declared path stops existing.
 
 The factory host is a Worker with no filesystem, so the seed cannot be read
 at runtime. `pnpm --filter @sfab-lite/template pack` emits
-`{ manifest, sourceFiles, migrations }`; S2 bakes that into the factory
-bundle. Worth diffing the first output against the exploration's
-`host/.seed-out/last-seed.json` — same 32 source files, minus
-`app/src/worker.ts` and `app/index.html`, which are standalone-only and
-excluded by the manifest.
+`{ manifest, sourceFiles, migrations }`; the factory bakes that into its
+bundle. Worth diffing the first output against the exploration's seed
+snapshot — same 32 source files, minus `app/src/worker.ts` and
+`app/index.html`, which are standalone-only and excluded by the manifest.
 
 ## Two configs the factory must import, not re-derive
 

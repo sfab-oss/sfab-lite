@@ -32,13 +32,13 @@ Two of these are worth internalising because they defeat the obvious approach:
 **There is no isolate affinity.** Successive requests do not reach the same
 isolate, so an in-memory incremental cache never survives between them. This is
 what makes "just keep the LanguageService warm" a non-strategy in a plain
-Worker. Measured in T4.1: `lsReused: false` on every round.
+Worker. Measured: `lsReused: false` on every round.
 
 **Durable Objects do not fix that, and do not give you more memory.** A DO gets
 the same 128 MB. It gives affinity, but it is evicted after roughly 30 seconds
-idle — measured in T4.2 across a 5s / 30s / 2m / 5m / 15m ladder: warm at 5s,
-cold at 30s and everything beyond. An editing session has longer gaps than
-that. This is why ADR-0001 records **CheckDO as rejected**.
+idle — measured across a 5s / 30s / 2m / 5m / 15m ladder: warm at 5s, cold at
+30s and everything beyond. An editing session has longer gaps than that. This
+is why ADR-0001 records **CheckDO as rejected**.
 
 ## Techniques that worked
 
@@ -125,8 +125,8 @@ instead of failing in fifteen seconds. `CHECK_ATTEMPTS` is 2.
 | Prune the VFS of never-opened files | 1,196 files are never opened — they cost upload, not heap | `measure-program.mjs` |
 | Split the program into client + server | Client-only still loads 876 of 877 files: `api.ts` does `hc<AppType>` against the server's Hono type, and that one `import type` fuses the graphs. Cutting it still leaves the server half at 703 files / 270 MB (~82%) | `measure-split.mjs` |
 | Trim `lib.dom.d.ts` | 40% of loaded text but only **32 MB / ~10%** of heap | phase measurement |
-| `better-auth` deep imports | 157 → 141 files, 2 MB of heap; also blocked by the S3.1 resolver gate | dep-shape probe |
-| CheckDO for warm affinity | Retention ~30s; full template checks did not stay warm and often 500'd | T4.2 warm curve |
+| `better-auth` deep imports | 157 → 141 files, 2 MB of heap; also blocked by the import-map resolver gate | dep-shape probe |
+| CheckDO for warm affinity | Retention ~30s; full template checks did not stay warm and often 500'd | DO warm-curve ladder |
 | A bigger Worker | 128 MB on Free and Paid alike; no 2026 increase | Cloudflare docs |
 | TypeScript 7 / `tsgo` (~2.9x less memory) | Excluded by the repo's TS 6.0.3 pin | — |
 
@@ -155,12 +155,12 @@ measure bytes when the target is the upload limit. They are different problems
 with different answers.
 
 **A correct check at one layer can certify a broken product.** This has now
-bitten this packet repeatedly, in the same shape each time: the seed gate
-passes while the factory seeds stale source; the memory gate passes while two
-programs coexist; the lint gate passes against a config the worker does not
-use. When adding a gate, ask what it would still pass if the thing it protects
-were completely broken — and red-test it by deliberately breaking that thing
-before trusting it.
+bitten repeatedly, in the same shape each time: the seed gate passes while the
+factory seeds stale source; the memory gate passes while two programs coexist;
+the lint gate passes against a config the worker does not use. When adding a
+gate, ask what it would still pass if the thing it protects were completely
+broken — and red-test it by deliberately breaking that thing before trusting
+it.
 
 ## Related
 
