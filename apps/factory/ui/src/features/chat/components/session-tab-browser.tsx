@@ -76,10 +76,9 @@ function linkLabel(path: string): string {
   return path === "/" ? "Home" : path;
 }
 
-export function SessionTabBrowser({ threadId }: { threadId: string }) {
+export function SessionTabBrowser({ active }: { active: boolean }) {
   const data = useChatData();
-  const appId =
-    data.listThreads().find((thread) => thread.id === threadId)?.appId ?? null;
+  const appId = data.getAppId();
   const liveVersion = data.listVersions().find((version) => version.live);
   const routerSource = data.getWorkspaceFile(ROUTER_FILE)?.content ?? null;
   const quickLinks = appQuickLinks(routerSource);
@@ -96,25 +95,68 @@ export function SessionTabBrowser({ threadId }: { threadId: string }) {
   }
 
   return (
-    <BrowserFrame appId={appId} key={liveVersion.id} quickLinks={quickLinks} />
+    <BrowserFrame
+      active={active}
+      appId={appId}
+      key={appId}
+      liveVersionId={liveVersion.id}
+      quickLinks={quickLinks}
+    />
   );
 }
 
 function BrowserFrame({
+  active,
   appId,
+  liveVersionId,
   quickLinks,
 }: {
+  active: boolean;
   appId: string;
+  liveVersionId: string;
   quickLinks: string[];
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const pathRef = useRef("/");
+  const prevLiveRef = useRef(liveVersionId);
   const [path, setPath] = useState("/");
   const [draft, setDraft] = useState("/");
   const [editing, setEditing] = useState(false);
   const rootSrc = `${appBasePath(appId)}/`;
 
+  pathRef.current = path;
+
   useEffect(() => {
-    const id = window.setInterval(() => {
+    if (prevLiveRef.current === liveVersionId) {
+      return;
+    }
+    prevLiveRef.current = liveVersionId;
+    const frame = iframeRef.current;
+    if (!frame) {
+      return;
+    }
+    try {
+      frame.contentWindow?.location.reload();
+    } catch {
+      frame.src = clampToApp(appId, pathRef.current);
+    }
+  }, [appId, liveVersionId]);
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    let intervalId: number | null = null;
+
+    const stop = () => {
+      if (intervalId != null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const tick = () => {
       if (editing) {
         return;
       }
@@ -126,9 +168,25 @@ function BrowserFrame({
       if (next != null) {
         setPath((current) => (current === next ? current : next));
       }
-    }, LOCATION_POLL_MS);
-    return () => window.clearInterval(id);
-  }, [appId, editing]);
+    };
+
+    const sync = () => {
+      if (document.visibilityState === "visible") {
+        if (intervalId == null) {
+          intervalId = window.setInterval(tick, LOCATION_POLL_MS);
+        }
+        return;
+      }
+      stop();
+    };
+
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [active, appId, editing]);
 
   useEffect(() => {
     if (!editing) {
@@ -141,7 +199,7 @@ function BrowserFrame({
     const frame = iframeRef.current;
     try {
       if (frame?.contentWindow) {
-        frame.contentWindow.location.assign(url);
+        frame.contentWindow.location.replace(url);
       } else if (frame) {
         frame.src = url;
       }

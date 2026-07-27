@@ -82,12 +82,12 @@ function VersionsBody() {
   );
 }
 
-function TabBody({ tab, threadId }: { tab: OpenTab; threadId: string }) {
+function TabBody({ active, tab }: { active: boolean; tab: OpenTab }) {
   if (tab.kind === "files") {
     return <SessionTabFiles />;
   }
   if (tab.kind === "browser") {
-    return <SessionTabBrowser threadId={threadId} />;
+    return <SessionTabBrowser active={active} />;
   }
   return <VersionsBody />;
 }
@@ -220,7 +220,7 @@ export function SessionWorkspacePanel({
               key={tab.id}
               value={tab.id}
             >
-              <TabBody tab={tab} threadId={threadId} />
+              <TabBody active={activeId === tab.id} tab={tab} />
             </TabsContent>
           ))
         )}
