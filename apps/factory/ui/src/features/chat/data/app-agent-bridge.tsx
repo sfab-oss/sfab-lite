@@ -217,3 +217,20 @@ export async function createServerThread(
     opts ? [opts] : []
   )) as ThreadSummary;
 }
+
+export async function renameServerThread(
+  handle: AppAgentHandle,
+  id: string,
+  title: string
+): Promise<void> {
+  await handle.ready;
+  await handle.call("renameThread", [id, title]);
+}
+
+export async function deleteServerThread(
+  handle: AppAgentHandle,
+  id: string
+): Promise<void> {
+  await handle.ready;
+  await handle.call("deleteThread", [id]);
+}

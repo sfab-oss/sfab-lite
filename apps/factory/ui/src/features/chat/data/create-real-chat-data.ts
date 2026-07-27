@@ -27,6 +27,9 @@ export function createRealChatData(): RealChatData {
   // pruning against that snapshot would delete the thread the user is entering.
   // Locally created threads survive until a snapshot actually reports them.
   const unconfirmed = new Set<string>();
+  // Symmetrically: a snapshot in flight when a thread is deleted can still list
+  // it. Suppress re-adding until a later snapshot omits the id.
+  const recentlyDeleted = new Set<string>();
   const listeners = new Set<() => void>();
 
   const notify = () => {
@@ -51,6 +54,7 @@ export function createRealChatData(): RealChatData {
     },
     listThreads: () => threads,
     upsertThread: (thread) => {
+      recentlyDeleted.delete(thread.id);
       unconfirmed.add(thread.id);
       const without = threads.filter((entry) => entry.id !== thread.id);
       writeThreads([thread, ...without]);
@@ -58,19 +62,26 @@ export function createRealChatData(): RealChatData {
     hasSyncedApp: (id) => syncedApps.has(id),
     syncAppThreads: (ownerAppId, incoming) => {
       syncedApps.add(ownerAppId);
+      for (const id of [...recentlyDeleted]) {
+        if (!incoming.some((thread) => thread.id === id)) {
+          recentlyDeleted.delete(id);
+        }
+      }
       const byId = new Map(threads.map((thread) => [thread.id, thread]));
-      const owned = incoming.map((thread) => {
-        unconfirmed.delete(thread.id);
-        const existing = byId.get(thread.id);
-        return existing
-          ? {
-              ...thread,
-              status: existing.status,
-              readOnly: existing.readOnly,
-              appName: thread.appName ?? existing.appName,
-            }
-          : thread;
-      });
+      const owned = incoming
+        .filter((thread) => !recentlyDeleted.has(thread.id))
+        .map((thread) => {
+          unconfirmed.delete(thread.id);
+          const existing = byId.get(thread.id);
+          return existing
+            ? {
+                ...thread,
+                status: existing.status,
+                readOnly: existing.readOnly,
+                appName: thread.appName ?? existing.appName,
+              }
+            : thread;
+        });
       const incomingIds = new Set(owned.map((thread) => thread.id));
       const kept = threads.filter(
         (thread) =>
@@ -101,6 +112,14 @@ export function createRealChatData(): RealChatData {
       const next = threads.slice();
       next[index] = merged;
       writeThreads(next);
+    },
+    removeThread: (threadId) => {
+      unconfirmed.delete(threadId);
+      recentlyDeleted.add(threadId);
+      if (!threads.some((thread) => thread.id === threadId)) {
+        return;
+      }
+      writeThreads(threads.filter((thread) => thread.id !== threadId));
     },
     getAppId: () => appId,
     listVersions: () => versions,

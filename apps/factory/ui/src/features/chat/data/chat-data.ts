@@ -23,6 +23,8 @@ export interface ChatData {
   listVersions: () => AppVersion[];
   patchThread: (threadId: string, patch: Partial<Thread>) => void;
   refreshApp: (appId: string | null) => Promise<void>;
+  /** Drop a thread from local state (e.g. right after a successful delete). */
+  removeThread: (threadId: string) => void;
   /**
    * Replace this app's threads with AppAgent's snapshot. The facet registry is
    * authoritative, so a thread it no longer lists is gone — merging alone would
