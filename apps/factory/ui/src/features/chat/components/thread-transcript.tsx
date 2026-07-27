@@ -4,7 +4,7 @@ import { useAgentChat } from "@cloudflare/think/react";
 import { useAgent } from "agents/react";
 import type { ChatStatus, FileUIPart, UIMessage } from "ai";
 import { FileIcon, PaperclipIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 import { ThinkingPending } from "@/components/brand/thinking";
 import {
   Attachment,
@@ -32,8 +32,11 @@ export function ThreadTranscript({
   thread,
   initialMessage,
   onInitialConsumed,
+  messagesRef,
 }: {
   initialMessage?: string;
+  /** Published for the header's copy action, which renders outside the chat. */
+  messagesRef: RefObject<ThreadUIMessage[]>;
   onInitialConsumed?: () => void;
   thread: Thread;
 }) {
@@ -49,6 +52,7 @@ export function ThreadTranscript({
     <BoundThreadTranscript
       initialMessage={initialMessage}
       key={`${thread.appId}:${thread.id}`}
+      messagesRef={messagesRef}
       onInitialConsumed={onInitialConsumed}
       thread={thread}
     />
@@ -59,8 +63,10 @@ function BoundThreadTranscript({
   thread,
   initialMessage,
   onInitialConsumed,
+  messagesRef,
 }: {
   initialMessage?: string;
+  messagesRef: RefObject<ThreadUIMessage[]>;
   onInitialConsumed?: () => void;
   thread: Thread;
 }) {
@@ -79,6 +85,13 @@ function BoundThreadTranscript({
   const running = status === "submitted" || status === "streaming";
   const sentInitial = useRef(false);
   const prevBusy = useRef(false);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+    return () => {
+      messagesRef.current = [];
+    };
+  }, [messages, messagesRef]);
 
   useEffect(() => {
     const nextStatus = running ? "running" : "idle";

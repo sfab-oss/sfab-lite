@@ -16,6 +16,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import { useRouter } from "@/router";
 import {
   groupInactiveByApp,
@@ -233,6 +234,15 @@ export function SessionThreadsSidebar({
   );
 }
 
+/**
+ * An app's name is whatever prompt created it, so this label carries arbitrary
+ * user prose rather than a short noun. Upper-casing it turned the longest
+ * string in the sidebar into its loudest, sitting directly above thread titles
+ * drawn from the same sentence.
+ */
+const APP_BUCKET_LABEL =
+  "block w-full truncate px-2 py-1 font-medium text-[11px] text-muted-foreground group-data-[collapsible=icon]:hidden";
+
 function AppBucket({
   label,
   threads,
@@ -254,7 +264,7 @@ function AppBucket({
     <div className="mt-1">
       {onAttendApp ? (
         <button
-          className="block w-full truncate px-2 py-1 text-left font-medium text-[10px] text-muted-foreground uppercase tracking-wide hover:text-foreground group-data-[collapsible=icon]:hidden"
+          className={cn(APP_BUCKET_LABEL, "text-left hover:text-foreground")}
           onClick={onAttendApp}
           title={label}
           type="button"
@@ -262,10 +272,7 @@ function AppBucket({
           {label}
         </button>
       ) : (
-        <p
-          className="block w-full truncate px-2 py-1 font-medium text-[10px] text-muted-foreground uppercase tracking-wide group-data-[collapsible=icon]:hidden"
-          title={label}
-        >
+        <p className={APP_BUCKET_LABEL} title={label}>
           {label}
         </p>
       )}

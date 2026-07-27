@@ -1,5 +1,6 @@
+import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createApp, getApp, listApps } from "@/api";
 import {
   AppLayout,
@@ -605,6 +606,10 @@ function ChatColumn({
   summaryOpen,
   workspaceOpen,
 }: ChatChromeProps) {
+  // The header's copy action needs the transcript's messages, and the two are
+  // siblings. A ref keeps the streaming list out of the header's render path.
+  const messagesRef = useRef<UIMessage[]>([]);
+
   return (
     <>
       <ThreadHeader
@@ -612,6 +617,7 @@ function ChatColumn({
         onSetSummaryOpen={onSetSummaryOpen}
         onSetWorkspaceOpen={onSetWorkspaceOpen}
         onThreadDeleted={onThreadDeleted}
+        readMessages={() => messagesRef.current}
         summaryOpen={summaryOpen}
         workspaceOpen={workspaceOpen}
       />
@@ -629,6 +635,7 @@ function ChatColumn({
             <ThreadTranscript
               initialMessage={seedMessage ?? undefined}
               key={activeThread.id}
+              messagesRef={messagesRef}
               onInitialConsumed={() => onSeedConsumed(activeThread.id)}
               thread={activeThread}
             />
@@ -671,6 +678,7 @@ function ThreadHeader({
   onSetSummaryOpen,
   onSetWorkspaceOpen,
   onThreadDeleted,
+  readMessages,
   summaryOpen,
   workspaceOpen,
 }: {
@@ -678,6 +686,7 @@ function ThreadHeader({
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onThreadDeleted: (thread: Thread) => void;
+  readMessages: () => UIMessage[];
   summaryOpen: boolean;
   workspaceOpen: boolean;
 }) {
@@ -691,6 +700,7 @@ function ThreadHeader({
             </span>
             <ThreadHeaderMenu
               onDeleted={onThreadDeleted}
+              readMessages={readMessages}
               thread={activeThread}
             />
           </div>
