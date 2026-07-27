@@ -31,18 +31,14 @@ const WORKSPACE_DEFS: Record<
   { icon: LucideIcon; title: string }
 > = {
   browser: { icon: Globe, title: "Browser" },
-  files: { icon: FolderTree, title: "Files" },
+  files: { icon: FolderTree, title: "Published files" },
   terminal: { icon: SquareTerminal, title: "Terminal" },
   versions: { icon: History, title: "Versions" },
 };
 
-/** Terminal is unbacked (no live shell stream in ChatData); omit from the menu. */
 const WORKSPACE_KINDS: WorkspaceKind[] = ["files", "browser", "versions"];
 
 function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
-  if (tab.kind === "agent-run") {
-    return "Agent run";
-  }
   const base = WORKSPACE_DEFS[tab.kind].title;
   const same = peers.filter((entry) => entry.kind === tab.kind);
   if (same.length <= 1) {
@@ -52,15 +48,8 @@ function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
   return `${base} ${index + 1}`;
 }
 
-function tabIcon(kind: WorkspaceKind): LucideIcon {
-  return WORKSPACE_DEFS[kind].icon;
-}
-
 function WorkspaceTabIcon({ tab }: { tab: OpenTab }) {
-  if (tab.kind === "agent-run") {
-    return null;
-  }
-  const Icon = tabIcon(tab.kind);
+  const Icon = WORKSPACE_DEFS[tab.kind].icon;
   return <Icon className="size-3.5 shrink-0" />;
 }
 
@@ -94,7 +83,7 @@ function VersionsBody() {
   );
 }
 
-function TabBody({ tab }: { tab: OpenTab; threadId: string }) {
+function TabBody({ tab }: { tab: OpenTab }) {
   if (tab.kind === "files") {
     return <SessionTabFiles />;
   }
@@ -117,14 +106,7 @@ function TabBody({ tab }: { tab: OpenTab; threadId: string }) {
       </div>
     );
   }
-  if (tab.kind === "versions") {
-    return <VersionsBody />;
-  }
-  return (
-    <p className="p-3 text-muted-foreground text-sm">
-      Nested agent runs are not available.
-    </p>
-  );
+  return <VersionsBody />;
 }
 
 function AddTabMenu({ onOpen }: { onOpen: (kind: WorkspaceKind) => void }) {
@@ -163,7 +145,7 @@ function WorkspaceEmptyState({
       <div className="space-y-1">
         <p className="font-medium">Open a view</p>
         <p className="max-w-xs text-muted-foreground text-sm">
-          Browse files, open a preview, or check versions.
+          Browse published files, open a preview, or check versions.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -255,7 +237,7 @@ export function SessionWorkspacePanel({
               key={tab.id}
               value={tab.id}
             >
-              <TabBody tab={tab} threadId={threadId} />
+              <TabBody tab={tab} />
             </TabsContent>
           ))
         )}

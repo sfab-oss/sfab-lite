@@ -1,6 +1,5 @@
-import type { UIMessage } from "ai";
 import { getLiveSources, listVersions } from "@/api";
-import type { AppVersion } from "../model/types";
+import type { AppVersion, Thread } from "../model/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";
 import { loadThreads, saveThreads as persistThreads } from "./thread-store";
@@ -15,7 +14,6 @@ function formatCreatedAt(ms: number): string {
 
 export interface RealChatData extends ChatData {
   getRevision: () => number;
-  refreshApp: (appId: string | null) => Promise<void>;
   subscribe: (listener: () => void) => () => void;
 }
 
@@ -33,6 +31,12 @@ export function createRealChatData(): RealChatData {
     }
   };
 
+  const writeThreads = (next: Thread[]) => {
+    threads = next;
+    persistThreads(next);
+    notify();
+  };
+
   return {
     getRevision: () => revision,
     subscribe: (listener) => {
@@ -42,19 +46,31 @@ export function createRealChatData(): RealChatData {
       };
     },
     listThreads: () => threads,
-    saveThreads: (next) => {
-      threads = next;
-      persistThreads(next);
-      // Callers often persist inside a React setState updater; notifying
-      // synchronously would re-enter useSyncExternalStore mid-render.
-      queueMicrotask(notify);
+    upsertThread: (thread) => {
+      const without = threads.filter((entry) => entry.id !== thread.id);
+      writeThreads([thread, ...without]);
     },
-    listCommands: () => [],
-    listAttachedFiles: () => [],
-    listSubagents: () => [],
-    lookupSubagent: () => undefined,
-    nestedRunToMessages: (_run): UIMessage[] => [],
-    listTerminalLines: () => [],
+    patchThread: (threadId, patch) => {
+      const index = threads.findIndex((thread) => thread.id === threadId);
+      if (index < 0) {
+        return;
+      }
+      const current = threads[index] as Thread;
+      const merged: Thread = { ...current, ...patch };
+      if (
+        merged.status === current.status &&
+        merged.updatedAt === current.updatedAt &&
+        merged.title === current.title &&
+        merged.readOnly === current.readOnly &&
+        merged.appId === current.appId &&
+        merged.appName === current.appName
+      ) {
+        return;
+      }
+      const next = threads.slice();
+      next[index] = merged;
+      writeThreads(next);
+    },
     listVersions: () => versions,
     getWorkspaceDir: (path) => dirEntries(sourceFiles, path),
     getWorkspaceFile: (path) => fileContent(sourceFiles, path),

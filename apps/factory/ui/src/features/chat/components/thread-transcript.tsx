@@ -21,9 +21,9 @@ import {
   MessageScrollerProvider,
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
+import { useChatData } from "../data/chat-data-context";
 import type { Thread } from "../model/types";
 import { MessageParts } from "./chat/message-parts";
-import { NestedRunOpenProvider } from "./chat/nested-run-open-context";
 import { ThreadComposer } from "./thread-composer";
 
 type ThreadUIMessage = UIMessage;
@@ -64,6 +64,7 @@ function BoundThreadTranscript({
   onInitialConsumed?: () => void;
   thread: Thread;
 }) {
+  const data = useChatData();
   const name = `${thread.appId}:${thread.id}`;
   const agent = useAgent({ agent: "AppThread", name });
   // Without a throttle, dense tool-input-delta bursts exceed React's nested
@@ -74,6 +75,29 @@ function BoundThreadTranscript({
   });
   const running = status === "submitted" || status === "streaming";
   const sentInitial = useRef(false);
+  const prevBusy = useRef(false);
+
+  useEffect(() => {
+    const nextStatus = running ? "running" : "idle";
+    if (thread.status === nextStatus) {
+      return;
+    }
+    data.patchThread(thread.id, {
+      status: nextStatus,
+      updatedAt: Date.now(),
+    });
+  }, [data, running, thread.id, thread.status]);
+
+  useEffect(() => {
+    const wasBusy = prevBusy.current;
+    prevBusy.current = running;
+    if (!(wasBusy && !running && thread.appId)) {
+      return;
+    }
+    data.refreshApp(thread.appId).catch((error: unknown) => {
+      console.error("[chat] refreshApp after turn failed", error);
+    });
+  }, [data, running, thread.appId]);
 
   useEffect(() => {
     if (!initialMessage || sentInitial.current) {
@@ -93,33 +117,31 @@ function BoundThreadTranscript({
   }, [initialMessage, onInitialConsumed, sendMessage]);
 
   return (
-    <NestedRunOpenProvider>
-      <div className="flex min-h-0 flex-1 flex-col bg-background">
-        <MessageList messages={messages} status={status} />
-        {thread.readOnly ? (
-          <p className="border-t px-4 py-3 text-center text-muted-foreground text-xs">
-            This thread is read-only.
-          </p>
-        ) : (
-          <ThreadComposer
-            onStop={() => {
-              stop().catch((error: unknown) => {
-                console.error("[chat] stop failed", error);
-              });
-            }}
-            onSubmit={(text) => {
-              sendMessage({
-                role: "user",
-                parts: [{ type: "text", text }],
-              }).catch((error: unknown) => {
-                console.error("[chat] sendMessage failed", error);
-              });
-            }}
-            running={running}
-          />
-        )}
-      </div>
-    </NestedRunOpenProvider>
+    <div className="flex min-h-0 flex-1 flex-col bg-background">
+      <MessageList messages={messages} status={status} />
+      {thread.readOnly ? (
+        <p className="border-t px-4 py-3 text-center text-muted-foreground text-xs">
+          This thread is read-only.
+        </p>
+      ) : (
+        <ThreadComposer
+          onStop={() => {
+            stop().catch((error: unknown) => {
+              console.error("[chat] stop failed", error);
+            });
+          }}
+          onSubmit={(text) => {
+            sendMessage({
+              role: "user",
+              parts: [{ type: "text", text }],
+            }).catch((error: unknown) => {
+              console.error("[chat] sendMessage failed", error);
+            });
+          }}
+          running={running}
+        />
+      )}
+    </div>
   );
 }
 

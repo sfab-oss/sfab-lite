@@ -1,13 +1,10 @@
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import { LoaderCircle } from "lucide-react";
 import { AgentSigil } from "@/components/icons/agent-sigil";
-import { Button } from "@/components/ui/button";
-import { useNestedRunOpen } from "./chat/nested-run-open-context";
 
 type ToolPart = DynamicToolUIPart | ToolUIPart;
 
 export function NestedRunCard({ part }: { part: ToolPart }) {
-  const onOpen = useNestedRunOpen();
   const summary = summarizeTaskPart(part);
 
   return (
@@ -40,17 +37,6 @@ export function NestedRunCard({ part }: { part: ToolPart }) {
             <p className="mt-1 text-destructive text-xs">{part.errorText}</p>
           ) : null}
         </div>
-        {onOpen ? (
-          <Button
-            className="h-7 shrink-0 px-2 text-xs"
-            onClick={() => onOpen(summary.runId)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            {summary.isRunning ? "View" : "Open"}
-          </Button>
-        ) : null}
       </div>
     </div>
   );
@@ -106,7 +92,6 @@ function summarizeTaskPart(part: ToolPart) {
     detail: detailBits.join(" · "),
     isError,
     isRunning,
-    runId,
     seed,
     statusLabel,
     title,

@@ -49,6 +49,7 @@ export function SessionTabFiles() {
     if (!selectedPath) {
       return (
         <div className="flex h-full min-h-0 flex-col">
+          <PublishedBanner />
           <SessionFileTree activePath={null} onSelectPath={setSelectedPath} />
         </div>
       );
@@ -68,23 +69,34 @@ export function SessionTabFiles() {
   );
 
   return (
-    <ResizablePanelGroup className="h-full min-h-0" direction="horizontal">
-      <ResizablePanel className="min-h-0" defaultSize={68} minSize={40}>
-        {viewer}
-      </ResizablePanel>
-      <ResizableHandle />
-      <ResizablePanel
-        className="flex min-h-0 flex-col border-l"
-        defaultSize={32}
-        maxSize={50}
-        minSize={18}
-      >
-        <SessionFileTree
-          activePath={selectedPath}
-          onSelectPath={setSelectedPath}
-        />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+    <div className="flex h-full min-h-0 flex-col">
+      <PublishedBanner />
+      <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
+        <ResizablePanel className="min-h-0" defaultSize={68} minSize={40}>
+          {viewer}
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel
+          className="flex min-h-0 flex-col border-l"
+          defaultSize={32}
+          maxSize={50}
+          minSize={18}
+        >
+          <SessionFileTree
+            activePath={selectedPath}
+            onSelectPath={setSelectedPath}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </div>
+  );
+}
+
+function PublishedBanner() {
+  return (
+    <p className="shrink-0 border-b px-3 py-2 text-muted-foreground text-xs">
+      Published live version — not the agent's in-thread scratch workspace.
+    </p>
   );
 }
 

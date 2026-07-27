@@ -33,7 +33,7 @@ import { ThreadHeaderMenu } from "./components/thread-header-menu";
 import { ThreadSummaryPanel } from "./components/thread-summary-panel";
 import { ThreadTranscript } from "./components/thread-transcript";
 import { SessionThreadsSidebar } from "./components/threads-sidebar";
-import { ChatDataProvider } from "./data/chat-data-context";
+import { ChatDataProvider, useChatData } from "./data/chat-data-context";
 import {
   createRealChatData,
   type RealChatData,
@@ -73,18 +73,17 @@ export function ChatScreen() {
   const [chatData] = useState<RealChatData>(() => createRealChatData());
   return (
     <ChatDataProvider value={chatData}>
-      <ChatScreenInner chatData={chatData} />
+      <ChatScreenInner />
     </ChatDataProvider>
   );
 }
 
-function ChatScreenInner({ chatData }: { chatData: RealChatData }) {
+function ChatScreenInner() {
+  const chatData = useChatData();
+  const threads = chatData.listThreads();
   const isMobile = useIsMobile();
   const { route, navigate } = useRouter();
   const [search, setSearch] = useState("");
-  const [threads, setThreads] = useState<Thread[]>(() =>
-    chatData.listThreads()
-  );
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [seedByThread, setSeedByThread] = useState<Record<string, string>>({});
   const [scopeAppId, setScopeAppId] = useState<string | null>(null);
@@ -94,17 +93,6 @@ function ChatScreenInner({ chatData }: { chatData: RealChatData }) {
   const workspaceOpen = useWorkspaceTabsStore((s) => s.workspaceOpen);
   const setWorkspaceOpen = useWorkspaceTabsStore((s) => s.setWorkspaceOpen);
   const { canDock, setContainerNode } = useSidePanelLayout();
-
-  const persistThreads = useCallback(
-    (next: Thread[] | ((current: Thread[]) => Thread[])) => {
-      setThreads((current) => {
-        const resolved = typeof next === "function" ? next(current) : next;
-        chatData.saveThreads(resolved);
-        return resolved;
-      });
-    },
-    [chatData]
-  );
 
   useEffect(() => {
     if (route.name === "dev-chat") {
@@ -217,21 +205,19 @@ function ChatScreenInner({ chatData }: { chatData: RealChatData }) {
           appId = created.appId;
           await waitForAppReady(appId);
         }
+        const now = Date.now();
         const id = newThreadId();
         const thread: Thread = {
           id,
           appId,
           appName,
           readOnly: false,
-          status: "running",
+          status: "idle",
           title: titleFromText(text),
-          headline: "Starting…",
-          startedLabel: "just now",
-          startedMinutesAgo: 0,
-          updatedLabel: "now",
-          updatedMinutesAgo: 0,
+          createdAt: now,
+          updatedAt: now,
         };
-        persistThreads((current) => [thread, ...current]);
+        chatData.upsertThread(thread);
         setSeedByThread((current) => ({ ...current, [id]: text }));
         setScopeAppId(appId);
         setActiveThreadId(id);
@@ -242,7 +228,7 @@ function ChatScreenInner({ chatData }: { chatData: RealChatData }) {
         setCreating(false);
       }
     },
-    [creating, goThread, persistThreads, scopedApp]
+    [chatData, creating, goThread, scopedApp]
   );
 
   const consumeSeed = useCallback((threadId: string) => {

@@ -1,9 +1,5 @@
-import type { UIMessage } from "ai";
 import type {
   AppVersion,
-  AttachedFile,
-  SlashCommand,
-  Subagent,
   Thread,
   WorkspaceFileContent,
   WorkspaceFileEntry,
@@ -20,13 +16,9 @@ export interface ChatData {
     path: string;
   };
   getWorkspaceFile: (path: string) => WorkspaceFileContent | null;
-  listAttachedFiles: (threadId: string) => AttachedFile[];
-  listCommands: () => SlashCommand[];
-  listSubagents: (threadId: string) => Subagent[];
-  listTerminalLines: () => string[];
   listThreads: () => Thread[];
   listVersions: () => AppVersion[];
-  lookupSubagent: (threadId: string, runId: string) => Subagent | undefined;
-  nestedRunToMessages: (run: Subagent) => UIMessage[];
-  saveThreads: (threads: Thread[]) => void;
+  patchThread: (threadId: string, patch: Partial<Thread>) => void;
+  refreshApp: (appId: string | null) => Promise<void>;
+  upsertThread: (thread: Thread) => void;
 }
