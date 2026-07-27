@@ -50,70 +50,24 @@ const TITLE_FIRST_LINE = /\n/;
 const APP_READY_POLL_MS = 800;
 const APP_READY_TIMEOUT_MS = 120_000;
 const WORDS = /\s+/;
-// Dropped rather than separated, so "family's" reads `familys`, not `family-s`.
-const APOSTROPHE = /['’]/g;
-const NOT_SLUG = /[^a-z0-9]+/g;
-const SLUG_EDGES = /^-+|-+$/g;
-const APP_NAME_WORDS = 4;
-const APP_NAME_MAX = 32;
-
-/**
- * Words that carry the request rather than the subject. A prompt opens with
- * them ("I want a…", "build me an app that…") and they would otherwise fill
- * the whole name before it reaches what the app is actually for.
- */
-const FILLER = new Set([
-  "a",
-  "an",
-  "app",
-  "application",
-  "build",
-  "called",
-  "create",
-  "for",
-  "i",
-  "like",
-  "make",
-  "me",
-  "my",
-  "named",
-  "need",
-  "new",
-  "our",
-  "please",
-  "that",
-  "the",
-  "to",
-  "us",
-  "want",
-  "we",
-  "would",
-]);
+const APP_NAME_WORDS = 5;
+const APP_NAME_MAX = 40;
 
 function titleFromText(text: string): string {
   const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "New thread";
   return first.length > 64 ? `${first.slice(0, 61)}…` : first;
 }
 
-/**
- * An app name is an identity, not a sentence: it labels a sidebar group and
- * every row of the apps list. Deriving it from the prompt keeps creation to a
- * single step, but a prompt is a request — so the filler that phrases the
- * request is dropped and only the first few remaining words survive.
- */
+/** The prompt's opening words, verbatim. Display truncates what is too long. */
 function appNameFromText(text: string): string {
-  const words = (text.trim().toLowerCase().split(TITLE_FIRST_LINE)[0] ?? "")
+  const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "";
+  const name = first
     .split(WORDS)
-    .map((word) =>
-      word
-        .replace(APOSTROPHE, "")
-        .replace(NOT_SLUG, "-")
-        .replace(SLUG_EDGES, "")
-    )
-    .filter((word) => word.length > 0 && !FILLER.has(word));
-
-  const name = words.slice(0, APP_NAME_WORDS).join("-").slice(0, APP_NAME_MAX);
-  return name.replace(SLUG_EDGES, "") || "new-app";
+    .slice(0, APP_NAME_WORDS)
+    .join(" ")
+    .slice(0, APP_NAME_MAX)
+    .trim();
+  return name || "New app";
 }
 
 async function waitForAppReady(appId: string): Promise<void> {
