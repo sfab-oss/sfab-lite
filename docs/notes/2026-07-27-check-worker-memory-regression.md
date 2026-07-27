@@ -22,11 +22,19 @@ Measured against the live factory, creating four apps through
 
 The stuck app's attempt reads `status=pending`, `payload=null` — it never wrote
 a terminal status. That is `runCommitAttempt` dying under `ctx.waitUntil`
-before it could settle, which is the failure `commit.ts` already documents. The
-app is not failed, it is orphaned.
+before it could settle, which is the failure `commit.ts` already documents.
 
-Two separate defects are visible in that one row: the OOM itself, and a stale
-sweep that did not reclaim the app despite `STALE_ATTEMPT_MS` being 5 minutes.
+**The sweep is not implicated.** An earlier draft of this note claimed the app
+was still `creating` twelve minutes past a five-minute threshold. It was three
+minutes old at that check — conversation time mistaken for the row's
+`createdAt`. Re-checked at 37 minutes it reads `failed`, which is
+`sweepStaleCreating` doing exactly its job.
+
+What the row does show is a **gap between two deadlines**: the console gives up
+at `APP_READY_TIMEOUT_MS = 120_000`, while `STALE_ATTEMPT_MS` is 300_000. For
+three minutes a create that has already died looks, to everything except the
+sweep, like one still in progress — and the user has been shown a hard error
+for it.
 
 ## The regression
 
@@ -142,8 +150,9 @@ what the heap does next.
 Also outstanding, and cheap:
 
 - **An absolute ceiling in `check:check-memory`**, not only a growth bound.
-- **The stale sweep** did not reclaim an app 12 minutes past a 5 minute
-  threshold.
+- **The console gives up before the platform does** — 120 s against a 300 s
+  reconciliation. Whatever the retry story becomes, those two numbers should
+  be related to each other rather than chosen independently.
 
 ## Related
 

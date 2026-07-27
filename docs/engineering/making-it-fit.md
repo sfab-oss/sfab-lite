@@ -152,9 +152,9 @@ instead of failing in fifteen seconds. `CHECK_ATTEMPTS` is 2.
 
   Retention is now *above* the pre-trim figure. It is felt in production as app
   creation hanging: the check worker OOMs, `runCommitAttempt` dies under
-  `ctx.waitUntil` without writing a terminal status, and the app sits in
-  `creating` past the stale sweep. One in four creates, measured against the
-  live factory.
+  `ctx.waitUntil` without writing a terminal status, and the app stays
+  `creating` until `sweepStaleCreating` reclaims it at 5 minutes. The console
+  gives up at 2. One in four creates, measured against the live factory.
 
   `check:check-memory` passes throughout, because it bounds *growth between
   apps* (+9.1 MB against a 50 MB limit) and never looks at the absolute floor.
