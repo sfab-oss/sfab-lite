@@ -2,8 +2,7 @@
  * Naive JS class extractor — stand-in for oxide Scanner (exp-11).
  */
 const ATTR_RE = /(?:class|className)\s*=\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`)/g;
-const CN_RE = /\b(?:cn|clsx|cva)\s*\(([^)]*)\)/g;
-const LIT_RE = /["'`]([^"'`]+)["'`]/g;
+const CN_HEAD_RE = /\b(?:cn|clsx|cva)\s*\(/g;
 const WHITESPACE_RE = /\s+/;
 
 const MISSES_DOCUMENTED = [
@@ -34,37 +33,89 @@ function extractFromAttrs(src: string, set: Set<string>): void {
   }
 }
 
-function extractTokensFromCnInner(inner: string, set: Set<string>): void {
-  LIT_RE.lastIndex = 0;
-  for (;;) {
-    const lit = LIT_RE.exec(inner);
-    if (!lit) {
-      break;
-    }
-    const litBody = lit[1];
-    if (!litBody) {
+function scanQuotedSpan(src: string, start: number): number {
+  const quote = src[start];
+  let escaped = false;
+  for (let i = start + 1; i < src.length; i++) {
+    const ch = src[i];
+    if (escaped) {
+      escaped = false;
       continue;
     }
-    for (const tok of litBody.split(WHITESPACE_RE)) {
-      if (tok && !tok.includes("${")) {
-        set.add(tok);
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (ch === quote) {
+      return i + 1;
+    }
+  }
+  return src.length;
+}
+
+function findBalancedClose(src: string, openIdx: number): number {
+  let depth = 1;
+  let i = openIdx + 1;
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      i = scanQuotedSpan(src, i);
+      continue;
+    }
+    if (ch === "(") {
+      depth++;
+    } else if (ch === ")") {
+      depth--;
+      if (depth === 0) {
+        return i;
       }
+    }
+    i++;
+  }
+  return -1;
+}
+
+function addTokensFromLiteralBody(set: Set<string>, body: string): void {
+  for (const tok of body.split(WHITESPACE_RE)) {
+    if (tok && !tok.includes("${")) {
+      set.add(tok);
     }
   }
 }
 
+function extractTokensFromCnInner(inner: string, set: Set<string>): void {
+  let i = 0;
+  while (i < inner.length) {
+    const ch = inner[i];
+    if (ch !== '"' && ch !== "'" && ch !== "`") {
+      i++;
+      continue;
+    }
+    const end = scanQuotedSpan(inner, i);
+    const closer = end - 1;
+    if (closer <= i || inner[closer] !== ch) {
+      break;
+    }
+    addTokensFromLiteralBody(set, inner.slice(i + 1, closer));
+    i = end;
+  }
+}
+
 function extractFromCnCalls(src: string, set: Set<string>): void {
-  CN_RE.lastIndex = 0;
+  CN_HEAD_RE.lastIndex = 0;
   for (;;) {
-    const m = CN_RE.exec(src);
+    const m = CN_HEAD_RE.exec(src);
     if (!m) {
       break;
     }
-    const inner = m[1];
-    if (!inner) {
-      continue;
+    const openIdx = m.index + m[0].length - 1;
+    const closeIdx = findBalancedClose(src, openIdx);
+    if (closeIdx < 0) {
+      extractTokensFromCnInner(src.slice(openIdx + 1), set);
+      break;
     }
-    extractTokensFromCnInner(inner, set);
+    extractTokensFromCnInner(src.slice(openIdx + 1, closeIdx), set);
+    CN_HEAD_RE.lastIndex = closeIdx + 1;
   }
 }
 
