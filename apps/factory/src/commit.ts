@@ -17,11 +17,13 @@ import type {
   PutVersionInput,
   VersionRecord,
 } from "./app-do.js";
+import { collectMigrations } from "./app-migrations.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
 import type { AttemptResolver } from "./registry.js";
-import type { SchemaSnapshot } from "./schema-ddl.js";
+import { diffSchema, type SchemaSnapshot } from "./schema-ddl.js";
+import { probeSchema } from "./schema-probe.js";
 
 /** Explicit stub surface — DO Rpc generics erase method returns under tsc alone. */
 export interface AppStub {
@@ -243,6 +245,108 @@ export async function callCheck(
   throw lastError;
 }
 
+interface SchemaGateFailure {
+  error: "schema_migration_missing" | "schema_unsafe" | "schema_probe_failed";
+  message: string;
+  detail: unknown;
+}
+
+/**
+ * Make the database match the code, or refuse to publish.
+ *
+ * Runs after the check gate and before a version is minted, so an app can never
+ * go live declaring tables its Durable Object does not have — which is exactly
+ * what shipped before this existed, and it failed at the first query rather
+ * than at deploy.
+ *
+ * The order matters. Pending migrations are applied first, because they are the
+ * app's own account of how its schema should change and the agent authored them
+ * deliberately. Only then is the result compared against what the code
+ * declares. Anything still outstanding at that point is a schema edit nobody
+ * wrote a migration for, and the answer is to refuse and say so — generating
+ * one silently here would put a schema change into production that never
+ * appeared in the diff anyone reviewed.
+ */
+async function gateSchema(
+  env: Env,
+  stub: AppStub,
+  files: Record<string, string>
+): Promise<SchemaGateFailure | null> {
+  const migrations = collectMigrations(files);
+  if (migrations.length > 0) {
+    await stub.bootstrap(migrations);
+  }
+
+  const probe = await probeSchema(env, files);
+  if (!probe.ok) {
+    return {
+      error: "schema_probe_failed",
+      message: probe.error,
+      detail: { probeMs: probe.ms },
+    };
+  }
+
+  const diff = diffSchema(await stub.introspectSchema(), probe.snapshot);
+
+  if (diff.blocking.length > 0) {
+    return {
+      error: "schema_unsafe",
+      message:
+        "This schema change cannot be applied without losing data. Migrate it by hand, or restore the removed columns and tables.",
+      detail: { blocking: diff.blocking },
+    };
+  }
+
+  if (diff.statements.length > 0) {
+    return {
+      error: "schema_migration_missing",
+      message:
+        "The schema declares tables or columns the database does not have, and no migration adds them. Run `pnpm db:generate` to write one, then deploy again.",
+      detail: { pending: diff.additive, statements: diff.statements },
+    };
+  }
+
+  return null;
+}
+
+/** Compile, or settle the attempt as an error and report that it did not. */
+async function gateCompile(
+  stub: AppStub,
+  attemptId: string,
+  files: Record<string, string>
+): Promise<Awaited<ReturnType<typeof compileAll>> | null> {
+  try {
+    return await compileAll(files);
+  } catch (e) {
+    await stub.failAttempt(attemptId, "error", {
+      error: "compile_failed",
+      message: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    });
+    return null;
+  }
+}
+
+/** Settle the attempt when the schema gate refuses, mirroring `gateLint`. */
+async function gateSchemaStep(
+  env: Env,
+  stub: AppStub,
+  attemptId: string,
+  files: Record<string, string>,
+  tAll0: number
+): Promise<boolean> {
+  const failure = await gateSchema(env, stub, files);
+  if (!failure) {
+    return false;
+  }
+  await stub.failAttempt(attemptId, "fail", {
+    ...failure,
+    publishGate: false,
+    totalMs: Date.now() - tAll0,
+  });
+  return true;
+}
+
 async function compileAll(files: Record<string, string>) {
   const compiled = await compileServer(files);
   const client = await compileClient(files);
@@ -347,15 +451,8 @@ export async function runCommitAttempt(
       return lintGate;
     }
 
-    let compiled: Awaited<ReturnType<typeof compileAll>>;
-    try {
-      compiled = await compileAll(files);
-    } catch (e) {
-      await stub.failAttempt(attemptId, "error", {
-        error: "compile_failed",
-        message: e instanceof Error ? e.message : String(e),
-        stack: e instanceof Error ? e.stack : undefined,
-      });
+    const compiled = await gateCompile(stub, attemptId, files);
+    if (!compiled) {
       return "error";
     }
 
@@ -377,6 +474,11 @@ export async function runCommitAttempt(
         publishGate: false,
         totalMs: Date.now() - tAll0,
       });
+      return "fail";
+    }
+
+    throwIfAborted(signal);
+    if (await gateSchemaStep(env, stub, attemptId, files, tAll0)) {
       return "fail";
     }
 

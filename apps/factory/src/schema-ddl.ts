@@ -67,7 +67,7 @@ export interface SchemaSnapshot {
   tables: TableSpec[];
 }
 
-type SchemaChange =
+export type SchemaChange =
   | { kind: "create_table"; table: string }
   | { kind: "add_column"; table: string; column: string }
   | { kind: "create_index"; table: string; index: string }
@@ -75,6 +75,22 @@ type SchemaChange =
   | { kind: "drop_column"; table: string; column: string; reason: string }
   | { kind: "alter_column"; table: string; column: string; reason: string }
   | { kind: "alter_primary_key"; table: string; reason: string };
+
+/**
+ * A blocking change, phrased for whoever has to fix it.
+ *
+ * These reach an agent through the shell and a person through the attempt
+ * payload, so they name the table and column and then say what is actually
+ * at stake — "run pnpm db:generate" is useless advice for a change that
+ * generating cannot express.
+ */
+export function describeBlocking(change: SchemaChange): string {
+  const where =
+    "column" in change ? `${change.table}.${change.column}` : change.table;
+  return "reason" in change
+    ? `${where}: ${change.reason}`
+    : `${where}: ${change.kind}`;
+}
 
 export interface SchemaDiff {
   /** Changes this module can perform safely, with `statements` to perform them. */
@@ -379,7 +395,7 @@ const LITERAL_DEFAULT_RE =
  * today, but restoring it here is what keeps that from becoming true later,
  * and it is what makes a snapshot compare equal whichever side produced it.
  */
-function normalizeDefault(raw: string): string {
+function normalizeDefaultSql(raw: string): string {
   const value = raw.trim();
   if (LITERAL_DEFAULT_RE.test(value)) {
     return value;
@@ -411,7 +427,7 @@ function readColumns(
     type: str(row.type).toLowerCase(),
     notNull: num(row.notnull) !== 0,
     defaultSql:
-      row.dflt_value == null ? null : normalizeDefault(str(row.dflt_value)),
+      row.dflt_value == null ? null : normalizeDefaultSql(str(row.dflt_value)),
   }));
   // `pk` is a 1-based position within the key, not a boolean, so sorting on it
   // is what recovers the declared column order of a composite key.
@@ -470,5 +486,30 @@ export function introspectSchema(exec: ExecRows): SchemaSnapshot {
         foreignKeys: [],
       } satisfies TableSpec;
     }),
+  };
+}
+
+/**
+ * Bring a snapshot the probe produced to the same form introspection yields.
+ *
+ * The two sides render the same table differently: drizzle reports types in
+ * lower case and echoes a `sql` default exactly as the app wrote it, while
+ * SQLite upper-cases the types it knows and strips an expression default's
+ * outer parentheses. Canonicalising here rather than at each producer is what
+ * keeps `diffSchema` comparing schemas instead of comparing spellings.
+ */
+export function canonicalizeSnapshot(snapshot: SchemaSnapshot): SchemaSnapshot {
+  return {
+    tables: snapshot.tables.map((table) => ({
+      ...table,
+      columns: table.columns.map((column) => ({
+        ...column,
+        type: column.type.toLowerCase(),
+        defaultSql:
+          column.defaultSql == null
+            ? null
+            : normalizeDefaultSql(column.defaultSql),
+      })),
+    })),
   };
 }

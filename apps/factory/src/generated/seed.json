@@ -11,6 +11,7 @@
     },
     "safelist": "safelist.txt",
     "migrations": "migrations",
+    "schema": "src/db/schema.ts",
     "source": {
       "dirs": [
         "src",

@@ -5,17 +5,7 @@
 import { createWorker } from "@cloudflare/worker-bundler";
 import { KERNEL_VERSION, SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
-
-const KERNEL_PATHS = {
-  react: "react.js",
-  jsxRuntime: "jsx-runtime.js",
-  reactDom: "react-dom.js",
-  reactDomServer: "react-dom-server.js",
-  drizzle: "drizzle-orm.js",
-  betterAuth: "better-auth.js",
-  hono: "hono.js",
-  zod: "zod.js",
-} as const;
+import { KERNEL_PATHS } from "./kernel-modules.js";
 
 const KERNEL_EXTERNALS = Object.values(KERNEL_PATHS);
 
@@ -105,6 +95,33 @@ function normalizeFlatImports(source: string): string {
     .replace(/from\s+["']react-dom\/server["']/g, 'from "react-dom-server.js"');
 }
 
+/**
+ * Bundle app sources against the kernel import map.
+ *
+ * Shared with the schema probe, which compiles a different entry over the same
+ * files. Duplicating the externals and virtual-module maps would let the two
+ * drift, and a probe resolving `drizzle-orm` differently than the server does
+ * is a probe reporting a schema the app will not actually get.
+ */
+export async function bundleWithKernel(
+  files: Record<string, string>,
+  entryPoint: string
+): Promise<{ js: string; mainModule: string; warnings: unknown[] }> {
+  const result = await createWorker({
+    files,
+    entryPoint,
+    bundle: true,
+    externals: [...KERNEL_EXTERNALS],
+    virtualModules: KERNEL_VIRTUAL_MODULES,
+    jsx: "transform",
+  });
+  return {
+    js: normalizeFlatImports(pickMainJs(result)),
+    mainModule: result.mainModule,
+    warnings: result.warnings ?? [],
+  };
+}
+
 export interface CompileServerResult {
   serverBundle: string;
   compileMs: number;
@@ -130,24 +147,15 @@ export async function compileServer(
   files[SERVER_ENTRY] = serverEntrySource();
 
   const t0 = performance.now();
-  const result = await createWorker({
-    files,
-    entryPoint: SERVER_ENTRY,
-    bundle: true,
-    externals: [...KERNEL_EXTERNALS],
-    virtualModules: KERNEL_VIRTUAL_MODULES,
-    jsx: "transform",
-  });
+  const bundled = await bundleWithKernel(files, SERVER_ENTRY);
   const compileMs = performance.now() - t0;
-  let serverBundle = pickMainJs(result);
-  serverBundle = normalizeFlatImports(serverBundle);
 
   return {
-    serverBundle,
+    serverBundle: bundled.js,
     compileMs,
     kernelVersion: KERNEL_VERSION,
     serverSurfaceHash: SERVER_SURFACE_HASH,
-    mainModule: result.mainModule,
-    warnings: result.warnings ?? [],
+    mainModule: bundled.mainModule,
+    warnings: bundled.warnings,
   };
 }

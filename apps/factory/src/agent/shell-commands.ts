@@ -5,6 +5,7 @@ import {
   defineCommand,
   type ExecResult,
 } from "just-bash";
+import { collectMigrations, nextMigrationPath } from "../app-migrations.js";
 import {
   appStub,
   callCheck,
@@ -12,12 +13,14 @@ import {
   checkPasses,
   runCommitAttempt,
 } from "../commit.js";
+import { describeBlocking, diffSchema } from "../schema-ddl.js";
+import { probeSchema } from "../schema-probe.js";
 import { renderCheckText, renderLintText } from "./render-diagnostics.js";
 import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
 const FROZEN_IMPORT_MAP_MSG = `This app runs on sfab-lite's frozen kernel import map — dependencies are pinned at the factory, not installed per app.
 pnpm add / install are not available in this shell.
-Use pnpm typecheck, pnpm lint, and pnpm run deploy (or wrangler deploy) instead.
+Use pnpm typecheck, pnpm lint, pnpm db:generate, and pnpm run deploy (or wrangler deploy) instead.
 `;
 
 function ok(stdout: string): ExecResult {
@@ -95,6 +98,57 @@ async function runLint(
     return { stdout: text, stderr: "", exitCode: 1 };
   }
   return ok(text || "lint passed\n");
+}
+
+/**
+ * Write the migration that closes the gap between the schema and the database.
+ *
+ * The agent does not author migration SQL — it edits `src/db/schema.ts`, and
+ * this derives the DDL, the same division of labour `drizzle-kit generate`
+ * gives a normal project. Deriving it is what makes the file trustworthy: a
+ * hand-written migration can disagree with the schema it claims to implement,
+ * and nothing would notice until a query failed.
+ *
+ * Refuses rather than guesses when the change is destructive. Dropping a column
+ * or retyping one needs a human to say what happens to the rows, and there is
+ * no prompt here to ask on.
+ */
+async function runDbGenerate(
+  deps: ShellCommandDeps,
+  ctx: CommandContext,
+  args: string[]
+): Promise<ExecResult> {
+  const files = await collectWorkspaceSourceFiles(ctx);
+  const probe = await probeSchema(deps.env, files);
+  if (!probe.ok) {
+    return fail(`db:generate: ${probe.error}\n`, 1);
+  }
+
+  const stub = appStub(deps.env, deps.appId);
+  await stub.bootstrap(collectMigrations(files));
+  const diff = diffSchema(await stub.introspectSchema(), probe.snapshot);
+
+  if (diff.blocking.length > 0) {
+    const reasons = diff.blocking
+      .map((change) => `  - ${describeBlocking(change)}`)
+      .join("\n");
+    return fail(
+      `db:generate: refused — this change cannot be made without losing data.\n${reasons}\n\nRestore what was removed, or migrate it by hand.\n`,
+      1
+    );
+  }
+
+  if (diff.statements.length === 0) {
+    return ok("db:generate: no schema changes to migrate\n");
+  }
+
+  const name = args.find((arg) => !arg.startsWith("-")) ?? "schema";
+  const path = nextMigrationPath(files, name);
+  await ctx.fs.writeFile(`/${path}`, `${diff.statements.join("\n")}\n`);
+  const summary = diff.additive
+    .map((change) => `  ${change.kind} ${change.table}`)
+    .join("\n");
+  return ok(`db:generate: wrote ${path}\n${summary}\n`);
 }
 
 /**
@@ -187,6 +241,9 @@ export function createAppShellCommands(
     if (script === "lint") {
       const fix = scriptArgs.includes("--fix") || scriptArgs.includes("-w");
       return await runLint(deps, ctx, fix);
+    }
+    if (script === "db:generate") {
+      return await runDbGenerate(deps, ctx, scriptArgs);
     }
     if (script === "deploy") {
       return await runDeploy(deps, ctx);

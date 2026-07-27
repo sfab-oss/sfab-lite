@@ -10,6 +10,7 @@
   },
   "safelist": "safelist.txt",
   "migrations": "migrations",
+  "schema": "src/db/schema.ts",
   "source": {
     "dirs": ["src", "migrations"],
     "extensions": [".ts", ".tsx", ".css", ".sql"],
