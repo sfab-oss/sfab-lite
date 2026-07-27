@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import { useThreadLifecycle } from "../hooks/use-thread-lifecycle";
 import { formatRelativeTime } from "../model/thread-list";
 import type { Thread } from "../model/types";
-import { ThreadBindingBadge } from "./thread-binding-badge";
 import {
   DeleteThreadDialog,
   RenameThreadDialog,
@@ -135,20 +134,16 @@ export function ThreadMenuItem({
       >
         {showStatus ? (
           <span className="flex min-w-0 flex-1 flex-col gap-0.5 pr-8">
-            <span className="flex min-w-0 items-center gap-1.5">
-              <span className="truncate font-medium leading-tight">
-                {thread.title}
-              </span>
-              <ThreadBindingBadge size="sm" thread={thread} />
+            <span className="truncate font-medium text-xs leading-tight">
+              {thread.title}
             </span>
             <span className="truncate text-[10px] text-muted-foreground leading-tight">
               {statusLabel}
             </span>
           </span>
         ) : (
-          <span className="flex min-w-0 flex-1 items-center gap-1.5 pr-8">
-            <span className="truncate">{thread.title}</span>
-            <ThreadBindingBadge size="sm" thread={thread} />
+          <span className="min-w-0 flex-1 truncate pr-8 text-xs">
+            {thread.title}
           </span>
         )}
       </SidebarMenuButton>
