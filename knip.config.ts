@@ -21,6 +21,7 @@ const config: KnipConfig = {
       // entry so knip treats its re-exports as the library surface, not dead.
       entry: [
         "src/index.ts",
+        "src/**/*.test.ts",
         "scripts/*.mjs",
         "ui/index.html",
         "ui/src/components/ui/index.ts",
