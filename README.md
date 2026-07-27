@@ -5,10 +5,13 @@ to keep cost cheaper and things faster: an app factory — typecheck, lint,
 publish, serve — on Cloudflare Workers with no build container and no
 per-app `npm install`.
 
-Feasibility is already demonstrated. The question is whether this shape is
-cheaper and faster than the usual stack, and by how much — wins and losses
-together. Measured numbers live under [Known limitations](#known-limitations);
-approaches that were measured and rejected are part of the result in
+Three questions, not one. Is it cheaper? Is it faster? And does it fit at all —
+a TypeScript program and a linter are not obviously things you can run inside a
+128 MB isolate with no filesystem. Making it fit turned out to be most of the
+engineering, so what had to be given up to get there is part of the result
+rather than a footnote. Measured numbers live under
+[Known limitations](#known-limitations); approaches that were measured and
+rejected are in
 [`docs/engineering/making-it-fit.md`](docs/engineering/making-it-fit.md).
 
 This is a personal exploration of that question, not a product and not
@@ -114,8 +117,11 @@ worker only trusts the console's Origin when it knows which port it is on.
 
 ## Known limitations
 
-Surprises worth knowing before they bite again, and the things "lite"
-deliberately does not do.
+What shrinking a full stack into this shape actually cost. Some of these are
+trade-offs taken on purpose, some are platform limits found the hard way, and
+some are surprises worth knowing before they bite again. They belong here
+rather than in a footnote: an experiment that only reported its wins would not
+be worth much.
 
 ### The kernel's types can promise more than its runtime delivers
 

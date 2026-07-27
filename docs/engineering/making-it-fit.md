@@ -10,6 +10,10 @@ That premise is only interesting if it survives contact with the platform's
 limits, and most of the hard engineering in this repo has been exactly that
 fight.
 
+Whether it fits is the third question alongside cheaper and faster, not a
+prerequisite to them. The cost and speed both come out of the shrinking, so
+what the shrinking cost is part of the same result.
+
 This is the catalogue: what the limits are, what worked, what was measured and
 rejected, and what is still open. Read it before proposing a fix for a
 "performance" or "flakiness" problem here — several attractive ideas are
