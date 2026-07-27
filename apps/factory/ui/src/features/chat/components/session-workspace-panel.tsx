@@ -8,7 +8,6 @@ import {
   SquareTerminal,
   X,
 } from "lucide-react";
-import { AgentSigil } from "@/components/icons/agent-sigil";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,38 +24,21 @@ import {
   useWorkspaceTabsStore,
   type WorkspaceKind,
 } from "../lib/workspace-tabs-store";
-import { MockAgentRunPanel } from "./mock-agent-run-panel";
-import { MockSessionTabFiles } from "./mock-session-tab-files";
+import { SessionTabFiles } from "./session-tab-files";
 
 const WORKSPACE_DEFS: Record<
   WorkspaceKind,
   { icon: LucideIcon; title: string }
 > = {
   browser: { icon: Globe, title: "Browser" },
-  files: { icon: FolderTree, title: "Files" },
+  files: { icon: FolderTree, title: "Published files" },
   terminal: { icon: SquareTerminal, title: "Terminal" },
   versions: { icon: History, title: "Versions" },
 };
 
-const WORKSPACE_KINDS: WorkspaceKind[] = [
-  "files",
-  "terminal",
-  "browser",
-  "versions",
-];
+const WORKSPACE_KINDS: WorkspaceKind[] = ["files", "browser", "versions"];
 
-function tabLabel(
-  tab: OpenTab,
-  threadId: string,
-  peers: OpenTab[],
-  lookupSubagent: ReturnType<typeof useChatData>["lookupSubagent"]
-): string {
-  if (tab.kind === "agent-run" && tab.agentRunId) {
-    return lookupSubagent(threadId, tab.agentRunId)?.title ?? "Agent run";
-  }
-  if (tab.kind === "agent-run") {
-    return "Agent run";
-  }
+function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
   const base = WORKSPACE_DEFS[tab.kind].title;
   const same = peers.filter((entry) => entry.kind === tab.kind);
   if (same.length <= 1) {
@@ -66,39 +48,22 @@ function tabLabel(
   return `${base} ${index + 1}`;
 }
 
-function tabIcon(kind: WorkspaceKind): LucideIcon {
-  return WORKSPACE_DEFS[kind].icon;
-}
-
-function WorkspaceTabIcon({
-  tab,
-  threadId,
-}: {
-  tab: OpenTab;
-  threadId: string;
-}) {
-  const data = useChatData();
-  if (tab.kind === "agent-run" && tab.agentRunId) {
-    const seed = data.lookupSubagent(threadId, tab.agentRunId)?.seed;
-    if (seed) {
-      return (
-        <AgentSigil className="size-3.5 shrink-0 text-foreground" id={seed} />
-      );
-    }
-    return null;
-  }
-  if (tab.kind === "agent-run") {
-    return null;
-  }
-  const Icon = tabIcon(tab.kind);
+function WorkspaceTabIcon({ tab }: { tab: OpenTab }) {
+  const Icon = WORKSPACE_DEFS[tab.kind].icon;
   return <Icon className="size-3.5 shrink-0" />;
 }
 
 function VersionsBody() {
   const data = useChatData();
+  const versions = data.listVersions();
+  if (versions.length === 0) {
+    return (
+      <p className="p-3 text-muted-foreground text-sm">No versions yet.</p>
+    );
+  }
   return (
     <ul className="flex h-full flex-col gap-1 overflow-auto p-3">
-      {data.listVersions().map((version) => (
+      {versions.map((version) => (
         <li
           className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2"
           key={version.id}
@@ -118,37 +83,30 @@ function VersionsBody() {
   );
 }
 
-function TabBody({ tab, threadId }: { tab: OpenTab; threadId: string }) {
-  const data = useChatData();
+function TabBody({ tab }: { tab: OpenTab }) {
   if (tab.kind === "files") {
-    return <MockSessionTabFiles />;
+    return <SessionTabFiles />;
   }
   if (tab.kind === "terminal") {
     return (
-      <pre className="h-full overflow-auto p-3 font-mono text-muted-foreground text-xs">
-        {data.listTerminalLines().join("\n")}
-      </pre>
+      <p className="p-3 text-muted-foreground text-sm">
+        Terminal is not connected yet.
+      </p>
     );
   }
   if (tab.kind === "browser") {
     return (
       <div className="flex h-full flex-col">
         <div className="border-b px-3 py-2 font-mono text-muted-foreground text-xs">
-          http://localhost:5173/invoices
+          Preview
         </div>
         <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
-          Preview
+          App preview is not wired in this cut.
         </div>
       </div>
     );
   }
-  if (tab.kind === "versions") {
-    return <VersionsBody />;
-  }
-  if (tab.agentRunId) {
-    return <MockAgentRunPanel runId={tab.agentRunId} threadId={threadId} />;
-  }
-  return null;
+  return <VersionsBody />;
 }
 
 function AddTabMenu({ onOpen }: { onOpen: (kind: WorkspaceKind) => void }) {
@@ -187,8 +145,7 @@ function WorkspaceEmptyState({
       <div className="space-y-1">
         <p className="font-medium">Open a view</p>
         <p className="max-w-xs text-muted-foreground text-sm">
-          Browse files, inspect command output, open a preview, or check
-          versions.
+          Browse published files, open a preview, or check versions.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -218,7 +175,6 @@ export function SessionWorkspacePanel({
   onDismiss?: () => void;
   threadId: string;
 }) {
-  const data = useChatData();
   const { tabs, activeId } = useThreadTabs(threadId);
   const openTab = useWorkspaceTabsStore((s) => s.openTab);
   const closeTab = useWorkspaceTabsStore((s) => s.closeTab);
@@ -245,14 +201,14 @@ export function SessionWorkspacePanel({
         ) : null}
         <TabsList className="h-9 min-w-0 flex-1 justify-start gap-1 overflow-x-auto bg-transparent p-0">
           {tabs.map((tab) => {
-            const label = tabLabel(tab, threadId, tabs, data.lookupSubagent);
+            const label = tabLabel(tab, tabs);
             return (
               <div className="relative flex shrink-0 items-center" key={tab.id}>
                 <TabsTrigger
                   className="h-8 max-w-44 gap-1.5 pr-9 data-[state=active]:bg-muted"
                   value={tab.id}
                 >
-                  <WorkspaceTabIcon tab={tab} threadId={threadId} />
+                  <WorkspaceTabIcon tab={tab} />
                   <span className="truncate">{label}</span>
                 </TabsTrigger>
                 <button
@@ -281,7 +237,7 @@ export function SessionWorkspacePanel({
               key={tab.id}
               value={tab.id}
             >
-              <TabBody tab={tab} threadId={threadId} />
+              <TabBody tab={tab} />
             </TabsContent>
           ))
         )}

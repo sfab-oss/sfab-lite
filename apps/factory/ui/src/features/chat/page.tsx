@@ -1,5 +1,6 @@
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createApp, getApp } from "@/api";
 import {
   AppLayout,
   AppLayoutHeader,
@@ -32,20 +33,44 @@ import { ThreadHeaderMenu } from "./components/thread-header-menu";
 import { ThreadSummaryPanel } from "./components/thread-summary-panel";
 import { ThreadTranscript } from "./components/thread-transcript";
 import { SessionThreadsSidebar } from "./components/threads-sidebar";
-import { ChatDataProvider } from "./data/chat-data-context";
-import { createMockChatData } from "./data/mock/create-mock-chat-data";
+import { ChatDataProvider, useChatData } from "./data/chat-data-context";
+import {
+  createRealChatData,
+  type RealChatData,
+} from "./data/create-real-chat-data";
 import { useWorkspaceTabsStore } from "./lib/workspace-tabs-store";
 import type { Thread } from "./model/types";
 
 const TITLE_FIRST_LINE = /\n/;
-const chatData = createMockChatData();
+const APP_READY_POLL_MS = 800;
+const APP_READY_TIMEOUT_MS = 120_000;
 
 function titleFromText(text: string): string {
   const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "New thread";
   return first.length > 64 ? `${first.slice(0, 61)}…` : first;
 }
 
+function newThreadId(): string {
+  return `thr_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+}
+
+async function waitForAppReady(appId: string): Promise<void> {
+  const deadline = Date.now() + APP_READY_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const app = await getApp(appId);
+    if (app.status === "ready") {
+      return;
+    }
+    if (app.status === "failed") {
+      throw new Error("app creation failed");
+    }
+    await new Promise((resolve) => setTimeout(resolve, APP_READY_POLL_MS));
+  }
+  throw new Error("app creation timed out");
+}
+
 export function ChatScreen() {
+  const [chatData] = useState<RealChatData>(() => createRealChatData());
   return (
     <ChatDataProvider value={chatData}>
       <ChatScreenInner />
@@ -54,19 +79,19 @@ export function ChatScreen() {
 }
 
 function ChatScreenInner() {
+  const chatData = useChatData();
+  const threads = chatData.listThreads();
   const isMobile = useIsMobile();
   const { route, navigate } = useRouter();
   const [search, setSearch] = useState("");
-  const [threads, setThreads] = useState<Thread[]>(() =>
-    chatData.listThreads()
-  );
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [seedByThread, setSeedByThread] = useState<Record<string, string>>({});
   const [scopeAppId, setScopeAppId] = useState<string | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const workspaceOpen = useWorkspaceTabsStore((s) => s.workspaceOpen);
   const setWorkspaceOpen = useWorkspaceTabsStore((s) => s.setWorkspaceOpen);
-  const openAgentRunTab = useWorkspaceTabsStore((s) => s.openAgentRunTab);
   const { canDock, setContainerNode } = useSidePanelLayout();
 
   useEffect(() => {
@@ -109,6 +134,13 @@ function ChatScreenInner() {
     [activeThreadId, threads]
   );
 
+  useEffect(() => {
+    const appId = activeThread?.appId ?? scopeAppId;
+    chatData.refreshApp(appId).catch((error: unknown) => {
+      console.error("[chat] refreshApp failed", error);
+    });
+  }, [activeThread?.appId, chatData, scopeAppId]);
+
   const scopedApp = useMemo(() => {
     if (activeThread?.appId) {
       return {
@@ -143,6 +175,7 @@ function ChatScreenInner() {
     setScopeAppId(null);
     setSummaryOpen(false);
     setWorkspaceOpen(false);
+    setCreateError(null);
     goChatHome();
   }, [goChatHome, setWorkspaceOpen]);
 
@@ -153,36 +186,49 @@ function ChatScreenInner() {
     setActiveThreadId(null);
     setSummaryOpen(false);
     setWorkspaceOpen(false);
+    setCreateError(null);
     goChatHome();
   }, [activeThread, goChatHome, setWorkspaceOpen]);
 
   const createThreadFromBlank = useCallback(
-    (text: string) => {
-      const id = `thr_${crypto.randomUUID().slice(0, 8)}`;
-      const fromHome = !scopedApp?.appId;
-      const appId =
-        scopedApp?.appId ?? `app_${crypto.randomUUID().slice(0, 8)}`;
-      const appName = scopedApp?.appName ?? titleFromText(text);
-      const thread: Thread = {
-        id,
-        appId,
-        appName,
-        readOnly: false,
-        status: "running",
-        title: titleFromText(text),
-        headline: fromHome ? "Creating app…" : "Starting…",
-        startedLabel: "just now",
-        startedMinutesAgo: 0,
-        updatedLabel: "now",
-        updatedMinutesAgo: 0,
-      };
-      setThreads((current) => [thread, ...current]);
-      setSeedByThread((current) => ({ ...current, [id]: text }));
-      setScopeAppId(appId);
-      setActiveThreadId(id);
-      goThread(id);
+    async (text: string) => {
+      if (creating) {
+        return;
+      }
+      setCreating(true);
+      setCreateError(null);
+      try {
+        let appId = scopedApp?.appId ?? null;
+        const appName = scopedApp?.appName ?? titleFromText(text);
+        if (!appId) {
+          const created = await createApp(appName);
+          appId = created.appId;
+          await waitForAppReady(appId);
+        }
+        const now = Date.now();
+        const id = newThreadId();
+        const thread: Thread = {
+          id,
+          appId,
+          appName,
+          readOnly: false,
+          status: "idle",
+          title: titleFromText(text),
+          createdAt: now,
+          updatedAt: now,
+        };
+        chatData.upsertThread(thread);
+        setSeedByThread((current) => ({ ...current, [id]: text }));
+        setScopeAppId(appId);
+        setActiveThreadId(id);
+        goThread(id);
+      } catch (error: unknown) {
+        setCreateError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setCreating(false);
+      }
     },
-    [goThread, scopedApp]
+    [chatData, creating, goThread, scopedApp]
   );
 
   const consumeSeed = useCallback((threadId: string) => {
@@ -195,13 +241,6 @@ function ChatScreenInner() {
       return next;
     });
   }, []);
-
-  const openAgentRun = (runId: string) => {
-    if (!activeThreadId) {
-      return;
-    }
-    openAgentRunTab(activeThreadId, runId);
-  };
 
   const onSetWorkspaceOpen = (
     value: boolean | ((open: boolean) => boolean)
@@ -241,9 +280,10 @@ function ChatScreenInner() {
             <MobileLayout
               activeThread={activeThread}
               canDock={canDock}
+              createError={createError}
+              creating={creating}
               onBlankSubmit={createThreadFromBlank}
               onCloseRail={() => setSummaryOpen(false)}
-              onOpenAgentRun={openAgentRun}
               onSeedConsumed={consumeSeed}
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
@@ -258,9 +298,10 @@ function ChatScreenInner() {
             <DesktopLayout
               activeThread={activeThread}
               canDock={canDock}
+              createError={createError}
+              creating={creating}
               onBlankSubmit={createThreadFromBlank}
               onCloseRail={() => setSummaryOpen(false)}
-              onOpenAgentRun={openAgentRun}
               onSeedConsumed={consumeSeed}
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
@@ -281,9 +322,10 @@ function ChatScreenInner() {
 interface ChatChromeProps {
   activeThread: Thread | null;
   canDock: boolean;
+  createError: string | null;
+  creating: boolean;
   onBlankSubmit: (text: string) => void;
   onCloseRail: () => void;
-  onOpenAgentRun: (runId: string) => void;
   onSeedConsumed: (threadId: string) => void;
   onSetContainerNode: (node: HTMLElement | null) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
@@ -353,9 +395,10 @@ function DesktopLayout(props: ChatChromeProps) {
 function ChatColumn({
   activeThread,
   canDock,
+  createError,
+  creating,
   onBlankSubmit,
   onCloseRail,
-  onOpenAgentRun,
   onSeedConsumed,
   onSetContainerNode,
   onSetSummaryOpen,
@@ -382,18 +425,12 @@ function ChatColumn({
             canDock={canDock}
             onClose={onCloseRail}
             open={summaryOpen}
-            panel={
-              <ThreadSummaryPanel
-                onOpenAgentRun={onOpenAgentRun}
-                thread={activeThread}
-              />
-            }
+            panel={<ThreadSummaryPanel thread={activeThread} />}
           >
             <ThreadTranscript
               initialMessage={seedMessage ?? undefined}
               key={activeThread.id}
               onInitialConsumed={() => onSeedConsumed(activeThread.id)}
-              onOpenAgentRun={onOpenAgentRun}
               thread={activeThread}
             />
           </ResponsiveSidePanel>
@@ -409,9 +446,18 @@ function ChatColumn({
               <ThreadComposer
                 onStop={() => undefined}
                 onSubmit={onBlankSubmit}
-                placeholder="Describe the app you want to build…"
-                running={false}
+                placeholder={
+                  creating
+                    ? "Creating app…"
+                    : "Describe the app you want to build…"
+                }
+                running={creating}
               />
+              {createError ? (
+                <p className="mt-2 text-center text-destructive text-sm">
+                  {createError}
+                </p>
+              ) : null}
             </div>
           </div>
         )}

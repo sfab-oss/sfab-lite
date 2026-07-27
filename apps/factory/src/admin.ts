@@ -83,6 +83,7 @@ function scopedDb(ctx: ExecutionContext, appId: string) {
 const RE_ADMIN_TOUCH = /^\/admin\/apps\/([^/]+)\/touch$/;
 const RE_ADMIN_SQL = /^\/admin\/apps\/([^/]+)\/sql$/;
 const RE_ADMIN_VERSIONS = /^\/admin\/apps\/([^/]+)\/versions$/;
+const RE_ADMIN_LIVE = /^\/admin\/apps\/([^/]+)\/live$/;
 const RE_ADMIN_ATTEMPTS = /^\/admin\/apps\/([^/]+)\/attempts$/;
 const RE_ADMIN_ATTEMPT = /^\/admin\/apps\/([^/]+)\/attempts\/([^/]+)$/;
 const RE_ADMIN_CHECK = /^\/admin\/apps\/([^/]+)\/check$/;
@@ -261,6 +262,20 @@ async function handleListVersions(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const listed = await appStub(rc.env, appId).listVersions();
   return Response.json({ appId, ...listed });
+}
+
+async function handleGetLive(rc: AppCtx): Promise<Response> {
+  const { appId } = rc;
+  const live = await appStub(rc.env, appId).getLive();
+  if (!(live.version?.sourceFiles && live.liveVersionId)) {
+    return jsonError("no_live_version", 404);
+  }
+  return Response.json({
+    ok: true,
+    appId,
+    liveVersionId: live.liveVersionId,
+    sourceFiles: live.version.sourceFiles,
+  });
 }
 
 async function handleGetAttempt(rc: AppCtx): Promise<Response> {
@@ -481,6 +496,12 @@ const ADMIN_ROUTES: AdminRoute[] = [
     pattern: RE_ADMIN_VERSIONS,
     scope: "app",
     handler: handleListVersions,
+  },
+  {
+    method: "GET",
+    pattern: RE_ADMIN_LIVE,
+    scope: "app",
+    handler: handleGetLive,
   },
   {
     method: "GET",

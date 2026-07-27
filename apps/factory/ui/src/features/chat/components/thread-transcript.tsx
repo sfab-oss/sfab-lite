@@ -1,9 +1,10 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: streaming parts have no stable ids */
 
-import { useChat } from "@ai-sdk/react";
+import { useAgentChat } from "@cloudflare/think/react";
+import { useAgent } from "agents/react";
 import type { ChatStatus, FileUIPart, UIMessage } from "ai";
 import { FileIcon, PaperclipIcon } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ThinkingPending } from "@/components/brand/thinking";
 import {
   Attachment,
@@ -23,7 +24,6 @@ import {
 import { useChatData } from "../data/chat-data-context";
 import type { Thread } from "../model/types";
 import { MessageParts } from "./chat/message-parts";
-import { NestedRunOpenProvider } from "./chat/nested-run-open-context";
 import { ThreadComposer } from "./thread-composer";
 
 type ThreadUIMessage = UIMessage;
@@ -32,52 +32,116 @@ export function ThreadTranscript({
   thread,
   initialMessage,
   onInitialConsumed,
-  onOpenAgentRun,
 }: {
   initialMessage?: string;
   onInitialConsumed?: () => void;
-  onOpenAgentRun?: (runId: string) => void;
+  thread: Thread;
+}) {
+  if (!thread.appId?.startsWith("app_")) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center px-4 text-muted-foreground text-sm">
+        This thread is not bound to a real app.
+      </div>
+    );
+  }
+
+  return (
+    <BoundThreadTranscript
+      initialMessage={initialMessage}
+      key={`${thread.appId}:${thread.id}`}
+      onInitialConsumed={onInitialConsumed}
+      thread={thread}
+    />
+  );
+}
+
+function BoundThreadTranscript({
+  thread,
+  initialMessage,
+  onInitialConsumed,
+}: {
+  initialMessage?: string;
+  onInitialConsumed?: () => void;
   thread: Thread;
 }) {
   const data = useChatData();
-  const chat = useMemo(
-    () => data.createThreadChat(thread.id),
-    [data, thread.id]
-  );
-  const { messages, sendMessage, status, stop } = useChat({
-    messages: chat.get(),
-    transport: useMemo(() => data.createThreadTransport(chat), [chat, data]),
+  const name = `${thread.appId}:${thread.id}`;
+  const agent = useAgent({ agent: "AppThread", name });
+  // Without a throttle, dense tool-input-delta bursts exceed React's nested
+  // update limit inside useSyncExternalStore — cloudflare/agents#1361, #1732.
+  const { messages, sendMessage, status, stop } = useAgentChat({
+    agent,
+    experimental_throttle: 50,
   });
   const running = status === "submitted" || status === "streaming";
   const sentInitial = useRef(false);
+  const prevBusy = useRef(false);
+
+  useEffect(() => {
+    const nextStatus = running ? "running" : "idle";
+    if (thread.status === nextStatus) {
+      return;
+    }
+    data.patchThread(thread.id, {
+      status: nextStatus,
+      updatedAt: Date.now(),
+    });
+  }, [data, running, thread.id, thread.status]);
+
+  useEffect(() => {
+    const wasBusy = prevBusy.current;
+    prevBusy.current = running;
+    if (!(wasBusy && !running && thread.appId)) {
+      return;
+    }
+    data.refreshApp(thread.appId).catch((error: unknown) => {
+      console.error("[chat] refreshApp after turn failed", error);
+    });
+  }, [data, running, thread.appId]);
 
   useEffect(() => {
     if (!initialMessage || sentInitial.current) {
       return;
     }
     sentInitial.current = true;
-    sendMessage({ text: initialMessage }).finally(() => {
-      onInitialConsumed?.();
-    });
+    sendMessage({
+      role: "user",
+      parts: [{ type: "text", text: initialMessage }],
+    })
+      .catch((error: unknown) => {
+        console.error("[chat] initial sendMessage failed", error);
+      })
+      .finally(() => {
+        onInitialConsumed?.();
+      });
   }, [initialMessage, onInitialConsumed, sendMessage]);
 
   return (
-    <NestedRunOpenProvider onOpen={onOpenAgentRun}>
-      <div className="flex min-h-0 flex-1 flex-col bg-background">
-        <MessageList messages={messages} status={status} />
-        {thread.readOnly ? (
-          <p className="border-t px-4 py-3 text-center text-muted-foreground text-xs">
-            This thread is read-only.
-          </p>
-        ) : (
-          <ThreadComposer
-            onStop={stop}
-            onSubmit={(text) => sendMessage({ text })}
-            running={running}
-          />
-        )}
-      </div>
-    </NestedRunOpenProvider>
+    <div className="flex min-h-0 flex-1 flex-col bg-background">
+      <MessageList messages={messages} status={status} />
+      {thread.readOnly ? (
+        <p className="border-t px-4 py-3 text-center text-muted-foreground text-xs">
+          This thread is read-only.
+        </p>
+      ) : (
+        <ThreadComposer
+          onStop={() => {
+            stop().catch((error: unknown) => {
+              console.error("[chat] stop failed", error);
+            });
+          }}
+          onSubmit={(text) => {
+            sendMessage({
+              role: "user",
+              parts: [{ type: "text", text }],
+            }).catch((error: unknown) => {
+              console.error("[chat] sendMessage failed", error);
+            });
+          }}
+          running={running}
+        />
+      )}
+    </div>
   );
 }
 

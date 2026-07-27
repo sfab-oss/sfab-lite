@@ -2,12 +2,7 @@
 
 const TRAILING_NEWLINE = /\n$/;
 
-export function MockFileCodeView({
-  content,
-}: {
-  content: string;
-  path: string;
-}) {
+export function FileCodeView({ content }: { content: string; path: string }) {
   const lines = content.replace(TRAILING_NEWLINE, "").split("\n");
   return (
     <div className="h-full overflow-auto">

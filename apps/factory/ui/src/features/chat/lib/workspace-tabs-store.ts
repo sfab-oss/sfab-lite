@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type WorkspaceKind = "files" | "terminal" | "browser" | "versions";
-type TabKind = WorkspaceKind | "agent-run";
 
 const SINGLETON_KINDS: ReadonlySet<WorkspaceKind> = new Set([
   "files",
@@ -11,9 +10,8 @@ const SINGLETON_KINDS: ReadonlySet<WorkspaceKind> = new Set([
 ]);
 
 export interface OpenTab {
-  agentRunId?: string;
   id: string;
-  kind: TabKind;
+  kind: WorkspaceKind;
 }
 
 interface ThreadTabs {
@@ -25,7 +23,6 @@ interface WorkspaceTabsState {
   byThread: Record<string, ThreadTabs>;
   closeTab: (threadId: string, id: string) => void;
   focusTab: (threadId: string, id: string) => void;
-  openAgentRunTab: (threadId: string, agentRunId: string) => void;
   openTab: (threadId: string, kind: WorkspaceKind) => void;
   resetLocalState: () => void;
   setWorkspaceOpen: (open: boolean) => void;
@@ -69,35 +66,6 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             }
           }
           const tab = makeTab(kind);
-          return {
-            ...setThread(state, threadId, {
-              tabs: [...thread.tabs, tab],
-              activeId: tab.id,
-            }),
-            workspaceOpen: true,
-          };
-        }),
-
-      openAgentRunTab: (threadId, agentRunId) =>
-        set((state) => {
-          const thread = state.byThread[threadId] ?? EMPTY;
-          const existing = thread.tabs.find(
-            (tab) => tab.kind === "agent-run" && tab.agentRunId === agentRunId
-          );
-          if (existing) {
-            return {
-              ...setThread(state, threadId, {
-                ...thread,
-                activeId: existing.id,
-              }),
-              workspaceOpen: true,
-            };
-          }
-          const tab: OpenTab = {
-            id: crypto.randomUUID(),
-            kind: "agent-run",
-            agentRunId,
-          };
           return {
             ...setThread(state, threadId, {
               tabs: [...thread.tabs, tab],

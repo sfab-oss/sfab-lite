@@ -22,7 +22,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useChatData } from "../data/chat-data-context";
 import type { WorkspaceFileContent, WorkspaceFileEntry } from "../model/types";
-import { MockFileCodeView } from "./mock-file-code-view";
+import { FileCodeView } from "./file-code-view";
 
 const INDENT_STEP = 12;
 const BASE_PAD = 8;
@@ -41,7 +41,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function MockSessionTabFiles() {
+export function SessionTabFiles() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -49,15 +49,13 @@ export function MockSessionTabFiles() {
     if (!selectedPath) {
       return (
         <div className="flex h-full min-h-0 flex-col">
-          <MockSessionFileTree
-            activePath={null}
-            onSelectPath={setSelectedPath}
-          />
+          <PublishedBanner />
+          <SessionFileTree activePath={null} onSelectPath={setSelectedPath} />
         </div>
       );
     }
     return (
-      <MockSessionFileViewer
+      <SessionFileViewer
         onBack={() => setSelectedPath(null)}
         path={selectedPath}
       />
@@ -65,33 +63,44 @@ export function MockSessionTabFiles() {
   }
 
   const viewer = selectedPath ? (
-    <MockSessionFileViewer path={selectedPath} />
+    <SessionFileViewer path={selectedPath} />
   ) : (
     <NoFileSelected />
   );
 
   return (
-    <ResizablePanelGroup className="h-full min-h-0" direction="horizontal">
-      <ResizablePanel className="min-h-0" defaultSize={68} minSize={40}>
-        {viewer}
-      </ResizablePanel>
-      <ResizableHandle />
-      <ResizablePanel
-        className="flex min-h-0 flex-col border-l"
-        defaultSize={32}
-        maxSize={50}
-        minSize={18}
-      >
-        <MockSessionFileTree
-          activePath={selectedPath}
-          onSelectPath={setSelectedPath}
-        />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+    <div className="flex h-full min-h-0 flex-col">
+      <PublishedBanner />
+      <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
+        <ResizablePanel className="min-h-0" defaultSize={68} minSize={40}>
+          {viewer}
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel
+          className="flex min-h-0 flex-col border-l"
+          defaultSize={32}
+          maxSize={50}
+          minSize={18}
+        >
+          <SessionFileTree
+            activePath={selectedPath}
+            onSelectPath={setSelectedPath}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </div>
   );
 }
 
-function MockSessionFileTree({
+function PublishedBanner() {
+  return (
+    <p className="shrink-0 border-b px-3 py-2 text-muted-foreground text-xs">
+      Published live version — not the agent's in-thread scratch workspace.
+    </p>
+  );
+}
+
+function SessionFileTree({
   activePath,
   onSelectPath,
 }: {
@@ -230,7 +239,7 @@ function FileNode({
   );
 }
 
-function MockSessionFileViewer({
+function SessionFileViewer({
   path,
   onBack,
 }: {
@@ -297,7 +306,7 @@ function renderFileBody(file: WorkspaceFileContent, path: string) {
     );
   }
 
-  return <MockFileCodeView content={file.content} path={path} />;
+  return <FileCodeView content={file.content} path={path} />;
 }
 
 function FileNotice({ children }: { children: React.ReactNode }) {
