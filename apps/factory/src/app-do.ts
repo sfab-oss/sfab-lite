@@ -348,7 +348,7 @@ export class AppDO extends DurableObject {
   } {
     this.#ensureMeta();
     const schemaRow = this.ctx.storage.sql
-      .exec("SELECT version FROM _sfab_schema_version LIMIT 1")
+      .exec("SELECT COUNT(*) AS version FROM _sfab_migrations")
       .toArray()[0] as { version?: number } | undefined;
     let userCount: number | null = null;
     try {

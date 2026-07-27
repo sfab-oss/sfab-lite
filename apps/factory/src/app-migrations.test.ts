@@ -6,8 +6,8 @@ import {
   applyPendingMigrations,
   collectMigrations,
   type ExecSql,
+  migrationChecksum,
   nextMigrationPath,
-  readSchemaVersion,
   SCHEMA_VERSION_DDL,
 } from "./app-migrations.ts";
 
@@ -125,6 +125,22 @@ function tableNames(exec: ExecSql): string[] {
   ).map((row) => String(row.name));
 }
 
+function ledgerIds(exec: ExecSql): string[] {
+  return exec("SELECT id FROM _sfab_migrations ORDER BY ordinal").map((row) =>
+    String(row.id)
+  );
+}
+
+/** The same migration, edited after the fact. */
+function edited(id: string, sql: string): AppMigration[] {
+  return MIGRATIONS.map((m) => (m.id === id ? { id, sql } : m));
+}
+
+const CONTENTS_CHANGED = /0001_auth.*contents have changed/s;
+const NOT_FILE_1 = /no longer file 1/;
+const RAN_MORE_THAN_HELD = /has run 2 migrations but migrations\/ holds 1/;
+const RENAMED = /0002_notes.*no longer file 2/s;
+
 describe("applyPendingMigrations", () => {
   it("runs every migration on an empty database", () => {
     const exec = database();
@@ -133,7 +149,7 @@ describe("applyPendingMigrations", () => {
       applied: 2,
     });
     assert.deepEqual(tableNames(exec), ["note", "user"]);
-    assert.equal(readSchemaVersion(exec), 2);
+    assert.deepEqual(ledgerIds(exec), ["0001_auth", "0002_notes"]);
   });
 
   it("does nothing when the database is already current", () => {
@@ -181,21 +197,105 @@ describe("applyPendingMigrations", () => {
       previousVersion: 3,
       applied: 0,
     });
-    assert.equal(
-      exec("SELECT COUNT(*) AS n FROM _sfab_schema_version")[0]?.n,
-      1
-    );
+    assert.deepEqual(ledgerIds(exec), [
+      "0001_auth",
+      "0002_notes",
+      "0003_expenses",
+    ]);
   });
 
-  /** A database an older build left with several rows must still read true. */
-  it("recovers a database that already has duplicate version rows", () => {
+  /**
+   * A stray count row is what an older build could leave behind. Once a ledger
+   * exists it is not consulted, so it cannot re-run anything.
+   */
+  it("ignores the legacy count once a ledger exists", () => {
     const exec = database();
     applyPendingMigrations(exec, MIGRATIONS);
     exec("INSERT INTO _sfab_schema_version (version) VALUES (1)");
-    assert.equal(readSchemaVersion(exec), 2);
     assert.deepEqual(applyPendingMigrations(exec, MIGRATIONS), {
       previousVersion: 2,
       applied: 0,
     });
+  });
+});
+
+describe("applyPendingMigrations — history that has already run", () => {
+  /**
+   * The database an older build left behind: a count, and no ledger. The first
+   * `N` files are the only thing that count can mean, so they are adopted
+   * rather than re-run — re-running would fail on the first `CREATE TABLE`.
+   */
+  it("adopts the files a counted database must have applied", () => {
+    const exec = database();
+    for (const migration of MIGRATIONS) {
+      exec(migration.sql);
+    }
+    exec("INSERT INTO _sfab_schema_version (version) VALUES (2)");
+
+    assert.deepEqual(applyPendingMigrations(exec, MIGRATIONS), {
+      previousVersion: 2,
+      applied: 0,
+    });
+    assert.deepEqual(ledgerIds(exec), ["0001_auth", "0002_notes"]);
+  });
+
+  it("refuses a migration edited after it was applied", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    assert.throws(
+      () =>
+        applyPendingMigrations(
+          exec,
+          edited(
+            "0001_auth",
+            "CREATE TABLE user (id TEXT PRIMARY KEY, x TEXT);"
+          )
+        ),
+      CONTENTS_CHANGED
+    );
+  });
+
+  it("refuses a migration that is no longer where it was applied", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    assert.throws(
+      () => applyPendingMigrations(exec, [...MIGRATIONS].reverse()),
+      NOT_FILE_1
+    );
+  });
+
+  it("refuses a database holding more migrations than the workspace", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    assert.throws(
+      () => applyPendingMigrations(exec, MIGRATIONS.slice(0, 1)),
+      RAN_MORE_THAN_HELD
+    );
+  });
+
+  /** Renaming the file is the same act as editing it, and reads the same. */
+  it("refuses a renamed migration", () => {
+    const exec = database();
+    applyPendingMigrations(exec, MIGRATIONS);
+    const renamed = MIGRATIONS.map((m) =>
+      m.id === "0002_notes" ? { ...m, id: "0002_memos" } : m
+    );
+    assert.throws(() => applyPendingMigrations(exec, renamed), RENAMED);
+  });
+});
+
+describe("migrationChecksum", () => {
+  it("separates contents that differ by one byte", () => {
+    assert.notEqual(
+      migrationChecksum("SELECT 1;"),
+      migrationChecksum("SELECT 2;")
+    );
+  });
+
+  it("is stable across calls", () => {
+    assert.equal(
+      migrationChecksum("SELECT 1;"),
+      migrationChecksum("SELECT 1;")
+    );
   });
 });
