@@ -22,6 +22,7 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRouter } from "@/router";
+import type { ComposerScope } from "./components/composer-scope-chip";
 import {
   ResponsiveSidePanel,
   useSidePanelLayout,
@@ -372,6 +373,17 @@ function ChatScreenInner() {
     });
   }, []);
 
+  const composerScope = useMemo<ComposerScope>(
+    () => ({
+      appId: scopeAppId,
+      appName: scopedApp?.appName ?? scopeAppName,
+      apps: readyApps,
+      onAttendApp: attendApp,
+      onClearScope: goHome,
+    }),
+    [attendApp, goHome, readyApps, scopeAppId, scopeAppName, scopedApp]
+  );
+
   const onSetWorkspaceOpen = (
     value: boolean | ((open: boolean) => boolean)
   ) => {
@@ -420,17 +432,13 @@ function ChatScreenInner() {
               canDock={canDock}
               createError={createError}
               creating={creating}
-              onAttendApp={attendApp}
               onBlankSubmit={createThreadFromBlank}
-              onClearScope={goHome}
               onCloseRail={() => setSummaryOpen(false)}
               onSeedConsumed={consumeSeed}
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
               onSetWorkspaceOpen={onSetWorkspaceOpen}
-              readyApps={readyApps}
-              scopeAppId={scopeAppId}
-              scopeAppName={scopedApp?.appName ?? scopeAppName}
+              scope={composerScope}
               seedMessage={
                 activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
               }
@@ -443,17 +451,13 @@ function ChatScreenInner() {
               canDock={canDock}
               createError={createError}
               creating={creating}
-              onAttendApp={attendApp}
               onBlankSubmit={createThreadFromBlank}
-              onClearScope={goHome}
               onCloseRail={() => setSummaryOpen(false)}
               onSeedConsumed={consumeSeed}
               onSetContainerNode={setContainerNode}
               onSetSummaryOpen={setSummaryOpen}
               onSetWorkspaceOpen={onSetWorkspaceOpen}
-              readyApps={readyApps}
-              scopeAppId={scopeAppId}
-              scopeAppName={scopedApp?.appName ?? scopeAppName}
+              scope={composerScope}
               seedMessage={
                 activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
               }
@@ -472,17 +476,13 @@ interface ChatChromeProps {
   canDock: boolean;
   createError: string | null;
   creating: boolean;
-  onAttendApp: (appId: string, appName: string) => void;
   onBlankSubmit: (text: string) => void;
-  onClearScope: () => void;
   onCloseRail: () => void;
   onSeedConsumed: (threadId: string) => void;
   onSetContainerNode: (node: HTMLElement | null) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
-  readyApps: Array<{ appId: string; appName: string }>;
-  scopeAppId: string | null;
-  scopeAppName: string | null;
+  scope: ComposerScope;
   seedMessage: string | null;
   summaryOpen: boolean;
   workspaceOpen: boolean;
@@ -550,17 +550,13 @@ function ChatColumn({
   canDock,
   createError,
   creating,
-  onAttendApp,
   onBlankSubmit,
-  onClearScope,
   onCloseRail,
   onSeedConsumed,
   onSetContainerNode,
   onSetSummaryOpen,
   onSetWorkspaceOpen,
-  readyApps,
-  scopeAppId,
-  scopeAppName,
+  scope,
   seedMessage,
   summaryOpen,
   workspaceOpen,
@@ -602,8 +598,6 @@ function ChatColumn({
             </div>
             <div className="w-full max-w-3xl">
               <ThreadComposer
-                onAttendApp={onAttendApp}
-                onClearScope={onClearScope}
                 onStop={() => undefined}
                 onSubmit={onBlankSubmit}
                 placeholder={
@@ -611,10 +605,8 @@ function ChatColumn({
                     ? "Creating app…"
                     : "Describe the app you want to build…"
                 }
-                readyApps={readyApps}
                 running={creating}
-                scopeAppId={scopeAppId}
-                scopeAppName={scopeAppName}
+                scope={scope}
               />
               {createError ? (
                 <p className="mt-2 text-center text-destructive text-sm">

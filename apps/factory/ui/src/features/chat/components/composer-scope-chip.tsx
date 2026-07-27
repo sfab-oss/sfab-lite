@@ -10,25 +10,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 
 const NEW_APP_VALUE = "__new__";
 
-export function ComposerScopeChip({
-  apps,
-  onAttendApp,
-  onClearScope,
-  scopeAppId,
-  scopeAppName,
-}: {
+export interface ComposerScope {
+  appId: string | null;
+  appName: string | null;
   apps: Array<{ appId: string; appName: string }>;
   onAttendApp: (appId: string, appName: string) => void;
   onClearScope: () => void;
-  scopeAppId: string | null;
-  scopeAppName: string | null;
-}) {
-  const label = scopeAppId ? (scopeAppName ?? "App") : "New app";
-  const value = scopeAppId ?? NEW_APP_VALUE;
+}
+
+export function ComposerScopeChip({
+  appId,
+  appName,
+  apps,
+  onAttendApp,
+  onClearScope,
+}: ComposerScope) {
+  const label = appId ? (appName ?? "App") : "New app";
+  const value = appId ?? NEW_APP_VALUE;
 
   return (
     <DropdownMenu>
@@ -42,9 +43,7 @@ export function ComposerScopeChip({
         }
       >
         <Badge
-          className={cn(
-            "cursor-pointer border border-border bg-muted font-normal text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          )}
+          className="cursor-pointer border border-border bg-muted font-normal text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           variant="outline"
         >
           <span className="max-w-40 truncate">{label}</span>

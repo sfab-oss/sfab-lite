@@ -13,7 +13,7 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ComposerScopeChip } from "./composer-scope-chip";
+import { type ComposerScope, ComposerScopeChip } from "./composer-scope-chip";
 
 function shouldSubmitOnEnter(
   event: ReactKeyboardEvent<HTMLTextAreaElement>,
@@ -37,31 +37,20 @@ export function ThreadComposer({
   onSubmit,
   onStop,
   placeholder = "Message the agent…",
-  readyApps,
   running,
-  scopeAppId,
-  scopeAppName,
-  onAttendApp,
-  onClearScope,
+  scope,
 }: {
-  onAttendApp?: (appId: string, appName: string) => void;
-  onClearScope?: () => void;
   onStop: () => void;
   onSubmit: (text: string) => void;
   placeholder?: string;
-  readyApps?: Array<{ appId: string; appName: string }>;
   running: boolean;
-  scopeAppId?: string | null;
-  scopeAppName?: string | null;
+  /** Omitted inside a thread — only a blank composer can still choose an app. */
+  scope?: ComposerScope;
 }) {
   const isMobile = useIsMobile();
   const [text, setText] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const showScope =
-    onAttendApp !== undefined &&
-    onClearScope !== undefined &&
-    readyApps !== undefined;
 
   const submit = useCallback(() => {
     const trimmed = text.trim();
@@ -107,15 +96,7 @@ export function ThreadComposer({
               value={text}
             />
             <InputGroupAddon align="block-end" className="pt-1">
-              {showScope ? (
-                <ComposerScopeChip
-                  apps={readyApps}
-                  onAttendApp={onAttendApp}
-                  onClearScope={onClearScope}
-                  scopeAppId={scopeAppId ?? null}
-                  scopeAppName={scopeAppName ?? null}
-                />
-              ) : null}
+              {scope ? <ComposerScopeChip {...scope} /> : null}
               <div className="ml-auto flex shrink-0 items-center gap-2">
                 <InputGroupButton
                   aria-label={running ? "Stop" : "Send message"}
