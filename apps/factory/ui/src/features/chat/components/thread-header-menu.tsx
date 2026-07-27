@@ -1,4 +1,12 @@
-import { DatabaseBackup, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import type { UIMessage } from "ai";
+import {
+  Check,
+  ClipboardCopy,
+  DatabaseBackup,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,11 +24,21 @@ import {
   RenameThreadDialog,
 } from "./thread-lifecycle-dialogs";
 
+type CopyState = "idle" | "copied" | "failed";
+
+const COPY_LABEL: Record<CopyState, string> = {
+  idle: "Copy conversation",
+  copied: "Copied to clipboard",
+  failed: "Clipboard unavailable",
+};
+
 export function ThreadHeaderMenu({
   thread,
   onDeleted,
+  readMessages,
 }: {
   onDeleted: (thread: Thread) => void;
+  readMessages: () => UIMessage[];
   thread: Thread;
 }) {
   const resetLocalState = useWorkspaceTabsStore((s) => s.resetLocalState);
@@ -28,10 +46,41 @@ export function ThreadHeaderMenu({
     useThreadLifecycle();
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+
+  const copyConversation = async () => {
+    const conversation = {
+      thread: {
+        id: thread.id,
+        title: thread.title,
+        appId: thread.appId,
+        appName: thread.appName,
+      },
+      messages: readMessages(),
+    };
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(conversation, null, 2)
+      );
+      setCopyState("copied");
+    } catch (copyError: unknown) {
+      console.error("[chat] copy conversation failed", copyError);
+      setCopyState("failed");
+    }
+  };
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          setMenuOpen(open);
+          if (!open) {
+            setCopyState("idle");
+          }
+        }}
+        open={menuOpen}
+      >
         <DropdownMenuTrigger
           render={
             <Button
@@ -45,7 +94,18 @@ export function ThreadHeaderMenu({
         >
           <MoreHorizontal className="size-4" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
+        <DropdownMenuContent align="start" className="w-52">
+          {/* Held open so the outcome stays legible — a menu that closes on
+              click leaves no room to report that the clipboard was refused. */}
+          <DropdownMenuItem closeOnClick={false} onClick={copyConversation}>
+            {copyState === "copied" ? (
+              <Check className="size-4" />
+            ) : (
+              <ClipboardCopy className="size-4" />
+            )}
+            {COPY_LABEL[copyState]}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={busy}
             onClick={() => {
