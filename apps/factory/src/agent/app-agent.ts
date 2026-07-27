@@ -118,11 +118,12 @@ export class AppAgent extends Think<Env> {
     if (!trimmed) {
       return Promise.resolve();
     }
-    this.sql`INSERT INTO thread_meta (id, title, created_at, updated_at)
-      VALUES (${id}, ${trimmed}, ${Date.now()}, ${Date.now()})
-      ON CONFLICT(id) DO UPDATE SET
-        title = excluded.title,
-        updated_at = excluded.updated_at`;
+    // UPDATE, not upsert: meta is the existence key, so inserting here would
+    // let a rename recreate a thread that was deleted — including one whose
+    // registry row came back via the WS re-resolve path.
+    this.sql`UPDATE thread_meta
+      SET title = ${trimmed}, updated_at = ${Date.now()}
+      WHERE id = ${id}`;
     return Promise.resolve();
   }
 

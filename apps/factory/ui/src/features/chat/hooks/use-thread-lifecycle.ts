@@ -12,7 +12,9 @@ const RPC_TIMEOUT_MS = 12_000;
 function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error(`${label} timed out — is the factory still running?`));
+      // A timeout does not cancel the call, so the server may have applied it.
+      // Say so rather than implying nothing happened.
+      reject(new Error(`${label} timed out — it may still have gone through.`));
     }, RPC_TIMEOUT_MS);
     promise.then(
       (value) => {
@@ -40,14 +42,16 @@ export function useThreadLifecycle() {
         return false;
       }
       if (!thread.appId) {
+        setError("This conversation is not attached to an app yet.");
         return false;
       }
       setBusy(true);
       setError(null);
       try {
-        const handle = await waitForHandle(thread.appId);
         await withTimeout(
-          renameServerThread(handle, thread.id, trimmed),
+          waitForHandle(thread.appId).then((handle) =>
+            renameServerThread(handle, thread.id, trimmed)
+          ),
           "Rename"
         );
         chatData.patchThread(thread.id, {
@@ -68,13 +72,21 @@ export function useThreadLifecycle() {
   const deleteThread = useCallback(
     async (thread: Thread): Promise<boolean> => {
       if (!thread.appId) {
+        setError("This conversation is not attached to an app yet.");
         return false;
       }
       setBusy(true);
       setError(null);
       try {
-        const handle = await waitForHandle(thread.appId);
-        await withTimeout(deleteServerThread(handle, thread.id), "Delete");
+        // waitForHandle resolves only once that app is attended, and at most
+        // one app is attended at a time — so it must be inside the timeout or
+        // deleting another app's thread from the sidebar waits forever.
+        await withTimeout(
+          waitForHandle(thread.appId).then((handle) =>
+            deleteServerThread(handle, thread.id)
+          ),
+          "Delete"
+        );
         chatData.removeThread(thread.id);
         return true;
       } catch (caught: unknown) {
