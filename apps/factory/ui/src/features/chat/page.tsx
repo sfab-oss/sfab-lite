@@ -28,7 +28,6 @@ import {
   useSidePanelLayout,
 } from "./components/responsive-side-panel";
 import { SessionWorkspacePanel } from "./components/session-workspace-panel";
-import { ThreadBindingBadge } from "./components/thread-binding-badge";
 import { ThreadComposer } from "./components/thread-composer";
 import { ThreadHeaderMenu } from "./components/thread-header-menu";
 import { ThreadSummaryPanel } from "./components/thread-summary-panel";
@@ -675,7 +674,6 @@ function ThreadHeader({
             <span className="truncate font-medium text-sm">
               {activeThread.title}
             </span>
-            <ThreadBindingBadge thread={activeThread} />
             <ThreadHeaderMenu
               onDeleted={onThreadDeleted}
               thread={activeThread}
