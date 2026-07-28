@@ -23,9 +23,19 @@ export default defineConfig({
     agents(),
     cloudflare({
       viteEnvironment: { name: "ssr" },
+      // Check/lint are separate Workers (service bindings). Include them in
+      // `vite dev` so the factory can call them locally; skip them in
+      // `vite build` — they are built/deployed from their own packages, and
+      // bundling them next to the factory SSR (kernel) OOMs CI.
       auxiliaryWorkers: [
-        { configPath: resolve(factoryRoot, "../check/wrangler.jsonc") },
-        { configPath: resolve(factoryRoot, "../lint/wrangler.jsonc") },
+        {
+          configPath: resolve(factoryRoot, "../check/wrangler.jsonc"),
+          devOnly: true,
+        },
+        {
+          configPath: resolve(factoryRoot, "../lint/wrangler.jsonc"),
+          devOnly: true,
+        },
       ],
     }),
     tsconfigPaths({ projects: ["./tsconfig.json"] }),

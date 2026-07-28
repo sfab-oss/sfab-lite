@@ -116,12 +116,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:export-agreement
 
-      # Factory assets (`ui/dist`) are gitignored. wrangler deploy --dry-run
-      # fails if assets.directory is missing, so build the console before the
-      # bundle-size gate that proves the assets wiring deploys.
+      # Factory console is built by Vite + TanStack Start (`dist/`). Needed
+      # before the bundle-size gate / deploy that consume the worker build.
       - id: ui-build
         name: ui-build
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm --filter @sfab-lite/factory build:ui
 
       # The only gate that inspects the *built* bundle rather than source.
@@ -160,10 +161,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # `apps/factory/ui/dist` is gitignored and the factory's `assets`
-      # binding points at it, so the console must exist before its worker
-      # deploys or wrangler uploads an empty asset directory.
+      # Vite + Start build (`dist/`) before wrangler deploy.
       - name: Build console
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm --filter @sfab-lite/factory build:ui
 
       # Publish THIS version's client chunks to R2 while it is still current,
