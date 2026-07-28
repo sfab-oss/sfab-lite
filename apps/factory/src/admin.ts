@@ -1,9 +1,9 @@
 /**
- * `/admin/*` surface for the factory host worker.
+ * `/admin/*` handlers for the factory host worker.
  *
- * Owns every admin handler, the ADMIN_ROUTES table, and dispatchAdmin.
- * Credential resolution and app-ownership checks run in the dispatcher
- * before a handler sees the request.
+ * Business logic lives here; Hono routing, credential middleware, and
+ * `AppType` live in `hono/`. Each handler still receives AdminCtx / OrgCtx /
+ * AppCtx built by thin adapters.
  */
 import { mergeSources } from "@sfab-lite/core";
 import { APP_NAME_MAX_LENGTH, pickAppName } from "./app-names.js";
@@ -36,20 +36,9 @@ import {
   renameAppUnscoped,
   setCreateAttemptId,
 } from "./registry.js";
-import type {
-  AdminCtx,
-  AdminRoute,
-  AppCtx,
-  OrgCtx,
-  RequestCtx,
-} from "./routes.js";
-import { jsonError, matchRoute, NOT_FOUND_BODY } from "./routes.js";
+import type { AdminCtx, AppCtx, OrgCtx } from "./routes.js";
+import { jsonError } from "./routes.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
-import {
-  requireAppAccess,
-  resolveActor,
-  resolveOrganization,
-} from "./tenancy.js";
 
 /** ctx.exports typing for WorkerEntrypoint classes isn't inferred by tsc alone. */
 interface HostExports {
@@ -81,17 +70,6 @@ function scopedDb(ctx: ExecutionContext, appId: string) {
   return ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps });
 }
 
-const RE_ADMIN_TOUCH = /^\/admin\/apps\/([^/]+)\/touch$/;
-const RE_ADMIN_SQL = /^\/admin\/apps\/([^/]+)\/sql$/;
-const RE_ADMIN_VERSIONS = /^\/admin\/apps\/([^/]+)\/versions$/;
-const RE_ADMIN_LIVE = /^\/admin\/apps\/([^/]+)\/live$/;
-const RE_ADMIN_ATTEMPTS = /^\/admin\/apps\/([^/]+)\/attempts$/;
-const RE_ADMIN_ATTEMPT = /^\/admin\/apps\/([^/]+)\/attempts\/([^/]+)$/;
-const RE_ADMIN_CHECK = /^\/admin\/apps\/([^/]+)\/check$/;
-const RE_ADMIN_COMMIT = /^\/admin\/apps\/([^/]+)\/commit$/;
-const RE_ADMIN_REVERT = /^\/admin\/apps\/([^/]+)\/revert$/;
-const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
-
 /**
  * Create an app: D1 row first (`creating`), then bootstrap + async seed.
  *
@@ -108,7 +86,7 @@ const RE_ADMIN_APP = /^\/admin\/apps\/([^/]+)$/;
  * is created from a prompt describing what to build rather than what to call
  * it. Omitting it draws a placeholder from `app-names.ts`.
  */
-async function handleCreateApp(rc: OrgCtx): Promise<Response> {
+export async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
     organizationId?: unknown;
     name?: string;
@@ -170,7 +148,7 @@ async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   });
 }
 
-async function handleListApps(rc: OrgCtx): Promise<Response> {
+export async function handleListApps(rc: OrgCtx): Promise<Response> {
   const { organizationId } = rc;
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
@@ -191,7 +169,7 @@ async function handleListApps(rc: OrgCtx): Promise<Response> {
  * same as every other app-scoped route. The stale-`creating` sweep lives
  * here because a status poll is when reconciling matters.
  */
-async function handleGetApp(rc: AppCtx): Promise<Response> {
+export async function handleGetApp(rc: AppCtx): Promise<Response> {
   const record = await getAppUnscoped(
     createDb(rc.env),
     rc.appId,
@@ -207,7 +185,7 @@ async function handleGetApp(rc: AppCtx): Promise<Response> {
  * Rename an app. The generated name is a placeholder, so replacing it is an
  * ordinary edit rather than a recovery from an error.
  */
-async function handleRenameApp(rc: AppCtx): Promise<Response> {
+export async function handleRenameApp(rc: AppCtx): Promise<Response> {
   const body = (await rc.request.json().catch(() => null)) as {
     name?: string;
   } | null;
@@ -237,7 +215,7 @@ async function handleRenameApp(rc: AppCtx): Promise<Response> {
  * empty) and reports `removed: false` for the row, so a caller retrying after
  * a partial failure gets told what was actually left to do.
  */
-async function handleDeleteApp(rc: AppCtx): Promise<Response> {
+export async function handleDeleteApp(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const destroyed = await appStub(rc.env, appId).destroy();
   if (!destroyed.ok) {
@@ -252,13 +230,13 @@ async function handleDeleteApp(rc: AppCtx): Promise<Response> {
   });
 }
 
-async function handleTouch(rc: AppCtx): Promise<Response> {
+export async function handleTouch(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const touch = await appStub(rc.env, appId).touch();
   return Response.json({ ok: true, appId, touch });
 }
 
-async function handleSql(rc: AppCtx): Promise<Response> {
+export async function handleSql(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     query?: string;
@@ -276,13 +254,13 @@ async function handleSql(rc: AppCtx): Promise<Response> {
   return Response.json({ ok: true, appId, ping, result });
 }
 
-async function handleListVersions(rc: AppCtx): Promise<Response> {
+export async function handleListVersions(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const listed = await appStub(rc.env, appId).listVersions();
   return Response.json({ appId, ...listed });
 }
 
-async function handleGetLive(rc: AppCtx): Promise<Response> {
+export async function handleGetLive(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const live = await appStub(rc.env, appId).getLive();
   if (!(live.version?.sourceFiles && live.liveVersionId)) {
@@ -296,9 +274,9 @@ async function handleGetLive(rc: AppCtx): Promise<Response> {
   });
 }
 
-async function handleGetAttempt(rc: AppCtx): Promise<Response> {
+export async function handleGetAttempt(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
-  const attemptId = decodeURIComponent(rc.match[2] ?? "");
+  const attemptId = rc.attemptId ?? decodeURIComponent(rc.match[2] ?? "");
   const { attempt } = await appStub(rc.env, appId).getAttempt(attemptId);
   if (!attempt) {
     return jsonError("attempt_not_found", 404);
@@ -306,7 +284,7 @@ async function handleGetAttempt(rc: AppCtx): Promise<Response> {
   return Response.json({ ok: true, appId, attempt });
 }
 
-async function handleListAttempts(rc: AppCtx): Promise<Response> {
+export async function handleListAttempts(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const raw = Number(rc.url.searchParams.get("limit"));
   const { attempts } = await appStub(rc.env, appId).listAttempts(
@@ -315,7 +293,7 @@ async function handleListAttempts(rc: AppCtx): Promise<Response> {
   return Response.json({ ok: true, appId, attempts });
 }
 
-async function handleCheck(rc: AppCtx): Promise<Response> {
+export async function handleCheck(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     files?: Record<string, string | null>;
@@ -347,7 +325,7 @@ async function handleCheck(rc: AppCtx): Promise<Response> {
   });
 }
 
-async function handleCommit(rc: AppCtx): Promise<Response> {
+export async function handleCommit(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     files?: Record<string, string | null>;
@@ -371,7 +349,7 @@ async function handleCommit(rc: AppCtx): Promise<Response> {
   );
 }
 
-async function handleRevert(rc: AppCtx): Promise<Response> {
+export async function handleRevert(rc: AppCtx): Promise<Response> {
   const { appId } = rc;
   const body = (await rc.request.json().catch(() => null)) as {
     versionId?: string;
@@ -441,7 +419,7 @@ async function probePeerToken(
  * secret the factory presented. `adminToken.agree` answers it directly, and
  * answers it *before* anyone tries to commit.
  */
-async function handleHealth(rc: AdminCtx): Promise<Response> {
+export async function handleHealth(rc: AdminCtx): Promise<Response> {
   const token = rc.env.ADMIN_TOKEN;
   const [check, lint] = await Promise.all([
     probePeerToken(rc.env.CHECK, token),
@@ -481,137 +459,4 @@ async function handleHealth(rc: AdminCtx): Promise<Response> {
     signUpOpen: signUpOpen(rc.env),
     signUpAllowlisted: signUpAllowlist(rc.env).size,
   });
-}
-
-const ADMIN_ROUTES: AdminRoute[] = [
-  {
-    method: "GET",
-    pattern: /^\/admin\/health$/,
-    scope: "none",
-    handler: handleHealth,
-  },
-  {
-    method: "GET",
-    pattern: /^\/admin\/apps$/,
-    scope: "organization",
-    handler: handleListApps,
-  },
-  {
-    method: "POST",
-    pattern: /^\/admin\/apps$/,
-    scope: "organization",
-    handler: handleCreateApp,
-  },
-  {
-    method: "GET",
-    pattern: RE_ADMIN_TOUCH,
-    scope: "app",
-    handler: handleTouch,
-  },
-  { method: "POST", pattern: RE_ADMIN_SQL, scope: "app", handler: handleSql },
-  {
-    method: "GET",
-    pattern: RE_ADMIN_VERSIONS,
-    scope: "app",
-    handler: handleListVersions,
-  },
-  {
-    method: "GET",
-    pattern: RE_ADMIN_LIVE,
-    scope: "app",
-    handler: handleGetLive,
-  },
-  {
-    method: "GET",
-    pattern: RE_ADMIN_ATTEMPT,
-    scope: "app",
-    handler: handleGetAttempt,
-  },
-  {
-    method: "GET",
-    pattern: RE_ADMIN_ATTEMPTS,
-    scope: "app",
-    handler: handleListAttempts,
-  },
-  {
-    method: "POST",
-    pattern: RE_ADMIN_CHECK,
-    scope: "app",
-    handler: handleCheck,
-  },
-  {
-    method: "POST",
-    pattern: RE_ADMIN_COMMIT,
-    scope: "app",
-    handler: handleCommit,
-  },
-  {
-    method: "POST",
-    pattern: RE_ADMIN_REVERT,
-    scope: "app",
-    handler: handleRevert,
-  },
-  // After `/admin/apps/:id/…` routes so a looser pattern cannot steal them.
-  { method: "GET", pattern: RE_ADMIN_APP, scope: "app", handler: handleGetApp },
-  {
-    method: "PATCH",
-    pattern: RE_ADMIN_APP,
-    scope: "app",
-    handler: handleRenameApp,
-  },
-  {
-    method: "DELETE",
-    pattern: RE_ADMIN_APP,
-    scope: "app",
-    handler: handleDeleteApp,
-  },
-];
-
-/**
- * Dispatch an authenticated `/admin/*` request.
- *
- * Credential first, route second — deliberately. Resolving the actor before
- * matching means an unknown `/admin/…` path answers 401 rather than 404 to an
- * anonymous caller, so the admin surface is not enumerable by probing.
- *
- * For `scope: "organization"` routes the dispatcher also resolves the org
- * from `?organizationId=` before the handler runs.
- */
-export async function dispatchAdmin(rc: RequestCtx): Promise<Response> {
-  const db = createDb(rc.env);
-  const actor = await resolveActor(rc.env, db, rc.request, rc.url.origin);
-  if (actor instanceof Response) {
-    return actor;
-  }
-
-  const hit = matchRoute(ADMIN_ROUTES, rc.request.method, rc.url.pathname);
-  if (!hit) {
-    return new Response(NOT_FOUND_BODY, { status: 404 });
-  }
-
-  const base: AdminCtx = { ...rc, match: hit.match, actor };
-  if (hit.route.scope === "none") {
-    return await hit.route.handler(base);
-  }
-
-  if (hit.route.scope === "organization") {
-    const scope = resolveOrganization(
-      actor,
-      rc.url.searchParams.get("organizationId") ?? undefined
-    );
-    if (scope instanceof Response) {
-      return scope;
-    }
-    return await hit.route.handler({
-      ...base,
-      organizationId: scope.organizationId,
-    });
-  }
-
-  const appId = decodeURIComponent(hit.match[1] ?? "");
-  const denied = await requireAppAccess(db, actor, appId);
-  if (denied) {
-    return denied;
-  }
-  return await hit.route.handler({ ...base, appId });
 }

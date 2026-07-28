@@ -1,5 +1,7 @@
 /** Wire types for `/admin/*` and `/api/config` — shapes match the worker. */
 
+import { client } from "./lib/client";
+
 type AppStatus = "creating" | "ready" | "failed";
 
 export interface AppRecord {
@@ -49,15 +51,30 @@ export class AuthRequiredError extends Error {
   }
 }
 
-async function readJson<T>(res: Response): Promise<T> {
+interface HttpResult {
+  status: number;
+  ok: boolean;
+  json: () => Promise<unknown>;
+}
+
+async function readJson<T>(res: HttpResult): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function errorMessage(res: Response, fallback: string): Promise<string> {
+async function errorMessage(
+  res: HttpResult,
+  fallback: string
+): Promise<string> {
   const body = await readJson<{ error?: string }>(res).catch(() => ({
     error: undefined as string | undefined,
   }));
   return body.error ?? fallback;
+}
+
+function throwIfUnauthorized(res: HttpResult): void {
+  if (res.status === 401) {
+    throw new AuthRequiredError();
+  }
 }
 
 export async function fetchAuthConfig(): Promise<AuthConfig> {
@@ -126,10 +143,8 @@ export async function listApps(): Promise<{
   organizationId: string;
   apps: AppRecord[];
 }> {
-  const res = await fetch("/admin/apps", { credentials: "include" });
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  const res = await client.apps.$get();
+  throwIfUnauthorized(res);
   if (!res.ok) {
     throw new Error(
       await errorMessage(res, `list apps failed (${res.status})`)
@@ -153,15 +168,13 @@ export async function createApp(name?: string): Promise<{
   attemptId: string;
   name: string;
 }> {
-  const res = await fetch("/admin/apps", {
-    method: "POST",
-    credentials: "include",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(name ? { name } : {}),
+  const res = await client.apps.$post(undefined, {
+    init: {
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(name ? { name } : {}),
+    },
   });
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  throwIfUnauthorized(res);
   if (res.status !== 202) {
     throw new Error(await errorMessage(res, `create failed (${res.status})`));
   }
@@ -177,15 +190,16 @@ export async function renameApp(
   appId: string,
   name: string
 ): Promise<AppRecord> {
-  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}`, {
-    method: "PATCH",
-    credentials: "include",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  const res = await client.apps[":appId"].$patch(
+    { param: { appId } },
+    {
+      init: {
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      },
+    }
+  );
+  throwIfUnauthorized(res);
   if (!res.ok) {
     throw new Error(await errorMessage(res, `rename failed (${res.status})`));
   }
@@ -194,12 +208,10 @@ export async function renameApp(
 }
 
 export async function getApp(appId: string): Promise<AppRecord> {
-  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}`, {
-    credentials: "include",
+  const res = await client.apps[":appId"].$get({
+    param: { appId },
   });
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  throwIfUnauthorized(res);
   if (!res.ok) {
     throw new Error(await errorMessage(res, `get app failed (${res.status})`));
   }
@@ -214,13 +226,10 @@ export async function getApp(appId: string): Promise<AppRecord> {
  * untouched and the same call works once it settles.
  */
 export async function deleteApp(appId: string): Promise<void> {
-  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}`, {
-    method: "DELETE",
-    credentials: "include",
+  const res = await client.apps[":appId"].$delete({
+    param: { appId },
   });
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  throwIfUnauthorized(res);
   if (!res.ok) {
     const detail = await errorMessage(res, `delete failed (${res.status})`);
     // The wire code is accurate and unreadable; the worker's own vocabulary
@@ -237,12 +246,10 @@ export async function listVersions(appId: string): Promise<{
   liveVersionId: string | null;
   versions: VersionSummary[];
 }> {
-  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}/versions`, {
-    credentials: "include",
+  const res = await client.apps[":appId"].versions.$get({
+    param: { appId },
   });
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  throwIfUnauthorized(res);
   if (!res.ok) {
     throw new Error(
       await errorMessage(res, `list versions failed (${res.status})`)
@@ -258,12 +265,10 @@ export async function getLiveSources(appId: string): Promise<{
   liveVersionId: string;
   sourceFiles: Record<string, string>;
 }> {
-  const res = await fetch(`/admin/apps/${encodeURIComponent(appId)}/live`, {
-    credentials: "include",
+  const res = await client.apps[":appId"].live.$get({
+    param: { appId },
   });
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  throwIfUnauthorized(res);
   if (!res.ok) {
     throw new Error(
       await errorMessage(res, `get live sources failed (${res.status})`)
@@ -284,13 +289,10 @@ export async function getAttempt(
   appId: string,
   attemptId: string
 ): Promise<AttemptRecord> {
-  const res = await fetch(
-    `/admin/apps/${encodeURIComponent(appId)}/attempts/${encodeURIComponent(attemptId)}`,
-    { credentials: "include" }
-  );
-  if (res.status === 401) {
-    throw new AuthRequiredError();
-  }
+  const res = await client.apps[":appId"].attempts[":attemptId"].$get({
+    param: { appId, attemptId },
+  });
+  throwIfUnauthorized(res);
   if (!res.ok) {
     throw new Error(
       await errorMessage(res, `get attempt failed (${res.status})`)

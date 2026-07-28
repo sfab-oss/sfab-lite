@@ -1,0 +1,51 @@
+import type { Context } from "hono";
+import type { AdminCtx, AppCtx, OrgCtx } from "../routes.js";
+import type { AdminEnv } from "./types.js";
+
+function dummyMatch(path: string, ...groups: string[]): RegExpMatchArray {
+  const match = [path, ...groups] as unknown as RegExpMatchArray;
+  match.index = 0;
+  match.input = path;
+  return match;
+}
+
+function baseCtx(c: Context<AdminEnv>): Omit<AdminCtx, "actor"> & {
+  actor: AdminCtx["actor"];
+} {
+  const url = new URL(c.req.url);
+  return {
+    request: c.req.raw,
+    env: c.env,
+    ctx: c.executionCtx as ExecutionContext,
+    url,
+    match: dummyMatch(url.pathname),
+    actor: c.get("actor"),
+  };
+}
+
+export function adminCtx(c: Context<AdminEnv>): AdminCtx {
+  return baseCtx(c);
+}
+
+export function orgCtx(c: Context<AdminEnv>): OrgCtx {
+  const organizationId = c.get("organizationId");
+  if (!organizationId) {
+    throw new Error("organizationId missing after requireOrganization");
+  }
+  return {
+    ...baseCtx(c),
+    organizationId,
+  };
+}
+
+export function appCtx(c: Context<AdminEnv>): AppCtx {
+  const appId = c.get("appId");
+  if (!appId) {
+    throw new Error("appId missing after requireApp");
+  }
+  return {
+    ...baseCtx(c),
+    appId,
+    attemptId: c.get("attemptId"),
+  };
+}

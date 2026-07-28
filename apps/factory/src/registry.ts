@@ -243,7 +243,7 @@ export async function listAppNamesForOrganization(
  *
  * Unscoped on purpose — the name is the warning. The caller must already have
  * authorized access to this `appId` (today: `requireAppAccess` in
- * `dispatchAdmin`). Calling this outside that gate is a silent cross-tenant
+ * `dispatchAdmin` gate). Calling this outside that gate is a silent cross-tenant
  * read. Also runs the stale-`creating` sweep so a status poll can reconcile.
  */
 export async function getAppUnscoped(

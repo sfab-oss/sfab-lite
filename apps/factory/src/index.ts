@@ -17,11 +17,10 @@
  * organization-scoped routes; app-scoped routes need none) or a signed-in
  * session (scoped to its own organization). No credential is 401 whatever the
  * config says; a missing `ADMIN_TOKEN` no longer opens the surface. See
- * `tenancy.ts`. Admin handlers and dispatch live in `admin.ts`; commit
- * orchestration in `commit.ts`; route primitives in `routes.ts`.
+ * `tenancy.ts`. Admin handlers live in `admin.ts`; Hono routing in `hono/`;
+ * commit orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
-import { dispatchAdmin } from "./admin.js";
 import { dispatchAgents } from "./agent/dispatch.js";
 import {
   createAuth,
@@ -29,6 +28,7 @@ import {
   passwordAuthEnabled,
   signUpAvailable,
 } from "./auth.js";
+import { adminApp } from "./hono/index.js";
 import { dispatchInternal } from "./internal.js";
 import { handleMcpConsent, handleMcpConsentContext } from "./mcp/consent.js";
 import { dispatchMcp } from "./mcp/index.js";
@@ -184,9 +184,12 @@ export async function dispatchFactoryRequest(
 
   // Segment-exact: a bare `startsWith("/admin")` would also claim
   // `/administrator`, handing a console route to the admin dispatcher (401)
-  // instead of the SPA.
+  // instead of the SPA. Strip the `/admin` prefix so `adminApp` routes stay
+  // at `/health`, `/apps`, … and `hc<AppType>("/admin")` lines up.
   if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
-    return await dispatchAdmin(rc);
+    const rewritten = new URL(request.url);
+    rewritten.pathname = url.pathname.slice("/admin".length) || "/";
+    return await adminApp.fetch(new Request(rewritten, request), env, ctx);
   }
 
   // Loopback only — the AppDO's alarm calling back in to run a create where
