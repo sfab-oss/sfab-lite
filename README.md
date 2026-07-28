@@ -66,20 +66,22 @@ Each worker has its own `dev` script and runs standalone under
 
 ### Factory console UI
 
-The console lives in `apps/factory/ui/` (same package as the worker). Build
-output is `apps/factory/ui/dist` and is served by wrangler `assets` with
-worker-first routing.
-
-**Full stack (worker serves the built SPA):**
+The factory is a **single** TanStack Start + Vite + `@cloudflare/vite-plugin`
+process (`agents/vite` included). Host routes (`/admin`, `/api`, `/agents`,
+`/a/`, `/kernel`, MCP, …) dispatch in the worker; the console SPA still lives
+under `apps/factory/ui/` and is mounted by a thin Start shell.
 
 ```bash
 # once: copy apps/factory/.dev.vars.example → apps/factory/.dev.vars
 # once: create the local D1 tables (see below — skipping this is a 500)
 cd apps/factory && pnpm exec wrangler d1 migrations apply sfab-lite-factory --local
 
-pnpm --filter @sfab-lite/factory build:ui
 pnpm --filter @sfab-lite/factory dev   # http://localhost:8790
 ```
+
+`dev` / `dev:ui` are the same command. Check and lint run as Vite
+`auxiliaryWorkers` (no second terminal). Deploy: `pnpm --filter @sfab-lite/factory deploy`
+(builds with Vite, then `wrangler deploy`).
 
 **The migrate step is not optional and its failure does not look like a
 setup problem.** Local D1 starts empty, so without it the console renders
@@ -88,32 +90,16 @@ returns **500** with `no such table: user` — visible only in the worker log.
 The UI shows "sign-up failed". Each worktree has its own `.wrangler/` state,
 so every new worktree needs this again.
 
-**UI hot-reload (Vite proxies API routes to the worker):**
+**Running two worktrees at once.** Offset the factory HTTP port:
 
 ```bash
-# terminal 1 — worker
-pnpm --filter @sfab-lite/factory dev   # :8790
-
-# terminal 2 — Vite
-pnpm --filter @sfab-lite/factory dev:ui   # :5173
+export FACTORY_PORT=8890
+pnpm --filter @sfab-lite/factory dev
 ```
 
-Vite proxies `/api`, `/admin`, `^/a/`, and `/kernel` to
-`http://localhost:8790`. The sub-app proxy is the regex `^/a/` rather than the
-string `/a`, because Vite matches a plain string context with
-`url.startsWith(context)` — `/a` would also capture the console's own `/apps`
-and `/assets/*`.
-
-**Running two worktrees at once.** Both ports are env-driven, and so is
-wrangler's inspector port — which collides between concurrent `wrangler dev`
-instances even when the HTTP ports differ. Set them in both terminals:
-
-```bash
-export FACTORY_PORT=8890 FACTORY_INSPECTOR_PORT=9329 UI_PORT=5273
-```
-
-Also put `UI_PORT` in that worktree's `.dev.vars`, or sign-in fails CSRF: the
-worker only trusts the console's Origin when it knows which port it is on.
+Same-origin Vite + worker means `UI_PORT` CSRF workarounds are usually
+unnecessary; keep `UI_PORT` in `.dev.vars` only if you still need an extra
+trusted Origin.
 
 ## Known limitations
 
