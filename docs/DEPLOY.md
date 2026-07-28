@@ -5,6 +5,56 @@ Three workers, deployed independently, that only work as a set:
 
 Merging to `main` deploys the platform. Treat a merge as a deploy gate.
 
+## One origin
+
+The factory is reachable at exactly one hostname, `lite.sfab.dev`, as a
+Cloudflare custom domain. `workers_dev` is off, and turning it back on would be
+a mistake rather than a convenience.
+
+Nothing configures that origin. better-auth's `baseURL`, the OAuth issuer, the
+RFC 8707 resource identifier, and the `__SFAB_PUBLIC_BASE__` handed to every
+served app are all derived from the origin of the request being handled — so a
+second reachable hostname is a second identity. Sessions established on one do
+not carry to the other, and an access token minted with one hostname's audience
+401s against the other with nothing in the response explaining why.
+
+`check` and `lint` have no public hostname at all — `workers_dev` is off there
+too. The factory is their only caller and reaches them over service bindings,
+which dispatch worker-to-worker and never involve a hostname.
+
+That is a deliberate narrowing, not tidiness. While they were on workers.dev,
+`/check` and `/lint` failed closed on a missing `ADMIN_TOKEN` but `/health`
+answered anyone who found the URL, and check's `/health` enumerates the entire
+types VFS: every dependency and version the build environment carries. The
+diagnostic still exists — the factory's `/admin/health` aggregates both over the
+service bindings, which is the documented way to read it.
+
+The cost is that neither worker can be curled directly any more. If you need to,
+turn the subdomain back on for the length of the debugging session rather than
+leaving it on.
+
+### The domain is dashboard state, on purpose
+
+`apps/factory/wrangler.jsonc` has **no `routes` key**, and adding one would be a
+regression. A Worker custom domain is not a DNS record you point somewhere —
+there is no origin address — it is an attachment binding hostname to Worker,
+and creating it writes the DNS record as a side effect. Declaring it in
+wrangler would therefore require the CI deploy token to hold zone-level **DNS
+Edit** forever, widening a credential that runs on every merge in order to buy
+a setup step performed once.
+
+So the domain is attached by hand instead: **Workers & Pages → the worker →
+Settings → Domains & Routes → Add → Custom domain**. This is the mode
+Cloudflare documents — no `routes` key, `workers_dev` off, routing managed from
+the dashboard. Wrangler leaves an unlisted domain alone; only an explicit
+`routes: []` clears one.
+
+The cost is that the hostname is not in the repo and no gate checks it. That is
+what this section is for.
+
+Attach the domain **before** the deploy that turns `workers_dev` off, or the
+worker is briefly reachable at no hostname at all.
+
 ## The prerequisite that bites
 
 **`ADMIN_TOKEN` must be byte-identical in all three workers.**
