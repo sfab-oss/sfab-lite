@@ -14,15 +14,12 @@ import {
   useDeleteApp,
   useRenameApp,
 } from "../hooks/use-apps";
-import { useAuthRequiredRedirect } from "../hooks/use-auth-required-redirect";
 import { Link, useRouter } from "../router";
 
 export function AppsListScreen() {
   const { navigate } = useRouter();
   const appsQuery = useApps();
   const createApp = useCreateApp();
-
-  useAuthRequiredRedirect(appsQuery.error ?? createApp.error);
 
   async function onCreate() {
     if (createApp.isPending) {

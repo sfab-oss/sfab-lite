@@ -7,15 +7,7 @@ const STATUS_RANK: Record<ThreadStatus, number> = {
   running: 0,
 };
 
-export function isActiveThread(thread: Thread): boolean {
-  return thread.status === "running" || thread.status === "needs-you";
-}
-
-function sortByUpdated(threads: Thread[]): Thread[] {
-  return [...threads].sort((left, right) => right.updatedAt - left.updatedAt);
-}
-
-export function groupInactiveByApp(
+export function groupThreadsByApp(
   threads: Thread[],
   knownApps: Array<{ appId: string; appName: string }> = []
 ): {
@@ -23,7 +15,6 @@ export function groupInactiveByApp(
   appName: string;
   threads: Thread[];
 }[] {
-  const inactive = threads.filter((thread) => !isActiveThread(thread));
   const byApp = new Map<
     string,
     { appId: string; appName: string; threads: Thread[] }
@@ -37,7 +28,7 @@ export function groupInactiveByApp(
     });
   }
 
-  for (const thread of sortByUpdated(inactive)) {
+  for (const thread of sortByLiveness(threads)) {
     if (!thread.appId) {
       continue;
     }
@@ -76,7 +67,7 @@ export function searchThreads(threads: Thread[], search: string): Thread[] {
   );
 }
 
-export function sortByLiveness(threads: Thread[]): Thread[] {
+function sortByLiveness(threads: Thread[]): Thread[] {
   return [...threads].sort((left, right) => {
     const byStatus = STATUS_RANK[left.status] - STATUS_RANK[right.status];
     if (byStatus !== 0) {

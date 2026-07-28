@@ -3,7 +3,6 @@ import { AppLayoutHeader } from "../components/brand/app-layout";
 import { Button } from "../components/ui/button";
 import { Skeleton } from "../components/ui/skeleton";
 import { useApp, useAppAttempt, useAppVersions } from "../hooks/use-apps";
-import { useAuthRequiredRedirect } from "../hooks/use-auth-required-redirect";
 import { Link } from "../router";
 import { StatusBadge } from "./apps-list";
 
@@ -17,10 +16,6 @@ export function AppDetailScreen({ appId }: { appId: string }) {
       ? app.createAttemptId
       : null,
     { poll: app?.status === "creating" }
-  );
-
-  useAuthRequiredRedirect(
-    appQuery.error ?? versionsQuery.error ?? attemptQuery.error
   );
 
   let error: string | null = null;

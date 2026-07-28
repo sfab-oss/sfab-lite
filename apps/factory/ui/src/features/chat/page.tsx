@@ -417,11 +417,11 @@ function ChatScreenInner() {
       <AppLayout
         sidebar={
           <SessionThreadsSidebar
+            activeAppId={route.name === "app" ? route.appId : null}
             activeThreadId={appsRoute ? null : activeThreadId}
             appsActive={appsRoute}
             homeActive={homeActive}
             knownApps={readyApps}
-            onAttendApp={attendApp}
             onGoHome={goHome}
             onNewThread={newThread}
             onSearchChange={setSearch}
