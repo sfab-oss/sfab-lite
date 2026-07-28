@@ -1,8 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { authClient } from "./auth-client";
 import { useRouter } from "./router";
-import { AppDetailScreen } from "./screens/app-detail";
-import { AppsListScreen } from "./screens/apps-list";
 import { McpConsentScreen } from "./screens/mcp-consent";
 import { SignInScreen } from "./screens/sign-in";
 
@@ -74,14 +72,6 @@ export function App() {
 
   if (route.name === "sign-in" || !signedIn) {
     return <SignInScreen />;
-  }
-
-  if (route.name === "apps") {
-    return <AppsListScreen />;
-  }
-
-  if (route.name === "app") {
-    return <AppDetailScreen appId={route.appId} />;
   }
 
   return (

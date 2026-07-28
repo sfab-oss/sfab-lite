@@ -1,7 +1,7 @@
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createApp, getApp, listApps } from "@/api";
+import { createApp, listApps } from "@/api";
 import {
   AppLayout,
   AppLayoutHeader,
@@ -22,7 +22,10 @@ import {
 } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useRouter } from "@/router";
+import { waitForAppReady } from "@/lib/wait-for-app-ready";
+import { type Route, useRouter } from "@/router";
+import { AppDetailScreen } from "@/screens/app-detail";
+import { AppsListScreen } from "@/screens/apps-list";
 import type { ComposerScope } from "./components/composer-scope-chip";
 import {
   ResponsiveSidePanel,
@@ -48,27 +51,10 @@ import { useWorkspaceTabsStore } from "./lib/workspace-tabs-store";
 import type { Thread } from "./model/types";
 
 const TITLE_FIRST_LINE = /\n/;
-const APP_READY_POLL_MS = 800;
-const APP_READY_TIMEOUT_MS = 120_000;
 
 function titleFromText(text: string): string {
   const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "New thread";
   return first.length > 64 ? `${first.slice(0, 61)}…` : first;
-}
-
-async function waitForAppReady(appId: string): Promise<void> {
-  const deadline = Date.now() + APP_READY_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    const app = await getApp(appId);
-    if (app.status === "ready") {
-      return;
-    }
-    if (app.status === "failed") {
-      throw new Error("app creation failed");
-    }
-    await new Promise((resolve) => setTimeout(resolve, APP_READY_POLL_MS));
-  }
-  throw new Error("app creation timed out");
 }
 
 export function ChatScreen() {
@@ -165,9 +151,22 @@ function ChatScreenInner() {
     };
   }, []);
 
+  const rememberReadyApp = useCallback((appId: string, appName: string) => {
+    setReadyApps((current) => {
+      if (current.some((app) => app.appId === appId)) {
+        return current;
+      }
+      return [...current, { appId, appName }];
+    });
+  }, []);
+
   const { appId: routeAppId, threadId: routeThreadId } = routeAttention(route);
 
   useEffect(() => {
+    if (route.name === "apps" || route.name === "app") {
+      setActiveThreadId(null);
+      return;
+    }
     if (route.name === "thread" || (route.name === "dev-chat" && route.appId)) {
       setActiveThreadId(routeThreadId);
       if (routeAppId) {
@@ -347,15 +346,7 @@ function ChatScreenInner() {
           appId = created.appId;
           appName = created.name;
           await waitForAppReady(appId);
-          setReadyApps((current) => {
-            if (current.some((app) => app.appId === appId)) {
-              return current;
-            }
-            return [
-              ...current,
-              { appId: appId as string, appName: appName as string },
-            ];
-          });
+          rememberReadyApp(appId, appName);
         }
         setScopeAppId(appId);
         setScopeAppName(appName);
@@ -384,8 +375,34 @@ function ChatScreenInner() {
         setCreating(false);
       }
     },
-    [attend, chatData, creating, goThread, scopedApp, waitForHandle]
+    [
+      attend,
+      chatData,
+      creating,
+      goThread,
+      rememberReadyApp,
+      scopedApp,
+      waitForHandle,
+    ]
   );
+
+  const createEmptyApp = useCallback(async () => {
+    if (creating) {
+      return;
+    }
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await createApp();
+      await waitForAppReady(created.appId);
+      rememberReadyApp(created.appId, created.name);
+      navigate({ name: "app", appId: created.appId });
+    } catch (error: unknown) {
+      setCreateError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCreating(false);
+    }
+  }, [creating, navigate, rememberReadyApp]);
 
   const consumeSeed = useCallback((threadId: string) => {
     setSeedByThread((current) => {
@@ -427,17 +444,20 @@ function ChatScreenInner() {
         activeThread)
       : activeThread;
 
+  const appsRoute = route.name === "apps" || route.name === "app";
+  const homeActive =
+    !appsRoute &&
+    activeThreadId === null &&
+    (route.name === "chat" || (route.name === "dev-chat" && !route.threadId));
+
   return (
     <TooltipProvider>
       <AppLayout
         sidebar={
           <SessionThreadsSidebar
-            activeThreadId={activeThreadId}
-            homeActive={
-              activeThreadId === null &&
-              (route.name === "chat" ||
-                (route.name === "dev-chat" && !route.threadId))
-            }
+            activeThreadId={appsRoute ? null : activeThreadId}
+            appsActive={appsRoute}
+            homeActive={homeActive}
             knownApps={readyApps}
             onAttendApp={attendApp}
             onGoHome={goHome}
@@ -452,51 +472,59 @@ function ChatScreenInner() {
         }
       >
         <AppLayoutPage>
-          {isMobile ? (
-            <MobileLayout
-              activeThread={displayThread}
-              canDock={canDock}
-              createError={createError}
-              creating={creating}
-              onBlankSubmit={createThreadFromBlank}
-              onCloseRail={() => setSummaryOpen(false)}
-              onSeedConsumed={consumeSeed}
-              onSetContainerNode={setContainerNode}
-              onSetSummaryOpen={setSummaryOpen}
-              onSetWorkspaceOpen={onSetWorkspaceOpen}
-              onThreadDeleted={handleThreadDeleted}
-              scope={composerScope}
-              seedMessage={
-                activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
-              }
-              summaryOpen={summaryOpen}
-              workspaceOpen={workspaceOpen}
-            />
-          ) : (
-            <DesktopLayout
-              activeThread={displayThread}
-              canDock={canDock}
-              createError={createError}
-              creating={creating}
-              onBlankSubmit={createThreadFromBlank}
-              onCloseRail={() => setSummaryOpen(false)}
-              onSeedConsumed={consumeSeed}
-              onSetContainerNode={setContainerNode}
-              onSetSummaryOpen={setSummaryOpen}
-              onSetWorkspaceOpen={onSetWorkspaceOpen}
-              onThreadDeleted={handleThreadDeleted}
-              scope={composerScope}
-              seedMessage={
-                activeThreadId ? (seedByThread[activeThreadId] ?? null) : null
-              }
-              summaryOpen={summaryOpen}
-              workspaceOpen={workspaceOpen}
-            />
-          )}
+          <ChatMainPane
+            chatProps={{
+              activeThread: displayThread,
+              canDock,
+              createError,
+              creating,
+              onBlankSubmit: createThreadFromBlank,
+              onCloseRail: () => setSummaryOpen(false),
+              onCreateEmptyApp:
+                scopeAppId || activeThreadId ? undefined : createEmptyApp,
+              onSeedConsumed: consumeSeed,
+              onSetContainerNode: setContainerNode,
+              onSetSummaryOpen: setSummaryOpen,
+              onSetWorkspaceOpen,
+              onThreadDeleted: handleThreadDeleted,
+              scope: composerScope,
+              seedMessage: activeThreadId
+                ? (seedByThread[activeThreadId] ?? null)
+                : null,
+              summaryOpen,
+              workspaceOpen,
+            }}
+            isMobile={isMobile}
+            onAppCreated={rememberReadyApp}
+            route={route}
+          />
         </AppLayoutPage>
       </AppLayout>
     </TooltipProvider>
   );
+}
+
+function ChatMainPane({
+  chatProps,
+  isMobile,
+  onAppCreated,
+  route,
+}: {
+  chatProps: ChatChromeProps;
+  isMobile: boolean;
+  onAppCreated: (appId: string, appName: string) => void;
+  route: Route;
+}) {
+  if (route.name === "apps") {
+    return <AppsListScreen onAppCreated={onAppCreated} />;
+  }
+  if (route.name === "app") {
+    return <AppDetailScreen appId={route.appId} />;
+  }
+  if (isMobile) {
+    return <MobileLayout {...chatProps} />;
+  }
+  return <DesktopLayout {...chatProps} />;
 }
 
 interface ChatChromeProps {
@@ -506,6 +534,7 @@ interface ChatChromeProps {
   creating: boolean;
   onBlankSubmit: (text: string) => void;
   onCloseRail: () => void;
+  onCreateEmptyApp?: () => void;
   onSeedConsumed: (threadId: string) => void;
   onSetContainerNode: (node: HTMLElement | null) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
@@ -581,6 +610,7 @@ function ChatColumn({
   creating,
   onBlankSubmit,
   onCloseRail,
+  onCreateEmptyApp,
   onSeedConsumed,
   onSetContainerNode,
   onSetSummaryOpen,
@@ -645,6 +675,19 @@ function ChatColumn({
                 running={creating}
                 scope={scope}
               />
+              {onCreateEmptyApp ? (
+                <p className="mt-3 text-center text-muted-foreground text-sm">
+                  or{" "}
+                  <button
+                    className="text-foreground underline-offset-4 hover:underline disabled:opacity-50"
+                    disabled={creating}
+                    onClick={onCreateEmptyApp}
+                    type="button"
+                  >
+                    {creating ? "creating…" : "create an empty app"}
+                  </button>
+                </p>
+              ) : null}
               {createError ? (
                 <p className="mt-2 text-center text-destructive text-sm">
                   {createError}

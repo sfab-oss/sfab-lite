@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import type { AppRecord, AttemptRecord, VersionSummary } from "../api";
 import { AuthRequiredError, getApp, getAttempt, listVersions } from "../api";
 import { endUnusableSession } from "../auth-client";
+import { AppLayoutHeader } from "../components/brand/app-layout";
+import { Button } from "../components/ui/button";
 import { Link, useRouter } from "../router";
 import { StatusBadge } from "./apps-list";
-import { ConsoleChrome } from "./chrome";
 
 const POLL_MS = 2500;
 
@@ -104,31 +105,39 @@ export function AppDetailScreen({ appId }: { appId: string }) {
   }, [appId, navigate]);
 
   return (
-    <ConsoleChrome title={app?.name ?? "App"}>
-      <p className="mt-0 mb-6">
-        <Link
-          to={{ name: "apps" }}
-          className="text-muted-foreground text-sm no-underline hover:underline"
-        >
-          ← Apps
-        </Link>
-      </p>
+    <>
+      <AppLayoutHeader className="px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <Link
+            to={{ name: "apps" }}
+            className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
+          >
+            Apps
+          </Link>
+          <span className="text-muted-foreground text-sm">/</span>
+          <span className="truncate font-medium text-sm">
+            {app?.name ?? "App"}
+          </span>
+        </div>
+      </AppLayoutHeader>
 
-      {error ? <p className="text-[var(--destructive)]">{error}</p> : null}
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+        {error ? <p className="text-destructive">{error}</p> : null}
 
-      {app || error ? null : (
-        <p className="text-[var(--muted-foreground)]">Loading…</p>
-      )}
+        {app || error ? null : (
+          <p className="text-muted-foreground">Loading…</p>
+        )}
 
-      {app ? (
-        <AppBody
-          app={app}
-          attempt={attempt}
-          versions={versions}
-          liveVersionId={liveVersionId}
-        />
-      ) : null}
-    </ConsoleChrome>
+        {app ? (
+          <AppBody
+            app={app}
+            attempt={attempt}
+            versions={versions}
+            liveVersionId={liveVersionId}
+          />
+        ) : null}
+      </div>
+    </>
   );
 }
 
@@ -148,44 +157,51 @@ function AppBody({
       <section>
         <dl className="m-0 grid gap-2 text-sm">
           <div className="flex gap-3">
-            <dt className="w-28 text-[var(--muted-foreground)]">Id</dt>
+            <dt className="w-28 text-muted-foreground">Id</dt>
             <dd className="m-0 font-mono">{app.id}</dd>
           </div>
           <div className="flex gap-3">
-            <dt className="w-28 text-[var(--muted-foreground)]">Status</dt>
+            <dt className="w-28 text-muted-foreground">Status</dt>
             <dd className="m-0">
               <StatusBadge status={app.status} />
             </dd>
           </div>
           <div className="flex gap-3">
-            <dt className="w-28 text-[var(--muted-foreground)]">Created</dt>
+            <dt className="w-28 text-muted-foreground">Created</dt>
             <dd className="m-0">{formatWhen(app.createdAt)}</dd>
           </div>
         </dl>
 
         {app.status === "ready" ? (
-          <div className="mt-4 flex flex-wrap gap-3 text-sm">
-            <a
-              href={`/a/${encodeURIComponent(app.id)}/`}
-              className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-primary-foreground no-underline"
-              target="_blank"
-              rel="noreferrer"
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button
+              render={
+                <a
+                  href={`/a/${encodeURIComponent(app.id)}/`}
+                  rel="noreferrer"
+                  target="_blank"
+                />
+              }
             >
               Open live
-            </a>
-            <a
-              href={`/a/${encodeURIComponent(app.id)}/preview`}
-              className="border border-[var(--border)] px-3 py-1.5 text-[var(--foreground)] no-underline"
-              target="_blank"
-              rel="noreferrer"
+            </Button>
+            <Button
+              render={
+                <a
+                  href={`/a/${encodeURIComponent(app.id)}/preview`}
+                  rel="noreferrer"
+                  target="_blank"
+                />
+              }
+              variant="outline"
             >
               Open preview
-            </a>
+            </Button>
           </div>
         ) : null}
 
         {app.status === "creating" ? (
-          <p className="mt-4 text-sm text-warn">
+          <p className="mt-4 text-muted-foreground text-sm">
             Seeding the template while check runs. Polling automatically.
           </p>
         ) : null}
@@ -194,7 +210,7 @@ function AppBody({
       <AttemptSection app={app} attempt={attempt} />
 
       {app.status === "failed" && !app.createAttemptId ? (
-        <p className="text-[var(--destructive)] text-sm">
+        <p className="text-destructive text-sm">
           Create failed during bootstrap (no attempt id).
         </p>
       ) : null}
@@ -221,21 +237,21 @@ function AttemptSection({
       <h2 className="m-0 mb-2 font-semibold text-base">Create attempt</h2>
       <dl className="m-0 grid gap-2 text-sm">
         <div className="flex gap-3">
-          <dt className="w-28 text-[var(--muted-foreground)]">Id</dt>
+          <dt className="w-28 text-muted-foreground">Id</dt>
           <dd className="m-0 font-mono text-xs">{attempt.id}</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="w-28 text-[var(--muted-foreground)]">Status</dt>
+          <dt className="w-28 text-muted-foreground">Status</dt>
           <dd className="m-0">{attempt.status}</dd>
         </div>
       </dl>
       {attempt.payload == null ? null : (
-        <pre className="mt-3 overflow-x-auto border border-[var(--border)] bg-[var(--muted)] p-3 text-xs">
+        <pre className="mt-3 overflow-x-auto rounded-md border border-border bg-muted p-3 text-xs">
           {formatPayload(attempt.payload)}
         </pre>
       )}
       {app.status === "failed" && attempt.payload == null ? (
-        <p className="mt-2 text-[var(--destructive)] text-sm">
+        <p className="mt-2 text-destructive text-sm">
           Create failed before an attempt payload was recorded.
         </p>
       ) : null}
@@ -254,11 +270,9 @@ function VersionsSection({
     <section>
       <h2 className="m-0 mb-2 font-semibold text-base">Versions</h2>
       {versions.length === 0 ? (
-        <p className="text-[var(--muted-foreground)] text-sm">
-          No versions yet.
-        </p>
+        <p className="text-muted-foreground text-sm">No versions yet.</p>
       ) : (
-        <ul className="m-0 list-none divide-y divide-[var(--border)] border border-[var(--border)] p-0 text-sm">
+        <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0 text-sm">
           {versions.map((v) => (
             <li
               key={v.id}
@@ -271,11 +285,11 @@ function VersionsSection({
                     {/* A literal space, not just the margin: without it the
                         DOM text reads `v_01…live`, which is what a screen
                         reader announces and what a copy-paste produces. */}{" "}
-                    <span className="text-ok">live</span>
+                    <span className="font-sans text-primary">live</span>
                   </>
                 ) : null}
               </span>
-              <span className="text-[var(--muted-foreground)]">
+              <span className="text-muted-foreground">
                 {new Date(v.createdAt).toLocaleString()}
               </span>
             </li>

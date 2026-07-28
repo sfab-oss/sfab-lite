@@ -31,6 +31,7 @@ import { ThreadsSidebarFooter } from "./threads-sidebar-footer";
 
 export interface SessionThreadsSidebarProps {
   activeThreadId: string | null;
+  appsActive?: boolean;
   homeActive?: boolean;
   knownApps?: Array<{ appId: string; appName: string }>;
   onAttendApp?: (appId: string, appName: string) => void;
@@ -60,6 +61,7 @@ export function SessionThreadsSidebar({
   onSignOut,
   onThreadDeleted,
   homeActive = false,
+  appsActive = false,
   showRail = true,
   railClassName = "inset-y-2",
   showCollapseTrigger = true,
@@ -152,7 +154,12 @@ export function SessionThreadsSidebar({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={goApps} tooltip="Apps" type="button">
+              <SidebarMenuButton
+                isActive={appsActive}
+                onClick={goApps}
+                tooltip="Apps"
+                type="button"
+              >
                 <AppWindow className="size-4" />
                 <span>Apps</span>
               </SidebarMenuButton>

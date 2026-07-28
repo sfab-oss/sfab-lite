@@ -74,4 +74,16 @@ export function registerBuildTools(server: McpServer, ctx: McpContext): void {
     },
     ({ appId: id }) => run(id, "pnpm run deploy")
   );
+
+  server.registerTool(
+    "app_seed",
+    {
+      description:
+        "Create the demo organization and sample rows in the live app " +
+        "(Northwind / WID-001), and print the demo login. Idempotent — " +
+        "re-running returns the same credentials. Requires a live version.",
+      inputSchema: { appId },
+    },
+    ({ appId: id }) => run(id, "pnpm seed")
+  );
 }

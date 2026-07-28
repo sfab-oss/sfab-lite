@@ -1,17 +1,36 @@
 import { type ReactNode, useEffect, useState } from "react";
 import type { AppRecord } from "../api";
-import { AuthRequiredError, deleteApp, listApps, renameApp } from "../api";
+import {
+  AuthRequiredError,
+  createApp,
+  deleteApp,
+  listApps,
+  renameApp,
+} from "../api";
 import { endUnusableSession } from "../auth-client";
+import {
+  AppLayoutHeader,
+  AppLayoutHeaderActions,
+} from "../components/brand/app-layout";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { waitForAppReady } from "../lib/wait-for-app-ready";
 import { Link, useRouter } from "../router";
-import { ConsoleChrome } from "./chrome";
 
 const POLL_MS = 2500;
 
-export function AppsListScreen() {
+export function AppsListScreen({
+  onAppCreated,
+}: {
+  onAppCreated?: (appId: string, appName: string) => void;
+} = {}) {
   const { navigate } = useRouter();
   const [apps, setApps] = useState<AppRecord[] | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,39 +92,54 @@ export function AppsListScreen() {
     };
   }, [navigate]);
 
+  async function onCreate() {
+    if (creating) {
+      return;
+    }
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const created = await createApp();
+      await waitForAppReady(created.appId);
+      onAppCreated?.(created.appId, created.name);
+      navigate({ name: "app", appId: created.appId });
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCreating(false);
+    }
+  }
+
   let body: ReactNode;
   // An error replaces the list only when there is no list yet. Once apps have
   // loaded, a later failed poll shows the error *above* them: the rows are
   // still the last thing the server said, and blanking the page over one bad
   // response loses more than it protects.
   if (error && apps === null) {
-    body = <p className="text-[var(--destructive)]">{error}</p>;
+    body = <p className="text-destructive">{error}</p>;
   } else if (apps === null) {
-    body = <p className="text-[var(--muted-foreground)]">Loading apps…</p>;
+    body = <p className="text-muted-foreground">Loading apps…</p>;
   } else if (apps.length === 0) {
     body = (
-      <p className="text-[var(--muted-foreground)]">
+      <p className="text-muted-foreground">
         No apps yet. Create one to seed the starter template.
       </p>
     );
   } else {
     body = (
-      <ul className="m-0 list-none divide-y divide-[var(--border)] border border-[var(--border)] p-0">
+      <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0">
         {apps.map((app) => (
           // The delete control is a sibling of the Link, not inside it —
           // nesting a button in an anchor gives one row two conflicting
           // activation targets.
-          <li
-            key={app.id}
-            className="flex items-center hover:bg-[var(--muted)]"
-          >
+          <li key={app.id} className="flex items-center hover:bg-muted">
             <Link
               to={{ name: "app", appId: app.id }}
-              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-[var(--foreground)] no-underline hover:underline"
+              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-foreground no-underline hover:underline"
             >
               <span>
                 <span className="font-medium">{app.name}</span>
-                <span className="mt-0.5 block font-mono text-[var(--muted-foreground)] text-xs">
+                <span className="mt-0.5 block font-mono text-muted-foreground text-xs">
                   {app.id}
                 </span>
               </span>
@@ -136,30 +170,38 @@ export function AppsListScreen() {
   }
 
   return (
-    <ConsoleChrome title="Apps">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <p className="m-0 text-[var(--muted-foreground)] text-sm">
+    <>
+      <AppLayoutHeader className="px-3">
+        <span className="truncate font-medium text-sm">Apps</span>
+        <AppLayoutHeaderActions>
+          <Button
+            disabled={creating}
+            onClick={onCreate}
+            size="sm"
+            type="button"
+          >
+            {creating ? "Creating…" : "New app"}
+          </Button>
+        </AppLayoutHeaderActions>
+      </AppLayoutHeader>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+        <div className="mb-6">
+          <p className="m-0 text-muted-foreground text-sm">
             Organization{" "}
-            <code className="text-[var(--foreground)]">
-              {organizationId ?? "…"}
-            </code>
+            <code className="text-foreground">{organizationId ?? "…"}</code>
           </p>
+          {createError ? (
+            <p className="mt-2 text-destructive text-sm">{createError}</p>
+          ) : null}
         </div>
-        <Link
-          to={{ name: "chat" }}
-          className="border border-[var(--foreground)] bg-[var(--foreground)] px-3 py-1.5 text-primary-foreground text-sm no-underline"
-        >
-          New app
-        </Link>
+        {error && apps !== null && (
+          <p className="mb-4 text-destructive text-sm">
+            Could not refresh: {error}
+          </p>
+        )}
+        {body}
       </div>
-      {error && apps !== null && (
-        <p className="mb-4 text-[var(--destructive)] text-sm">
-          Could not refresh: {error}
-        </p>
-      )}
-      {body}
-    </ConsoleChrome>
+    </>
   );
 }
 
@@ -202,49 +244,46 @@ function RenameAppButton({
 
   if (draft === null) {
     return (
-      <button
-        type="button"
+      <Button
+        aria-label={`Rename ${app.name}`}
+        className="text-muted-foreground"
         onClick={() => {
           setError(null);
           setDraft(app.name);
         }}
-        aria-label={`Rename ${app.name}`}
-        className="border-0 bg-transparent px-3 py-3 text-[var(--muted-foreground)] text-xs hover:text-[var(--foreground)]"
+        size="xs"
+        type="button"
+        variant="ghost"
       >
         Rename
-      </button>
+      </Button>
     );
   }
 
   return (
-    <form className="flex items-center gap-2 px-3 py-3" onSubmit={onSubmit}>
-      <input
+    <form className="flex items-center gap-2 px-2 py-2" onSubmit={onSubmit}>
+      <Input
         autoFocus
         aria-label={`New name for ${app.name}`}
-        className="border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-[var(--foreground)] text-xs"
+        className="h-7 w-40 text-xs"
         disabled={busy}
         maxLength={APP_NAME_MAX_LENGTH}
         onChange={(event) => setDraft(event.target.value)}
         value={draft}
       />
-      <button
-        type="submit"
-        disabled={busy}
-        className="border-0 bg-transparent p-0 font-medium text-[var(--foreground)] text-xs disabled:opacity-50"
-      >
+      <Button disabled={busy} size="xs" type="submit" variant="ghost">
         {busy ? "Saving…" : "Save"}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
         disabled={busy}
         onClick={() => setDraft(null)}
-        className="border-0 bg-transparent p-0 text-[var(--muted-foreground)] text-xs disabled:opacity-50"
+        size="xs"
+        type="button"
+        variant="ghost"
       >
         Cancel
-      </button>
-      {error && (
-        <span className="text-[var(--destructive)] text-xs">{error}</span>
-      )}
+      </Button>
+      {error && <span className="text-destructive text-xs">{error}</span>}
     </form>
   );
 }
@@ -282,61 +321,60 @@ function DeleteAppButton({
   }
 
   if (error) {
-    return (
-      <span className="px-3 py-3 text-[var(--destructive)] text-xs">
-        {error}
-      </span>
-    );
+    return <span className="px-3 py-3 text-destructive text-xs">{error}</span>;
   }
 
   if (!armed) {
     return (
-      <button
-        type="button"
-        onClick={() => setArmed(true)}
+      <Button
         aria-label={`Delete ${app.name}`}
-        className="border-0 bg-transparent px-3 py-3 text-[var(--muted-foreground)] text-xs hover:text-[var(--destructive)]"
+        className="text-muted-foreground hover:text-destructive"
+        onClick={() => setArmed(true)}
+        size="xs"
+        type="button"
+        variant="ghost"
       >
         Delete
-      </button>
+      </Button>
     );
   }
 
   return (
-    <span className="flex items-center gap-2 px-3 py-3 text-xs">
-      <button
-        type="button"
+    <span className="flex items-center gap-1 px-2 py-2 text-xs">
+      <Button
         disabled={busy}
         onClick={onDelete}
-        className="border-0 bg-transparent p-0 font-medium text-[var(--destructive)] disabled:opacity-50"
+        size="xs"
+        type="button"
+        variant="destructive"
       >
         {busy ? "Deleting…" : "Confirm"}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
         disabled={busy}
         onClick={() => setArmed(false)}
-        className="border-0 bg-transparent p-0 text-[var(--muted-foreground)] disabled:opacity-50"
+        size="xs"
+        type="button"
+        variant="ghost"
       >
         Cancel
-      </button>
+      </Button>
     </span>
   );
 }
 
 export function StatusBadge({ status }: { status: AppRecord["status"] }) {
-  let color = "var(--warn)";
+  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
   if (status === "ready") {
-    color = "var(--ok)";
+    variant = "default";
   } else if (status === "failed") {
-    color = "var(--destructive)";
+    variant = "destructive";
+  } else if (status === "creating") {
+    variant = "secondary";
   }
   return (
-    <span
-      className="font-medium text-xs uppercase tracking-wide"
-      style={{ color }}
-    >
+    <Badge className="uppercase tracking-wide" variant={variant}>
       {status}
-    </span>
+    </Badge>
   );
 }
