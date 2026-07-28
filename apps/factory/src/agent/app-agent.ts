@@ -1,10 +1,20 @@
 import { Workspace, type WorkspaceChangeEvent } from "@cloudflare/shell";
 import { Think } from "@cloudflare/think";
+import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
 import { appStub } from "../commit.js";
 import { AppThread } from "./app-thread.js";
 import { seedWorkspaceFromLive } from "./seed-workspace.js";
+import { createAppShellCommands } from "./shell-commands.js";
+
+export interface ShellResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
+
+const SHELL_TIMEOUT_MS = 120_000;
 
 export interface ThreadSummary {
   createdAt: number;
@@ -136,6 +146,40 @@ export class AppAgent extends Think<Env> {
   async liveVersionId(): Promise<string | null> {
     const live = await appStub(this.env, this.name).getLive();
     return live.liveVersionId ?? null;
+  }
+
+  /**
+   * Run a shell script against this app's workspace — the same bash tool, the
+   * same `createAppShellCommands`, that a model turn drives.
+   *
+   * Deliberately **not** `@callable()`. That decorator is what publishes a
+   * method on `/agents/app-agent/<appId>`, which any org member with app
+   * access can reach from the browser; this is for server-side callers holding
+   * the stub (the MCP surface, gated on `ADMIN_TOKEN`). `AppThread.harnessBash`
+   * is the same capability behind an `AGENT_HARNESS` flag, for the same reason.
+   */
+  async runShell(script: string): Promise<ShellResult> {
+    const { bash } = createWorkspaceTools(this.workspace, {
+      bash: {
+        timeout: SHELL_TIMEOUT_MS,
+        customCommands: createAppShellCommands({
+          env: this.env,
+          appId: this.name,
+        }),
+      },
+    });
+    if (!bash?.execute) {
+      throw new Error("bash tool unavailable");
+    }
+    const raw = await bash.execute(
+      { script },
+      { toolCallId: "mcp", messages: [] }
+    );
+    if (!raw || typeof raw !== "object" || Symbol.asyncIterator in raw) {
+      throw new Error("bash tool returned a stream; expected a single result");
+    }
+    const { stdout, stderr, exitCode } = raw as ShellResult;
+    return { stdout, stderr, exitCode };
   }
 
   readFile(path: string) {

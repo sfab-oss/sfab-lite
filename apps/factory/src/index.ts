@@ -29,6 +29,7 @@ import {
   signUpAvailable,
 } from "./auth.js";
 import { dispatchInternal } from "./internal.js";
+import { dispatchMcp } from "./mcp/index.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute } from "./routes.js";
 import { serveSubApp } from "./serve.js";
@@ -144,6 +145,12 @@ export default {
     // lookup. See `agent/dispatch.ts`.
     if (url.pathname === "/agents" || url.pathname.startsWith("/agents/")) {
       return await dispatchAgents(rc);
+    }
+
+    // The factory's own tools, without a model driving them. `ADMIN_TOKEN`
+    // only — it grants nothing `/admin/*` does not already. See `mcp/`.
+    if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+      return await dispatchMcp(rc);
     }
 
     // Worker-first: every request hits this fetch before assets. Unmatched
