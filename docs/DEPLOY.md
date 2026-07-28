@@ -7,8 +7,9 @@ Merging to `main` deploys the platform. Treat a merge as a deploy gate.
 
 ## One origin
 
-One reachable hostname for the factory is the goal. It is not the current
-state, and the gap is deliberate rather than pending.
+The factory is reachable at exactly one hostname, `lite.sfab.dev`, as a
+Cloudflare custom domain. `workers_dev` is off, and turning it back on would be
+a mistake rather than a convenience.
 
 Nothing configures that origin. better-auth's `baseURL`, the OAuth issuer, the
 RFC 8707 resource identifier, and the `__SFAB_PUBLIC_BASE__` handed to every
@@ -17,20 +18,33 @@ second reachable hostname is a second identity. Sessions established on one do
 not carry to the other, and an access token minted with one hostname's audience
 401s against the other with nothing in the response explaining why.
 
-### Today: two, because the custom domain does not route
+### A zone-wide Worker route outranks this
 
-`lite.sfab.dev` is attached to `sfab-lite-factory` as a Cloudflare custom
-domain — DNS record of type Worker, certificate issued and covering the name,
-attachment visible in the dashboard — and requests to it are answered with a
-bare `Not Found` that the worker never sees. `wrangler tail` records no
-invocation for them. Deleting and re-adding the domain reissued the certificate
-and changed nothing else.
+A route like `*.sfab.dev/*` on any worker in the zone captures every subdomain,
+including this one, and a custom domain attached to a different worker does not
+reliably win against it. When that happened here, the symptom was a bare
+`Not Found` with none of the usual tells: the certificate was issued and
+covered the name, the DNS record was type Worker and pointed at
+`sfab-lite-factory`, the attachment was listed under the worker, and the worker
+was deployed and healthy. Deleting and re-adding the domain changed nothing,
+and a second custom domain on the same worker failed identically.
 
-So `workers_dev` is **on** for the factory, and the workers.dev subdomain is
-how it is reached. Turn it off in its own deploy, once the custom domain has
-been observed actually serving — not once it has been attached. Those are
-different facts, and treating the first as evidence of the second is what left
-this worker unreachable at every hostname for a while.
+The giveaway was that the 404 body was a *Workers runtime* response —
+`text/plain;charset=UTF-8` with no space after the semicolon — rather than
+Cloudflare's `error code: 1042` edge page. A worker was answering. It was the
+wrong one, and it returned a bare 404 for a hostname it did not recognise.
+
+`wrangler tail` against `sfab-lite-factory` is the cheap confirmation: if it
+logs no invocation for a request that reaches the zone, something upstream is
+taking it. Check zone-level routes before touching this worker's domain
+configuration at all — nothing about the misconfiguration is visible from the
+worker's own settings page.
+
+So: **curl the custom domain and confirm it serves before turning
+`workers_dev` off, in a separate deploy from the one that attaches it.**
+Attached and serving look identical from the dashboard, and shipping
+`workers_dev: false` alongside removes the only way to tell them apart — or to
+reach the worker at all while finding out.
 
 ### check and lint are a different case
 
@@ -39,11 +53,12 @@ unconditionally, and none of the above applies to them. The factory is their
 only caller and reaches them over service bindings, which dispatch
 worker-to-worker and never involve a hostname.
 
-The two cases are worth keeping apart. For the factory a second hostname is a
-correctness problem — two identities for an origin-derived auth surface — and
-the fix is discretionary and can wait. For check and lint the subdomain was
-surface with nothing on the other side of the trade, so it goes regardless of
-what the factory does.
+The two cases are worth keeping apart, because the reasoning does not transfer.
+For the factory, a second hostname is a correctness problem: two identities for
+an origin-derived auth surface. For check and lint there was nothing on the
+other side of the trade at all, so the subdomain goes whatever the factory's
+domain is doing — and it should stay off even while the factory's is being
+debugged.
 
 That is a deliberate narrowing, not tidiness. While they were on workers.dev,
 `/check` and `/lint` failed closed on a missing `ADMIN_TOKEN` but `/health`
@@ -72,14 +87,9 @@ Cloudflare documents — routing managed from the dashboard, with no `routes` ke
 in the config. Wrangler leaves an unlisted domain alone; only an explicit
 `routes: []` clears one.
 
-The cost is that the hostname is not in the repo and no gate checks it. That is
-what this section is for.
-
-**Curl the custom domain and confirm it serves before turning `workers_dev`
-off, and do that in a separate deploy from the one that attaches it.** An
-attached domain that never routes looks identical from the dashboard to one
-that works, and `workers_dev: false` shipped alongside it removes the only way
-to tell the difference — or to reach the worker at all.
+The cost is that the hostname is not in the repo and no gate checks it, and
+neither is the zone-level route table that can override it. That is what this
+section is for.
 
 ## The prerequisite that bites
 
