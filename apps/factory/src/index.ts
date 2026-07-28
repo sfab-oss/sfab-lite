@@ -20,6 +20,7 @@
  * `tenancy.ts`. Admin handlers and dispatch live in `admin.ts`; commit
  * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
+import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { dispatchAdmin } from "./admin.js";
 import { dispatchAgents } from "./agent/dispatch.js";
 import {
@@ -29,6 +30,7 @@ import {
   signUpAvailable,
 } from "./auth.js";
 import { dispatchInternal } from "./internal.js";
+import { handleMcpConsent, handleMcpConsentContext } from "./mcp/consent.js";
 import { dispatchMcp } from "./mcp/index.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute } from "./routes.js";
@@ -86,6 +88,31 @@ function handleAuth(rc: RouteCtx): Promise<Response> | Response {
   return auth.handler(rc.request);
 }
 
+/**
+ * Where an MCP client looks to discover that this factory *is* an
+ * authorization server — at the origin root, not under `basePath`, because
+ * that is where the spec tells clients to look. Derived from the oauthProvider
+ * plugin's own config so the advertised endpoints cannot drift from the ones
+ * that exist.
+ */
+function handleAuthServerMetadata(rc: RouteCtx): Promise<Response> | Response {
+  const auth = createAuth(rc.env, rc.url.origin);
+  return oauthProviderAuthServerMetadata(auth)(rc.request);
+}
+
+/**
+ * RFC 9728 protected-resource metadata. Served at the bare path and at the
+ * `/mcp` suffix because that is what the `WWW-Authenticate` challenge on a 401
+ * points at, and a client following it must not 404.
+ */
+function handleProtectedResourceMetadata(rc: RouteCtx): Response {
+  return Response.json({
+    resource: `${rc.url.origin}/mcp`,
+    authorization_servers: [rc.url.origin],
+    bearer_methods_supported: ["header"],
+  });
+}
+
 async function handleKernel(rc: RouteCtx): Promise<Response> {
   const rest = rc.match[1] ?? "";
   const res = await serveKernel(rc.request, rest, rc.env);
@@ -107,6 +134,31 @@ function handleSubApp(rc: RouteCtx): Promise<Response> {
 const PUBLIC_ROUTES: PublicRoute[] = [
   { method: "GET", pattern: /^\/api\/config$/, handler: handleApiConfig },
   { method: "*", pattern: /^\/api\/auth(?:\/.*)?$/, handler: handleAuth },
+  // OAuth discovery. Public by definition — a client reads these *before* it
+  // has any credential, which is the whole point of them.
+  {
+    method: ["GET", "HEAD"],
+    pattern: /^\/\.well-known\/oauth-authorization-server$/,
+    handler: handleAuthServerMetadata,
+  },
+  {
+    method: ["GET", "HEAD"],
+    pattern: /^\/\.well-known\/oauth-protected-resource(?:\/mcp)?$/,
+    handler: handleProtectedResourceMetadata,
+  },
+  // The consent screen's own endpoints. Public in the routing sense only —
+  // both establish the session themselves, and the POST also checks the
+  // request's origin. See `mcp/consent.ts`.
+  {
+    method: "GET",
+    pattern: /^\/api\/mcp\/consent$/,
+    handler: handleMcpConsentContext,
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/mcp\/consent$/,
+    handler: handleMcpConsent,
+  },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
   // A generated app served to its own end users — see `tenancy.ts` on why
   // this one is addressed by app id alone.
@@ -147,9 +199,10 @@ export default {
       return await dispatchAgents(rc);
     }
 
-    // The factory's own tools, without a model driving them. `ADMIN_TOKEN`
-    // only — it grants nothing `/admin/*` does not already. See `mcp/`.
-    if (url.pathname === "/mcp" || url.pathname.startsWith("/mcp/")) {
+    // The factory's own tools, without a model driving them. Exactly `/mcp` —
+    // `/mcp/consent` is a console screen and must reach the SPA below. See
+    // `mcp/`.
+    if (url.pathname === "/mcp") {
       return await dispatchMcp(rc);
     }
 

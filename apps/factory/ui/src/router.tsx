@@ -12,6 +12,7 @@ export type Route =
   | { name: "apps" }
   | { name: "thread"; appId: string; threadId: string }
   | { name: "app"; appId: string }
+  | { name: "mcp-consent" }
   | { name: "ui-kit" }
   | { name: "dev-chat"; appId?: string; threadId?: string };
 
@@ -24,6 +25,13 @@ function parsePath(pathname: string): Route {
   const path = pathname.replace(RE_TRAILING_SLASHES, "") || "/";
   if (path === "/signin" || path === "/sign-in") {
     return { name: "sign-in" };
+  }
+  // The OAuth provider redirects a client's user here with the signed
+  // authorization query attached. The query is not parsed into the route: the
+  // signature covers the whole string, so the consent screen reads it off the
+  // address bar and hands it back untouched.
+  if (path === "/mcp/consent") {
+    return { name: "mcp-consent" };
   }
   if (import.meta.env.DEV && path === "/dev/ui") {
     return { name: "ui-kit" };
@@ -66,6 +74,8 @@ function pathFor(route: Route): string {
   switch (route.name) {
     case "sign-in":
       return "/signin";
+    case "mcp-consent":
+      return "/mcp/consent";
     case "ui-kit":
       return "/dev/ui";
     case "dev-chat":
