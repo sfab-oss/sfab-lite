@@ -1,7 +1,6 @@
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createApp, listApps } from "@/api";
 import {
   AppLayout,
   AppLayoutHeader,
@@ -21,9 +20,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { readyAppsFromList, useApps, useCreateApp } from "@/hooks/use-apps";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { createReadyApp } from "@/lib/create-ready-app";
-import { waitForAppReady } from "@/lib/wait-for-app-ready";
 import { type Route, useRouter } from "@/router";
 import { AppDetailScreen } from "@/screens/app-detail";
 import { AppsListScreen } from "@/screens/apps-list";
@@ -116,50 +114,27 @@ function ChatScreenInner() {
   const threads = chatData.listThreads();
   const isMobile = useIsMobile();
   const { route, navigate } = useRouter();
+  const appsQuery = useApps();
+  const createApp = useCreateApp();
   const [search, setSearch] = useState("");
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [seedByThread, setSeedByThread] = useState<Record<string, string>>({});
   const [scopeAppId, setScopeAppId] = useState<string | null>(null);
   const [scopeAppName, setScopeAppName] = useState<string | null>(null);
-  const [readyApps, setReadyApps] = useState<
-    Array<{ appId: string; appName: string }>
-  >([]);
+  const readyApps = useMemo(
+    () => readyAppsFromList(appsQuery.data?.apps),
+    [appsQuery.data?.apps]
+  );
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [shellError, setShellError] = useState<string | null>(null);
   const workspaceOpen = useWorkspaceTabsStore((s) => s.workspaceOpen);
   const setWorkspaceOpen = useWorkspaceTabsStore((s) => s.setWorkspaceOpen);
   const { canDock, setContainerNode } = useSidePanelLayout();
 
-  useEffect(() => {
-    let cancelled = false;
-    listApps()
-      .then(({ apps }) => {
-        if (cancelled) {
-          return;
-        }
-        setReadyApps(
-          apps
-            .filter((app) => app.status === "ready")
-            .map((app) => ({ appId: app.id, appName: app.name }))
-        );
-      })
-      .catch((error: unknown) => {
-        console.error("[chat] listApps failed", error);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const rememberReadyApp = useCallback((appId: string, appName: string) => {
-    setReadyApps((current) => {
-      if (current.some((app) => app.appId === appId)) {
-        return current;
-      }
-      return [...current, { appId, appName }];
-    });
-  }, []);
+  const creating = createApp.isPending;
+  const createError =
+    shellError ??
+    (createApp.error instanceof Error ? createApp.error.message : null);
 
   const { appId: routeAppId, threadId: routeThreadId } = routeAttention(route);
 
@@ -232,7 +207,7 @@ function ChatScreenInner() {
     }
     setActiveThreadId(null);
     goChatHome();
-    setCreateError("That conversation no longer exists.");
+    setShellError("That conversation no longer exists.");
   }, [activeThreadId, chatData, goChatHome, routeAppId, threads]);
 
   const scopedApp = useMemo(() => {
@@ -277,10 +252,11 @@ function ChatScreenInner() {
       setActiveThreadId(null);
       setSummaryOpen(false);
       setWorkspaceOpen(false);
-      setCreateError(null);
+      setShellError(null);
+      createApp.reset();
       goChatHome();
     },
-    [attend, goChatHome, setWorkspaceOpen]
+    [attend, createApp, goChatHome, setWorkspaceOpen]
   );
 
   const goHome = useCallback(() => {
@@ -290,9 +266,10 @@ function ChatScreenInner() {
     clearAttention();
     setSummaryOpen(false);
     setWorkspaceOpen(false);
-    setCreateError(null);
+    setShellError(null);
+    createApp.reset();
     goChatHome();
-  }, [clearAttention, goChatHome, setWorkspaceOpen]);
+  }, [clearAttention, createApp, goChatHome, setWorkspaceOpen]);
 
   const newThread = useCallback(() => {
     if (activeThread?.appId) {
@@ -303,9 +280,10 @@ function ChatScreenInner() {
     setActiveThreadId(null);
     setSummaryOpen(false);
     setWorkspaceOpen(false);
-    setCreateError(null);
+    setShellError(null);
+    createApp.reset();
     goChatHome();
-  }, [activeThread, attend, goChatHome, setWorkspaceOpen]);
+  }, [activeThread, attend, createApp, goChatHome, setWorkspaceOpen]);
 
   const handleThreadDeleted = useCallback(
     (thread: Thread) => {
@@ -334,20 +312,18 @@ function ChatScreenInner() {
 
   const createThreadFromBlank = useCallback(
     async (text: string) => {
-      if (creating) {
+      if (createApp.isPending) {
         return;
       }
-      setCreating(true);
-      setCreateError(null);
+      setShellError(null);
+      createApp.reset();
       try {
         let appId = scopedApp?.appId ?? null;
         let appName: string | null = scopedApp?.appName ?? null;
         if (!appId) {
-          const created = await createApp();
+          const created = await createApp.mutateAsync(undefined);
           appId = created.appId;
           appName = created.name;
-          await waitForAppReady(appId);
-          rememberReadyApp(appId, appName);
         }
         setScopeAppId(appId);
         setScopeAppName(appName);
@@ -371,38 +347,24 @@ function ChatScreenInner() {
         setActiveThreadId(summary.id);
         goThread(appId, summary.id);
       } catch (error: unknown) {
-        setCreateError(error instanceof Error ? error.message : String(error));
-      } finally {
-        setCreating(false);
+        setShellError(error instanceof Error ? error.message : String(error));
       }
     },
-    [
-      attend,
-      chatData,
-      creating,
-      goThread,
-      rememberReadyApp,
-      scopedApp,
-      waitForHandle,
-    ]
+    [attend, chatData, createApp, goThread, scopedApp, waitForHandle]
   );
 
   const createEmptyApp = useCallback(async () => {
-    if (creating) {
+    if (createApp.isPending) {
       return;
     }
-    setCreating(true);
-    setCreateError(null);
+    setShellError(null);
     try {
-      const created = await createReadyApp();
-      rememberReadyApp(created.appId, created.name);
+      const created = await createApp.mutateAsync(undefined);
       navigate({ name: "app", appId: created.appId });
-    } catch (error: unknown) {
-      setCreateError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setCreating(false);
+    } catch {
+      // Error on createApp.error
     }
-  }, [creating, navigate, rememberReadyApp]);
+  }, [createApp, navigate]);
 
   const consumeSeed = useCallback((threadId: string) => {
     setSeedByThread((current) => {
@@ -495,7 +457,6 @@ function ChatScreenInner() {
               workspaceOpen,
             }}
             isMobile={isMobile}
-            onAppCreated={rememberReadyApp}
             route={route}
           />
         </AppLayoutPage>
@@ -507,16 +468,14 @@ function ChatScreenInner() {
 function ChatMainPane({
   chatProps,
   isMobile,
-  onAppCreated,
   route,
 }: {
   chatProps: ChatChromeProps;
   isMobile: boolean;
-  onAppCreated: (appId: string, appName: string) => void;
   route: Route;
 }) {
   if (route.name === "apps") {
-    return <AppsListScreen onAppCreated={onAppCreated} />;
+    return <AppsListScreen />;
   }
   if (route.name === "app") {
     return <AppDetailScreen appId={route.appId} />;

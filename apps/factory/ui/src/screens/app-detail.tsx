@@ -1,109 +1,34 @@
-import { useEffect, useState } from "react";
 import type { AppRecord, AttemptRecord, VersionSummary } from "../api";
-import { AuthRequiredError, getApp, getAttempt, listVersions } from "../api";
-import { endUnusableSession } from "../auth-client";
 import { AppLayoutHeader } from "../components/brand/app-layout";
 import { Button } from "../components/ui/button";
 import { Skeleton } from "../components/ui/skeleton";
-import { Link, useRouter } from "../router";
+import { useApp, useAppAttempt, useAppVersions } from "../hooks/use-apps";
+import { useAuthRequiredRedirect } from "../hooks/use-auth-required-redirect";
+import { Link } from "../router";
 import { StatusBadge } from "./apps-list";
 
-const POLL_MS = 2500;
-
 export function AppDetailScreen({ appId }: { appId: string }) {
-  const { navigate } = useRouter();
-  const [app, setApp] = useState<AppRecord | null>(null);
-  const [versions, setVersions] = useState<VersionSummary[] | null>(null);
-  const [liveVersionId, setLiveVersionId] = useState<string | null>(null);
-  const [attempt, setAttempt] = useState<AttemptRecord | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const appQuery = useApp(appId);
+  const app = appQuery.data ?? null;
+  const versionsQuery = useAppVersions(appId, app?.status === "ready");
+  const attemptQuery = useAppAttempt(
+    appId,
+    app?.status === "creating" || app?.status === "failed"
+      ? app.createAttemptId
+      : null,
+    { poll: app?.status === "creating" }
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+  useAuthRequiredRedirect(
+    appQuery.error ?? versionsQuery.error ?? attemptQuery.error
+  );
 
-    // Whether the last successful poll saw this app still being created — a
-    // failed poll cannot ask, since the request that would answer is the one
-    // that failed.
-    let awaitingCreate = false;
-
-    const loadReady = async (record: AppRecord) => {
-      const listed = await listVersions(appId);
-      if (cancelled) {
-        return;
-      }
-      setApp(record);
-      setVersions(listed.versions);
-      setLiveVersionId(listed.liveVersionId);
-      setAttempt(null);
-      setError(null);
-      awaitingCreate = false;
-    };
-
-    const loadPending = async (record: AppRecord) => {
-      let nextAttempt: AttemptRecord | null = null;
-      if (record.createAttemptId) {
-        nextAttempt = await getAttempt(appId, record.createAttemptId);
-      }
-      if (cancelled) {
-        return;
-      }
-      setApp(record);
-      setAttempt(nextAttempt);
-      setError(null);
-      awaitingCreate = record.status === "creating";
-      if (awaitingCreate) {
-        timer = setTimeout(() => {
-          load();
-        }, POLL_MS);
-      }
-    };
-
-    const onLoadError = async (e: unknown) => {
-      if (cancelled) {
-        return;
-      }
-      if (e instanceof AuthRequiredError) {
-        await endUnusableSession();
-        if (!cancelled) {
-          navigate({ name: "sign-in" }, true);
-        }
-        return;
-      }
-      setError(e instanceof Error ? e.message : String(e));
-      // Same reason as the apps list: creation settles server-side whether or
-      // not this screen is watching, so one failed poll must not end the
-      // watch.
-      if (awaitingCreate) {
-        timer = setTimeout(() => {
-          load();
-        }, POLL_MS);
-      }
-    };
-
-    const load = () => {
-      getApp(appId)
-        .then(async (record) => {
-          if (cancelled) {
-            return;
-          }
-          if (record.status === "ready") {
-            await loadReady(record);
-            return;
-          }
-          await loadPending(record);
-        })
-        .catch(onLoadError);
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [appId, navigate]);
+  let error: string | null = null;
+  if (appQuery.error instanceof Error) {
+    error = appQuery.error.message;
+  } else if (versionsQuery.error instanceof Error) {
+    error = versionsQuery.error.message;
+  }
 
   return (
     <>
@@ -125,7 +50,7 @@ export function AppDetailScreen({ appId }: { appId: string }) {
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
         {error ? <p className="text-destructive">{error}</p> : null}
 
-        {app || error ? null : (
+        {appQuery.isPending && !app ? (
           <div className="flex flex-col gap-3">
             <Skeleton className="h-4 w-64" />
             <Skeleton className="h-4 w-40" />
@@ -135,14 +60,14 @@ export function AppDetailScreen({ appId }: { appId: string }) {
               <Skeleton className="h-9 w-28" />
             </div>
           </div>
-        )}
+        ) : null}
 
         {app ? (
           <AppBody
             app={app}
-            attempt={attempt}
-            versions={versions}
-            liveVersionId={liveVersionId}
+            attempt={attemptQuery.data ?? null}
+            versions={versionsQuery.data?.versions ?? null}
+            liveVersionId={versionsQuery.data?.liveVersionId ?? null}
           />
         ) : null}
       </div>
@@ -291,9 +216,7 @@ function VersionsSection({
                 {v.id}
                 {v.id === liveVersionId ? (
                   <>
-                    {/* A literal space, not just the margin: without it the
-                        DOM text reads `v_01…live`, which is what a screen
-                        reader announces and what a copy-paste produces. */}{" "}
+                    {" "}
                     <span className="font-sans text-primary">live</span>
                   </>
                 ) : null}

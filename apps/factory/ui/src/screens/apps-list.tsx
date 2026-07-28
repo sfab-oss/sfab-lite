@@ -1,7 +1,5 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import type { AppRecord } from "../api";
-import { AuthRequiredError, deleteApp, listApps, renameApp } from "../api";
-import { endUnusableSession } from "../auth-client";
 import {
   AppLayoutHeader,
   AppLayoutHeaderActions,
@@ -10,108 +8,45 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
-import { createReadyApp } from "../lib/create-ready-app";
+import {
+  useApps,
+  useCreateApp,
+  useDeleteApp,
+  useRenameApp,
+} from "../hooks/use-apps";
+import { useAuthRequiredRedirect } from "../hooks/use-auth-required-redirect";
 import { Link, useRouter } from "../router";
 
-const POLL_MS = 2500;
-
-export function AppsListScreen({
-  onAppCreated,
-}: {
-  onAppCreated?: (appId: string, appName: string) => void;
-} = {}) {
+export function AppsListScreen() {
   const { navigate } = useRouter();
-  const [apps, setApps] = useState<AppRecord[] | null>(null);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const appsQuery = useApps();
+  const createApp = useCreateApp();
 
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
-    const schedule = (fn: () => void) => {
-      timer = setTimeout(fn, POLL_MS);
-    };
-
-    // Whether the last successful poll saw an app still being created. A
-    // failed poll must know this, because the request that would have told
-    // us is the one that just failed.
-    let awaitingCreate = false;
-
-    const onLoadError = async (e: unknown) => {
-      if (cancelled) {
-        return;
-      }
-      if (e instanceof AuthRequiredError) {
-        await endUnusableSession();
-        if (!cancelled) {
-          navigate({ name: "sign-in" }, true);
-        }
-        return;
-      }
-      setError(e instanceof Error ? e.message : String(e));
-      // Keep polling through a transient failure. Creation runs server-side
-      // and settles whether or not this page is watching; giving up on one
-      // bad response would strand the row on `creating` until a manual
-      // reload, long after it had reached `ready`.
-      if (awaitingCreate) {
-        schedule(load);
-      }
-    };
-
-    const load = () => {
-      listApps()
-        .then((data) => {
-          if (cancelled) {
-            return;
-          }
-          setApps(data.apps);
-          setOrganizationId(data.organizationId);
-          setError(null);
-          awaitingCreate = data.apps.some((a) => a.status === "creating");
-          if (awaitingCreate) {
-            schedule(load);
-          }
-        })
-        .catch(onLoadError);
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [navigate]);
+  useAuthRequiredRedirect(appsQuery.error ?? createApp.error);
 
   async function onCreate() {
-    if (creating) {
+    if (createApp.isPending) {
       return;
     }
-    setCreating(true);
-    setCreateError(null);
     try {
-      const created = await createReadyApp();
-      onAppCreated?.(created.appId, created.name);
+      const created = await createApp.mutateAsync(undefined);
       navigate({ name: "app", appId: created.appId });
-    } catch (e) {
-      setCreateError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setCreating(false);
+    } catch {
+      // Error surfaced via createApp.error
     }
   }
 
+  const apps = appsQuery.data?.apps ?? null;
+  const organizationId = appsQuery.data?.organizationId ?? null;
+  const listError =
+    appsQuery.error instanceof Error ? appsQuery.error.message : null;
+  const createError =
+    createApp.error instanceof Error ? createApp.error.message : null;
+
   let body: ReactNode;
-  // An error replaces the list only when there is no list yet. Once apps have
-  // loaded, a later failed poll shows the error *above* them: the rows are
-  // still the last thing the server said, and blanking the page over one bad
-  // response loses more than it protects.
-  if (error && apps === null) {
-    body = <p className="text-destructive">{error}</p>;
-  } else if (apps === null) {
+  if (listError && apps === null) {
+    body = <p className="text-destructive">{listError}</p>;
+  } else if (appsQuery.isPending) {
     body = (
       <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0">
         {[0, 1, 2].map((key) => (
@@ -125,19 +60,16 @@ export function AppsListScreen({
         ))}
       </ul>
     );
-  } else if (apps.length === 0) {
+  } else if (apps && apps.length === 0) {
     body = (
       <p className="text-muted-foreground">
         No apps yet. Create one to seed the starter template.
       </p>
     );
-  } else {
+  } else if (apps) {
     body = (
       <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0">
         {apps.map((app) => (
-          // The delete control is a sibling of the Link, not inside it —
-          // nesting a button in an anchor gives one row two conflicting
-          // activation targets.
           <li key={app.id} className="flex items-center hover:bg-muted">
             <Link
               to={{ name: "app", appId: app.id }}
@@ -151,28 +83,14 @@ export function AppsListScreen({
               </span>
               <StatusBadge status={app.status} />
             </Link>
-            <RenameAppButton
-              app={app}
-              onRenamed={(name) =>
-                setApps((prev) =>
-                  prev
-                    ? prev.map((a) => (a.id === app.id ? { ...a, name } : a))
-                    : prev
-                )
-              }
-            />
-            <DeleteAppButton
-              app={app}
-              onDeleted={() =>
-                setApps((prev) =>
-                  prev ? prev.filter((a) => a.id !== app.id) : prev
-                )
-              }
-            />
+            <RenameAppButton app={app} />
+            <DeleteAppButton app={app} />
           </li>
         ))}
       </ul>
     );
+  } else {
+    body = null;
   }
 
   return (
@@ -181,12 +99,12 @@ export function AppsListScreen({
         <span className="truncate font-medium text-sm">Apps</span>
         <AppLayoutHeaderActions>
           <Button
-            disabled={creating}
+            disabled={createApp.isPending}
             onClick={onCreate}
             size="sm"
             type="button"
           >
-            {creating ? "Creating…" : "New app"}
+            {createApp.isPending ? "Creating…" : "New app"}
           </Button>
         </AppLayoutHeaderActions>
       </AppLayoutHeader>
@@ -200,11 +118,11 @@ export function AppsListScreen({
             <p className="mt-2 text-destructive text-sm">{createError}</p>
           ) : null}
         </div>
-        {error && apps !== null && (
+        {listError && apps !== null ? (
           <p className="mb-4 text-destructive text-sm">
-            Could not refresh: {error}
+            Could not refresh: {listError}
           </p>
-        )}
+        ) : null}
         {body}
       </div>
     </>
@@ -213,38 +131,22 @@ export function AppsListScreen({
 
 const APP_NAME_MAX_LENGTH = 64;
 
-/**
- * Edits in place rather than in a dialog: the row already shows the name and
- * the id it belongs to, which is everything a rename needs to be unambiguous.
- */
-function RenameAppButton({
-  app,
-  onRenamed,
-}: {
-  app: AppRecord;
-  onRenamed: (name: string) => void;
-}) {
+function RenameAppButton({ app }: { app: AppRecord }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const renameApp = useRenameApp();
 
-  async function onSubmit(event: React.FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
     const name = draft?.trim();
     if (!name || name === app.name) {
       setDraft(null);
       return;
     }
-    setBusy(true);
-    setError(null);
     try {
-      const updated = await renameApp(app.id, name);
-      onRenamed(updated.name);
+      await renameApp.mutateAsync({ appId: app.id, name });
       setDraft(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
+    } catch {
+      // Error on mutation
     }
   }
 
@@ -254,7 +156,7 @@ function RenameAppButton({
         aria-label={`Rename ${app.name}`}
         className="text-muted-foreground"
         onClick={() => {
-          setError(null);
+          renameApp.reset();
           setDraft(app.name);
         }}
         size="xs"
@@ -266,22 +168,30 @@ function RenameAppButton({
     );
   }
 
+  const error =
+    renameApp.error instanceof Error ? renameApp.error.message : null;
+
   return (
     <form className="flex items-center gap-2 px-2 py-2" onSubmit={onSubmit}>
       <Input
         autoFocus
         aria-label={`New name for ${app.name}`}
         className="h-7 w-40 text-xs"
-        disabled={busy}
+        disabled={renameApp.isPending}
         maxLength={APP_NAME_MAX_LENGTH}
         onChange={(event) => setDraft(event.target.value)}
         value={draft}
       />
-      <Button disabled={busy} size="xs" type="submit" variant="ghost">
-        {busy ? "Saving…" : "Save"}
+      <Button
+        disabled={renameApp.isPending}
+        size="xs"
+        type="submit"
+        variant="ghost"
+      >
+        {renameApp.isPending ? "Saving…" : "Save"}
       </Button>
       <Button
-        disabled={busy}
+        disabled={renameApp.isPending}
         onClick={() => setDraft(null)}
         size="xs"
         type="button"
@@ -289,42 +199,25 @@ function RenameAppButton({
       >
         Cancel
       </Button>
-      {error && <span className="text-destructive text-xs">{error}</span>}
+      {error ? <span className="text-destructive text-xs">{error}</span> : null}
     </form>
   );
 }
 
-/**
- * Two-press delete: the first press arms, the second commits.
- *
- * Arming in place rather than `window.confirm` because the row itself is the
- * confirmation — the button sits next to the name and id being destroyed,
- * where a modal would restate them and still be dismissed by reflex.
- */
-function DeleteAppButton({
-  app,
-  onDeleted,
-}: {
-  app: AppRecord;
-  onDeleted: () => void;
-}) {
+function DeleteAppButton({ app }: { app: AppRecord }) {
   const [armed, setArmed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const deleteApp = useDeleteApp();
 
   async function onDelete() {
-    setBusy(true);
-    setError(null);
     try {
-      await deleteApp(app.id);
-      onDeleted();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      await deleteApp.mutateAsync(app.id);
+    } catch {
       setArmed(false);
-    } finally {
-      setBusy(false);
     }
   }
+
+  const error =
+    deleteApp.error instanceof Error ? deleteApp.error.message : null;
 
   if (error) {
     return <span className="px-3 py-3 text-destructive text-xs">{error}</span>;
@@ -335,7 +228,10 @@ function DeleteAppButton({
       <Button
         aria-label={`Delete ${app.name}`}
         className="text-muted-foreground hover:text-destructive"
-        onClick={() => setArmed(true)}
+        onClick={() => {
+          deleteApp.reset();
+          setArmed(true);
+        }}
         size="xs"
         type="button"
         variant="ghost"
@@ -348,16 +244,16 @@ function DeleteAppButton({
   return (
     <span className="flex items-center gap-1 px-2 py-2 text-xs">
       <Button
-        disabled={busy}
+        disabled={deleteApp.isPending}
         onClick={onDelete}
         size="xs"
         type="button"
         variant="destructive"
       >
-        {busy ? "Deleting…" : "Confirm"}
+        {deleteApp.isPending ? "Deleting…" : "Confirm"}
       </Button>
       <Button
-        disabled={busy}
+        disabled={deleteApp.isPending}
         onClick={() => setArmed(false)}
         size="xs"
         type="button"
