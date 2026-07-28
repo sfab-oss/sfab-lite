@@ -45,6 +45,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "drizzle-orm": "0.45.2",
+    "hono": "4.12.31",
     "jose": "6.2.4",
     "just-bash": "3.1.0",
     "lucide-react": "0.475.0",
