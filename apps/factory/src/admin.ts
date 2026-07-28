@@ -22,7 +22,6 @@ import {
   callCheck,
   checkPasses,
   enqueueCommit,
-  runCommitAttempt,
 } from "./commit.js";
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
@@ -36,7 +35,6 @@ import {
   organizationExists,
   renameAppUnscoped,
   setCreateAttemptId,
-  settleCreateApp,
 } from "./registry.js";
 import type {
   AdminCtx,
@@ -149,9 +147,8 @@ async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   }
 
   // Creation *is* a commit — same gate, same 202 — but the registry must
-  // settle when the attempt does. That transition lives in the waitUntil
-  // chain below (not inside `runCommitAttempt`) so ordinary commits stay
-  // unaware of D1.
+  // settle when the attempt does. That transition lives in `internal.ts`
+  // (not inside `runCommitAttempt`) so ordinary commits stay unaware of D1.
   const start = await stub.startAttempt("create", null);
   if (!start.ok) {
     await markCreateFailed(db, appId);
@@ -160,23 +157,11 @@ async function handleCreateApp(rc: OrgCtx): Promise<Response> {
 
   await setCreateAttemptId(db, appId, start.attemptId);
 
-  rc.ctx.waitUntil(
-    (async () => {
-      const status = await runCommitAttempt(
-        rc.env,
-        appId,
-        start.attemptId,
-        TEMPLATE_SEED.sourceFiles,
-        null,
-        { forceColdCheck: true }
-      );
-      await settleCreateApp(
-        createDb(rc.env),
-        appId,
-        status === "aborted" ? "error" : status
-      );
-    })()
-  );
+  // Handed to the AppDO's alarm rather than run under `waitUntil`, which is
+  // killed at ~30s — and a killed attempt writes no terminal status, so the
+  // app sat in `creating` until the stale sweep. The alarm outlives the
+  // invocation, so a check-worker OOM costs latency instead of the app.
+  await stub.scheduleCreateRun(start.attemptId);
 
   return attemptAccepted(appId, "create", start.attemptId, null, {
     organizationId,

@@ -42,6 +42,7 @@ export interface AppStub {
     bootstrapMs: number;
   }>;
   seedCredentials: () => Promise<{ token: string; password: string }>;
+  scheduleCreateRun: (attemptId: string) => Promise<void>;
   destroy: () => Promise<
     | { ok: true; bytesFreed: number }
     | { ok: false; error: "attempt_in_flight"; attemptId: string }

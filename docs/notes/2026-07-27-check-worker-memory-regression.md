@@ -135,24 +135,28 @@ Reducing heap below ~263 MB means shedding ~74 MB from surface the template
 genuinely uses, with the split ruled out and file-count trimming shown to be
 the wrong lever. That is open-ended.
 
-The tractable move is the one `making-it-fit.md` lists as still open:
+The tractable move was the one `making-it-fit.md` listed as still open —
+moving the create attempt off `ctx.waitUntil` — and it is **built** (technique
+6 there). It does not reduce heap by a byte; it stops the heap costing the
+app. An OOM is now a retry, and that holds regardless of what the memory does
+next.
 
-> Move the create attempt off `ctx.waitUntil` to a DO alarm or Queue consumer.
-> Does not reduce memory; makes retries free. Deliberately unbuilt — it is a
-> mitigation, and the memory problem now has a fix.
+Two things fell out of it that are worth recording separately:
 
-The final clause is the premise that expired. `CHECK_ATTEMPTS` is 2 only
-because the ~30 s `waitUntil` budget makes a third attempt turn a 15 s failure
-into a 5 minute hang. Somewhere with a real lifetime, retries cost nothing, an
-OOM becomes latency rather than an orphaned app, and it holds regardless of
-what the heap does next.
+- The **exhaustion path** needed no new plumbing. `sweepStaleCreating` already
+  asked the AppDO for the attempt's real status — it just waited out
+  `STALE_ATTEMPT_MS` before asking. A terminal attempt is terminal whatever the
+  clock says, so the age filter now applies only to rows with no attempt id to
+  ask about. The 120 s / 300 s gap noted above closes as a consequence rather
+  than as a fix of its own.
+- **Age was the wrong trigger all along.** The cutoff was there to tell a dead
+  attempt from a live one, which is a question the DO can answer directly.
+  Reaching for a clock is worth a second look whenever an authority is already
+  in the call.
 
-Also outstanding, and cheap:
+Still outstanding, and cheap:
 
 - **An absolute ceiling in `check:check-memory`**, not only a growth bound.
-- **The console gives up before the platform does** — 120 s against a 300 s
-  reconciliation. Whatever the retry story becomes, those two numbers should
-  be related to each other rather than chosen independently.
 
 ## Related
 
