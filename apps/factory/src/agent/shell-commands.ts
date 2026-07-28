@@ -51,7 +51,12 @@ async function runTypecheck(
 ): Promise<ExecResult> {
   const files = await collectWorkspaceSourceFiles(ctx);
   try {
-    const check = await callCheck(deps.env, deps.appId, files, true);
+    // Warm. This is the edit loop the incremental path was built for — one
+    // app checked repeatedly — and `syncOverlay` drops overlay paths the
+    // request omits, so deletions need no cold pass. Forcing cold rebuilt a
+    // full program over the types VFS on every call, which is both the
+    // slowest and the most memory-hungry thing the factory can do.
+    const check = await callCheck(deps.env, deps.appId, files);
     const text = renderCheckText(check.body);
     if (check.http >= 500 || !check.body?.ok) {
       return fail(text || `typecheck: check worker HTTP ${check.http}\n`, 1);

@@ -31,7 +31,6 @@ function step(label: string, files: Record<string, string>) {
   console.log(
     JSON.stringify({
       label,
-      ok: result.ok,
       diagnosticCount: result.diagnosticCount,
       diagnostics: result.diagnostics,
       lsReused: result.lsReused,
@@ -43,13 +42,13 @@ function step(label: string, files: Record<string, string>) {
 }
 
 const first = step("1-add", withX);
-if (!first.result.ok || first.version !== 1) {
+if (first.result.diagnosticCount !== 0 || first.version !== 1) {
   console.error("FAIL: initial add should be clean at version 1");
   process.exit(1);
 }
 
 const second = step("2-delete", withoutX);
-if (!second.result.ok) {
+if (second.result.diagnosticCount !== 0) {
   console.error("FAIL: delete-only tree should be clean");
   process.exit(1);
 }
@@ -65,7 +64,7 @@ const third = step("3-readd-broken", withXBroken);
 const saw = third.result.diagnostics.some(
   (d) => d.code === 2322 && (d.file?.includes("src/x.ts") ?? false)
 );
-if (!saw || third.result.ok) {
+if (!saw || third.result.diagnosticCount === 0) {
   console.error(
     "FAIL: re-add with bad content did not surface TS2322 (stale LS)"
   );

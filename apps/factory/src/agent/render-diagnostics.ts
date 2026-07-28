@@ -1,4 +1,4 @@
-import type { CheckResult, LintResult } from "@sfab-lite/core";
+import type { CheckResponse, LintResult } from "@sfab-lite/core";
 
 const APP_PREFIX = "/app/";
 
@@ -13,12 +13,12 @@ function displayCheckPath(file: string | undefined): string {
 }
 
 /** tsc-style text a model already knows how to read. */
-export function renderCheckText(body: CheckResult | null): string {
+export function renderCheckText(body: CheckResponse | null): string {
   if (!body) {
     return "error TS0000: check worker returned no body\n";
   }
   if (!body.ok) {
-    return "error TS0000: check worker reported ok=false\n";
+    return `error TS0000: check worker failed: ${body.error}\n`;
   }
   if (body.diagnosticCount === 0) {
     return "";
