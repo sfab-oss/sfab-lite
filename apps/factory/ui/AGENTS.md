@@ -33,9 +33,9 @@ code-split only when `import.meta.env.DEV` is true, so production builds omit
 the gallery (and streamdown) from the main chunk.
 
 ```bash
-pnpm --filter @sfab-lite/factory dev:ui
-# → http://localhost:5173/dev/ui
-# → http://localhost:5173/dev/chat  (chat graft, DEV-only)
+pnpm --filter @sfab-lite/factory dev
+# → http://localhost:8790/dev/ui
+# → http://localhost:8790/dev/chat  (chat graft, DEV-only)
 ```
 
 ## Imports

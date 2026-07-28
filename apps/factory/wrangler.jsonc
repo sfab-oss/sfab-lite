@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "sfab-lite-factory",
-  "main": "src/index.ts",
+  "main": "src/server.ts",
   "compatibility_date": "2026-07-23",
   "compatibility_flags": ["nodejs_compat"],
   "worker_loaders": [{ "binding": "LOADER" }],
@@ -104,13 +104,8 @@
       "binding": "SELF",
       "service": "sfab-lite-factory"
     }
-  ],
-  // Worker-first so /admin, /api, /a/:appId, and /kernel stay on the worker.
-  // Without it, browser navigations to those paths would get SPA HTML.
-  "assets": {
-    "directory": "./ui/dist",
-    "binding": "ASSETS",
-    "run_worker_first": true,
-    "not_found_handling": "single-page-application"
-  }
+  ]
+  // Console assets are bundled by @cloudflare/vite-plugin + TanStack Start
+  // (no separate `assets` binding). Host routes still win in `src/server.ts`
+  // before falling through to the Start handler.
 }

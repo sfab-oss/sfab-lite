@@ -165,49 +165,63 @@ const PUBLIC_ROUTES: PublicRoute[] = [
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
 ];
 
+/**
+ * Host API / agent / sub-app / MCP dispatch. Returns `null` for document
+ * routes that TanStack Start should render (console SPA).
+ */
+export async function dispatchFactoryRequest(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response | null> {
+  const url = new URL(request.url);
+  const rc: RequestCtx = { request, env, ctx, url };
+
+  const publicHit = matchRoute(PUBLIC_ROUTES, request.method, url.pathname);
+  if (publicHit) {
+    return await publicHit.route.handler({ ...rc, match: publicHit.match });
+  }
+
+  // Segment-exact: a bare `startsWith("/admin")` would also claim
+  // `/administrator`, handing a console route to the admin dispatcher (401)
+  // instead of the SPA.
+  if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
+    return await dispatchAdmin(rc);
+  }
+
+  // Loopback only — the AppDO's alarm calling back in to run a create where
+  // D1 lives. Authenticated by a derived capability token, never a session:
+  // a Durable Object has none. See `internal.ts`.
+  if (url.pathname.startsWith("/internal/")) {
+    return await dispatchInternal(rc);
+  }
+
+  // Think / agents — auth + app tenancy + namespace allowlist before any DO
+  // lookup. See `agent/dispatch.ts`.
+  if (url.pathname === "/agents" || url.pathname.startsWith("/agents/")) {
+    return await dispatchAgents(rc);
+  }
+
+  // The factory's own tools, without a model driving them. Exactly `/mcp` —
+  // `/mcp/consent` is a console screen and must reach Start below. See `mcp/`.
+  if (url.pathname === "/mcp") {
+    return await dispatchMcp(rc);
+  }
+
+  return null;
+}
+
+/** @deprecated Prefer `src/server.ts` (TanStack Start + CF Vite entry). */
 export default {
   async fetch(
     request: Request,
     env: Env,
     ctx: ExecutionContext
   ): Promise<Response> {
-    const url = new URL(request.url);
-    const rc: RequestCtx = { request, env, ctx, url };
-
-    const publicHit = matchRoute(PUBLIC_ROUTES, request.method, url.pathname);
-    if (publicHit) {
-      return await publicHit.route.handler({ ...rc, match: publicHit.match });
+    const hit = await dispatchFactoryRequest(request, env, ctx);
+    if (hit) {
+      return hit;
     }
-
-    // Segment-exact: a bare `startsWith("/admin")` would also claim
-    // `/administrator`, handing a console route to the admin dispatcher (401)
-    // instead of the SPA.
-    if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
-      return await dispatchAdmin(rc);
-    }
-
-    // Loopback only — the AppDO's alarm calling back in to run a create where
-    // D1 lives. Authenticated by a derived capability token, never a session:
-    // a Durable Object has none. See `internal.ts`.
-    if (url.pathname.startsWith("/internal/")) {
-      return await dispatchInternal(rc);
-    }
-
-    // Think / agents — auth + app tenancy + namespace allowlist before any DO
-    // lookup. See `agent/dispatch.ts`.
-    if (url.pathname === "/agents" || url.pathname.startsWith("/agents/")) {
-      return await dispatchAgents(rc);
-    }
-
-    // The factory's own tools, without a model driving them. Exactly `/mcp` —
-    // `/mcp/consent` is a console screen and must reach the SPA below. See
-    // `mcp/`.
-    if (url.pathname === "/mcp") {
-      return await dispatchMcp(rc);
-    }
-
-    // Worker-first: every request hits this fetch before assets. Unmatched
-    // paths fall through to the SPA (and SPA deep links) via ASSETS.
-    return await env.ASSETS.fetch(request);
+    return new Response("console entry is src/server.ts\n", { status: 500 });
   },
 };
