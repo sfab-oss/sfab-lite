@@ -56,7 +56,6 @@ for (let i = 1; i <= APPS; i++) {
   console.log(
     JSON.stringify({
       app: i,
-      ok: result.ok,
       diagnosticCount: result.diagnosticCount,
       rootFileCount: result.rootFileCount,
       checkMs: result.checkMs,
@@ -82,5 +81,5 @@ edited[key] = `${edited[key]}\nexport const __probe = 1;\n`;
 const t = Date.now();
 const warm = runCheck({ appId: "warm", files: edited }, { store: warmStore });
 console.log(
-  `\nwarm re-check (1 file edited): ${Date.now() - t} ms, lsReused=${warm.lsReused}, ok=${warm.ok}`
+  `\nwarm re-check (1 file edited): ${Date.now() - t} ms, lsReused=${warm.lsReused}, diagnosticCount=${warm.diagnosticCount}`
 );
