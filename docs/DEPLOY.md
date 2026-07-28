@@ -18,8 +18,20 @@ second reachable hostname is a second identity. Sessions established on one do
 not carry to the other, and an access token minted with one hostname's audience
 401s against the other with nothing in the response explaining why.
 
-`check` and `lint` have no public hostname at all; the factory reaches them over
-service bindings.
+`check` and `lint` have no public hostname at all — `workers_dev` is off there
+too. The factory is their only caller and reaches them over service bindings,
+which dispatch worker-to-worker and never involve a hostname.
+
+That is a deliberate narrowing, not tidiness. While they were on workers.dev,
+`/check` and `/lint` failed closed on a missing `ADMIN_TOKEN` but `/health`
+answered anyone who found the URL, and check's `/health` enumerates the entire
+types VFS: every dependency and version the build environment carries. The
+diagnostic still exists — the factory's `/admin/health` aggregates both over the
+service bindings, which is the documented way to read it.
+
+The cost is that neither worker can be curled directly any more. If you need to,
+turn the subdomain back on for the length of the debugging session rather than
+leaving it on.
 
 ### The domain is dashboard state, on purpose
 
