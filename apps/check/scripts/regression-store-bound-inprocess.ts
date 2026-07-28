@@ -49,7 +49,7 @@ let last = 0;
 
 for (let i = 1; i <= APPS; i++) {
   const result = runCheck({ appId: `bound_${i}`, files }, { store });
-  if (!result.ok) {
+  if (result.diagnosticCount !== 0) {
     console.error(
       `FAIL: app ${i} did not typecheck clean (${result.diagnosticCount} diagnostics) — ` +
         "the seed template must be clean for this measurement to mean anything"

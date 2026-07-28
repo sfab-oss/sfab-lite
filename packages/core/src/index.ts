@@ -11,7 +11,9 @@
 export { APP_BIOME_CONFIG } from "./app-biome-config.js";
 export type {
   CheckDiagnostic,
+  CheckFailure,
   CheckRequest,
+  CheckResponse,
   CheckResult,
 } from "./check.js";
 export type {
