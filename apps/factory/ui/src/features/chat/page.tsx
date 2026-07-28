@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { createReadyApp } from "@/lib/create-ready-app";
 import { waitForAppReady } from "@/lib/wait-for-app-ready";
 import { type Route, useRouter } from "@/router";
 import { AppDetailScreen } from "@/screens/app-detail";
@@ -393,8 +394,7 @@ function ChatScreenInner() {
     setCreating(true);
     setCreateError(null);
     try {
-      const created = await createApp();
-      await waitForAppReady(created.appId);
+      const created = await createReadyApp();
       rememberReadyApp(created.appId, created.name);
       navigate({ name: "app", appId: created.appId });
     } catch (error: unknown) {

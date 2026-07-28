@@ -1,12 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import type { AppRecord } from "../api";
-import {
-  AuthRequiredError,
-  createApp,
-  deleteApp,
-  listApps,
-  renameApp,
-} from "../api";
+import { AuthRequiredError, deleteApp, listApps, renameApp } from "../api";
 import { endUnusableSession } from "../auth-client";
 import {
   AppLayoutHeader,
@@ -16,7 +10,7 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
-import { waitForAppReady } from "../lib/wait-for-app-ready";
+import { createReadyApp } from "../lib/create-ready-app";
 import { Link, useRouter } from "../router";
 
 const POLL_MS = 2500;
@@ -100,8 +94,7 @@ export function AppsListScreen({
     setCreating(true);
     setCreateError(null);
     try {
-      const created = await createApp();
-      await waitForAppReady(created.appId);
+      const created = await createReadyApp();
       onAppCreated?.(created.appId, created.name);
       navigate({ name: "app", appId: created.appId });
     } catch (e) {
