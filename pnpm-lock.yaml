@@ -87,6 +87,9 @@ importers:
       '@cloudflare/worker-bundler':
         specifier: 0.2.2
         version: 0.2.2
+      '@modelcontextprotocol/sdk':
+        specifier: 1.29.0
+        version: 1.29.0(@cfworker/json-schema@4.1.1)(zod@4.4.3)
       '@sfab-lite/core':
         specifier: workspace:*
         version: link:../../packages/core
