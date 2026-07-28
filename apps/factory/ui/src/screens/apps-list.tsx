@@ -15,6 +15,7 @@ import {
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Skeleton } from "../components/ui/skeleton";
 import { waitForAppReady } from "../lib/wait-for-app-ready";
 import { Link, useRouter } from "../router";
 
@@ -118,7 +119,19 @@ export function AppsListScreen({
   if (error && apps === null) {
     body = <p className="text-destructive">{error}</p>;
   } else if (apps === null) {
-    body = <p className="text-muted-foreground">Loading apps…</p>;
+    body = (
+      <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0">
+        {[0, 1, 2].map((key) => (
+          <li className="flex items-center gap-4 px-3 py-3" key={key}>
+            <div className="flex flex-1 flex-col gap-2">
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-52" />
+            </div>
+            <Skeleton className="h-5 w-14" />
+          </li>
+        ))}
+      </ul>
+    );
   } else if (apps.length === 0) {
     body = (
       <p className="text-muted-foreground">

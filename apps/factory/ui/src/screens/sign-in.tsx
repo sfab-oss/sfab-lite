@@ -1,5 +1,6 @@
 import { BoxesIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
 import {
   Alert,
   AlertDescription,
@@ -78,7 +79,7 @@ export function SignInScreen({
   if (sessionPending || !(config || configError)) {
     return (
       <AuthShell>
-        <p className="text-center text-muted-foreground text-sm">Loading…</p>
+        <AuthCardSkeleton />
       </AuthShell>
     );
   }

@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect } from "react";
 import { authClient } from "./auth-client";
+import { ConsoleShellSkeleton } from "./components/brand/console-shell-skeleton";
+import { Skeleton } from "./components/ui/skeleton";
 import { useRouter } from "./router";
 import { McpConsentScreen } from "./screens/mcp-consent";
 import { SignInScreen } from "./screens/sign-in";
@@ -14,9 +16,21 @@ const ChatScreen = lazy(() =>
   import("./features/chat/page").then((m) => ({ default: m.ChatScreen }))
 );
 
-function ChatFallback() {
+/**
+ * Session is still unknown — paint neither console nor sign-in form, so a
+ * signed-out visitor does not flash the wrong chrome. Brand mark only.
+ */
+function SessionBoot() {
   return (
-    <main className="px-6 py-16 text-muted-foreground">Loading chat…</main>
+    <div
+      aria-busy="true"
+      className="flex min-h-svh flex-col items-center justify-center gap-3 bg-muted/40 p-6"
+      role="status"
+    >
+      <span className="sr-only">Loading</span>
+      <Skeleton className="size-8 rounded-lg" />
+      <Skeleton className="h-5 w-20" />
+    </div>
   );
 }
 
@@ -42,11 +56,7 @@ export function App() {
 
   if (import.meta.env.DEV && route.name === "ui-kit" && UiKitScreen) {
     return (
-      <Suspense
-        fallback={
-          <main className="px-6 py-16 text-muted-foreground">Loading…</main>
-        }
-      >
+      <Suspense fallback={<ConsoleShellSkeleton />}>
         <UiKitScreen />
       </Suspense>
     );
@@ -54,7 +64,7 @@ export function App() {
 
   if (devChat) {
     return (
-      <Suspense fallback={<ChatFallback />}>
+      <Suspense fallback={<ConsoleShellSkeleton />}>
         <ChatScreen />
       </Suspense>
     );
@@ -65,9 +75,7 @@ export function App() {
   }
 
   if (isPending) {
-    return (
-      <main className="px-6 py-16 text-muted-foreground">Loading session…</main>
-    );
+    return <SessionBoot />;
   }
 
   if (route.name === "sign-in" || !signedIn) {
@@ -75,7 +83,7 @@ export function App() {
   }
 
   return (
-    <Suspense fallback={<ChatFallback />}>
+    <Suspense fallback={<ConsoleShellSkeleton />}>
       <ChatScreen />
     </Suspense>
   );

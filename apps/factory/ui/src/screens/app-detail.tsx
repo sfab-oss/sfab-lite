@@ -4,6 +4,7 @@ import { AuthRequiredError, getApp, getAttempt, listVersions } from "../api";
 import { endUnusableSession } from "../auth-client";
 import { AppLayoutHeader } from "../components/brand/app-layout";
 import { Button } from "../components/ui/button";
+import { Skeleton } from "../components/ui/skeleton";
 import { Link, useRouter } from "../router";
 import { StatusBadge } from "./apps-list";
 
@@ -125,7 +126,15 @@ export function AppDetailScreen({ appId }: { appId: string }) {
         {error ? <p className="text-destructive">{error}</p> : null}
 
         {app || error ? null : (
-          <p className="text-muted-foreground">Loading…</p>
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-48" />
+            <div className="mt-2 flex gap-3">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-9 w-28" />
+            </div>
+          </div>
         )}
 
         {app ? (

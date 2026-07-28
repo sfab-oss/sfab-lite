@@ -1,5 +1,6 @@
 import { BoxesIcon } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
 import {
   Alert,
   AlertDescription,
@@ -69,7 +70,7 @@ export function McpConsentScreen() {
   if (loading) {
     return (
       <ConsentShell>
-        <p className="text-center text-muted-foreground text-sm">Loading…</p>
+        <AuthCardSkeleton />
       </ConsentShell>
     );
   }
