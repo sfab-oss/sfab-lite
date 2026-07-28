@@ -21,7 +21,6 @@
     "check:dead-code": "knip",
     "prepare": "husky",
     "check:app-lint": "biome check --config-path=packages/core/app-biome.json packages/template/app/src",
-    "smoke:canary": "node scripts/smoke-canary.mjs",
     "check:template-snapshot": "node --experimental-strip-types apps/factory/scripts/bake-template-snapshot.mjs --check"
   },
   "devDependencies": {
