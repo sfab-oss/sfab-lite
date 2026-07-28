@@ -125,6 +125,29 @@ killed at ~30s, and a killed attempt writes no terminal status — so three of
 eight creates **hung for five minutes** until the stale sweep reclaimed them,
 instead of failing in fifteen seconds. `CHECK_ATTEMPTS` is 2.
 
+### 6. Giving the retry a place to stand
+
+`CHECK_ATTEMPTS` is capped at 2 by a budget, not by what the failure deserves.
+Creates now run from an **AppDO alarm** instead of `ctx.waitUntil`, which is
+what buys a real one (2026-07-27).
+
+The mechanism is the ordering, not the alarm: the alarm is re-armed *before*
+the run starts and cleared when it finishes, so an invocation killed mid-flight
+leaves it armed and the runtime fires again. Deliberately not "throw and let
+the runtime retry" — the failure being recovered from is a kill, and a killed
+handler throws nothing.
+
+Only **create** qualifies. Its whole input is the template seed, a bundle
+constant, so a retry needs two ids and nothing else. An ordinary commit carries
+the agent's workspace and has no such property; it still runs under
+`waitUntil`.
+
+The same change let the registry sweep stop being time-based. It always asked
+the AppDO for the truth — it just waited out `STALE_ATTEMPT_MS` first. A
+*terminal* attempt is finished whatever the clock says, so a `creating` row
+behind one settles on the next poll. That closes the gap where the console
+(120s) gave up three minutes before reconciliation (300s) ran.
+
 ## Measured and rejected — do not re-derive these
 
 | Idea | Why it fails | Evidence |
@@ -150,11 +173,9 @@ instead of failing in fifteen seconds. `CHECK_ATTEMPTS` is 2.
   | after ADR-0004 | 645 | 263.1 MB |
   | **2026-07-27** | **1351** | **336.8 MB** |
 
-  Retention is now *above* the pre-trim figure. It is felt in production as app
-  creation hanging: the check worker OOMs, `runCommitAttempt` dies under
-  `ctx.waitUntil` without writing a terminal status, and the app stays
-  `creating` until `sweepStaleCreating` reclaims it at 5 minutes. The console
-  gives up at 2. One in four creates, measured against the live factory.
+  Retention is now *above* the pre-trim figure, and one create in four failed
+  against the live factory. Technique 6 above stops that costing the app — an
+  OOM is now a retry — but it is a mitigation and this is still a regression.
 
   `check:check-memory` passes throughout, because it bounds *growth between
   apps* (+9.1 MB against a 50 MB limit) and never looks at the absolute floor.
@@ -165,11 +186,6 @@ instead of failing in fifteen seconds. `CHECK_ATTEMPTS` is 2.
   accounted for 4 MB of it. The open question is `@base-ui/react` at 373 loaded
   files against the 22 recorded when the exception was written.
 
-- **Move the create attempt off `ctx.waitUntil`** to a DO alarm or Queue
-  consumer. Does not reduce memory; makes retries free. Written up as a
-  mitigation not worth building while the memory problem had a fix — that
-  premise no longer holds, and it is now what stands between an OOM and an app
-  stuck in `creating` for five minutes.
 - **Runtime bundle diet.** `apps/lint` is at 95.4% of the upload limit (Biome
   WASM). `apps/factory` at 57.5% carries the vendor bundles, where the
   `better-auth` barrel is 2.1 MB. See ADR-0004's candidate list.

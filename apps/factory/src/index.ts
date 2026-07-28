@@ -28,6 +28,7 @@ import {
   passwordAuthEnabled,
   signUpAvailable,
 } from "./auth.js";
+import { dispatchInternal } from "./internal.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute } from "./routes.js";
 import { serveSubApp } from "./serve.js";
@@ -130,6 +131,13 @@ export default {
     // instead of the SPA.
     if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
       return await dispatchAdmin(rc);
+    }
+
+    // Loopback only — the AppDO's alarm calling back in to run a create where
+    // D1 lives. Authenticated by a derived capability token, never a session:
+    // a Durable Object has none. See `internal.ts`.
+    if (url.pathname.startsWith("/internal/")) {
+      return await dispatchInternal(rc);
     }
 
     // Think / agents — auth + app tenancy + namespace allowlist before any DO

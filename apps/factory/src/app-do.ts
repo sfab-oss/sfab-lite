@@ -14,6 +14,7 @@ import {
   applyPendingMigrations,
   SCHEMA_VERSION_DDL,
 } from "./app-migrations.js";
+import { INTERNAL_TOKEN_HEADER, signAttemptRun } from "./internal-token.js";
 
 /**
  * Version ids are monotonic ULIDs: 48-bit ms timestamp + 80 bits entropy,
@@ -132,6 +133,36 @@ CREATE INDEX IF NOT EXISTS _sfab_commit_attempts_status
  */
 export const STALE_ATTEMPT_MS = 5 * 60_000;
 
+/** Storage key for the in-flight create the alarm is responsible for. */
+const CREATE_RUN_KEY = "create-attempt-run";
+
+interface CreateRunState {
+  attemptId: string;
+  tries: number;
+}
+
+/**
+ * How many times the alarm will drive one create attempt.
+ *
+ * Every try is a fresh isolate, so this is the number of check-worker OOMs a
+ * single create survives. `CHECK_ATTEMPTS` inside one run stays at 2 for the
+ * reason `making-it-fit.md` records — the budget there is wall clock.
+ */
+const CREATE_RUN_TRIES = 3;
+
+/**
+ * The alarm is re-armed to this *before* the run starts, and cleared when it
+ * finishes. That ordering is the whole mechanism: an invocation killed
+ * mid-flight leaves the alarm armed and the runtime fires it again, which is
+ * exactly the failure `waitUntil` could not recover from.
+ *
+ * Must exceed a healthy create (15–25s measured) or a slow run would be
+ * retried alongside itself.
+ */
+const CREATE_RUN_WATCHDOG_MS = 45_000;
+
+const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
+
 export type AttemptKind = "create" | "commit" | "revert";
 type AttemptStatus = "pending" | "pass" | "fail" | "error";
 
@@ -209,7 +240,7 @@ export interface VersionRecord {
   serverSurfaceHash: string | null;
 }
 
-export class AppDO extends DurableObject {
+export class AppDO extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.ctx.blockConcurrencyWhile(async () => {
@@ -296,8 +327,10 @@ export class AppDO extends DurableObject {
    * storage the registry no longer indexes — and a Durable Object nothing
    * indexes cannot be found again, because `idFromName` is a hash.
    *
-   * `deleteAll` is atomic on SQLite-backed storage. It does not clear alarms;
-   * this class sets none, and a future one must delete its own before calling.
+   * `deleteAll` is atomic on SQLite-backed storage but does **not** clear
+   * alarms, so the create-run alarm is deleted explicitly. Left armed, it
+   * would fire against an emptied object and re-create the tables it just
+   * dropped.
    */
   async destroy(): Promise<
     | { ok: true; bytesFreed: number }
@@ -315,8 +348,108 @@ export class AppDO extends DurableObject {
       };
     }
     const bytesFreed = Number(this.ctx.storage.sql.databaseSize);
+    await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
     return { ok: true as const, bytesFreed };
+  }
+
+  /**
+   * Take responsibility for running a create attempt, and fire immediately.
+   *
+   * The host opens the attempt and hands it over rather than running it
+   * itself: a create's only input is the template seed, a bundle constant, so
+   * the two ids below are the entire state a retry needs. An ordinary commit
+   * carries the agent's workspace and has no such property — it still runs
+   * under `waitUntil`.
+   */
+  async scheduleCreateRun(attemptId: string): Promise<void> {
+    await this.ctx.storage.put<CreateRunState>(CREATE_RUN_KEY, {
+      attemptId,
+      tries: 0,
+    });
+    await this.ctx.storage.setAlarm(Date.now());
+  }
+
+  #attemptStatus(attemptId: string): AttemptStatus | null {
+    const row = this.ctx.storage.sql
+      .exec("SELECT status FROM _sfab_commit_attempts WHERE id = ?", attemptId)
+      .toArray()[0] as { status?: AttemptStatus } | undefined;
+    return row?.status ?? null;
+  }
+
+  async #clearCreateRun(): Promise<void> {
+    await this.ctx.storage.delete(CREATE_RUN_KEY);
+    await this.ctx.storage.deleteAlarm();
+  }
+
+  /**
+   * Drive the create attempt this object owns, once per firing.
+   *
+   * Deliberately not "throw and let the runtime retry": the failure being
+   * recovered from is an *invocation kill*, not an exception, and a killed
+   * handler throws nothing. Re-arming the alarm before the work starts covers
+   * both — a kill leaves it armed, a clean finish clears it.
+   *
+   * The run happens in the host over `SELF` because that is where D1 is, and
+   * because `runCommitAttempt` talks to this object through its own stub.
+   */
+  override async alarm(): Promise<void> {
+    const state = await this.ctx.storage.get<CreateRunState>(CREATE_RUN_KEY);
+    if (!state) {
+      return;
+    }
+
+    this.#ensureMeta();
+    if (this.#attemptStatus(state.attemptId) !== "pending") {
+      await this.#clearCreateRun();
+      return;
+    }
+
+    if (state.tries >= CREATE_RUN_TRIES) {
+      // The registry row stays `creating` until `sweepStaleCreating` reclaims
+      // it. Settling it needs D1, which this object deliberately cannot reach.
+      this.failAttempt(state.attemptId, "error", {
+        error: "create_retries_exhausted",
+        tries: state.tries,
+      });
+      await this.#clearCreateRun();
+      return;
+    }
+
+    await this.ctx.storage.put<CreateRunState>(CREATE_RUN_KEY, {
+      ...state,
+      tries: state.tries + 1,
+    });
+    await this.ctx.storage.setAlarm(Date.now() + CREATE_RUN_WATCHDOG_MS);
+
+    const ok = await this.#runCreateInHost(state.attemptId);
+    if (ok) {
+      await this.#clearCreateRun();
+      return;
+    }
+    // A clean failure needs no watchdog wait — only a kill does.
+    await this.ctx.storage.setAlarm(Date.now());
+  }
+
+  async #runCreateInHost(attemptId: string): Promise<boolean> {
+    const appId = this.ctx.id.name;
+    const secret = this.env.BETTER_AUTH_SECRET;
+    if (!(appId && secret)) {
+      return false;
+    }
+    const token = await signAttemptRun(secret, appId, attemptId);
+    const path = `/internal/apps/${encodeURIComponent(appId)}/attempts/${encodeURIComponent(attemptId)}/run-create`;
+    try {
+      const res = await this.env.SELF.fetch(
+        new Request(`${LOOPBACK_ORIGIN}${path}`, {
+          method: "POST",
+          headers: { [INTERNAL_TOKEN_HEADER]: token },
+        })
+      );
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 
   touch(): {
