@@ -27,7 +27,7 @@ function check(
   label: string,
   files: Record<string, string>
 ): {
-  ok: boolean;
+  clean: boolean;
   diagnostics: { code: number; message: string; file?: string }[];
   threw?: string;
 } {
@@ -40,7 +40,6 @@ function check(
       JSON.stringify(
         {
           label,
-          ok: result.ok,
           diagnosticCount: result.diagnosticCount,
           diagnostics: result.diagnostics,
         },
@@ -48,11 +47,11 @@ function check(
         2
       )
     );
-    return result;
+    return { ...result, clean: result.diagnosticCount === 0 };
   } catch (err) {
     const threw = err instanceof Error ? err.message : String(err);
     console.log(JSON.stringify({ label, threw }, null, 2));
-    return { ok: false, diagnostics: [], threw };
+    return { clean: false, diagnostics: [], threw };
   }
 }
 
@@ -80,7 +79,7 @@ console.log(
 );
 
 const seedResult = check("1-seed-clean", baseFiles);
-if (!seedResult.ok) {
+if (!seedResult.clean) {
   console.error("FAIL: seeded template must typecheck clean");
   failed = true;
 }
@@ -91,7 +90,7 @@ const drizzleFiles = {
 };
 const drizzleResult = check("2-client-drizzle", drizzleFiles);
 if (
-  drizzleResult.ok ||
+  drizzleResult.clean ||
   !hasServerOnlyDiag(drizzleResult, "drizzle-orm/d1", "bad-drizzle.tsx")
 ) {
   console.error(
@@ -111,7 +110,7 @@ const dbHit = dbResult.diagnostics.some(
     d.message.includes("client tree") &&
     (d.file?.includes("bad-db.tsx") ?? false)
 );
-if (dbResult.ok || !dbHit) {
+if (dbResult.clean || !dbHit) {
   console.error(
     "FAIL: client importing ../../db must diagnose outside client tree"
   );
@@ -127,7 +126,7 @@ export const _probe = { drizzle, createDb };
 `,
 };
 const serverResult = check("4-server-still-ok", serverFiles);
-if (!serverResult.ok) {
+if (!serverResult.clean) {
   console.error(
     "FAIL: server file importing drizzle-orm/d1 and ../../db must stay clean",
     serverResult.diagnostics
@@ -142,7 +141,7 @@ const outsideClientFiles = {
   "src/spa/not-client.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
 };
 const outsideResult = check("5-outside-client-tree", outsideClientFiles);
-if (outsideResult.ok) {
+if (outsideResult.clean) {
   console.log(
     JSON.stringify({
       label: "5-outside-client-tree-note",
@@ -165,7 +164,7 @@ const slashFiles = {
 const slashResult = check("6-double-slash-key", slashFiles);
 if (
   slashResult.threw ||
-  slashResult.ok ||
+  slashResult.clean ||
   !hasServerOnlyDiag(slashResult, "drizzle-orm/d1", "slashy.tsx")
 ) {
   console.error(
@@ -182,7 +181,7 @@ const dotdotFiles = {
 const dotdotResult = check("7-dotdot-key", dotdotFiles);
 if (
   dotdotResult.threw ||
-  dotdotResult.ok ||
+  dotdotResult.clean ||
   !hasServerOnlyDiag(dotdotResult, "drizzle-orm/d1", "dotdot.tsx")
 ) {
   console.error(
@@ -204,7 +203,7 @@ const sideEffectHit = sideEffectResult.diagnostics.some(
     d.message.includes("server-only") &&
     (d.file?.includes("bad-side-effect.tsx") ?? false)
 );
-if (sideEffectResult.ok || !sideEffectHit) {
+if (sideEffectResult.clean || !sideEffectHit) {
   console.error(
     "FAIL: side-effect import of drizzle-orm/d1 must get guided server-only message",
     sideEffectResult.diagnostics
@@ -217,7 +216,7 @@ const importTypeFiles = {
   [`${clientDir}/lib/type-cross.tsx`]: `import type { AppType } from "../../hono";\nexport type X = AppType;\n`,
 };
 const importTypeResult = check("9-import-type-crosses", importTypeFiles);
-if (!importTypeResult.ok) {
+if (!importTypeResult.clean) {
   console.error(
     "FAIL: import type across client/server boundary must stay clean",
     importTypeResult.diagnostics

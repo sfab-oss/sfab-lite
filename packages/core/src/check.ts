@@ -22,8 +22,18 @@ export interface CheckDiagnostic {
   column?: number;
 }
 
+/**
+ * A check that ran. `ok` is fixed `true` and says only that — the verdict on
+ * the code is `diagnosticCount`, and {@link checkPasses} is the one place that
+ * reads it as a verdict.
+ *
+ * `ok` used to mean `diagnosticCount === 0`, which is not what it means on
+ * `LintResult`, where it reports whether the worker itself managed to answer.
+ * A renderer written for both shapes therefore swallowed every type error the
+ * agent shell ever produced.
+ */
 export interface CheckResult {
-  ok: boolean;
+  ok: true;
   appId: string;
   pass: "cold" | "incremental";
   /** Total diagnostics produced (before any response cap). */
@@ -40,3 +50,15 @@ export interface CheckResult {
   lsReused: boolean;
   vfsFileCount: number;
 }
+
+/** A check that could not run. Carries no diagnostics — nothing was checked. */
+export interface CheckFailure {
+  ok: false;
+  error: string;
+}
+
+/**
+ * What `POST /check` answers with. Discriminating on `ok` is what stops a
+ * caller from reporting "no errors" for a worker that never checked anything.
+ */
+export type CheckResponse = CheckResult | CheckFailure;

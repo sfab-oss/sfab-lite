@@ -6,6 +6,7 @@
  * app creation.
  */
 import {
+  type CheckResponse,
   type CheckResult,
   type LintMode,
   type LintResult,
@@ -135,8 +136,14 @@ function serviceHeaders(env: Env): Record<string, string> {
   return h;
 }
 
-/** Inline of former checkPassesForPublish — no IGNORED_CHECK_CODES. */
-export function checkPasses(body: CheckResult | null): boolean {
+/**
+ * Inline of former checkPassesForPublish — no IGNORED_CHECK_CODES.
+ *
+ * A predicate, so passing the gate is also what proves the body is a check
+ * that ran: callers reading `checkMs` / `pass` / `lsReused` off it cannot do
+ * so before they have gated on it.
+ */
+export function checkPasses(body: CheckResponse | null): body is CheckResult {
   if (!body?.ok) {
     return false;
   }
@@ -212,7 +219,7 @@ export async function callCheck(
 ): Promise<{
   http: number;
   wallMs: number;
-  body: CheckResult | null;
+  body: CheckResponse | null;
   attempts: number;
 }> {
   const t0 = Date.now();
@@ -227,7 +234,7 @@ export async function callCheck(
           body: JSON.stringify({ appId, files, forceCold }),
         })
       );
-      const body = (await res.json().catch(() => null)) as CheckResult | null;
+      const body = (await res.json().catch(() => null)) as CheckResponse | null;
       return {
         http: res.status,
         wallMs: Date.now() - t0,
