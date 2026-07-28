@@ -68,6 +68,60 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
   return readJson<AuthConfig>(res);
 }
 
+export interface McpConsentContext {
+  user: { name: string; email: string };
+  organizations: { id: string; name: string; slug: string }[];
+}
+
+/**
+ * Who is signed in, and which organizations they may bind an MCP client to.
+ * `null` means nobody is — the consent screen shows sign-in rather than an
+ * error, because arriving here signed out is the normal first-time path.
+ */
+export async function fetchMcpConsentContext(): Promise<McpConsentContext | null> {
+  const res = await fetch("/api/mcp/consent", { credentials: "include" });
+  if (res.status === 401) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(await errorMessage(res, `consent failed (${res.status})`));
+  }
+  return readJson<McpConsentContext>(res);
+}
+
+/**
+ * Answer the authorization request. Returns where to send the browser — the
+ * client's redirect URI, carrying either a code or `access_denied`.
+ *
+ * `oauthQuery` is the address bar's query string verbatim: the provider signed
+ * that exact string, so anything reassembled from parsed parameters fails the
+ * signature check.
+ */
+export async function submitMcpConsent(input: {
+  oauthQuery: string;
+  organizationId: string;
+  accept: boolean;
+}): Promise<string> {
+  const res = await fetch("/api/mcp/consent", {
+    method: "POST",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      oauth_query: input.oauthQuery,
+      organizationId: input.organizationId,
+      accept: input.accept,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(await errorMessage(res, `consent failed (${res.status})`));
+  }
+  const body = await readJson<{ url?: string }>(res);
+  if (!body.url) {
+    throw new Error("the authorization server returned no redirect");
+  }
+  return body.url;
+}
+
 export async function listApps(): Promise<{
   organizationId: string;
   apps: AppRecord[];

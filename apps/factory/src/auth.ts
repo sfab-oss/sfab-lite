@@ -1,7 +1,8 @@
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
-import { organization } from "better-auth/plugins";
+import { APIError, createAuthMiddleware } from "better-auth/api";
+import { jwt, organization } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { ulid } from "ulid";
 import { createDb, type Db } from "./db/index.js";
@@ -13,6 +14,7 @@ import {
   session,
   user,
 } from "./db/schema.js";
+import { defaultMcpResource, mcpResource } from "./mcp/lib/resource.js";
 
 /**
  * Fail-safe: only the exact string `"true"` enables password auth. Unset,
@@ -267,6 +269,17 @@ function viteDevOrigins(baseURL: string, uiPort: string | undefined): string[] {
   return [`http://127.0.0.1:${resolved}`, `http://localhost:${resolved}`];
 }
 
+/**
+ * The origins a browser request to this factory may legitimately come from.
+ *
+ * Exported because better-auth's own CSRF check covers `/api/auth/*` and
+ * nothing else — the consent POST is our route, so it has to apply the same
+ * list rather than invent a second, laxer one.
+ */
+export function factoryTrustedOrigins(env: Env, baseURL: string): string[] {
+  return [baseURL, ...viteDevOrigins(baseURL, env.UI_PORT)];
+}
+
 export function createAuth(env: Env, baseURL: string) {
   const secret = env.BETTER_AUTH_SECRET;
   if (!secret || secret.length < 32) {
@@ -320,7 +333,7 @@ export function createAuth(env: Env, baseURL: string) {
     // Origin is the Vite host while `baseURL` is the worker origin. Gated on a
     // local `baseURL`: this widens CSRF origin checking, and a deployed factory
     // must never trust an origin it does not serve.
-    trustedOrigins: [baseURL, ...viteDevOrigins(baseURL, env.UI_PORT)],
+    trustedOrigins: factoryTrustedOrigins(env, baseURL),
     plugins: [
       organization({
         allowUserToCreateOrganization: false,
@@ -334,7 +347,47 @@ export function createAuth(env: Env, baseURL: string) {
           return Promise.resolve();
         },
       }),
+      // The factory as an OAuth 2.1 Authorization Server, which is what makes
+      // `/mcp` reachable by any spec-compliant client rather than only by a
+      // shared secret. `jwt` supplies the signing keys; the resource server
+      // verifies each access token against the JWKS in-process, so no `/mcp`
+      // call costs a database round-trip to introspect.
+      jwt({
+        disableSettingJwtHeader: true,
+        jwks: { keyPairConfig: { alg: "EdDSA", crv: "Ed25519" } },
+      }),
+      oauthProvider({
+        loginPage: "/signin",
+        consentPage: "/mcp/consent",
+        validAudiences: [mcpResource(baseURL)],
+        allowDynamicClientRegistration: true,
+        // MCP clients register themselves (RFC 7591) from a terminal with no
+        // browser session, so `/register` has to answer an anonymous caller or
+        // no client can ever obtain a `client_id`. Registration alone grants
+        // nothing: a signed-in consent and the org grant it writes still gate
+        // every call, and an unbound token is refused at the gate.
+        allowUnauthenticatedClientRegistration: true,
+        // Access tokens are verified locally against the JWKS, so an issued one
+        // cannot be revoked before it expires — dropping the
+        // `mcp_organization_grant` row is the only live kill-switch. Keep the
+        // token short-lived to bound that, and let clients refresh.
+        accessTokenExpiresIn: 86_400,
+        refreshTokenExpiresIn: 63_072_000,
+      }),
     ],
+    hooks: {
+      // biome-ignore lint/suspicious/useAwait: better-auth's middleware type demands an async function.
+      before: createAuthMiddleware(async (ctx) => {
+        const body = defaultMcpResource(
+          ctx.path,
+          ctx.body,
+          mcpResource(baseURL)
+        );
+        if (body) {
+          return { context: { body } };
+        }
+      }),
+    },
     databaseHooks: {
       user: {
         create: {

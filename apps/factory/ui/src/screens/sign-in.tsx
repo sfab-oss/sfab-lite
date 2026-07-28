@@ -21,7 +21,28 @@ import { useRouter } from "../router";
 
 type AuthMode = "signin" | "signup";
 
-export function SignInScreen() {
+/**
+ * The console's sign-in screen, and the sign-in step of any flow that has
+ * somewhere else to be afterwards.
+ *
+ * `destination` is what makes it reusable: the MCP consent screen needs the
+ * user returned to the signed authorization query they arrived with, not sent
+ * to the console. Left out, it behaves exactly as the standalone screen always
+ * did — including bouncing an already-signed-in visitor away, which a caller
+ * that renders this *because* nobody is signed in must not inherit.
+ */
+export interface SignInDestination {
+  /** Where GitHub's round trip lands. Must survive a full page navigation. */
+  callbackURL: string;
+  /** Called after an in-page (password) sign-in succeeds. */
+  onSignedIn: () => void;
+}
+
+export function SignInScreen({
+  destination,
+}: {
+  destination?: SignInDestination;
+}) {
   const { navigate } = useRouter();
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const [config, setConfig] = useState<AuthConfig | null>(null);
@@ -49,10 +70,10 @@ export function SignInScreen() {
   }, []);
 
   useEffect(() => {
-    if (!sessionPending && session?.user) {
+    if (!(destination || sessionPending) && session?.user) {
       navigate({ name: "chat" }, true);
     }
-  }, [session, sessionPending, navigate]);
+  }, [session, sessionPending, navigate, destination]);
 
   if (sessionPending || !(config || configError)) {
     return (
@@ -93,8 +114,12 @@ export function SignInScreen() {
         <CardContent>
           <SignInBody
             config={config}
+            githubCallbackURL={destination?.callbackURL ?? "/apps"}
             mode={mode}
-            onSignedIn={() => navigate({ name: "chat" }, true)}
+            onSignedIn={
+              destination?.onSignedIn ??
+              (() => navigate({ name: "chat" }, true))
+            }
             setMode={setMode}
           />
         </CardContent>
@@ -108,11 +133,13 @@ function SignInBody({
   mode,
   setMode,
   onSignedIn,
+  githubCallbackURL,
 }: {
   config: AuthConfig;
   mode: AuthMode;
   setMode: (mode: AuthMode) => void;
   onSignedIn: () => void;
+  githubCallbackURL: string;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -153,7 +180,7 @@ function SignInBody({
     try {
       await authClient.signIn.social({
         provider: "github",
-        callbackURL: "/apps",
+        callbackURL: githubCallbackURL,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

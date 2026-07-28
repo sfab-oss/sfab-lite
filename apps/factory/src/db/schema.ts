@@ -12,7 +12,13 @@
  * the actual mistake. See GLOSSARY.md — "organization" does two jobs.
  */
 import { relations, sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -267,3 +273,193 @@ export const appRelations = relations(app, ({ one }) => ({
     references: [organization.id],
   }),
 }));
+
+/**
+ * Tables the `jwt` and `@better-auth/oauth-provider` plugins own — the factory
+ * as an OAuth 2.1 Authorization Server, which is what makes `/mcp` reachable
+ * by any spec-compliant MCP client rather than only by a shared secret.
+ *
+ * Shapes are the plugins', not ours: they are read back by better-auth through
+ * the drizzle adapter, so a column that differs in name or nullability is a
+ * runtime failure inside the plugin rather than a type error here. Only
+ * `mcpOrganizationGrant` below is the factory's own.
+ */
+export const jwks = sqliteTable("jwks", {
+  id: text("id").primaryKey(),
+  publicKey: text("public_key").notNull(),
+  privateKey: text("private_key").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }),
+});
+
+export const oauthClient = sqliteTable(
+  "oauth_client",
+  {
+    id: text("id").primaryKey(),
+    clientId: text("client_id").notNull().unique(),
+    clientSecret: text("client_secret"),
+    disabled: integer("disabled", { mode: "boolean" }).default(false).notNull(),
+    skipConsent: integer("skip_consent", { mode: "boolean" }),
+    enableEndSession: integer("enable_end_session", { mode: "boolean" }),
+    subjectType: text("subject_type"),
+    scopes: text("scopes", { mode: "json" }).$type<string[]>(),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+    name: text("name"),
+    uri: text("uri"),
+    icon: text("icon"),
+    contacts: text("contacts", { mode: "json" }).$type<string[]>(),
+    tos: text("tos"),
+    policy: text("policy"),
+    softwareId: text("software_id"),
+    softwareVersion: text("software_version"),
+    softwareStatement: text("software_statement"),
+    redirectUris: text("redirect_uris", { mode: "json" })
+      .$type<string[]>()
+      .notNull(),
+    postLogoutRedirectUris: text("post_logout_redirect_uris", {
+      mode: "json",
+    }).$type<string[]>(),
+    tokenEndpointAuthMethod: text("token_endpoint_auth_method"),
+    grantTypes: text("grant_types", { mode: "json" }).$type<string[]>(),
+    responseTypes: text("response_types", { mode: "json" }).$type<string[]>(),
+    public: integer("public", { mode: "boolean" }),
+    type: text("type"),
+    requirePKCE: integer("require_pkce", { mode: "boolean" }),
+    referenceId: text("reference_id"),
+    metadata: text("metadata", { mode: "json" }).$type<
+      Record<string, unknown>
+    >(),
+  },
+  (table) => [index("oauth_client_userId_idx").on(table.userId)]
+);
+
+export const oauthRefreshToken = sqliteTable(
+  "oauth_refresh_token",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => session.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    referenceId: text("reference_id"),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    revoked: integer("revoked", { mode: "timestamp_ms" }),
+    authTime: integer("auth_time", { mode: "timestamp_ms" }),
+    scopes: text("scopes", { mode: "json" }).$type<string[]>().notNull(),
+  },
+  (table) => [
+    index("oauth_refresh_token_clientId_idx").on(table.clientId),
+    index("oauth_refresh_token_sessionId_idx").on(table.sessionId),
+    index("oauth_refresh_token_userId_idx").on(table.userId),
+  ]
+);
+
+export const oauthAccessToken = sqliteTable(
+  "oauth_access_token",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => session.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    referenceId: text("reference_id"),
+    refreshId: text("refresh_id"),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    scopes: text("scopes", { mode: "json" }).$type<string[]>().notNull(),
+  },
+  (table) => [
+    index("oauth_access_token_clientId_idx").on(table.clientId),
+    index("oauth_access_token_sessionId_idx").on(table.sessionId),
+    index("oauth_access_token_userId_idx").on(table.userId),
+    index("oauth_access_token_refreshId_idx").on(table.refreshId),
+  ]
+);
+
+export const oauthConsent = sqliteTable(
+  "oauth_consent",
+  {
+    id: text("id").primaryKey(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    referenceId: text("reference_id"),
+    scopes: text("scopes", { mode: "json" }).$type<string[]>().notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("oauth_consent_clientId_idx").on(table.clientId),
+    index("oauth_consent_userId_idx").on(table.userId),
+  ]
+);
+
+/**
+ * Which organization an MCP token acts in.
+ *
+ * The access token carries a user and a client, never an org — so without this
+ * row a valid token would have nothing to scope `/admin/*` to, and the tools
+ * would have to trust a caller-supplied `organizationId`. Chosen once at
+ * consent, re-checked against live membership on every request, and the only
+ * live kill-switch for an issued token: deleting the row denies the client
+ * before its (locally-verified, unrevokable) JWT expires.
+ */
+export const mcpOrganizationGrant = sqliteTable(
+  "mcp_organization_grant",
+  {
+    id: text("id").primaryKey(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("mcp_org_grant_client_user_idx").on(
+      table.clientId,
+      table.userId
+    ),
+    index("mcp_org_grant_organizationId_idx").on(table.organizationId),
+  ]
+);
