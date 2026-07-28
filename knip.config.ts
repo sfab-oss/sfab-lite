@@ -16,27 +16,34 @@ const config: KnipConfig = {
       ignoreBinaries: ["wrangler"],
     },
     "apps/factory": {
-      // Worker entry + Vite console UI. UI sources stay in `project` so unused
-      // exports inside `ui/src` still surface; React deps are reached from
-      // `ui/index.html` → `ui/src/main.tsx`.
-      // `ui/src/components/ui/index.ts` is the ported primitive public API —
-      // entry so knip treats its re-exports as the library surface, not dead.
+      // Worker/Start entry + console UI under `ui/src` (mounted via
+      // `src/console-spa.tsx`). Primitive barrel stays an entry so knip treats
+      // its re-exports as the library surface, not dead.
       entry: [
+        "src/server.ts",
         "src/index.ts",
+        "src/router.tsx",
+        "src/routes/**/*.tsx",
         "src/**/*.test.ts",
         "scripts/*.mjs",
-        "ui/index.html",
+        "vite.config.ts",
         "ui/src/components/ui/index.ts",
       ],
       project: [
-        "src/**/*.ts",
+        "src/**/*.{ts,tsx}",
         "scripts/**/*.mjs",
         "ui/src/**/*.{ts,tsx}",
-        "ui/vite.config.ts",
+        "vite.config.ts",
       ],
       // `cloudflare:workers` is a workerd built-in, not an npm package.
       // `tw-animate-css` is pulled only via `@import` in styles.css.
-      ignoreDependencies: ["cloudflare", "tw-animate-css"],
+      // `@tanstack/router-plugin` is applied inside `@tanstack/react-start`'s
+      // Vite plugin; keep it pinned for Start alignment even if unused directly.
+      ignoreDependencies: [
+        "cloudflare",
+        "tw-animate-css",
+        "@tanstack/router-plugin",
+      ],
     },
     "apps/check": {
       project: ["src/**/*.ts"],

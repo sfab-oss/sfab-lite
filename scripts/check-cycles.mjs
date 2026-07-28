@@ -9,13 +9,17 @@
  * (same approach as sfab-starter's org/ madge exclude). Keeping the exclude
  * limited to these two modules prefers a compile-time static import over a
  * runtime registry that fails if registration is missed or reordered.
+ *
+ * Also exclude TanStack Router's generated `routeTree.gen.ts`, which type-
+ * imports `getRouter` while `router.tsx` imports the route tree (Start's
+ * standard generated shape).
  */
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const exclude =
-  "generated|vendor|results|\\.shims|universe|apps/factory/src/agent/app-agent\\.ts|apps/factory/src/agent/app-thread\\.ts";
+  "generated|vendor|results|\\.shims|universe|routeTree\\.gen|apps/factory/src/agent/app-agent\\.ts|apps/factory/src/agent/app-thread\\.ts";
 
 const result = spawnSync(
   "pnpm",

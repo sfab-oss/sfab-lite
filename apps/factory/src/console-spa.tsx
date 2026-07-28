@@ -4,18 +4,10 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { AuthRequiredError } from "./api";
-import { App } from "./app";
-import { endUnusableSession } from "./auth-client";
-import { RouterProvider } from "./router";
-import "./styles.css";
-
-const root = document.getElementById("root");
-if (!root) {
-  throw new Error("#root missing");
-}
+import { AuthRequiredError } from "../ui/src/api";
+import { App } from "../ui/src/app";
+import { endUnusableSession } from "../ui/src/auth-client";
+import { RouterProvider } from "../ui/src/router";
 
 function onAuthRequired(error: unknown) {
   if (!(error instanceof AuthRequiredError)) {
@@ -35,12 +27,16 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(root).render(
-  <StrictMode>
+/**
+ * Phase 1 shell: existing `ui/` console (custom router) mounted under Start.
+ * SSR off — the UI router reads `window.location` at init.
+ */
+export function ConsoleSpa() {
+  return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider>
         <App />
       </RouterProvider>
     </QueryClientProvider>
-  </StrictMode>
-);
+  );
+}

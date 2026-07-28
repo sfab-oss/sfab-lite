@@ -1,0 +1,15 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.env
+.nitro
+.tanstack
+*.gen.ts
+!routeTree.gen.ts
+.wrangler
+.output
+.vinxi
+__unconfig*
+ui/dist

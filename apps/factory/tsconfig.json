@@ -1,11 +1,11 @@
 {
-  "extends": "@sfab-lite/tsconfig/base.json",
+  "extends": "@sfab-lite/tsconfig/tanstack-start.json",
+  "include": ["src", "ui/src", "vite.config.ts"],
+  "exclude": ["src/generated/seed.json", "src/**/*.test.ts", "ui/dist", "dist"],
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "noEmit": true,
-    "types": ["@cloudflare/workers-types"]
-  },
-  "include": ["src"],
-  "exclude": ["src/generated/seed.json", "src/**/*.test.ts"]
+    "paths": {
+      "@/*": ["./ui/src/*"]
+    },
+    "types": ["@cloudflare/workers-types", "vite/client"]
+  }
 }
