@@ -7,9 +7,8 @@ Merging to `main` deploys the platform. Treat a merge as a deploy gate.
 
 ## One origin
 
-The factory is reachable at exactly one hostname, `lite.sfab.dev`, as a
-Cloudflare custom domain. `workers_dev` is off, and turning it back on would be
-a mistake rather than a convenience.
+One reachable hostname for the factory is the goal. It is not the current
+state, and the gap is deliberate rather than pending.
 
 Nothing configures that origin. better-auth's `baseURL`, the OAuth issuer, the
 RFC 8707 resource identifier, and the `__SFAB_PUBLIC_BASE__` handed to every
@@ -18,9 +17,33 @@ second reachable hostname is a second identity. Sessions established on one do
 not carry to the other, and an access token minted with one hostname's audience
 401s against the other with nothing in the response explaining why.
 
-`check` and `lint` have no public hostname at all — `workers_dev` is off there
-too. The factory is their only caller and reaches them over service bindings,
-which dispatch worker-to-worker and never involve a hostname.
+### Today: two, because the custom domain does not route
+
+`lite.sfab.dev` is attached to `sfab-lite-factory` as a Cloudflare custom
+domain — DNS record of type Worker, certificate issued and covering the name,
+attachment visible in the dashboard — and requests to it are answered with a
+bare `Not Found` that the worker never sees. `wrangler tail` records no
+invocation for them. Deleting and re-adding the domain reissued the certificate
+and changed nothing else.
+
+So `workers_dev` is **on** for the factory, and the workers.dev subdomain is
+how it is reached. Turn it off in its own deploy, once the custom domain has
+been observed actually serving — not once it has been attached. Those are
+different facts, and treating the first as evidence of the second is what left
+this worker unreachable at every hostname for a while.
+
+### check and lint are a different case
+
+`check` and `lint` have no public hostname at all — `workers_dev` is off there,
+unconditionally, and none of the above applies to them. The factory is their
+only caller and reaches them over service bindings, which dispatch
+worker-to-worker and never involve a hostname.
+
+The two cases are worth keeping apart. For the factory a second hostname is a
+correctness problem — two identities for an origin-derived auth surface — and
+the fix is discretionary and can wait. For check and lint the subdomain was
+surface with nothing on the other side of the trade, so it goes regardless of
+what the factory does.
 
 That is a deliberate narrowing, not tidiness. While they were on workers.dev,
 `/check` and `/lint` failed closed on a missing `ADMIN_TOKEN` but `/health`
@@ -45,15 +68,18 @@ a setup step performed once.
 
 So the domain is attached by hand instead: **Workers & Pages → the worker →
 Settings → Domains & Routes → Add → Custom domain**. This is the mode
-Cloudflare documents — no `routes` key, `workers_dev` off, routing managed from
-the dashboard. Wrangler leaves an unlisted domain alone; only an explicit
+Cloudflare documents — routing managed from the dashboard, with no `routes` key
+in the config. Wrangler leaves an unlisted domain alone; only an explicit
 `routes: []` clears one.
 
 The cost is that the hostname is not in the repo and no gate checks it. That is
 what this section is for.
 
-Attach the domain **before** the deploy that turns `workers_dev` off, or the
-worker is briefly reachable at no hostname at all.
+**Curl the custom domain and confirm it serves before turning `workers_dev`
+off, and do that in a separate deploy from the one that attaches it.** An
+attached domain that never routes looks identical from the dashboard to one
+that works, and `workers_dev: false` shipped alongside it removes the only way
+to tell the difference — or to reach the worker at all.
 
 ## The prerequisite that bites
 
