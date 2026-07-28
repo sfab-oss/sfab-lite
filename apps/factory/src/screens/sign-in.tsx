@@ -18,7 +18,7 @@ import {
 import type { AuthConfig } from "../api";
 import { fetchAuthConfig } from "../api";
 import { authClient } from "../auth-client";
-import { useRouter } from "../router";
+import { useRouter } from "../console-router";
 
 type AuthMode = "signin" | "signup";
 

@@ -5,7 +5,7 @@
 
 /*
   Factory console tokens — shadcn semantic names are canonical for all new UI
-  (primitives, auth rebuild, chat graft). See apps/factory/ui/AGENTS.md.
+  (primitives, auth rebuild, chat graft). See apps/factory/AGENTS.md.
 
   Brand restraint matches the platform: stock shadcn palette + system font;
   the only brand colour is the focus ring. Identity comes from the logo.

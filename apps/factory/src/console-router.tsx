@@ -1,11 +1,11 @@
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { useRouter as useTanStackRouter } from "@tanstack/react-router";
+import { type ReactNode, useCallback, useMemo } from "react";
 
+/**
+ * Console route names preserved from the pre-Start client router so chat and
+ * screens can keep a small navigate/Link surface while URLs are owned by
+ * TanStack file routes.
+ */
 export type Route =
   | { name: "sign-in" }
   | { name: "chat" }
@@ -26,10 +26,6 @@ function parsePath(pathname: string): Route {
   if (path === "/signin" || path === "/sign-in") {
     return { name: "sign-in" };
   }
-  // The OAuth provider redirects a client's user here with the signed
-  // authorization query attached. The query is not parsed into the route: the
-  // signature covers the whole string, so the consent screen reads it off the
-  // address bar and hands it back untouched.
   if (path === "/mcp/consent") {
     return { name: "mcp-consent" };
   }
@@ -98,42 +94,24 @@ interface RouterValue {
   navigate: (route: Route, replace?: boolean) => void;
 }
 
-const RouterContext = createContext<RouterValue | null>(null);
-
-export function RouterProvider({ children }: { children: ReactNode }) {
-  const [route, setRoute] = useState<Route>(() =>
-    parsePath(window.location.pathname)
-  );
-
-  useEffect(() => {
-    const onPop = () => setRoute(parsePath(window.location.pathname));
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  const navigate = (next: Route, replace = false) => {
-    const path = pathFor(next);
-    if (replace) {
-      window.history.replaceState(null, "", path);
-    } else {
-      window.history.pushState(null, "", path);
-    }
-    setRoute(next);
-  };
-
-  return (
-    <RouterContext.Provider value={{ route, navigate }}>
-      {children}
-    </RouterContext.Provider>
-  );
-}
-
 export function useRouter(): RouterValue {
-  const ctx = useContext(RouterContext);
-  if (!ctx) {
-    throw new Error("useRouter requires RouterProvider");
-  }
-  return ctx;
+  const router = useTanStackRouter();
+  const pathname = router.state.location.pathname;
+  const route = useMemo(() => parsePath(pathname), [pathname]);
+
+  const navigate = useCallback(
+    (next: Route, replace = false) => {
+      const path = pathFor(next);
+      if (replace) {
+        router.history.replace(path);
+      } else {
+        router.history.push(path);
+      }
+    },
+    [router]
+  );
+
+  return { route, navigate };
 }
 
 export function Link({

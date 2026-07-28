@@ -80,9 +80,5 @@ export function matchRoute<
   return null;
 }
 
-export function jsonError(error: string, status = 400) {
-  return Response.json({ ok: false, error }, { status });
-}
-
 export const NOT_FOUND_BODY =
   "sfab-lite factory: /admin/health | /admin/apps | .../commit | .../check | .../revert | .../attempts\n";

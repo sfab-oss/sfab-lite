@@ -597,15 +597,37 @@ export async function runCommitAttempt(
  * way it polls a commit. So the 202 shape and the poll URL live here rather
  * than being written out at each call site, where they could quietly drift.
  */
+export type AttemptAcceptedBody = {
+  ok: true;
+  appId: string;
+  kind: AttemptKind;
+  attemptId: string;
+  parentId: string | null;
+  status: "pending";
+  poll: string;
+} & Record<string, unknown>;
+
+export interface AttemptConflictBody {
+  ok: false;
+  error: "attempt_in_flight";
+  appId: string;
+  attemptId: string;
+}
+
+export type AttemptEnqueueReply =
+  | { status: 202; body: AttemptAcceptedBody }
+  | { status: 409; body: AttemptConflictBody };
+
 export function attemptAccepted(
   appId: string,
   kind: AttemptKind,
   attemptId: string,
   parentId: string | null,
   extra?: Record<string, unknown>
-): Response {
-  return Response.json(
-    {
+): { status: 202; body: AttemptAcceptedBody } {
+  return {
+    status: 202,
+    body: {
       ok: true,
       appId,
       kind,
@@ -615,16 +637,18 @@ export function attemptAccepted(
       poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${attemptId}`,
       ...extra,
     },
-    { status: 202 }
-  );
+  };
 }
 
 /** The refusal half of the same contract — see `AppDO.startAttempt`. */
-export function attemptConflict(appId: string, attemptId: string): Response {
-  return Response.json(
-    { ok: false, error: "attempt_in_flight", appId, attemptId },
-    { status: 409 }
-  );
+export function attemptConflict(
+  appId: string,
+  attemptId: string
+): { status: 409; body: AttemptConflictBody } {
+  return {
+    status: 409,
+    body: { ok: false, error: "attempt_in_flight", appId, attemptId },
+  };
 }
 
 export async function enqueueCommit(
@@ -635,7 +659,7 @@ export async function enqueueCommit(
   files: Record<string, string>,
   parentId: string | null,
   opts?: { forceColdCheck?: boolean }
-): Promise<Response> {
+): Promise<AttemptEnqueueReply> {
   const start = await appStub(env, appId).startAttempt(kind, parentId);
   if (!start.ok) {
     return attemptConflict(appId, start.attemptId);

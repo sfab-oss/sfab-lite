@@ -2,8 +2,8 @@ import type { AppRecord, AttemptRecord, VersionSummary } from "../api";
 import { AppLayoutHeader } from "../components/brand/app-layout";
 import { Button } from "../components/ui/button";
 import { Skeleton } from "../components/ui/skeleton";
+import { Link } from "../console-router";
 import { useApp, useAppAttempt, useAppVersions } from "../hooks/use-apps";
-import { Link } from "../router";
 import { StatusBadge } from "./apps-list";
 
 export function AppDetailScreen({ appId }: { appId: string }) {

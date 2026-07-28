@@ -1,4 +1,4 @@
-# Factory console UI (`apps/factory/ui`)
+# Factory console UI (`apps/factory`)
 
 ## Tokens (canonical)
 

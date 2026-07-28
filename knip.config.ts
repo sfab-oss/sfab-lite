@@ -16,9 +16,8 @@ const config: KnipConfig = {
       ignoreBinaries: ["wrangler"],
     },
     "apps/factory": {
-      // Worker/Start entry + console UI under `ui/src` (mounted via
-      // `src/console-spa.tsx`). Primitive barrel stays an entry so knip treats
-      // its re-exports as the library surface, not dead.
+      // Worker/Start entry + console under `src/`. Primitive barrel stays an
+      // entry so knip treats its re-exports as the library surface, not dead.
       entry: [
         "src/server.ts",
         "src/index.ts",
@@ -27,14 +26,9 @@ const config: KnipConfig = {
         "src/**/*.test.ts",
         "scripts/*.mjs",
         "vite.config.ts",
-        "ui/src/components/ui/index.ts",
+        "src/components/ui/index.ts",
       ],
-      project: [
-        "src/**/*.{ts,tsx}",
-        "scripts/**/*.mjs",
-        "ui/src/**/*.{ts,tsx}",
-        "vite.config.ts",
-      ],
+      project: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "vite.config.ts"],
       // `cloudflare:workers` is a workerd built-in, not an npm package.
       // `tw-animate-css` is pulled only via `@import` in styles.css.
       // `@tanstack/router-plugin` is applied inside `@tanstack/react-start`'s

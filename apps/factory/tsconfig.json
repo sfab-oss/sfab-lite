@@ -1,10 +1,10 @@
 {
   "extends": "@sfab-lite/tsconfig/tanstack-start.json",
-  "include": ["src", "ui/src", "vite.config.ts"],
-  "exclude": ["src/generated/seed.json", "src/**/*.test.ts", "ui/dist", "dist"],
+  "include": ["src", "vite.config.ts"],
+  "exclude": ["src/generated/seed.json", "src/**/*.test.ts", "dist"],
   "compilerOptions": {
     "paths": {
-      "@/*": ["./ui/src/*"]
+      "@/*": ["./src/*"]
     },
     "types": ["@cloudflare/workers-types", "vite/client"]
   }

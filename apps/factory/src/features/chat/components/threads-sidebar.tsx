@@ -16,8 +16,8 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useRouter } from "@/console-router";
 import { cn } from "@/lib/utils";
-import { useRouter } from "@/router";
 import { groupThreadsByApp, searchThreads } from "../model/thread-list";
 import type { Thread } from "../model/types";
 import { ThreadMenuItem, useIconCollapsed } from "./thread-menu-item";

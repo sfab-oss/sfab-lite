@@ -20,9 +20,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { type Route, useRouter } from "@/console-router";
 import { readyAppsFromList, useApps, useCreateApp } from "@/hooks/use-apps";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { type Route, useRouter } from "@/router";
 import { AppDetailScreen } from "@/screens/app-detail";
 import { AppsListScreen } from "@/screens/apps-list";
 import type { ComposerScope } from "./components/composer-scope-chip";
