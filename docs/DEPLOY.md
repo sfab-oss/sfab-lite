@@ -5,6 +5,44 @@ Three workers, deployed independently, that only work as a set:
 
 Merging to `main` deploys the platform. Treat a merge as a deploy gate.
 
+## One origin
+
+The factory is reachable at exactly one hostname, `lite.sfab.dev`, as a
+Cloudflare custom domain. `workers_dev` is off, and turning it back on would be
+a mistake rather than a convenience.
+
+Nothing configures that origin. better-auth's `baseURL`, the OAuth issuer, the
+RFC 8707 resource identifier, and the `__SFAB_PUBLIC_BASE__` handed to every
+served app are all derived from the origin of the request being handled — so a
+second reachable hostname is a second identity. Sessions established on one do
+not carry to the other, and an access token minted with one hostname's audience
+401s against the other with nothing in the response explaining why.
+
+`check` and `lint` have no public hostname at all; the factory reaches them over
+service bindings.
+
+### The domain is dashboard state, on purpose
+
+`apps/factory/wrangler.jsonc` has **no `routes` key**, and adding one would be a
+regression. A Worker custom domain is not a DNS record you point somewhere —
+there is no origin address — it is an attachment binding hostname to Worker,
+and creating it writes the DNS record as a side effect. Declaring it in
+wrangler would therefore require the CI deploy token to hold zone-level **DNS
+Edit** forever, widening a credential that runs on every merge in order to buy
+a setup step performed once.
+
+So the domain is attached by hand instead: **Workers & Pages → the worker →
+Settings → Domains & Routes → Add → Custom domain**. This is the mode
+Cloudflare documents — no `routes` key, `workers_dev` off, routing managed from
+the dashboard. Wrangler leaves an unlisted domain alone; only an explicit
+`routes: []` clears one.
+
+The cost is that the hostname is not in the repo and no gate checks it. That is
+what this section is for.
+
+Attach the domain **before** the deploy that turns `workers_dev` off, or the
+worker is briefly reachable at no hostname at all.
+
 ## The prerequisite that bites
 
 **`ADMIN_TOKEN` must be byte-identical in all three workers.**
