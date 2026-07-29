@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { protectedApp } from "./protected.js";
+import { protectedApp } from "./protected/index.js";
 import { handleAuthRoute, publicRoutes } from "./public.js";
 import type { ApiEnv } from "./types.js";
 
