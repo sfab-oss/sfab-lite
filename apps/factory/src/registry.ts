@@ -22,6 +22,7 @@ export interface AppRecord {
   name: string;
   status: AppStatus;
   createAttemptId: string | null;
+  liveSha: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,6 +38,7 @@ function toRecord(row: typeof app.$inferSelect): AppRecord {
     name: row.name,
     status: row.status as AppStatus,
     createAttemptId: row.createAttemptId,
+    liveSha: row.liveSha ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

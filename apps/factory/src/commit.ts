@@ -1,698 +1,75 @@
 /**
- * Commit / check orchestration for the factory host worker.
- *
- * Owns the AppDO stub surface, lint+compile+check gates, and the
- * accepted-attempt / conflict contract used by both ordinary commits and
- * app creation.
+ * Create-job helpers + re-exports for lint/check/CD import paths.
  */
-import {
-  type CheckResponse,
-  type CheckResult,
-  type LintMode,
-  type LintResult,
-  lintPasses,
-} from "@sfab-lite/core";
-import type {
-  AttemptKind,
-  AttemptRecord,
-  PutVersionInput,
-  VersionRecord,
-} from "./app-do.js";
-import { collectMigrations } from "./app-migrations.js";
-import { buildIndexHtml, compileClient } from "./compile-client.js";
-import { compileCss } from "./compile-css.js";
-import { compileServer } from "./compile-server.js";
-import { createDb } from "./db/index.js";
-import { publishOrgEvent } from "./org-events.js";
+
+export { appStub } from "./app-stub.js";
+export {
+  callCheck,
+  callLint,
+  checkPasses,
+  getLiveSha,
+  runCdForSha,
+} from "./cd.js";
+
+import { appStub } from "./app-stub.js";
 import type { AttemptResolver } from "./registry.js";
-import { getAppOrganizationId } from "./registry.js";
-import { diffSchema } from "./schema-ddl.js";
-import { probeSchema } from "./schema-probe.js";
-import { latestSnapshot } from "./schema-snapshots.js";
 
-/** Explicit stub surface — DO Rpc generics erase method returns under tsc alone. */
-export interface AppStub {
-  touch: () => Promise<{
-    ok: true;
-    appIdHint: string;
-    appSchemaVersion: number;
-    userCount: number | null;
-    liveVersionId: string | null;
-  }>;
-  bootstrap: (migrations: { id: string; sql: string }[]) => Promise<{
-    ok: true;
-    bootstrapped: boolean;
-    appSchemaVersion: number;
-    bootstrapMs: number;
-  }>;
-  seedCredentials: () => Promise<{ token: string; password: string }>;
-  scheduleCreateRun: (attemptId: string) => Promise<void>;
-  destroy: () => Promise<
-    | { ok: true; bytesFreed: number }
-    | { ok: false; error: "attempt_in_flight"; attemptId: string }
-  >;
-  putVersion: (input: {
-    parentId: string | null;
-    sourceFiles: Record<string, string>;
-    serverBundle: string;
-    assets: Record<string, string>;
-    kernelVersion: string;
-    serverSurfaceHash: string | null;
-  }) => Promise<{
-    ok: true;
-    id: string;
-    liveVersionId: string;
-    parentId: string | null;
-  }>;
-  revertTo: (versionId: string) => Promise<
-    | {
-        ok: true;
-        id: string;
-        attemptId: string;
-        liveVersionId: string;
-        parentId: string;
-        restoredFrom: string;
-      }
-    | { ok: false; error: string }
-  >;
-  listVersions: () => Promise<{
-    ok: true;
-    liveVersionId: string | null;
-    versions: {
-      id: string;
-      parentId: string | null;
-      createdAt: number;
-      kernelVersion: string;
-      serverBundleBytes: number;
-      assetKeys: string[];
-    }[];
-  }>;
-  getVersion: (
-    versionId: string
-  ) => Promise<{ ok: true; version: VersionRecord | null }>;
-  getLatest: () => Promise<{ ok: true; version: VersionRecord | null }>;
-  getLive: () => Promise<{
-    ok: true;
-    liveVersionId: string | null;
-    version: VersionRecord | null;
-  }>;
-  startAttempt: (
-    kind: AttemptKind,
-    parentId: string | null
-  ) => Promise<
-    | { ok: true; attemptId: string }
-    | { ok: false; error: "attempt_in_flight"; attemptId: string }
-  >;
-  failAttempt: (
-    attemptId: string,
-    status: "fail" | "error",
-    payload?: unknown
-  ) => Promise<{ ok: true; attemptId: string; status: string }>;
-  completeAttempt: (
-    attemptId: string,
-    input: PutVersionInput,
-    payload?: unknown
-  ) => Promise<{
-    ok: true;
-    id: string;
-    liveVersionId: string;
-    parentId: string | null;
-  }>;
-  getAttempt: (
-    attemptId: string
-  ) => Promise<{ ok: true; attempt: AttemptRecord | null }>;
-  listAttempts: (
-    limit?: number
-  ) => Promise<{ ok: true; attempts: AttemptRecord[] }>;
-}
-
-export function appStub(env: Env, appId: string): AppStub {
-  return env.APP_DO.get(env.APP_DO.idFromName(appId)) as unknown as AppStub;
-}
-
-/** Fail closed for /api/protected when ADMIN_TOKEN is configured. */
-function serviceHeaders(env: Env): Record<string, string> {
-  const h: Record<string, string> = { "content-type": "application/json" };
-  if (env.ADMIN_TOKEN) {
-    h["X-Admin-Token"] = env.ADMIN_TOKEN;
-  }
-  return h;
-}
-
-/**
- * Inline of former checkPassesForPublish — no IGNORED_CHECK_CODES.
- *
- * A predicate, so passing the gate is also what proves the body is a check
- * that ran: callers reading `checkMs` / `pass` / `lsReused` off it cannot do
- * so before they have gated on it.
- */
-export function checkPasses(body: CheckResponse | null): body is CheckResult {
-  if (!body?.ok) {
-    return false;
-  }
-  return body.diagnosticCount === 0;
-}
-
-export async function callLint(
-  env: Env,
-  appId: string,
-  files: Record<string, string>,
-  mode: LintMode = "lint"
-): Promise<{ http: number; wallMs: number; body: LintResult | null }> {
-  const t0 = Date.now();
-  const res = await env.LINT.fetch(
-    new Request("https://lint-worker/lint", {
-      method: "POST",
-      headers: serviceHeaders(env),
-      body: JSON.stringify({
-        appId,
-        files,
-        mode,
-      }),
-    })
-  );
-  const body = (await res.json().catch(() => null)) as LintResult | null;
-  return { http: res.status, wallMs: Date.now() - t0, body };
-}
-
-/**
- * Total attempts against the check worker, including the first.
- *
- * A full TypeScript program over the frozen types VFS sits right at the edge of
- * a Worker isolate's 128 MB, so the check worker dies with `exceededMemory` on
- * roughly half of all requests — measured, see
- * `apps/check/scripts/measure-split.mjs`. That is a property of the template's
- * dependency graph (drizzle-orm, better-auth and zod together account for ~550
- * of the 877 `.d.ts` files the program loads), not of any app's code, so no
- * app can avoid it and no retry count fixes it in principle.
- *
- * **The retry budget is bounded by wall clock, not by how many retries would
- * help.** `runCommitAttempt` runs under `ctx.waitUntil`, whose work is killed
- * after roughly 30 s — and a killed attempt writes no terminal status, so the
- * app sits in `creating` until the AppDO's stale sweep reclaims it 5 minutes
- * later as `attempt_abandoned`. Four attempts (~45 s) was measured doing
- * exactly that: three of eight creates hung for 5 minutes instead of failing
- * in 15 s, which is a strictly worse experience than the crash it replaced.
- *
- * Each check costs ~10 s in production, so two attempts is what fits beside
- * lint and compile. That buys ~50% -> ~75% and keeps a failure fast and
- * terminal. Raising this number without moving the work off `waitUntil` will
- * reintroduce the hang.
- *
- * This is a **mitigation, not a fix**. See
- * `docs/notes/2026-07-25-check-worker-memory.md`.
- */
-const CHECK_ATTEMPTS = 2;
-/**
- * Long enough to land on a replacement isolate rather than racing the dead
- * one, short enough to stay inside the waitUntil budget above.
- */
-const CHECK_RETRY_DELAY_MS = 300;
-
-/**
- * An `exceededMemory` kill surfaces as the service binding *throwing*, not as
- * an HTTP status — the isolate dies mid-response. An error status, by contrast,
- * is the check worker answering, so it is a real result and never retried.
- */
-export async function callCheck(
-  env: Env,
-  appId: string,
-  files: Record<string, string>,
-  forceCold = false
-): Promise<{
-  http: number;
-  wallMs: number;
-  body: CheckResponse | null;
-  attempts: number;
-}> {
-  const t0 = Date.now();
-  let lastError: unknown;
-
-  for (let attempt = 1; attempt <= CHECK_ATTEMPTS; attempt++) {
-    try {
-      const res = await env.CHECK.fetch(
-        new Request("https://check-worker/check", {
-          method: "POST",
-          headers: serviceHeaders(env),
-          body: JSON.stringify({ appId, files, forceCold }),
-        })
-      );
-      const body = (await res.json().catch(() => null)) as CheckResponse | null;
-      return {
-        http: res.status,
-        wallMs: Date.now() - t0,
-        body,
-        attempts: attempt,
-      };
-    } catch (e) {
-      lastError = e;
-      if (attempt < CHECK_ATTEMPTS) {
-        await new Promise((r) => setTimeout(r, CHECK_RETRY_DELAY_MS));
-      }
-    }
-  }
-
-  // Rethrow so the caller still records `attempt_crashed` with the real
-  // message. Swallowing this would turn a systemic limit into silent slowness.
-  throw lastError;
-}
-
-interface SchemaGateFailure {
-  error:
-    | "schema_migration_missing"
-    | "schema_unsafe"
-    | "schema_probe_failed"
-    | "schema_snapshot_unreadable"
-    | "schema_history_changed";
-  message: string;
-  detail: unknown;
-}
-
-/**
- * Check for drift, then apply the migrations, or refuse to publish.
- *
- * Two stages that an ordinary project keeps apart, and so do we. Drift — the
- * schema declaring something no migration creates — is a CI question, answered
- * from the files alone by diffing `migrations/meta/` against what the code
- * declares. Applying the pending migrations is the deploy step, and it runs
- * only once that question comes back clean.
- *
- * That order is the reverse of what this did when it read the live database,
- * and it is the safer one: refusing *after* applying migrations leaves an app
- * whose database moved for a deploy that never happened.
- */
-async function gateSchema(
-  env: Env,
-  stub: AppStub,
-  files: Record<string, string>
-): Promise<SchemaGateFailure | null> {
-  const probe = await probeSchema(env, files);
-  if (!probe.ok) {
-    return {
-      error: "schema_probe_failed",
-      message: probe.error,
-      detail: { probeMs: probe.ms },
-    };
-  }
-
-  let diff: ReturnType<typeof diffSchema>;
-  try {
-    diff = diffSchema(latestSnapshot(files), probe.snapshot);
-  } catch (cause) {
-    return {
-      error: "schema_snapshot_unreadable",
-      message: cause instanceof Error ? cause.message : String(cause),
-      detail: null,
-    };
-  }
-
-  if (diff.blocking.length > 0) {
-    return {
-      error: "schema_unsafe",
-      message:
-        "This schema change cannot be applied without losing data. Migrate it by hand, or restore the removed columns and tables.",
-      detail: { blocking: diff.blocking },
-    };
-  }
-
-  if (diff.statements.length > 0) {
-    return {
-      error: "schema_migration_missing",
-      message:
-        "The schema declares tables or columns no migration creates. Run `pnpm db:generate` to write one, then deploy again.",
-      detail: { pending: diff.additive, statements: diff.statements },
-    };
-  }
-
-  const migrations = collectMigrations(files);
-  if (migrations.length > 0) {
-    try {
-      await stub.bootstrap(migrations);
-    } catch (cause) {
-      // The ledger refusing: a migration that already ran has been edited,
-      // renamed, or removed. Publishing anyway would leave the database
-      // describing a history the workspace no longer contains.
-      return {
-        error: "schema_history_changed",
-        message: cause instanceof Error ? cause.message : String(cause),
-        detail: null,
-      };
-    }
-  }
-
-  return null;
-}
-
-/** Compile, or settle the attempt as an error and report that it did not. */
-async function gateCompile(
-  stub: AppStub,
-  attemptId: string,
-  files: Record<string, string>
-): Promise<Awaited<ReturnType<typeof compileAll>> | null> {
-  try {
-    return await compileAll(files);
-  } catch (e) {
-    await stub.failAttempt(attemptId, "error", {
-      error: "compile_failed",
-      message: e instanceof Error ? e.message : String(e),
-      stack: e instanceof Error ? e.stack : undefined,
-    });
-    return null;
-  }
-}
-
-/** Settle the attempt when the schema gate refuses, mirroring `gateLint`. */
-async function gateSchemaStep(
-  env: Env,
-  stub: AppStub,
-  attemptId: string,
-  files: Record<string, string>,
-  tAll0: number
-): Promise<boolean> {
-  const failure = await gateSchema(env, stub, files);
-  if (!failure) {
-    return false;
-  }
-  await stub.failAttempt(attemptId, "fail", {
-    ...failure,
-    publishGate: false,
-    totalMs: Date.now() - tAll0,
-  });
-  return true;
-}
-
-async function compileAll(files: Record<string, string>) {
-  const compiled = await compileServer(files);
-  const client = await compileClient(files);
-  const css = await compileCss(files);
-  const assets: Record<string, string> = {
-    "index.html": buildIndexHtml({
-      kernelVersion: compiled.kernelVersion,
-    }),
-    "assets/app.js": client.js,
-    "assets/app.css": css.css,
-  };
-  return { compiled, client, css, assets };
-}
-
-class DeployAbortedError extends Error {
-  constructor() {
-    super("deploy_aborted");
-    this.name = "DeployAbortedError";
-  }
-}
-
-function throwIfAborted(signal: AbortSignal | undefined): void {
-  if (signal?.aborted) {
-    throw new DeployAbortedError();
-  }
-}
-
-async function gateLint(
-  stub: AppStub,
-  attemptId: string,
-  lint: Awaited<ReturnType<typeof callLint>>,
-  tAll0: number
-): Promise<"fail" | "error" | null> {
-  if (lint.http >= 500 || lint.body?.ok === false) {
-    await stub.failAttempt(attemptId, "error", {
-      error: "lint_failed",
-      lintHttp: lint.http,
-      lintWallMs: lint.wallMs,
-      lint: lint.body,
-    });
-    return "error";
-  }
-  if (lint.body == null) {
-    await stub.failAttempt(attemptId, "error", {
-      error: "lint_failed",
-      lintHttp: lint.http,
-      lintWallMs: lint.wallMs,
-      lint: null,
-    });
-    return "error";
-  }
-  if (!lintPasses(lint.body)) {
-    await stub.failAttempt(attemptId, "fail", {
-      error: "lint_failed",
-      lintHttp: lint.http,
-      lintWallMs: lint.wallMs,
-      lint: lint.body,
-      publishGate: false,
-      totalMs: Date.now() - tAll0,
-    });
-    return "fail";
-  }
-  return null;
-}
-
-/**
- * The work half of a commit: lint → compile → check → version.
- *
- * Runs under `ctx.waitUntil`, after the response has already gone out, so it
- * has no caller to throw to. Every exit path must therefore write a terminal
- * attempt status — that is the entire reliability contract, because a poller
- * can only distinguish "still working" from "finished badly" if this function
- * never simply stops.
- *
- * `fail` means the submitted code did not pass the gate; `error` means we
- * broke. The distinction is what tells an agent whether to fix its diff or
- * retry the same one.
- *
- * Optional `signal`: agent bash deploy awaits this function on the turn so
- * exit codes stay real (factory `cpu_ms` is 300_000; commits measure 10–24s).
- * When the bash AbortController fires, we fail the attempt instead of leaving
- * it pending until STALE_ATTEMPT_MS.
- */
-export async function runCommitAttempt(
-  env: Env,
-  appId: string,
-  attemptId: string,
-  files: Record<string, string>,
-  parentId: string | null,
-  opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
-): Promise<"pass" | "fail" | "error" | "aborted"> {
-  const stub = appStub(env, appId);
-  const tAll0 = Date.now();
-  const signal = opts?.signal;
-
-  try {
-    throwIfAborted(signal);
-    const lint = await callLint(env, appId, files);
-    throwIfAborted(signal);
-    const lintGate = await gateLint(stub, attemptId, lint, tAll0);
-    if (lintGate) {
-      return lintGate;
-    }
-
-    const compiled = await gateCompile(stub, attemptId, files);
-    if (!compiled) {
-      return "error";
-    }
-
-    throwIfAborted(signal);
-    const check = await callCheck(
-      env,
-      appId,
-      files,
-      opts?.forceColdCheck ?? false
-    );
-    throwIfAborted(signal);
-    if (!(check.http < 500 && checkPasses(check.body))) {
-      await stub.failAttempt(attemptId, "fail", {
-        error: "check_failed",
-        checkHttp: check.http,
-        checkWallMs: check.wallMs,
-        checkAttempts: check.attempts,
-        check: check.body,
-        publishGate: false,
-        totalMs: Date.now() - tAll0,
-      });
-      return "fail";
-    }
-
-    throwIfAborted(signal);
-    if (await gateSchemaStep(env, stub, attemptId, files, tAll0)) {
-      return "fail";
-    }
-
-    const lintDiagCount = (lint.body?.files ?? []).reduce(
-      (n, f) => n + (f.diagnosticCount ?? 0),
-      0
-    );
-
-    const put = await stub.completeAttempt(
-      attemptId,
-      {
-        parentId,
-        sourceFiles: files,
-        serverBundle: compiled.compiled.serverBundle,
-        assets: compiled.assets,
-        kernelVersion: compiled.compiled.kernelVersion,
-        serverSurfaceHash: compiled.compiled.serverSurfaceHash,
-      },
-      {
-        live: true,
-        lintHttp: lint.http,
-        lintWallMs: lint.wallMs,
-        lintDiagnosticCount: lintDiagCount,
-        lintFileCount: lint.body?.fileCount ?? null,
-        lint: lint.body,
-        checkHttp: check.http,
-        checkWallMs: check.wallMs,
-        checkMs: check.body?.checkMs ?? null,
-        checkPass: check.body?.pass ?? null,
-        // >1 means the check worker died and was retried. Recorded so the OOM
-        // rate stays visible instead of hiding inside a longer commit.
-        checkAttempts: check.attempts,
-        lsReused: check.body?.lsReused ?? null,
-        compileMs: compiled.compiled.compileMs,
-        clientCompileMs: compiled.client.compileMs,
-        cssCompileMs: compiled.css.compileMs + compiled.css.buildMs,
-        totalCommitMs: Date.now() - tAll0,
-        serverBundleBytes: compiled.compiled.serverBundle.length,
-        clientBytes: compiled.client.js.length,
-        cssBytes: compiled.css.css.length,
-        cssCandidates: compiled.css.candidateCount,
-        kernelVersion: compiled.compiled.kernelVersion,
-        serverSurfaceHash: compiled.compiled.serverSurfaceHash,
-        clientBailouts: compiled.client.bailouts,
-        warnings: compiled.compiled.warnings,
-      }
-    );
-    const organizationId = await getAppOrganizationId(createDb(env), appId);
-    if (organizationId) {
-      publishOrgEvent(
-        { env, organizationId },
-        {
-          topic: "app_live_version_changed",
-          payload: { appId, liveVersionId: put.liveVersionId },
-        }
-      );
-    }
-    return "pass";
-  } catch (e) {
-    if (e instanceof DeployAbortedError || signal?.aborted) {
-      await stub
-        .failAttempt(attemptId, "error", {
-          error: "deploy_aborted",
-          totalMs: Date.now() - tAll0,
-        })
-        .catch(() => undefined);
-      return "aborted";
-    }
-    // Last resort. If even this write fails there is nothing left to record
-    // with — the stale sweep in the AppDO is the backstop for that case.
-    await stub
-      .failAttempt(attemptId, "error", {
-        error: "attempt_crashed",
-        message: e instanceof Error ? e.message : String(e),
-        totalMs: Date.now() - tAll0,
-      })
-      .catch(() => undefined);
-    return "error";
-  }
-}
-
-/**
- * Open an attempt and hand the work to `waitUntil`.
- *
- * Returns in milliseconds; the commit itself takes 10–24s (measured in
- * production). The guarantee is unchanged — check is still the gate and
- * no version exists without a pass. Only the waiting moved off the request.
- */
-/**
- * The accepted-attempt contract, in one place.
- *
- * Two callers enqueue work — an ordinary commit and app creation — and their
- * orchestration legitimately differs, since creation also has a D1 row to
- * settle. Their contract must not differ: a client polls a create exactly the
- * way it polls a commit. So the 202 shape and the poll URL live here rather
- * than being written out at each call site, where they could quietly drift.
- */
-export type AttemptAcceptedBody = {
+export type CreateJobAcceptedBody = {
   ok: true;
   appId: string;
-  kind: AttemptKind;
+  kind: "create";
   attemptId: string;
-  parentId: string | null;
+  parentId: null;
   status: "pending";
   poll: string;
 } & Record<string, unknown>;
 
-export interface AttemptConflictBody {
-  ok: false;
-  error: "attempt_in_flight";
-  appId: string;
-  attemptId: string;
-}
-
-export type AttemptEnqueueReply =
-  | { status: 202; body: AttemptAcceptedBody }
-  | { status: 409; body: AttemptConflictBody };
-
-export function attemptAccepted(
+export function createAccepted(
   appId: string,
-  kind: AttemptKind,
-  attemptId: string,
-  parentId: string | null,
+  jobId: string,
   extra?: Record<string, unknown>
-): { status: 202; body: AttemptAcceptedBody } {
+): { status: 202; body: CreateJobAcceptedBody } {
   return {
     status: 202,
     body: {
       ok: true,
       appId,
-      kind,
-      attemptId,
-      parentId,
+      kind: "create",
+      attemptId: jobId,
+      parentId: null,
       status: "pending",
-      poll: `/api/protected/apps/${encodeURIComponent(appId)}/attempts/${attemptId}`,
+      poll: `/api/protected/apps/${encodeURIComponent(appId)}/attempts/${jobId}`,
       ...extra,
     },
   };
 }
 
-/** The refusal half of the same contract — see `AppDO.startAttempt`. */
-export function attemptConflict(
+export function createConflict(
   appId: string,
-  attemptId: string
-): { status: 409; body: AttemptConflictBody } {
+  jobId: string
+): {
+  status: 409;
+  body: {
+    ok: false;
+    error: "attempt_in_flight";
+    appId: string;
+    attemptId: string;
+  };
+} {
   return {
     status: 409,
-    body: { ok: false, error: "attempt_in_flight", appId, attemptId },
+    body: {
+      ok: false,
+      error: "attempt_in_flight",
+      appId,
+      attemptId: jobId,
+    },
   };
 }
 
-export async function enqueueCommit(
-  env: Env,
-  ctx: ExecutionContext,
-  appId: string,
-  kind: AttemptKind,
-  files: Record<string, string>,
-  parentId: string | null,
-  opts?: { forceColdCheck?: boolean }
-): Promise<AttemptEnqueueReply> {
-  const start = await appStub(env, appId).startAttempt(kind, parentId);
-  if (!start.ok) {
-    return attemptConflict(appId, start.attemptId);
-  }
-
-  ctx.waitUntil(
-    runCommitAttempt(env, appId, start.attemptId, files, parentId, opts)
-  );
-
-  return attemptAccepted(appId, kind, start.attemptId, parentId);
-}
-
-/**
- * How the registry asks the AppDO what really happened to a seed attempt.
- * Passed in rather than imported by `registry.ts`, which must not reach into
- * the host worker's plumbing.
- */
 export function attemptResolver(env: Env): AttemptResolver {
-  return async (appId, attemptId) => {
-    const { attempt } = await appStub(env, appId).getAttempt(attemptId);
-    return attempt ? attempt.status : "missing";
+  return async (appId, jobId) => {
+    const { job } = await appStub(env, appId).getCreateJob(jobId);
+    return job ? job.status : "missing";
   };
 }

@@ -1,9 +1,13 @@
+/**
+ * Create an app: D1 row first (`creating`), then bootstrap + async seed via
+ * code host (TEMPLATE_SEED → main → CD → live_sha).
+ */
 import { APP_NAME_MAX_LENGTH, pickAppName } from "../../app-names.js";
 import {
   appStub,
-  attemptAccepted,
-  attemptConflict,
   attemptResolver,
+  createAccepted,
+  createConflict,
 } from "../../commit.js";
 import { reconcileCreatingApps } from "../../create-reconcile.js";
 import { createDb } from "../../db/index.js";
@@ -26,22 +30,6 @@ import {
 } from "../../registry.js";
 import type { AppCtx, OrgCtx } from "../../routes.js";
 
-/**
- * Create an app: D1 row first (`creating`), then bootstrap + async seed.
- *
- * App ids are server-minted (`app_…`). The old caller-supplied id path also
- * returned `alreadySeeded: true` on collision — with owning organizations that
- * was a tenancy hole (silently attach to whoever already held the name). Gone.
- *
- * The owning organization comes from the dispatcher: a session acts
- * on its own, a token must name one via `?organizationId=`. The body carries
- * only `name`. `registry.ts` was written to take the org as an argument and
- * needed no change.
- *
- * `name` is optional: the console does not have one to send, because the app
- * is created from a prompt describing what to build rather than what to call
- * it. Omitting it draws a placeholder from `app-names.ts`.
- */
 export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   const { organizationId } = rc;
   const requested = body.name?.trim();
@@ -78,7 +66,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     );
   }
 
-  const start = await stub.startAttempt("create", null);
+  const start = await stub.startCreateJob();
   if (!start.ok) {
     const failed = await markCreateFailed(db, appId);
     if (failed) {
@@ -87,13 +75,13 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
         { topic: "app_list_changed", payload: { appId } }
       );
     }
-    return attemptConflict(appId, start.attemptId);
+    return createConflict(appId, start.jobId);
   }
 
-  await setCreateAttemptId(db, appId, start.attemptId);
-  await stub.scheduleCreateRun(start.attemptId);
+  await setCreateAttemptId(db, appId, start.jobId);
+  await stub.scheduleCreateRun(start.jobId);
 
-  return attemptAccepted(appId, "create", start.attemptId, null, {
+  return createAccepted(appId, start.jobId, {
     organizationId,
     name,
     appStatus: "creating",
@@ -118,13 +106,6 @@ export async function handleListApps(rc: OrgCtx) {
   };
 }
 
-/**
- * Read one app's registry record.
- *
- * Dispatch already authorized this `appId`, so the read is by id alone —
- * same as every other app-scoped route. The stale-`creating` sweep lives
- * here because a status poll is when reconciling matters.
- */
 export async function handleGetApp(rc: AppCtx) {
   const db = createDb(rc.env);
   await reconcileCreatingApps(rc.env, db, attemptResolver(rc.env));
@@ -138,10 +119,6 @@ export async function handleGetApp(rc: AppCtx) {
   };
 }
 
-/**
- * Rename an app. The generated name is a placeholder, so replacing it is an
- * ordinary edit rather than a recovery from an error.
- */
 export async function handleRenameApp(rc: AppCtx, body: RenameAppBody) {
   const name = body.name.trim();
   const record = await renameAppUnscoped(createDb(rc.env), rc.appId, name);
@@ -158,18 +135,6 @@ export async function handleRenameApp(rc: AppCtx, body: RenameAppBody) {
   };
 }
 
-/**
- * Delete an app: Durable Object storage first, registry row second.
- *
- * That order is the recoverable one. If the registry delete fails, a row is
- * left pointing at empty storage — visible in the console, and deleting again
- * finishes the job. The reverse leaves storage that no row indexes, and since
- * Durable Objects cannot be enumerated, nothing could ever find it again.
- *
- * Not idempotent by accident: a second delete still asks the DO (cheap, now
- * empty) and reports `removed: false` for the row, so a caller retrying after
- * a partial failure gets told what was actually left to do.
- */
 export async function handleDeleteApp(
   rc: AppCtx
 ): Promise<ProtectedReply<unknown>> {
@@ -177,9 +142,6 @@ export async function handleDeleteApp(
   const db = createDb(rc.env);
   const organizationId = await getAppOrganizationId(db, appId);
   const destroyed = await appStub(rc.env, appId).destroy();
-  if (!destroyed.ok) {
-    return { status: 409, body: { appId, ...destroyed } };
-  }
   const removed = await deleteAppUnscoped(db, appId);
   if (organizationId) {
     publishOrgEvent(

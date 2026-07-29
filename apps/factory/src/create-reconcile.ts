@@ -2,7 +2,7 @@
  * Host-side create reconcile: sweep stale `creating` rows, then publish org
  * events. Registry stays data-only; this module owns Env / AppDO / the bus.
  */
-import { appStub } from "./commit.js";
+import { getLiveSha } from "./cd.js";
 import type { Db } from "./db/index.js";
 import { publishOrgEvent } from "./org-events.js";
 import { type AttemptResolver, sweepStaleCreating } from "./registry.js";
@@ -22,17 +22,15 @@ export async function reconcileCreatingApps(
     if (action.kind !== "pass") {
       continue;
     }
-    const live = await appStub(env, appId)
-      .getLive()
-      .catch(() => null);
-    if (!live?.liveVersionId) {
+    const liveSha = await getLiveSha(env, appId).catch(() => null);
+    if (!liveSha) {
       continue;
     }
     publishOrgEvent(
       { env, organizationId },
       {
-        topic: "app_live_version_changed",
-        payload: { appId, liveVersionId: live.liveVersionId },
+        topic: "app_live_changed",
+        payload: { appId, liveSha },
       }
     );
   }

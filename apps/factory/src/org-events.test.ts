@@ -8,8 +8,8 @@ describe("packOrgEvent", () => {
   it("stamps wire frame without putting org on the payload", () => {
     const frame = packOrgEvent(
       {
-        topic: "app_live_version_changed",
-        payload: { appId: "app_1", liveVersionId: "v_1" },
+        topic: "app_live_changed",
+        payload: { appId: "app_1", liveSha: "abc123" },
       },
       42,
       "evt_test"
@@ -19,8 +19,8 @@ describe("packOrgEvent", () => {
       kind: "event",
       seq: 42,
       id: "evt_test",
-      topic: "app_live_version_changed",
-      payload: { appId: "app_1", liveVersionId: "v_1" },
+      topic: "app_live_changed",
+      payload: { appId: "app_1", liveSha: "abc123" },
     });
   });
 

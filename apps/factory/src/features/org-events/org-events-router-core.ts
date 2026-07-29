@@ -6,7 +6,7 @@ export interface OrgEventsRouterDeps {
   invalidateApp: (appId: string) => void;
   invalidateVersions: (appId: string) => void;
   refreshAttendedApp: (appId: string) => void;
-  onLiveVersion: (appId: string, liveVersionId: string) => void;
+  onLiveVersion: (appId: string, liveSha: string) => void;
 }
 
 function asString(value: unknown): string | null {
@@ -38,16 +38,16 @@ export function routeOrgEvent(
     });
     return;
   }
-  if (topic === "app_live_version_changed") {
+  if (topic === "app_live_changed") {
     const appId = asString(payload.appId);
-    const liveVersionId = asString(payload.liveVersionId);
-    if (!(appId && liveVersionId)) {
+    const liveSha = asString(payload.liveSha);
+    if (!(appId && liveSha)) {
       return;
     }
     deps.coalesce(() => {
       deps.invalidateVersions(appId);
     });
     deps.refreshAttendedApp(appId);
-    deps.onLiveVersion(appId, liveVersionId);
+    deps.onLiveVersion(appId, liveSha);
   }
 }

@@ -28,11 +28,6 @@ export type AttemptRecord = Ok<
   >
 >["attempt"];
 
-export type VersionSummary = InferResponseType<
-  (typeof protectedApi.apps)[":appId"]["versions"]["$get"],
-  200
->["versions"][number];
-
 export class AuthRequiredError extends Error {
   constructor() {
     super("auth_required");
@@ -216,28 +211,8 @@ export async function deleteApp(appId: string): Promise<void> {
   }
 }
 
-export async function listVersions(appId: string): Promise<{
-  liveVersionId: string | null;
-  versions: VersionSummary[];
-}> {
-  const res = await protectedApi.apps[":appId"].versions.$get({
-    param: { appId },
-  });
-  throwIfUnauthorized(res);
-  if (res.status !== 200) {
-    throw new Error(
-      await errorMessage(res, `list versions failed (${res.status})`)
-    );
-  }
-  const body = await res.json();
-  return {
-    liveVersionId: body.liveVersionId,
-    versions: body.versions,
-  };
-}
-
 export async function getLiveSources(appId: string): Promise<{
-  liveVersionId: string;
+  liveSha: string;
   sourceFiles: Record<string, string>;
 }> {
   const res = await protectedApi.apps[":appId"].live.$get({
@@ -251,7 +226,7 @@ export async function getLiveSources(appId: string): Promise<{
   }
   const body = await res.json();
   return {
-    liveVersionId: body.liveVersionId,
+    liveSha: body.liveSha,
     sourceFiles: body.sourceFiles,
   };
 }

@@ -195,7 +195,7 @@ describe("diffSchema — additive", () => {
 
   it("ignores factory, SQLite, Durable Object, and miniflare tables", () => {
     const actual = snapshot([
-      table("_sfab_versions", [column("id", "text")]),
+      table("_sfab_create_jobs", [column("id", "text")]),
       table("sqlite_sequence", [column("name", "text")]),
       table("_cf_KV", [column("key", "text")]),
       // Local-dev only, and the reason it is here: it exists under
