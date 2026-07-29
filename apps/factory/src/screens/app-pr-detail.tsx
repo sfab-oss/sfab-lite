@@ -3,9 +3,7 @@ import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CheckRunRecord, PrRecord } from "../api";
-import { AppLayoutHeader } from "../components/brand/app-layout";
 import { appPrPreviewBasePath } from "../features/preview/reload-preview";
-import { useApp } from "../hooks/use-apps";
 import { useMergePr, usePr, useRerun } from "../hooks/use-prs";
 
 export function AppPrDetailScreen({
@@ -15,12 +13,10 @@ export function AppPrDetailScreen({
   appId: string;
   prNumber: number;
 }) {
-  const appQuery = useApp(appId);
   const prQuery = usePr(appId, prNumber);
   const mergePr = useMergePr(appId, prNumber);
   const rerun = useRerun(appId);
   const [mergeError, setMergeError] = useState<string | null>(null);
-  const app = appQuery.data ?? null;
   const pr = prQuery.data?.pr ?? null;
   const checks = prQuery.data?.checks ?? [];
 
@@ -43,62 +39,43 @@ export function AppPrDetailScreen({
   };
 
   return (
-    <>
-      <AppLayoutHeader className="px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Link
-            className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
-            to="/apps"
-          >
-            Apps
-          </Link>
-          <span className="text-muted-foreground text-sm">/</span>
-          <Link
-            className="truncate font-medium text-sm no-underline hover:underline"
-            params={{ appId }}
-            to="/apps/$appId"
-          >
-            {app?.name ?? "App"}
-          </Link>
-          <span className="text-muted-foreground text-sm">/</span>
-          <Link
-            className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
-            params={{ appId }}
-            to="/apps/$appId/prs"
-          >
-            PRs
-          </Link>
-          <span className="text-muted-foreground text-sm">/</span>
-          <span className="shrink-0 font-mono text-sm">#{prNumber}</span>
-        </div>
-      </AppLayoutHeader>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-        {prQuery.isPending && !pr ? (
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-        ) : null}
-
-        {prQuery.error instanceof Error ? (
-          <p className="text-destructive">{prQuery.error.message}</p>
-        ) : null}
-
-        {pr ? (
-          <PrBody
-            appId={appId}
-            checks={checks}
-            mergeError={mergeError}
-            mergePending={mergePr.isPending}
-            onMerge={onMerge}
-            onRerun={onRerun}
-            pr={pr}
-            rerunPending={rerun.isPending}
-          />
-        ) : null}
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <div className="mb-4 flex items-center gap-2 text-sm">
+        <Link
+          className="text-muted-foreground no-underline hover:underline"
+          params={{ appId }}
+          to="/apps/$appId/prs"
+        >
+          Pull requests
+        </Link>
+        <span className="text-muted-foreground">/</span>
+        <span className="font-mono">#{prNumber}</span>
       </div>
-    </>
+
+      {prQuery.isPending && !pr ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+      ) : null}
+
+      {prQuery.error instanceof Error ? (
+        <p className="text-destructive">{prQuery.error.message}</p>
+      ) : null}
+
+      {pr ? (
+        <PrBody
+          appId={appId}
+          checks={checks}
+          mergeError={mergeError}
+          mergePending={mergePr.isPending}
+          onMerge={onMerge}
+          onRerun={onRerun}
+          pr={pr}
+          rerunPending={rerun.isPending}
+        />
+      ) : null}
+    </div>
   );
 }
 

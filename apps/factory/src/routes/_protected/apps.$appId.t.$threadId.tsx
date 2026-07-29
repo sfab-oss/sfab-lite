@@ -1,20 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
-import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
-
-const ChatScreen = lazy(() =>
-  import("@/features/chat/page").then((m) => ({ default: m.ChatScreen }))
-);
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_protected/apps/$appId/t/$threadId")({
   ssr: false,
-  component: ProtectedThreadChat,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/apps/$appId/agent/$threadId",
+      params: {
+        appId: params.appId,
+        threadId: params.threadId,
+      },
+      replace: true,
+    });
+  },
+  component: () => null,
 });
-
-function ProtectedThreadChat() {
-  return (
-    <Suspense fallback={<ConsoleShellSkeleton />}>
-      <ChatScreen />
-    </Suspense>
-  );
-}

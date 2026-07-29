@@ -37,6 +37,7 @@ import {
 } from "./data/app-agent-bridge";
 import { useChatData } from "./data/chat-data-context";
 import { useWorkspaceTabsStore } from "./lib/workspace-tabs-store";
+import { formatRelativeTime } from "./model/thread-list";
 import type { Thread } from "./model/types";
 import { useConsoleRoute } from "./use-console-route";
 import { useHandleThreadDeleted } from "./use-handle-thread-deleted";
@@ -93,6 +94,7 @@ export function ChatScreen() {
   const {
     appId: routeAppId,
     threadId: routeThreadId,
+    goAgentHome,
     goChatHome,
     goThread,
   } = route;
@@ -128,6 +130,14 @@ export function ChatScreen() {
       const appName = known?.appName ?? null;
       setScope(routeAppId, appName);
       attend(routeAppId, appName);
+      return;
+    }
+    if (routeAppId) {
+      const known = readyApps.find((app) => app.appId === routeAppId);
+      const appName = known?.appName ?? null;
+      setScope(routeAppId, appName);
+      attend(routeAppId, appName);
+      setActiveThreadId(null);
       return;
     }
     setActiveThreadId(null);
@@ -189,21 +199,33 @@ export function ChatScreen() {
       setWorkspaceOpen(false);
       setShellError(null);
       createApp.reset();
-      goChatHome();
+      goAgentHome(appId);
     },
-    [attend, createApp, goChatHome, setScope, setWorkspaceOpen]
+    [attend, createApp, goAgentHome, setScope, setWorkspaceOpen]
   );
 
   const goHome = useCallback(() => {
     setActiveThreadId(null);
-    clearScope();
-    clearAttention();
     setSummaryOpen(false);
     setWorkspaceOpen(false);
     setShellError(null);
     createApp.reset();
+    if (routeAppId) {
+      goAgentHome(routeAppId);
+      return;
+    }
+    clearScope();
+    clearAttention();
     goChatHome();
-  }, [clearAttention, clearScope, createApp, goChatHome, setWorkspaceOpen]);
+  }, [
+    clearAttention,
+    clearScope,
+    createApp,
+    goAgentHome,
+    goChatHome,
+    routeAppId,
+    setWorkspaceOpen,
+  ]);
 
   const createThreadFromBlank = useCallback(
     async (text: string) => {
@@ -272,16 +294,35 @@ export function ChatScreen() {
     }
   }, [createApp, navigate]);
 
-  const composerScope = useMemo<ComposerScope>(
-    () => ({
+  const composerScope = useMemo<ComposerScope | undefined>(() => {
+    if (routeAppId) {
+      return;
+    }
+    return {
       appId: scopeAppId,
       appName: scopedApp?.appName ?? scopeAppName,
       apps: readyApps,
       onAttendApp: attendApp,
       onClearScope: goHome,
-    }),
-    [attendApp, goHome, readyApps, scopeAppId, scopeAppName, scopedApp]
-  );
+    };
+  }, [
+    attendApp,
+    goHome,
+    readyApps,
+    routeAppId,
+    scopeAppId,
+    scopeAppName,
+    scopedApp,
+  ]);
+
+  const appThreads = useMemo(() => {
+    if (!routeAppId) {
+      return [];
+    }
+    return threads
+      .filter((thread) => thread.appId === routeAppId)
+      .sort((left, right) => right.updatedAt - left.updatedAt);
+  }, [routeAppId, threads]);
 
   const onSetWorkspaceOpen = (
     value: boolean | ((open: boolean) => boolean)
@@ -299,12 +340,20 @@ export function ChatScreen() {
 
   const chatProps: ChatChromeProps = {
     activeThread: displayThread,
+    appThreads,
     canDock,
     createError,
     creating,
     onBlankSubmit: createThreadFromBlank,
     onCloseRail: () => setSummaryOpen(false),
-    onCreateEmptyApp: scopeAppId || activeThreadId ? undefined : createEmptyApp,
+    onCreateEmptyApp:
+      routeAppId || scopeAppId || activeThreadId ? undefined : createEmptyApp,
+    onSelectThread: (threadId) => {
+      if (!routeAppId) {
+        return;
+      }
+      goThread(routeAppId, threadId);
+    },
     onSeedConsumed: consumeThreadSeed,
     onSetContainerNode: setContainerNode,
     onSetSummaryOpen: setSummaryOpen,
@@ -324,18 +373,20 @@ export function ChatScreen() {
 
 interface ChatChromeProps {
   activeThread: Thread | null;
+  appThreads: Thread[];
   canDock: boolean;
   createError: string | null;
   creating: boolean;
   onBlankSubmit: (text: string) => void;
   onCloseRail: () => void;
   onCreateEmptyApp?: () => void;
+  onSelectThread: (threadId: string) => void;
   onSeedConsumed: (threadId: string) => void;
   onSetContainerNode: (node: HTMLElement | null) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onThreadDeleted: (thread: Thread) => void;
-  scope: ComposerScope;
+  scope?: ComposerScope;
   seedMessage: string | null;
   summaryOpen: boolean;
   workspaceOpen: boolean;
@@ -400,12 +451,14 @@ function DesktopLayout(props: ChatChromeProps) {
 
 function ChatColumn({
   activeThread,
+  appThreads,
   canDock,
   createError,
   creating,
   onBlankSubmit,
   onCloseRail,
   onCreateEmptyApp,
+  onSelectThread,
   onSeedConsumed,
   onSetContainerNode,
   onSetSummaryOpen,
@@ -453,7 +506,7 @@ function ChatColumn({
             <div className="mb-6 max-w-md text-center">
               <p className="font-medium text-lg">What should we build?</p>
               <p className="mt-1 text-muted-foreground text-sm">
-                Describe an app or pick up a thread from the sidebar.
+                Start a new conversation or open a thread below.
               </p>
             </div>
             <div className="w-full max-w-3xl">
@@ -463,7 +516,7 @@ function ChatColumn({
                 placeholder={
                   creating
                     ? "Creating app…"
-                    : "Describe the app you want to build…"
+                    : "Describe what you want to change…"
                 }
                 running={creating}
                 scope={scope}
@@ -485,6 +538,29 @@ function ChatColumn({
                 <p className="mt-2 text-center text-destructive text-sm">
                   {createError}
                 </p>
+              ) : null}
+              {appThreads.length > 0 ? (
+                <ul className="mt-8 flex list-none flex-col gap-1 border-border border-t p-0 pt-6">
+                  <li className="mb-1 px-1 text-muted-foreground text-xs">
+                    Threads
+                  </li>
+                  {appThreads.map((thread) => (
+                    <li key={thread.id}>
+                      <button
+                        className="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
+                        onClick={() => onSelectThread(thread.id)}
+                        type="button"
+                      >
+                        <span className="min-w-0 truncate font-medium">
+                          {thread.title}
+                        </span>
+                        <span className="shrink-0 text-muted-foreground text-xs">
+                          {formatRelativeTime(thread.updatedAt)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               ) : null}
             </div>
           </div>
@@ -511,48 +587,46 @@ function ThreadHeader({
   summaryOpen: boolean;
   workspaceOpen: boolean;
 }) {
+  if (!activeThread) {
+    return null;
+  }
+
   return (
     <AppLayoutHeader className="px-3">
-      {activeThread ? (
-        <>
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <span className="truncate font-medium text-sm">
-              {activeThread.title}
-            </span>
-            <ThreadHeaderMenu
-              onDeleted={onThreadDeleted}
-              readMessages={readMessages}
-              thread={activeThread}
-            />
-          </div>
-          <AppLayoutHeaderActions>
-            <Button
-              aria-label={
-                summaryOpen ? "Hide summary panel" : "Show summary panel"
-              }
-              aria-pressed={summaryOpen}
-              onClick={() => onSetSummaryOpen((open) => !open)}
-              size="icon-sm"
-              type="button"
-              variant={summaryOpen ? "secondary" : "ghost"}
-            >
-              <ListTree className="size-4" />
-            </Button>
-            <Button
-              aria-label={
-                workspaceOpen ? "Hide workspace panel" : "Show workspace panel"
-              }
-              aria-pressed={workspaceOpen}
-              onClick={() => onSetWorkspaceOpen((open) => !open)}
-              size="icon-sm"
-              type="button"
-              variant={workspaceOpen ? "secondary" : "ghost"}
-            >
-              <PanelRight className="size-4" />
-            </Button>
-          </AppLayoutHeaderActions>
-        </>
-      ) : null}
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <span className="truncate font-medium text-sm">
+          {activeThread.title}
+        </span>
+        <ThreadHeaderMenu
+          onDeleted={onThreadDeleted}
+          readMessages={readMessages}
+          thread={activeThread}
+        />
+      </div>
+      <AppLayoutHeaderActions>
+        <Button
+          aria-label={summaryOpen ? "Hide summary panel" : "Show summary panel"}
+          aria-pressed={summaryOpen}
+          onClick={() => onSetSummaryOpen((open) => !open)}
+          size="icon-sm"
+          type="button"
+          variant={summaryOpen ? "secondary" : "ghost"}
+        >
+          <ListTree className="size-4" />
+        </Button>
+        <Button
+          aria-label={
+            workspaceOpen ? "Hide workspace panel" : "Show workspace panel"
+          }
+          aria-pressed={workspaceOpen}
+          onClick={() => onSetWorkspaceOpen((open) => !open)}
+          size="icon-sm"
+          type="button"
+          variant={workspaceOpen ? "secondary" : "ghost"}
+        >
+          <PanelRight className="size-4" />
+        </Button>
+      </AppLayoutHeaderActions>
     </AppLayoutHeader>
   );
 }

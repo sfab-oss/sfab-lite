@@ -1,11 +1,6 @@
 import { AgentSigil } from "@sfab-lite/ui/components/icons/agent-sigil";
 import { LogoDots } from "@sfab-lite/ui/components/icons/logo-dots";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@sfab-lite/ui/components/shadcn/collapsible";
-import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -13,56 +8,32 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
   SidebarRail,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from "@sfab-lite/ui/components/shadcn/sidebar";
 import { useNavigate } from "@tanstack/react-router";
-import { AppWindow, ChevronRight, Home, Plus } from "lucide-react";
-import { useMemo } from "react";
-import { groupThreadsByApp, searchThreads } from "../model/thread-list";
-import type { Thread } from "../model/types";
-import { ThreadMenuItem } from "./thread-menu-item";
-import { ThreadSearch } from "./thread-search";
+import { AppWindow, Plus } from "lucide-react";
 import { ThreadsSidebarFooter } from "./threads-sidebar-footer";
 
 export interface SessionThreadsSidebarProps {
   activeAppId?: string | null;
-  activeThreadId: string | null;
+  apps: Array<{ appId: string; appName: string }>;
   appsActive?: boolean;
-  homeActive?: boolean;
-  knownApps?: Array<{ appId: string; appName: string }>;
-  onGoHome: () => void;
-  onNewThread: () => void;
-  onSearchChange: (search: string) => void;
-  onSelectThread: (threadId: string) => void;
+  onNewApp: () => void;
   onSignOut?: () => void;
-  onThreadDeleted?: (thread: Thread) => void;
   railClassName?: string;
-  search: string;
   showCollapseTrigger?: boolean;
   showRail?: boolean;
-  threads: Thread[];
 }
 
 export function SessionThreadsSidebar({
-  threads,
-  knownApps = [],
+  apps,
   activeAppId = null,
-  activeThreadId,
-  search,
-  onSearchChange,
-  onSelectThread,
-  onGoHome,
-  onNewThread,
+  onNewApp,
   onSignOut,
-  onThreadDeleted,
-  homeActive = false,
   appsActive = false,
   showRail = true,
   railClassName = "inset-y-2",
@@ -71,23 +42,6 @@ export function SessionThreadsSidebar({
   const { isMobile, setOpenMobile } = useSidebar();
   const navigate = useNavigate();
 
-  const visible = useMemo(
-    () => searchThreads(threads, search),
-    [threads, search]
-  );
-
-  const appGroups = useMemo(
-    () => groupThreadsByApp(visible, knownApps),
-    [knownApps, visible]
-  );
-
-  const selectThread = (threadId: string) => {
-    onSelectThread(threadId);
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
-
   const openApp = (appId: string) => {
     navigate({ to: "/apps/$appId", params: { appId } });
     if (isMobile) {
@@ -95,15 +49,15 @@ export function SessionThreadsSidebar({
     }
   };
 
-  const goHome = () => {
-    onGoHome();
+  const goApps = () => {
+    navigate({ to: "/apps" });
     if (isMobile) {
       setOpenMobile(false);
     }
   };
 
-  const goApps = () => {
-    navigate({ to: "/apps" });
+  const createApp = () => {
+    onNewApp();
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -136,17 +90,6 @@ export function SessionThreadsSidebar({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                isActive={homeActive}
-                onClick={goHome}
-                tooltip="Home"
-                type="button"
-              >
-                <Home className="size-4" />
-                <span>Home</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
                 isActive={appsActive && !activeAppId}
                 onClick={goApps}
                 tooltip="All apps"
@@ -159,40 +102,35 @@ export function SessionThreadsSidebar({
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarSeparator />
-
         <SidebarGroup>
           <SidebarGroupLabel>Apps</SidebarGroupLabel>
           <SidebarGroupAction
-            aria-label="New thread"
-            onClick={onNewThread}
-            title="New thread"
+            aria-label="New app"
+            onClick={createApp}
+            title="New app"
           >
             <Plus />
-            <span className="sr-only">New thread</span>
+            <span className="sr-only">New app</span>
           </SidebarGroupAction>
-          <div className="px-2 pb-1 group-data-[collapsible=icon]:hidden">
-            <ThreadSearch onSearchChange={onSearchChange} search={search} />
-          </div>
 
-          {appGroups.length === 0 ? (
+          {apps.length === 0 ? (
             <p className="px-2 py-3 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
-              {search.trim() ? "No apps match this search." : "No apps yet."}
+              No apps yet.
             </p>
           ) : (
             <SidebarMenu>
-              {appGroups.map((group) => (
-                <AppBucket
-                  active={activeAppId === group.appId}
-                  activeThreadId={activeThreadId}
-                  appId={group.appId}
-                  key={group.appId}
-                  label={group.appName}
-                  onOpenApp={() => openApp(group.appId)}
-                  onSelectThread={selectThread}
-                  onThreadDeleted={onThreadDeleted}
-                  threads={group.threads}
-                />
+              {apps.map((app) => (
+                <SidebarMenuItem key={app.appId}>
+                  <SidebarMenuButton
+                    isActive={activeAppId === app.appId}
+                    onClick={() => openApp(app.appId)}
+                    tooltip={app.appName}
+                    type="button"
+                  >
+                    <AgentSigil className="size-4" id={app.appId} />
+                    <span>{app.appName}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               ))}
             </SidebarMenu>
           )}
@@ -201,89 +139,5 @@ export function SessionThreadsSidebar({
       <ThreadsSidebarFooter onSignOut={onSignOut} />
       {showRail ? <SidebarRail className={railClassName} /> : null}
     </Sidebar>
-  );
-}
-
-function AppBucket({
-  active,
-  appId,
-  label,
-  threads,
-  activeThreadId,
-  onOpenApp,
-  onSelectThread,
-  onThreadDeleted,
-}: {
-  active: boolean;
-  activeThreadId: string | null;
-  appId: string;
-  label: string;
-  onOpenApp: () => void;
-  onSelectThread: (threadId: string) => void;
-  onThreadDeleted?: (thread: Thread) => void;
-  threads: Thread[];
-}) {
-  const hasThreads = threads.length > 0;
-  const defaultOpen =
-    active || threads.some((thread) => thread.id === activeThreadId);
-  const icon = <AgentSigil className="size-4" id={appId} />;
-
-  if (!hasThreads) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          isActive={active}
-          onClick={onOpenApp}
-          tooltip={label}
-          type="button"
-        >
-          {icon}
-          <span>{label}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    );
-  }
-
-  return (
-    <Collapsible
-      className="group/collapsible"
-      defaultOpen={defaultOpen}
-      render={<SidebarMenuItem />}
-    >
-      <SidebarMenuButton
-        isActive={active}
-        onClick={onOpenApp}
-        tooltip={label}
-        type="button"
-      >
-        {icon}
-        <span>{label}</span>
-      </SidebarMenuButton>
-      <CollapsibleTrigger
-        render={
-          <SidebarMenuAction
-            aria-label={`Toggle threads for ${label}`}
-            className="data-[panel-open]:rotate-90"
-          />
-        }
-      >
-        <ChevronRight />
-        <span className="sr-only">Toggle</span>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <SidebarMenuSub>
-          {threads.map((thread) => (
-            <ThreadMenuItem
-              active={activeThreadId === thread.id}
-              key={thread.id}
-              nested
-              onDeleted={onThreadDeleted}
-              onSelect={() => onSelectThread(thread.id)}
-              thread={thread}
-            />
-          ))}
-        </SidebarMenuSub>
-      </CollapsibleContent>
-    </Collapsible>
   );
 }

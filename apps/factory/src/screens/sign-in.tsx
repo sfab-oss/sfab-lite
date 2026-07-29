@@ -72,7 +72,7 @@ export function SignInScreen({
 
   useEffect(() => {
     if (!(destination || sessionPending) && session?.user) {
-      navigate({ to: "/", replace: true });
+      navigate({ to: "/apps", replace: true });
     }
   }, [session, sessionPending, navigate, destination]);
 
@@ -120,7 +120,7 @@ export function SignInScreen({
             onSignedIn={
               destination?.onSignedIn ??
               (() => {
-                navigate({ to: "/", replace: true });
+                navigate({ to: "/apps", replace: true });
               })
             }
             setMode={setMode}

@@ -1,9 +1,14 @@
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
-import type { AppRecord, AttemptRecord } from "../api";
-import { AppLayoutHeader } from "../components/brand/app-layout";
+import type {
+  AppRecord,
+  AttemptRecord,
+  CheckRunRecord,
+  PrRecord,
+} from "../api";
 import { useApp, useAppAttempt } from "../hooks/use-apps";
+import { usePrs, useRuns } from "../hooks/use-prs";
 import { StatusBadge } from "./apps-list";
 
 export function AppDetailScreen({ appId }: { appId: string }) {
@@ -16,85 +21,66 @@ export function AppDetailScreen({ appId }: { appId: string }) {
       : null,
     { poll: app?.status === "creating" }
   );
+  const prsQuery = usePrs(appId);
+  const runsQuery = useRuns(appId);
 
   let error: string | null = null;
   if (appQuery.error instanceof Error) {
     error = appQuery.error.message;
   }
 
+  const openPrs = (prsQuery.data ?? []).filter((pr) => pr.status === "open");
+  const latestRun = runsQuery.data?.[0] ?? null;
+
   return (
-    <>
-      <AppLayoutHeader className="px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Link
-            className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
-            to="/apps"
-          >
-            Apps
-          </Link>
-          <span className="text-muted-foreground text-sm">/</span>
-          <span className="truncate font-medium text-sm">
-            {app?.name ?? "App"}
-          </span>
+    <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      {error ? <p className="text-destructive">{error}</p> : null}
+
+      {appQuery.isPending && !app ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-24 w-full max-w-lg" />
         </div>
-      </AppLayoutHeader>
+      ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-        {error ? <p className="text-destructive">{error}</p> : null}
-
-        {appQuery.isPending && !app ? (
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-48" />
-            <div className="mt-2 flex gap-3">
-              <Skeleton className="h-9 w-24" />
-              <Skeleton className="h-9 w-28" />
-            </div>
-          </div>
-        ) : null}
-
-        {app ? <AppBody app={app} attempt={attemptQuery.data ?? null} /> : null}
-      </div>
-    </>
+      {app ? (
+        <OverviewBody
+          app={app}
+          attempt={attemptQuery.data ?? null}
+          latestRun={latestRun}
+          openPrs={openPrs}
+        />
+      ) : null}
+    </div>
   );
 }
 
-function AppBody({
+function OverviewBody({
   app,
   attempt,
+  openPrs,
+  latestRun,
 }: {
   app: AppRecord;
   attempt: AttemptRecord | null;
+  latestRun: CheckRunRecord | null;
+  openPrs: PrRecord[];
 }) {
   return (
-    <div className="flex flex-col gap-8">
-      <section>
-        <dl className="m-0 grid gap-2 text-sm">
-          <div className="flex gap-3">
-            <dt className="w-28 text-muted-foreground">Id</dt>
-            <dd className="m-0 font-mono">{app.id}</dd>
-          </div>
-          <div className="flex gap-3">
-            <dt className="w-28 text-muted-foreground">Status</dt>
-            <dd className="m-0">
-              <StatusBadge status={app.status} />
-            </dd>
-          </div>
-          <div className="flex gap-3">
-            <dt className="w-28 text-muted-foreground">Live sha</dt>
-            <dd className="m-0 font-mono text-xs">
-              {app.liveSha ? app.liveSha.slice(0, 12) : "—"}
-            </dd>
-          </div>
-          <div className="flex gap-3">
-            <dt className="w-28 text-muted-foreground">Created</dt>
-            <dd className="m-0">{formatWhen(app.createdAt)}</dd>
-          </div>
-        </dl>
+    <div className="flex max-w-2xl flex-col gap-8">
+      <section className="flex flex-wrap items-center gap-3">
+        <h1 className="m-0 font-semibold text-xl">{app.name}</h1>
+        <StatusBadge status={app.status} />
+      </section>
 
-        {app.status === "ready" ? (
-          <div className="mt-4 flex flex-wrap gap-3">
+      <section className="rounded-lg border border-border p-4">
+        <h2 className="m-0 mb-3 font-medium text-sm">Production</h2>
+        <p className="m-0 font-mono text-muted-foreground text-xs">
+          {app.liveSha ? app.liveSha.slice(0, 12) : "No live deployment yet"}
+        </p>
+        {app.status === "ready" && app.liveSha ? (
+          <div className="mt-3">
             <Button
               render={
                 <a
@@ -103,32 +89,52 @@ function AppBody({
                   target="_blank"
                 />
               }
+              size="sm"
             >
               Open live
             </Button>
-            <Button
-              render={
-                <Link params={{ appId: app.id }} to="/apps/$appId/preview" />
-              }
-              variant="outline"
-            >
-              Open console
-            </Button>
-            <Button
-              render={<Link params={{ appId: app.id }} to="/apps/$appId/prs" />}
-              variant="outline"
-            >
-              Pull requests
-            </Button>
           </div>
         ) : null}
-
-        {app.status === "creating" ? (
-          <p className="mt-4 text-muted-foreground text-sm">
-            Initializing the repo and running CD. Polling automatically.
-          </p>
-        ) : null}
       </section>
+
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Link
+          className="rounded-lg border border-border p-4 text-foreground no-underline transition-colors hover:bg-muted/40"
+          params={{ appId: app.id }}
+          to="/apps/$appId/prs"
+        >
+          <p className="m-0 font-medium text-sm">Open pull requests</p>
+          <p className="mt-1 text-muted-foreground text-sm">
+            {prsPulseLabel(openPrs.length)}
+          </p>
+        </Link>
+        <Link
+          className="rounded-lg border border-border p-4 text-foreground no-underline transition-colors hover:bg-muted/40"
+          params={{ appId: app.id }}
+          to="/apps/$appId/actions"
+        >
+          <p className="m-0 font-medium text-sm">Latest check</p>
+          <p className="mt-1 text-muted-foreground text-sm">
+            {latestRunPulse(latestRun)}
+          </p>
+        </Link>
+      </section>
+
+      {app.status === "ready" ? (
+        <div>
+          <Button
+            render={<Link params={{ appId: app.id }} to="/apps/$appId/agent" />}
+          >
+            Open Agent
+          </Button>
+        </div>
+      ) : null}
+
+      {app.status === "creating" ? (
+        <p className="m-0 text-muted-foreground text-sm">
+          Initializing the repo and running CD. Polling automatically.
+        </p>
+      ) : null}
 
       <AttemptSection app={app} attempt={attempt} />
 
@@ -178,12 +184,22 @@ function AttemptSection({
   );
 }
 
-function formatWhen(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
+function prsPulseLabel(count: number): string {
+  if (count === 0) {
+    return "None open";
   }
+  if (count === 1) {
+    return "1 open";
+  }
+  return `${count} open`;
+}
+
+function latestRunPulse(run: CheckRunRecord | null): string {
+  if (!run) {
+    return "No runs yet";
+  }
+  const conclusion = run.conclusion ?? run.status;
+  return `${run.name} · ${conclusion}`;
 }
 
 function formatPayload(payload: unknown): string {
