@@ -1,3 +1,4 @@
+import { LogoDots } from "@sfab-lite/ui/components/icons/logo-dots";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
   Sidebar,
@@ -17,7 +18,6 @@ import { cn } from "@sfab-lite/ui/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AppWindow, Home, Plus } from "lucide-react";
 import { useMemo } from "react";
-import { LogoDots } from "@/components/icons/logo-dots";
 import { groupThreadsByApp, searchThreads } from "../model/thread-list";
 import type { Thread } from "../model/types";
 import { ThreadMenuItem, useIconCollapsed } from "./thread-menu-item";

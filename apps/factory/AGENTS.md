@@ -42,5 +42,6 @@ pnpm --filter @sfab-lite/factory dev
 
 ```ts
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { LogoDots } from "@sfab-lite/ui/components/icons/logo-dots";
 import { cn } from "@sfab-lite/ui/lib/utils";
 ```

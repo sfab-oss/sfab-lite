@@ -1,3 +1,4 @@
+import { AnimatedLogo } from "@sfab-lite/ui/components/icons/animated-logo";
 import {
   Collapsible,
   CollapsibleContent,
@@ -6,7 +7,6 @@ import {
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { ChevronDownIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { AnimatedLogo } from "@/components/icons/animated-logo";
 
 /**
  * Dedicated thinking chrome — not a message-part group. Title + optional body;

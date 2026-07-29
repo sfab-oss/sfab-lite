@@ -1,6 +1,6 @@
+import { AgentSigil } from "@sfab-lite/ui/components/icons/agent-sigil";
 import type { DynamicToolUIPart, ToolUIPart } from "ai";
 import { LoaderCircle } from "lucide-react";
-import { AgentSigil } from "@/components/icons/agent-sigil";
 
 type ToolPart = DynamicToolUIPart | ToolUIPart;
 

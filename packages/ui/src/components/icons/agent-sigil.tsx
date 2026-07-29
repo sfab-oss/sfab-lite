@@ -1,10 +1,10 @@
-import { useMemo } from "react";
 import {
   agentSigilGrid,
   SIGIL_CENTER,
   SIGIL_DOT_R,
   SIGIL_STOPS,
-} from "@/lib/agent-sigil";
+} from "@sfab-lite/ui/lib/agent-sigil";
+import { useMemo } from "react";
 
 /**
  * Generative agent identity — a dot-matrix "sigil" derived purely from an
@@ -20,7 +20,7 @@ import {
  * (`h-9 w-9`) or `style`, not a bespoke prop. The intrinsic 24×24 is just a
  * default any of those overrides.
  *
- * The generator lives in `@sfab/ui/lib/agent-sigil` and is pure/headless, so the
+ * The generator lives in `@sfab-lite/ui/lib/agent-sigil` and is pure/headless, so the
  * exact same grid can be painted to SVG/PNG in a Worker for email, OG cards, or
  * per-agent favicons — derive from the id, never store.
  *
