@@ -12,6 +12,7 @@ import { CatalogPage } from "./routes/catalog";
 import { DocumentDetailPage } from "./routes/document-detail";
 import { DocumentsPage } from "./routes/documents";
 import { EntitiesPage } from "./routes/entities";
+import { LandingPage } from "./routes/landing";
 import { OnboardingPage } from "./routes/onboarding";
 import { OverviewPage } from "./routes/overview";
 import { SettingsPage } from "./routes/settings";
@@ -35,6 +36,12 @@ function Root() {
 
 const rootRoute = createRootRoute({ component: Root });
 
+const landingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  component: LandingPage,
+});
+
 const signInRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/sign-in",
@@ -56,7 +63,7 @@ const onboardingRoute = createRoute({
       throw redirect({ to: "/sign-in" });
     }
     if (!session.needsOnboarding) {
-      throw redirect({ to: "/documents" });
+      throw redirect({ to: "/overview" });
     }
   },
   component: OnboardingPage,
@@ -87,9 +94,9 @@ const appLayoutRoute = createRoute({
   component: AppLayout,
 });
 
-const indexRoute = createRoute({
+const overviewRoute = createRoute({
   getParentRoute: () => appLayoutRoute,
-  path: "/",
+  path: "/overview",
   component: OverviewPage,
 });
 
@@ -124,11 +131,12 @@ const settingsRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  landingRoute,
   signInRoute,
   signUpRoute,
   onboardingRoute,
   appLayoutRoute.addChildren([
-    indexRoute,
+    overviewRoute,
     documentsRoute,
     documentDetailRoute,
     entitiesRoute,
