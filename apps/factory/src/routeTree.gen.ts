@@ -19,7 +19,9 @@ import { Route as DevUiRouteImport } from './routes/dev.ui'
 import { Route as DevChatRouteImport } from './routes/dev.chat'
 import { Route as ProtectedAppsRouteImport } from './routes/_protected/apps'
 import { Route as DevChatIndexRouteImport } from './routes/dev.chat.index'
+import { Route as ProtectedAppsIndexRouteImport } from './routes/_protected/apps.index'
 import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
+import { Route as ProtectedAppsAppIdIndexRouteImport } from './routes/_protected/apps.$appId.index'
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as DevChatAppsAppIdTThreadIdRouteImport } from './routes/dev.chat.apps.$appId.t.$threadId'
 
@@ -72,10 +74,20 @@ const DevChatIndexRoute = DevChatIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DevChatRoute,
 } as any)
+const ProtectedAppsIndexRoute = ProtectedAppsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProtectedAppsRoute,
+} as any)
 const ProtectedAppsAppIdRoute = ProtectedAppsAppIdRouteImport.update({
   id: '/$appId',
   path: '/$appId',
   getParentRoute: () => ProtectedAppsRoute,
+} as any)
+const ProtectedAppsAppIdIndexRoute = ProtectedAppsAppIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProtectedAppsAppIdRoute,
 } as any)
 const ProtectedAppsAppIdTThreadIdRoute =
   ProtectedAppsAppIdTThreadIdRouteImport.update({
@@ -100,7 +112,9 @@ export interface FileRoutesByFullPath {
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
   '/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
+  '/apps/': typeof ProtectedAppsIndexRoute
   '/dev/chat/': typeof DevChatIndexRoute
+  '/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -108,12 +122,12 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/sign-in': typeof SignInRoute
   '/signin': typeof SigninRoute
-  '/apps': typeof ProtectedAppsRouteWithChildren
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
   '/': typeof ProtectedIndexRoute
-  '/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
+  '/apps': typeof ProtectedAppsIndexRoute
   '/dev/chat': typeof DevChatIndexRoute
+  '/apps/$appId': typeof ProtectedAppsAppIdIndexRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -129,7 +143,9 @@ export interface FileRoutesById {
   '/mcp/consent': typeof McpConsentRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
+  '/_protected/apps/': typeof ProtectedAppsIndexRoute
   '/dev/chat/': typeof DevChatIndexRoute
+  '/_protected/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
   '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -145,7 +161,9 @@ export interface FileRouteTypes {
     | '/dev/ui'
     | '/mcp/consent'
     | '/apps/$appId'
+    | '/apps/'
     | '/dev/chat/'
+    | '/apps/$appId/'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesByTo: FileRoutesByTo
@@ -153,12 +171,12 @@ export interface FileRouteTypes {
     | '/chat'
     | '/sign-in'
     | '/signin'
-    | '/apps'
     | '/dev/ui'
     | '/mcp/consent'
     | '/'
-    | '/apps/$appId'
+    | '/apps'
     | '/dev/chat'
+    | '/apps/$appId'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   id:
@@ -173,7 +191,9 @@ export interface FileRouteTypes {
     | '/mcp/consent'
     | '/_protected/'
     | '/_protected/apps/$appId'
+    | '/_protected/apps/'
     | '/dev/chat/'
+    | '/_protected/apps/$appId/'
     | '/_protected/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesById: FileRoutesById
@@ -260,12 +280,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevChatIndexRouteImport
       parentRoute: typeof DevChatRoute
     }
+    '/_protected/apps/': {
+      id: '/_protected/apps/'
+      path: '/'
+      fullPath: '/apps/'
+      preLoaderRoute: typeof ProtectedAppsIndexRouteImport
+      parentRoute: typeof ProtectedAppsRoute
+    }
     '/_protected/apps/$appId': {
       id: '/_protected/apps/$appId'
       path: '/$appId'
       fullPath: '/apps/$appId'
       preLoaderRoute: typeof ProtectedAppsAppIdRouteImport
       parentRoute: typeof ProtectedAppsRoute
+    }
+    '/_protected/apps/$appId/': {
+      id: '/_protected/apps/$appId/'
+      path: '/'
+      fullPath: '/apps/$appId/'
+      preLoaderRoute: typeof ProtectedAppsAppIdIndexRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
     }
     '/_protected/apps/$appId/t/$threadId': {
       id: '/_protected/apps/$appId/t/$threadId'
@@ -285,10 +319,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProtectedAppsAppIdRouteChildren {
+  ProtectedAppsAppIdIndexRoute: typeof ProtectedAppsAppIdIndexRoute
   ProtectedAppsAppIdTThreadIdRoute: typeof ProtectedAppsAppIdTThreadIdRoute
 }
 
 const ProtectedAppsAppIdRouteChildren: ProtectedAppsAppIdRouteChildren = {
+  ProtectedAppsAppIdIndexRoute: ProtectedAppsAppIdIndexRoute,
   ProtectedAppsAppIdTThreadIdRoute: ProtectedAppsAppIdTThreadIdRoute,
 }
 
@@ -297,10 +333,12 @@ const ProtectedAppsAppIdRouteWithChildren =
 
 interface ProtectedAppsRouteChildren {
   ProtectedAppsAppIdRoute: typeof ProtectedAppsAppIdRouteWithChildren
+  ProtectedAppsIndexRoute: typeof ProtectedAppsIndexRoute
 }
 
 const ProtectedAppsRouteChildren: ProtectedAppsRouteChildren = {
   ProtectedAppsAppIdRoute: ProtectedAppsAppIdRouteWithChildren,
+  ProtectedAppsIndexRoute: ProtectedAppsIndexRoute,
 }
 
 const ProtectedAppsRouteWithChildren = ProtectedAppsRoute._addFileChildren(

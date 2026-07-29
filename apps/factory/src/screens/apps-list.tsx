@@ -37,7 +37,6 @@ export function AppsListScreen() {
   }
 
   const apps = appsQuery.data?.apps ?? null;
-  const organizationId = appsQuery.data?.organizationId ?? null;
   const listError =
     appsQuery.error instanceof Error ? appsQuery.error.message : null;
   const createError =
@@ -110,15 +109,9 @@ export function AppsListScreen() {
         </AppLayoutHeaderActions>
       </AppLayoutHeader>
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-        <div className="mb-6">
-          <p className="m-0 text-muted-foreground text-sm">
-            Organization{" "}
-            <code className="text-foreground">{organizationId ?? "…"}</code>
-          </p>
-          {createError ? (
-            <p className="mt-2 text-destructive text-sm">{createError}</p>
-          ) : null}
-        </div>
+        {createError ? (
+          <p className="mb-4 text-destructive text-sm">{createError}</p>
+        ) : null}
         {listError && apps !== null ? (
           <p className="mb-4 text-destructive text-sm">
             Could not refresh: {listError}

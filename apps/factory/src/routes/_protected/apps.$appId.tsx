@@ -1,12 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AppDetailScreen } from "@/screens/app-detail";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_protected/apps/$appId")({
   ssr: false,
-  component: ProtectedAppDetail,
+  component: () => <Outlet />,
 });
-
-function ProtectedAppDetail() {
-  const { appId } = Route.useParams();
-  return <AppDetailScreen appId={appId} />;
-}
