@@ -1,4 +1,4 @@
-/** Wire helpers for `/api/protected/*` and `/api/config` — shapes from `hc`. */
+/** Wire helpers for `/api/*` — shapes from `hc`. */
 
 import type { InferResponseType } from "hono/client";
 import { client } from "./lib/client";
@@ -63,11 +63,11 @@ function throwIfUnauthorized(res: HttpResult): void {
 }
 
 export async function fetchAuthConfig(): Promise<AuthConfig> {
-  const res = await fetch("/api/config");
+  const res = await client.config.$get();
   if (!res.ok) {
     throw new Error(`config failed (${res.status})`);
   }
-  return (await res.json()) as AuthConfig;
+  return res.json();
 }
 
 export interface McpConsentContext {
@@ -81,7 +81,7 @@ export interface McpConsentContext {
  * error, because arriving here signed out is the normal first-time path.
  */
 export async function fetchMcpConsentContext(): Promise<McpConsentContext | null> {
-  const res = await fetch("/api/mcp/consent", { credentials: "include" });
+  const res = await client.mcp.consent.$get();
   if (res.status === 401) {
     return null;
   }
@@ -104,15 +104,12 @@ export async function submitMcpConsent(input: {
   organizationId: string;
   accept: boolean;
 }): Promise<string> {
-  const res = await fetch("/api/mcp/consent", {
-    method: "POST",
-    credentials: "include",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+  const res = await client.mcp.consent.$post({
+    json: {
       oauth_query: input.oauthQuery,
       organizationId: input.organizationId,
       accept: input.accept,
-    }),
+    },
   });
   if (!res.ok) {
     throw new Error(await errorMessage(res, `consent failed (${res.status})`));
