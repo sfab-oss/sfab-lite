@@ -10,21 +10,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@sfab-lite/ui/components/shadcn/sheet";
-import { TooltipProvider } from "@sfab-lite/ui/components/shadcn/tooltip";
 import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
-import { useMatch, useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useMatch, useNavigate, useParams } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AppLayout,
   AppLayoutHeader,
   AppLayoutHeaderActions,
-  AppLayoutPage,
 } from "@/components/brand/app-layout";
 import { readyAppsFromList, useApps, useCreateApp } from "@/hooks/use-apps";
-import { AppDetailScreen } from "@/screens/app-detail";
-import { AppsListScreen } from "@/screens/apps-list";
 import type { ComposerScope } from "./components/composer-scope-chip";
 import {
   ResponsiveSidePanel,
@@ -35,98 +30,20 @@ import { ThreadComposer } from "./components/thread-composer";
 import { ThreadHeaderMenu } from "./components/thread-header-menu";
 import { ThreadSummaryPanel } from "./components/thread-summary-panel";
 import { ThreadTranscript } from "./components/thread-transcript";
-import { SessionThreadsSidebar } from "./components/threads-sidebar";
+import { useConsoleSession } from "./console-shell";
 import {
-  AppAgentRegistryProvider,
   createServerThread,
   useAppAgentRegistry,
 } from "./data/app-agent-bridge";
-import { ChatDataProvider, useChatData } from "./data/chat-data-context";
-import {
-  createRealChatData,
-  type RealChatData,
-} from "./data/create-real-chat-data";
+import { useChatData } from "./data/chat-data-context";
 import { useWorkspaceTabsStore } from "./lib/workspace-tabs-store";
 import type { Thread } from "./model/types";
 
 const TITLE_FIRST_LINE = /\n/;
 
-type ConsolePanel =
-  | { panel: "apps" }
-  | { panel: "app"; appId: string }
-  | { panel: "thread"; appId: string; threadId: string }
-  | { panel: "chat" }
-  | { panel: "dev-chat"; appId?: string; threadId?: string };
-
-function useConsolePanel(): ConsolePanel {
-  const matchRoute = useMatchRoute();
-  const threadMatch = useMatch({
-    from: "/_protected/apps/$appId/t/$threadId",
-    shouldThrow: false,
-  });
-  const devThreadMatch = useMatch({
-    from: "/dev/chat/apps/$appId/t/$threadId",
-    shouldThrow: false,
-  });
-  const devChatMatch = useMatch({
-    from: "/dev/chat",
-    shouldThrow: false,
-  });
-
-  if (devThreadMatch) {
-    return {
-      panel: "dev-chat",
-      appId: devThreadMatch.params.appId,
-      threadId: devThreadMatch.params.threadId,
-    };
-  }
-  if (devChatMatch) {
-    return { panel: "dev-chat" };
-  }
-  if (threadMatch) {
-    return {
-      panel: "thread",
-      appId: threadMatch.params.appId,
-      threadId: threadMatch.params.threadId,
-    };
-  }
-  const appParams = matchRoute({ to: "/apps/$appId", fuzzy: false });
-  if (appParams) {
-    return { panel: "app", appId: appParams.appId };
-  }
-  if (matchRoute({ to: "/apps", fuzzy: false })) {
-    return { panel: "apps" };
-  }
-  return { panel: "chat" };
-}
-
 function titleFromText(text: string): string {
   const first = text.trim().split(TITLE_FIRST_LINE)[0] ?? "New thread";
   return first.length > 64 ? `${first.slice(0, 61)}…` : first;
-}
-
-export function ChatScreen() {
-  const [chatData] = useState<RealChatData>(() => createRealChatData());
-  return (
-    <ChatDataProvider value={chatData}>
-      <AppAgentRegistryProvider>
-        <ChatScreenInner />
-      </AppAgentRegistryProvider>
-    </ChatDataProvider>
-  );
-}
-
-function panelAttention(panel: ConsolePanel): {
-  appId: string | null;
-  threadId: string | null;
-} {
-  if (panel.panel === "thread" || panel.panel === "dev-chat") {
-    return {
-      appId: panel.appId ?? null,
-      threadId: panel.threadId ?? null,
-    };
-  }
-  return { appId: null, threadId: null };
 }
 
 function resolveActiveThread(
@@ -157,21 +74,36 @@ function resolveActiveThread(
   };
 }
 
-function ChatScreenInner() {
+/** Chat home / thread chrome. Expects ConsoleProviders + ConsoleShell above. */
+export function ChatScreen() {
   const chatData = useChatData();
   const { attend, clearAttention, waitForHandle } = useAppAgentRegistry();
+  const {
+    scopeAppId,
+    scopeAppName,
+    setScope,
+    clearScope,
+    seedByThread,
+    setThreadSeed,
+    consumeThreadSeed,
+    clearThreadSeed,
+  } = useConsoleSession();
   const threads = chatData.listThreads();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const panel = useConsolePanel();
-  const isDevChat = panel.panel === "dev-chat";
+  const params = useParams({ strict: false });
+  const routeAppId = typeof params.appId === "string" ? params.appId : null;
+  const routeThreadId =
+    typeof params.threadId === "string" ? params.threadId : null;
+  const isDevChat = Boolean(
+    useMatch({ from: "/dev/chat", shouldThrow: false })
+  );
+
   const appsQuery = useApps();
   const createApp = useCreateApp();
-  const [search, setSearch] = useState("");
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-  const [seedByThread, setSeedByThread] = useState<Record<string, string>>({});
-  const [scopeAppId, setScopeAppId] = useState<string | null>(null);
-  const [scopeAppName, setScopeAppName] = useState<string | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(
+    routeThreadId
+  );
   const readyApps = useMemo(
     () => readyAppsFromList(appsQuery.data?.apps),
     [appsQuery.data?.apps]
@@ -187,30 +119,17 @@ function ChatScreenInner() {
     shellError ??
     (createApp.error instanceof Error ? createApp.error.message : null);
 
-  const { appId: routeAppId, threadId: routeThreadId } = panelAttention(panel);
-
   useEffect(() => {
-    if (panel.panel === "apps" || panel.panel === "app") {
-      setActiveThreadId(null);
-      return;
-    }
-    if (
-      panel.panel === "thread" ||
-      (panel.panel === "dev-chat" && panel.appId)
-    ) {
+    if (routeAppId && routeThreadId) {
       setActiveThreadId(routeThreadId);
-      if (routeAppId) {
-        setScopeAppId(routeAppId);
-        const known = readyApps.find((app) => app.appId === routeAppId);
-        setScopeAppName(known?.appName ?? null);
-        attend(routeAppId, known?.appName ?? null);
-      }
+      const known = readyApps.find((app) => app.appId === routeAppId);
+      const appName = known?.appName ?? null;
+      setScope(routeAppId, appName);
+      attend(routeAppId, appName);
       return;
     }
-    if (panel.panel === "chat" || panel.panel === "dev-chat") {
-      setActiveThreadId(null);
-    }
-  }, [attend, panel, readyApps, routeAppId, routeThreadId]);
+    setActiveThreadId(null);
+  }, [attend, readyApps, routeAppId, routeThreadId, setScope]);
 
   const goChatHome = useCallback(() => {
     if (import.meta.env.DEV && isDevChat) {
@@ -251,10 +170,6 @@ function ChatScreenInner() {
     });
   }, [attendedAppId, chatData]);
 
-  // resolveActiveThread synthesises a placeholder so a cold URL can attend its
-  // app before the thread arrives. Once the registry has answered for that app,
-  // a still-missing thread is gone, not late — drop to the app's composer
-  // rather than leaving the placeholder loading forever.
   useEffect(() => {
     if (!(activeThreadId && routeAppId)) {
       return;
@@ -288,26 +203,9 @@ function ChatScreenInner() {
     };
   }, [activeThread, readyApps, scopeAppId, scopeAppName, threads]);
 
-  const selectThread = useCallback(
-    (threadId: string) => {
-      const thread = threads.find((entry) => entry.id === threadId);
-      if (!thread?.appId) {
-        return;
-      }
-      setScopeAppId(thread.appId);
-      setScopeAppName(thread.appName);
-      attend(thread.appId, thread.appName);
-      setActiveThreadId(threadId);
-      setSummaryOpen(false);
-      goThread(thread.appId, threadId);
-    },
-    [attend, goThread, threads]
-  );
-
   const attendApp = useCallback(
     (appId: string, appName: string) => {
-      setScopeAppId(appId);
-      setScopeAppName(appName);
+      setScope(appId, appName);
       attend(appId, appName);
       setActiveThreadId(null);
       setSummaryOpen(false);
@@ -316,45 +214,23 @@ function ChatScreenInner() {
       createApp.reset();
       goChatHome();
     },
-    [attend, createApp, goChatHome, setWorkspaceOpen]
+    [attend, createApp, goChatHome, setScope, setWorkspaceOpen]
   );
 
   const goHome = useCallback(() => {
     setActiveThreadId(null);
-    setScopeAppId(null);
-    setScopeAppName(null);
+    clearScope();
     clearAttention();
     setSummaryOpen(false);
     setWorkspaceOpen(false);
     setShellError(null);
     createApp.reset();
     goChatHome();
-  }, [clearAttention, createApp, goChatHome, setWorkspaceOpen]);
-
-  const newThread = useCallback(() => {
-    if (activeThread?.appId) {
-      setScopeAppId(activeThread.appId);
-      setScopeAppName(activeThread.appName);
-      attend(activeThread.appId, activeThread.appName);
-    }
-    setActiveThreadId(null);
-    setSummaryOpen(false);
-    setWorkspaceOpen(false);
-    setShellError(null);
-    createApp.reset();
-    goChatHome();
-  }, [activeThread, attend, createApp, goChatHome, setWorkspaceOpen]);
+  }, [clearAttention, clearScope, createApp, goChatHome, setWorkspaceOpen]);
 
   const handleThreadDeleted = useCallback(
     (thread: Thread) => {
-      setSeedByThread((current) => {
-        if (!(thread.id in current)) {
-          return current;
-        }
-        const next = { ...current };
-        delete next[thread.id];
-        return next;
-      });
+      clearThreadSeed(thread.id);
       const appName =
         thread.appName ??
         readyApps.find((app) => app.appId === thread.appId)?.appName ??
@@ -367,7 +243,7 @@ function ChatScreenInner() {
         }
       }
     },
-    [activeThreadId, attendApp, goHome, readyApps]
+    [activeThreadId, attendApp, clearThreadSeed, goHome, readyApps]
   );
 
   const createThreadFromBlank = useCallback(
@@ -385,8 +261,7 @@ function ChatScreenInner() {
           appId = created.appId;
           appName = created.name;
         }
-        setScopeAppId(appId);
-        setScopeAppName(appName);
+        setScope(appId, appName);
         attend(appId, appName);
         const handle = await waitForHandle(appId);
         const summary = await createServerThread(handle, {
@@ -403,14 +278,23 @@ function ChatScreenInner() {
           updatedAt: summary.updatedAt,
         };
         chatData.upsertThread(thread);
-        setSeedByThread((current) => ({ ...current, [summary.id]: text }));
+        setThreadSeed(summary.id, text);
         setActiveThreadId(summary.id);
         goThread(appId, summary.id);
       } catch (error: unknown) {
         setShellError(error instanceof Error ? error.message : String(error));
       }
     },
-    [attend, chatData, createApp, goThread, scopedApp, waitForHandle]
+    [
+      attend,
+      chatData,
+      createApp,
+      goThread,
+      scopedApp,
+      setScope,
+      setThreadSeed,
+      waitForHandle,
+    ]
   );
 
   const createEmptyApp = useCallback(async () => {
@@ -428,17 +312,6 @@ function ChatScreenInner() {
       // Error on createApp.error
     }
   }, [createApp, navigate]);
-
-  const consumeSeed = useCallback((threadId: string) => {
-    setSeedByThread((current) => {
-      if (!(threadId in current)) {
-        return current;
-      }
-      const next = { ...current };
-      delete next[threadId];
-      return next;
-    });
-  }, []);
 
   const composerScope = useMemo<ComposerScope>(
     () => ({
@@ -459,90 +332,31 @@ function ChatScreenInner() {
     );
   };
 
-  const onSignOut = () => {
-    navigate({ to: "/signin", replace: true });
-  };
-
   const displayThread =
     activeThread && activeThread.title === "Loading…"
       ? (threads.find((thread) => thread.id === activeThread.id) ??
         activeThread)
       : activeThread;
 
-  const appsRoute = panel.panel === "apps" || panel.panel === "app";
-  const homeActive =
-    !appsRoute &&
-    activeThreadId === null &&
-    (panel.panel === "chat" || (panel.panel === "dev-chat" && !panel.threadId));
+  const chatProps: ChatChromeProps = {
+    activeThread: displayThread,
+    canDock,
+    createError,
+    creating,
+    onBlankSubmit: createThreadFromBlank,
+    onCloseRail: () => setSummaryOpen(false),
+    onCreateEmptyApp: scopeAppId || activeThreadId ? undefined : createEmptyApp,
+    onSeedConsumed: consumeThreadSeed,
+    onSetContainerNode: setContainerNode,
+    onSetSummaryOpen: setSummaryOpen,
+    onSetWorkspaceOpen,
+    onThreadDeleted: handleThreadDeleted,
+    scope: composerScope,
+    seedMessage: activeThreadId ? (seedByThread[activeThreadId] ?? null) : null,
+    summaryOpen,
+    workspaceOpen,
+  };
 
-  return (
-    <TooltipProvider>
-      <AppLayout
-        sidebar={
-          <SessionThreadsSidebar
-            activeAppId={panel.panel === "app" ? panel.appId : null}
-            activeThreadId={appsRoute ? null : activeThreadId}
-            appsActive={appsRoute}
-            homeActive={homeActive}
-            knownApps={readyApps}
-            onGoHome={goHome}
-            onNewThread={newThread}
-            onSearchChange={setSearch}
-            onSelectThread={selectThread}
-            onSignOut={onSignOut}
-            onThreadDeleted={handleThreadDeleted}
-            search={search}
-            threads={threads}
-          />
-        }
-      >
-        <AppLayoutPage>
-          <ChatMainPane
-            chatProps={{
-              activeThread: displayThread,
-              canDock,
-              createError,
-              creating,
-              onBlankSubmit: createThreadFromBlank,
-              onCloseRail: () => setSummaryOpen(false),
-              onCreateEmptyApp:
-                scopeAppId || activeThreadId ? undefined : createEmptyApp,
-              onSeedConsumed: consumeSeed,
-              onSetContainerNode: setContainerNode,
-              onSetSummaryOpen: setSummaryOpen,
-              onSetWorkspaceOpen,
-              onThreadDeleted: handleThreadDeleted,
-              scope: composerScope,
-              seedMessage: activeThreadId
-                ? (seedByThread[activeThreadId] ?? null)
-                : null,
-              summaryOpen,
-              workspaceOpen,
-            }}
-            isMobile={isMobile}
-            panel={panel}
-          />
-        </AppLayoutPage>
-      </AppLayout>
-    </TooltipProvider>
-  );
-}
-
-function ChatMainPane({
-  chatProps,
-  isMobile,
-  panel,
-}: {
-  chatProps: ChatChromeProps;
-  isMobile: boolean;
-  panel: ConsolePanel;
-}) {
-  if (panel.panel === "apps") {
-    return <AppsListScreen />;
-  }
-  if (panel.panel === "app") {
-    return <AppDetailScreen appId={panel.appId} />;
-  }
   if (isMobile) {
     return <MobileLayout {...chatProps} />;
   }
@@ -643,8 +457,6 @@ function ChatColumn({
   summaryOpen,
   workspaceOpen,
 }: ChatChromeProps) {
-  // The header's copy action needs the transcript's messages, and the two are
-  // siblings. A ref keeps the streaming list out of the header's render path.
   const messagesRef = useRef<UIMessage[]>([]);
 
   return (

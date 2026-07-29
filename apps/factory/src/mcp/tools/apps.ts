@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { adminFetch, type McpContext, orgQuery } from "../lib/context.js";
+import { type McpContext, orgQuery, protectedFetch } from "../lib/context.js";
 import { toolError, toolResult } from "../lib/tool-result.js";
 
 const appId = z
@@ -39,7 +39,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async ({ name }) =>
       passThrough(
-        await adminFetch(
+        await protectedFetch(
           ctx,
           "POST",
           `/api/protected/apps${orgQuery(ctx)}`,
@@ -56,7 +56,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async () =>
       passThrough(
-        await adminFetch(ctx, "GET", `/api/protected/apps${orgQuery(ctx)}`)
+        await protectedFetch(ctx, "GET", `/api/protected/apps${orgQuery(ctx)}`)
       )
   );
 
@@ -69,7 +69,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async ({ appId: id }) =>
       passThrough(
-        await adminFetch(
+        await protectedFetch(
           ctx,
           "GET",
           `/api/protected/apps/${encodeURIComponent(id)}`
@@ -87,7 +87,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async ({ appId: id }) =>
       passThrough(
-        await adminFetch(
+        await protectedFetch(
           ctx,
           "DELETE",
           `/api/protected/apps/${encodeURIComponent(id)}`
@@ -105,7 +105,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async ({ appId: id }) =>
       passThrough(
-        await adminFetch(
+        await protectedFetch(
           ctx,
           "GET",
           `/api/protected/apps/${encodeURIComponent(id)}/attempts`
@@ -123,7 +123,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async ({ appId: id }) =>
       passThrough(
-        await adminFetch(
+        await protectedFetch(
           ctx,
           "GET",
           `/api/protected/apps/${encodeURIComponent(id)}/live`

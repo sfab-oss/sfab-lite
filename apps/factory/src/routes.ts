@@ -2,8 +2,8 @@
  * Routing and HTTP primitives for the factory host worker.
  *
  * Owns the request-context types, the public route shape, and the shared
- * matchers / error helpers. Admin routing lives in `hono/`; handlers in
- * `admin.ts`.
+ * matchers / error helpers. Protected routing lives in `hono/`; handlers in
+ * `protected-handlers.ts`.
  */
 import type { Actor } from "./tenancy.js";
 
@@ -21,26 +21,26 @@ export interface RouteCtx extends RequestCtx {
 }
 
 /** A request that cleared the `/api/protected` credential gate. */
-export interface AdminCtx extends RouteCtx {
+export interface ProtectedCtx extends RouteCtx {
   actor: Actor;
 }
 
 /**
- * An admin request whose organization has already been resolved by the
+ * A protected request whose organization has already been resolved by the
  * dispatcher. `organizationId` is always derived from the query param (or
  * the session); handlers never read it from a JSON body.
  */
-export interface OrgCtx extends AdminCtx {
+export interface OrgCtx extends ProtectedCtx {
   organizationId: string;
 }
 
 /**
- * An admin request for one specific app, already checked to belong to the
+ * A protected request for one specific app, already checked to belong to the
  * actor. `appId` arrives decoded because the dispatcher had to decode it to
  * run that check — handlers no longer parse `match[1]` themselves.
  * `attemptId` is set on attempt-detail routes.
  */
-export interface AppCtx extends AdminCtx {
+export interface AppCtx extends ProtectedCtx {
   appId: string;
   attemptId?: string;
 }

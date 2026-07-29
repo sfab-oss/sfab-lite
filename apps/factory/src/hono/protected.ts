@@ -15,9 +15,9 @@ import {
   handleRevert,
   handleSql,
   handleTouch,
-} from "../admin.js";
+} from "../protected-handlers.js";
 import { NOT_FOUND_BODY } from "../routes.js";
-import { adminCtx, appCtx, orgCtx } from "./context.js";
+import { appCtx, orgCtx, protectedCtx } from "./context.js";
 import { requireActor, requireApp, requireOrganization } from "./middleware.js";
 import {
   checkBodySchema,
@@ -43,7 +43,7 @@ import { jsonBody } from "./validate.js";
 const protectedApp = new Hono<AdminEnv>()
   .use("*", requireActor)
   .get("/health", async (c) => {
-    const r = await handleHealth(adminCtx(c));
+    const r = await handleHealth(protectedCtx(c));
     return c.json(r.body, r.status);
   })
   .get("/apps", requireOrganization, async (c) => {

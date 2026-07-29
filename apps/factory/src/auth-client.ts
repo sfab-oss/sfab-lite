@@ -16,7 +16,7 @@ export const authClient = createAuthClient({
  *
  * Navigating to sign-in without ending that session bounces forever: the
  * sign-in screen sends any signed-in user back to the console, the console
- * calls the admin API, and the API returns 401 again. Signing out is what
+ * calls the protected API, and the API returns 401 again. Signing out is what
  * makes signed-out a state the UI can rest in.
  *
  * Never rejects — a failed sign-out must not replace the original error.

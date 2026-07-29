@@ -13,10 +13,10 @@ SIGNUP_OPEN=true
 # where sign-up is briefly open to the internet. Only ever restricts: set
 # beside SIGNUP_OPEN=true it still wins.
 # SIGNUP_ALLOWLIST=you@example.com, teammate@example.com
-# Root credential for /admin/* (header: X-Admin-Token). Every
-# /admin request needs *a* credential — this token or a signed-in session —
-# so leaving this unset no longer opens the surface, it just means curl gets
-# a 401 and you have to drive the API with a session cookie.
+# Root credential for /api/protected/* (header: X-Admin-Token). Every
+# /api/protected request needs *a* credential — this token or a signed-in
+# session — so leaving this unset no longer opens the surface, it just means
+# curl gets a 401 and you have to drive the API with a session cookie.
 ADMIN_TOKEN=dev-admin-token
 # Factory GitHub sign-in. Registered only when BOTH are set — there is no
 # separate on/off flag. We use a **GitHub App** (not an OAuth App), whose

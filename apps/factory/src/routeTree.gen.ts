@@ -18,6 +18,7 @@ import { Route as McpConsentRouteImport } from './routes/mcp.consent'
 import { Route as DevUiRouteImport } from './routes/dev.ui'
 import { Route as DevChatRouteImport } from './routes/dev.chat'
 import { Route as ProtectedAppsRouteImport } from './routes/_protected/apps'
+import { Route as DevChatIndexRouteImport } from './routes/dev.chat.index'
 import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as DevChatAppsAppIdTThreadIdRouteImport } from './routes/dev.chat.apps.$appId.t.$threadId'
@@ -66,6 +67,11 @@ const ProtectedAppsRoute = ProtectedAppsRouteImport.update({
   path: '/apps',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const DevChatIndexRoute = DevChatIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DevChatRoute,
+} as any)
 const ProtectedAppsAppIdRoute = ProtectedAppsAppIdRouteImport.update({
   id: '/$appId',
   path: '/$appId',
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
   '/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
+  '/dev/chat/': typeof DevChatIndexRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -102,11 +109,11 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/signin': typeof SigninRoute
   '/apps': typeof ProtectedAppsRouteWithChildren
-  '/dev/chat': typeof DevChatRouteWithChildren
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
   '/': typeof ProtectedIndexRoute
   '/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
+  '/dev/chat': typeof DevChatIndexRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -122,6 +129,7 @@ export interface FileRoutesById {
   '/mcp/consent': typeof McpConsentRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
+  '/dev/chat/': typeof DevChatIndexRoute
   '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -137,6 +145,7 @@ export interface FileRouteTypes {
     | '/dev/ui'
     | '/mcp/consent'
     | '/apps/$appId'
+    | '/dev/chat/'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesByTo: FileRoutesByTo
@@ -145,11 +154,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/signin'
     | '/apps'
-    | '/dev/chat'
     | '/dev/ui'
     | '/mcp/consent'
     | '/'
     | '/apps/$appId'
+    | '/dev/chat'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   id:
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/mcp/consent'
     | '/_protected/'
     | '/_protected/apps/$appId'
+    | '/dev/chat/'
     | '/_protected/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesById: FileRoutesById
@@ -243,6 +253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/dev/chat/': {
+      id: '/dev/chat/'
+      path: '/'
+      fullPath: '/dev/chat/'
+      preLoaderRoute: typeof DevChatIndexRouteImport
+      parentRoute: typeof DevChatRoute
+    }
     '/_protected/apps/$appId': {
       id: '/_protected/apps/$appId'
       path: '/$appId'
@@ -305,10 +322,12 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
 )
 
 interface DevChatRouteChildren {
+  DevChatIndexRoute: typeof DevChatIndexRoute
   DevChatAppsAppIdTThreadIdRoute: typeof DevChatAppsAppIdTThreadIdRoute
 }
 
 const DevChatRouteChildren: DevChatRouteChildren = {
+  DevChatIndexRoute: DevChatIndexRoute,
   DevChatAppsAppIdTThreadIdRoute: DevChatAppsAppIdTThreadIdRoute,
 }
 

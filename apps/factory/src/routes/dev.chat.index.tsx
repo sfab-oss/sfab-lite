@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
 
@@ -6,12 +6,17 @@ const ChatScreen = lazy(() =>
   import("@/features/chat/page").then((m) => ({ default: m.ChatScreen }))
 );
 
-export const Route = createFileRoute("/_protected/apps/$appId/t/$threadId")({
+export const Route = createFileRoute("/dev/chat/")({
   ssr: false,
-  component: ProtectedThreadChat,
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) {
+      throw notFound();
+    }
+  },
+  component: DevChatHome,
 });
 
-function ProtectedThreadChat() {
+function DevChatHome() {
   return (
     <Suspense fallback={<ConsoleShellSkeleton />}>
       <ChatScreen />

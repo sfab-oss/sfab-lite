@@ -5,7 +5,7 @@ const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
 
 export interface McpContext {
   env: Env;
-  /** Scopes every `organization`-scoped admin route. */
+  /** Scopes every `organization`-scoped protected route. */
   organizationId: string;
 }
 
@@ -18,7 +18,7 @@ export interface McpContext {
  * second, subtly different factory API. Same pattern as `internal.ts`, minus
  * the derived token — this caller has `ADMIN_TOKEN` itself.
  */
-export async function adminFetch(
+export async function protectedFetch(
   ctx: McpContext,
   method: string,
   path: string,
@@ -41,7 +41,7 @@ export async function adminFetch(
   return { status: res.status, body: await res.json().catch(() => null) };
 }
 
-/** `?organizationId=` is how token actors scope an org-scoped admin route. */
+/** `?organizationId=` is how token actors scope an org-scoped protected route. */
 export function orgQuery(ctx: McpContext): string {
   return `?organizationId=${encodeURIComponent(ctx.organizationId)}`;
 }

@@ -11,7 +11,7 @@ then fails. `waitForAppReady` (`apps/factory/ui/src/features/chat/page.tsx`)
 polls for `APP_READY_TIMEOUT_MS = 120_000` and throws.
 
 Measured against the live factory, creating four apps through
-`POST /admin/apps`:
+`POST /admin/apps` (now `POST /api/protected/apps`):
 
 | app | outcome |
 | --- | --- |

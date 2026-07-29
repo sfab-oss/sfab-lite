@@ -1,6 +1,6 @@
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
-export interface AdminReply<
+export interface ProtectedReply<
   T = unknown,
   S extends ContentfulStatusCode = ContentfulStatusCode,
 > {
@@ -8,9 +8,9 @@ export interface AdminReply<
   body: T;
 }
 
-export function adminError(
+export function protectedError(
   error: string,
   status: 400 | 404 | 409 | 500 = 400
-): AdminReply<{ ok: false; error: string }, typeof status> {
+): ProtectedReply<{ ok: false; error: string }, typeof status> {
   return { status, body: { ok: false as const, error } };
 }

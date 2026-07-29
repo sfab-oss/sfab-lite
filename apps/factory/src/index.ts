@@ -17,7 +17,7 @@
  * on organization-scoped routes; app-scoped routes need none) or a signed-in
  * session (scoped to its own organization). No credential is 401 whatever the
  * config says; a missing `ADMIN_TOKEN` no longer opens the surface. See
- * `tenancy.ts`. Handlers live in `admin.ts`; Hono routing in `hono/`; commit
+ * `tenancy.ts`. Handlers live in `protected-handlers.ts`; Hono routing in `hono/`; commit
  * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
