@@ -1,3 +1,4 @@
+import { AgentSigil } from "@sfab-lite/ui/components/icons/agent-sigil";
 import { LogoDots } from "@sfab-lite/ui/components/icons/logo-dots";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
@@ -187,6 +188,7 @@ export function SessionThreadsSidebar({
                 <AppBucket
                   active={activeAppId === group.appId}
                   activeThreadId={activeThreadId}
+                  appId={group.appId}
                   key={group.appId}
                   label={group.appName}
                   onOpenApp={() => openApp(group.appId)}
@@ -207,6 +209,7 @@ export function SessionThreadsSidebar({
 
 function AppBucket({
   active,
+  appId,
   label,
   threads,
   activeThreadId,
@@ -216,6 +219,7 @@ function AppBucket({
 }: {
   active: boolean;
   activeThreadId: string | null;
+  appId: string;
   label: string;
   onOpenApp: () => void;
   onSelectThread: (threadId: string) => void;
@@ -225,6 +229,7 @@ function AppBucket({
   const hasThreads = threads.length > 0;
   const defaultOpen =
     active || threads.some((thread) => thread.id === activeThreadId);
+  const icon = <AgentSigil className="size-4" id={appId} />;
 
   if (!hasThreads) {
     return (
@@ -235,7 +240,7 @@ function AppBucket({
           tooltip={label}
           type="button"
         >
-          <AppWindow className="size-4" />
+          {icon}
           <span>{label}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -254,7 +259,7 @@ function AppBucket({
         tooltip={label}
         type="button"
       >
-        <AppWindow className="size-4" />
+        {icon}
         <span>{label}</span>
       </SidebarMenuButton>
       <CollapsibleTrigger
