@@ -1,41 +1,54 @@
 import type { WorkspaceFsLike } from "@cloudflare/shell";
 import { createR2CodeHost } from "../r2-code-host.js";
 
-const CLONED_KEY = "workspaceClonedFromCodeHost";
+export const WORKSPACE_CLONED_KEY = "workspaceClonedFromCodeHost";
 
-export type SeedWorkspaceResult =
-  | { sha: string | null }
-  | { skipped: true; reason: string };
+export const WORKSPACE_CLONE_PENDING = "pending";
+
+const FAILED_PREFIX = "failed:";
+
+export function isWorkspaceCloneReady(
+  status: string | undefined
+): status is string {
+  return (
+    status !== undefined &&
+    status !== WORKSPACE_CLONE_PENDING &&
+    !status.startsWith(FAILED_PREFIX)
+  );
+}
+
+export function isWorkspaceClonePending(status: string | undefined): boolean {
+  return status === WORKSPACE_CLONE_PENDING;
+}
+
+export function workspaceCloneFailureReason(
+  status: string | undefined
+): string | null {
+  if (!status?.startsWith(FAILED_PREFIX)) {
+    return null;
+  }
+  return status.slice(FAILED_PREFIX.length) || "clone failed";
+}
+
+export function workspaceCloneFailedMarker(reason: string): string {
+  const trimmed = reason.replace(/\s+/g, " ").trim().slice(0, 400);
+  return `${FAILED_PREFIX}${trimmed || "clone failed"}`;
+}
 
 /**
- * Clone the app repo into AppAgent's shared workspace once, when empty.
- * Never auto-re-clone — from then on the workspace is the working copy.
+ * Copy the app repo into AppAgent's shared workspace. Caller owns the
+ * pending/ready/failed status machine — this only performs I/O.
  */
-export async function seedWorkspaceFromCodeHost(
+export async function cloneWorkspaceFromCodeHost(
   env: Env,
-  storage: DurableObjectStorage,
   workspace: WorkspaceFsLike,
   appId: string
-): Promise<SeedWorkspaceResult> {
-  const already = await storage.get<string>(CLONED_KEY);
-  if (already) {
-    return { sha: already === "empty" ? null : already };
-  }
-
-  try {
-    const host = createR2CodeHost(env);
-    await host.ensureRepo(appId);
-    const { sha } = await host.cloneTo(
-      appId,
-      workspace as unknown as import("../code-host.js").GitWorkFs,
-      "/"
-    );
-    await storage.put(CLONED_KEY, sha ?? "empty");
-    return { sha };
-  } catch (e) {
-    return {
-      skipped: true,
-      reason: `clone failed for ${appId}: ${e instanceof Error ? e.message : String(e)}`,
-    };
-  }
+): Promise<{ sha: string | null }> {
+  const host = createR2CodeHost(env);
+  await host.ensureRepo(appId);
+  return host.cloneTo(
+    appId,
+    workspace as unknown as import("../code-host.js").GitWorkFs,
+    "/"
+  );
 }

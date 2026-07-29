@@ -57,7 +57,7 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
 
   const previewFrame = (
     <iframe
-      className="min-h-0 w-full flex-1 border-0 bg-background"
+      className="h-full min-h-0 w-full flex-1 border-0 bg-background"
       ref={iframeRef}
       sandbox={IFRAME_SANDBOX}
       src={rootSrc}
@@ -65,7 +65,9 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
     />
   );
 
-  let body: React.ReactNode = previewFrame;
+  let body: React.ReactNode = (
+    <div className="flex min-h-0 flex-1 flex-col">{previewFrame}</div>
+  );
   if (codeOpen && isMobile) {
     body = (
       <div className="flex min-h-0 flex-1 flex-col">
@@ -75,7 +77,11 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
   } else if (codeOpen) {
     body = (
       <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
-        <ResizablePanel className="min-h-0" defaultSize={58} minSize={30}>
+        <ResizablePanel
+          className="flex min-h-0 flex-col"
+          defaultSize={58}
+          minSize={30}
+        >
           {previewFrame}
         </ResizablePanel>
         <ResizableHandle />
