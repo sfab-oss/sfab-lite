@@ -371,10 +371,6 @@ const sidebarMenuButtonVariants = cva(
   }
 );
 
-/**
- * `tooltip` is shown only while the sidebar is collapsed to icons — expanded,
- * the label is already on screen, so a tooltip would just repeat it.
- */
 function SidebarMenuButton({
   render,
   isActive = false,
