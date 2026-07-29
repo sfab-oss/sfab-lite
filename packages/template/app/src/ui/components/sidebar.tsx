@@ -1,3 +1,5 @@
+// biome-ignore-all lint/suspicious/noDocumentCookie: sidebar state cookie mirrors shadcn/factory
+
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { ViewVerticalIcon } from "@radix-ui/react-icons";
@@ -11,6 +13,11 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  parseSidebarStateCookie,
+  SIDEBAR_COOKIE_MAX_AGE,
+  SIDEBAR_COOKIE_NAME,
+} from "../lib/sidebar-cookie";
 import { useIsMobile } from "../lib/use-mobile";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
@@ -28,10 +35,17 @@ const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
+function readSidebarCookie(): boolean | undefined {
+  if (typeof document === "undefined") {
+    return;
+  }
+  return parseSidebarStateCookie(document.cookie);
+}
+
 interface SidebarContextValue {
   state: "expanded" | "collapsed";
   open: boolean;
-  setOpen: (open: boolean) => void;
+  setOpen: (open: boolean | ((value: boolean) => boolean)) => void;
   openMobile: boolean;
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
@@ -57,7 +71,20 @@ function SidebarProvider({
 }: React.ComponentProps<"div"> & { defaultOpen?: boolean }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = useState(false);
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpenState] = useState(
+    () => readSidebarCookie() ?? defaultOpen
+  );
+
+  const setOpen = useCallback(
+    (value: boolean | ((value: boolean) => boolean)) => {
+      setOpenState((current) => {
+        const openState = typeof value === "function" ? value(current) : value;
+        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        return openState;
+      });
+    },
+    []
+  );
 
   const toggleSidebar = useCallback(() => {
     if (isMobile) {
@@ -65,7 +92,7 @@ function SidebarProvider({
       return;
     }
     setOpen((value) => !value);
-  }, [isMobile]);
+  }, [isMobile, setOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -93,7 +120,7 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, isMobile, openMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, toggleSidebar]
   );
 
   return (
@@ -330,10 +357,6 @@ const sidebarMenuButtonVariants = cva(
   }
 );
 
-/**
- * `tooltip` is shown only while the sidebar is collapsed to icons — expanded,
- * the label is already on screen, so a tooltip would just repeat it.
- */
 function SidebarMenuButton({
   render,
   isActive = false,

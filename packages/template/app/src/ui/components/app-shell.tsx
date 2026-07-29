@@ -3,11 +3,6 @@ import type * as React from "react";
 import { AppSidebar } from "./app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "./sidebar";
 
-/**
- * The signed-in chrome, mounted once by the layout route rather than by each
- * page. `SidebarProvider` holds the collapsed state in React state, so a page
- * that rendered its own would reset the sidebar on every navigation.
- */
 export function AppLayout() {
   return (
     <SidebarProvider>
@@ -19,11 +14,6 @@ export function AppLayout() {
   );
 }
 
-/**
- * One page inside that chrome: a header carrying the title, then the content.
- * The trigger repeats here because the one in the sidebar header is hidden
- * once the sidebar collapses to icons.
- */
 export function AppShell({
   title,
   actions,
