@@ -20,11 +20,16 @@
  * `OrgCtx`. App-scoped routes never call the resolver: `requireAppAccess`
  * is the gate, and root may address them by app id alone.
  *
- * Note what is NOT here: `/a/:appId/*` is addressed by app id alone and stays
- * that way. That route serves a generated app to *its own* end users, who are
- * not factory users and have no factory organization — scoping it by factory
- * tenancy would be a category error. Its access control is the app's own
- * better-auth, and app ids are unguessable ULIDs rather than names.
+ * Note what is NOT here for live: `/a/:appId/*` is addressed by app id alone
+ * and stays that way. That route serves a generated app to *its own* end
+ * users, who are not factory users and have no factory organization —
+ * scoping it by factory tenancy would be a category error. Its access
+ * control is the app's own better-auth, and app ids are unguessable ULIDs
+ * rather than names.
+ *
+ * PR previews (`/a/:appId/preview/:prNumber/*`) are different: they are
+ * factory org surfaces and are gated with `resolveActor` + `requireAppAccess`
+ * in `index.ts` before serve.
  */
 import { and, eq } from "drizzle-orm";
 import { createAuth } from "./auth.js";

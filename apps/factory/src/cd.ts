@@ -11,8 +11,9 @@ import {
   lintPasses,
 } from "@sfab-lite/core";
 import { eq } from "drizzle-orm";
+import { prDataId } from "./app-data-ids.js";
 import { collectMigrations } from "./app-migrations.js";
-import { appStub } from "./app-stub.js";
+import { type AppDataStub, appDataStub, liveAppDataStub } from "./app-stub.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
@@ -160,16 +161,15 @@ async function validateSchema(
 }
 
 async function applySchemaMigrations(
-  env: Env,
-  appId: string,
-  files: Record<string, string>
+  files: Record<string, string>,
+  dataStub: AppDataStub
 ): Promise<SchemaGateFailure | null> {
   const migrations = collectMigrations(files);
   if (migrations.length === 0) {
     return null;
   }
   try {
-    await appStub(env, appId).bootstrap(migrations);
+    await dataStub.bootstrap(migrations);
   } catch (cause) {
     return {
       error: "schema_history_changed",
@@ -178,6 +178,31 @@ async function applySchemaMigrations(
     };
   }
   return null;
+}
+
+async function applyLiveSchemaMigrations(
+  env: Env,
+  appId: string,
+  files: Record<string, string>
+): Promise<SchemaGateFailure | null> {
+  return await applySchemaMigrations(files, liveAppDataStub(env, appId));
+}
+
+/** Bootstrap `${appId}:pr:N` from preview source — empty + migrations, no live clone. */
+export async function applyPreviewSchemaMigrations(
+  env: Env,
+  appId: string,
+  prNumber: number,
+  files: Record<string, string>
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const result = await applySchemaMigrations(
+    files,
+    appDataStub(env, prDataId(appId, prNumber))
+  );
+  if (result) {
+    return { ok: false, error: result.message };
+  }
+  return { ok: true };
 }
 
 async function gateSchema(
@@ -193,7 +218,7 @@ async function gateSchema(
   if (opts?.applyMigrations === false) {
     return null;
   }
-  return applySchemaMigrations(env, appId, files);
+  return applyLiveSchemaMigrations(env, appId, files);
 }
 
 async function compileAll(files: Record<string, string>) {
@@ -257,9 +282,9 @@ async function publishLiveChanged(
 }
 
 /**
- * Point live at an existing build: AppDO migrations + D1 live_sha + event.
- * Skips lint/compile/check — callers must only use this when BuildStore
- * already has `sha` (e.g. green PR checks).
+ * Point live at an existing build: AppDataDO(`${appId}:live`) migrations +
+ * D1 live_sha + event. Skips lint/compile/check — callers must only use this
+ * when BuildStore already has `sha` (e.g. green PR checks).
  */
 async function promoteExistingBuild(
   env: Env,
@@ -271,7 +296,11 @@ async function promoteExistingBuild(
   if (aborted(opts?.signal)) {
     return { ok: false, error: "cd_aborted" };
   }
-  const schemaFailure = await applySchemaMigrations(env, appId, sourceFiles);
+  const schemaFailure = await applyLiveSchemaMigrations(
+    env,
+    appId,
+    sourceFiles
+  );
   if (schemaFailure) {
     return {
       ok: false,

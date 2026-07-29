@@ -5,7 +5,7 @@
  * orphaning a `creating` row. Auth is a derived capability token.
  */
 
-import { appStub } from "./app-stub.js";
+import { appCreateStub } from "./app-stub.js";
 import { runCdForSha } from "./cd.js";
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
@@ -31,7 +31,7 @@ async function handleRunCreate(
   appId: string,
   jobId: string
 ): Promise<Response> {
-  const stub = appStub(rc.env, appId);
+  const stub = appCreateStub(rc.env, appId);
   const host = createR2CodeHost(rc.env);
 
   try {

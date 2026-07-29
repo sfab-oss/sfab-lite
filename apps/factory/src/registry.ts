@@ -2,13 +2,13 @@
  * App registry — the D1 index that makes apps enumerable.
  *
  * Durable Objects cannot be listed (`idFromName` is a hash), so every created
- * app must land a row here before its AppDO is seeded. Create/list take an
+ * app must land a row here before its AppDataDO is seeded. Create/list take an
  * `organizationId` from the dispatcher (`OrgCtx`); app-scoped reads
  * (`getAppUnscoped`) are by id alone after `requireAppAccess`.
  */
 import { and, desc, eq } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
-import { STALE_ATTEMPT_MS } from "./app-do.js";
+import { STALE_ATTEMPT_MS } from "./app-create-do.js";
 import type { Db } from "./db/index.js";
 import { app, organization } from "./db/schema.js";
 
@@ -76,7 +76,7 @@ export async function appBelongsToOrganization(
 }
 
 /**
- * Insert the registry row *before* any AppDO work. Status starts at
+ * Insert the registry row *before* any AppDataDO / AppCreateDO work. Status starts at
  * `creating` so a UI can poll during the ~18–25s seed commit.
  */
 export async function insertCreatingApp(
@@ -172,7 +172,7 @@ export async function markCreateFailed(
 }
 
 /**
- * Resolve a seed attempt's real status from the AppDO.
+ * Resolve a seed attempt's real status from the AppCreateDO.
  *
  * A callback rather than a direct stub call: `registry.ts` must not import the
  * host worker's plumbing, and the Durable Object is the authority here — D1
@@ -197,8 +197,8 @@ export type CreateSweepAction =
     };
 
 /**
- * Reconcile `creating` rows against the AppDO, which is the authority — D1
- * only mirrors it. Data-only: returns what changed so host code can publish.
+ * Reconcile `creating` rows against the AppCreateDO, which is the authority —
+ * D1 only mirrors it. Data-only: returns what changed so host code can publish.
  *
  * **Age is not the trigger; a terminal attempt is.** An attempt that reads
  * `pass`, `fail` or `error` is finished whatever the clock says, so a row

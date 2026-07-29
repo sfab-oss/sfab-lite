@@ -1,3 +1,4 @@
+import { liveDataId } from "../../app-data-ids.js";
 import type { ProtectedReply } from "../../hono/reply.js";
 import type { SqlBody } from "../../hono/schemas.js";
 import type { AppCtx } from "../../routes.js";
@@ -21,7 +22,7 @@ interface HostExports {
       }>;
     };
     pingScope: () => Promise<{
-      appId: string;
+      dataId: string;
       ok: true;
       backend: "do-sqlite";
     }>;
@@ -30,7 +31,9 @@ interface HostExports {
 
 function scopedDb(ctx: ExecutionContext, appId: string) {
   const ex = ctx.exports as unknown as HostExports;
-  return ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps });
+  return ex.ScopedSql({
+    props: { dataId: liveDataId(appId) } satisfies ScopedSqlProps,
+  });
 }
 
 export async function handleSql(

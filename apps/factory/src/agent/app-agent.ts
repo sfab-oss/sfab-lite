@@ -44,7 +44,7 @@ interface ThreadMetaRow {
 /**
  * Think root for one app-as-being-built. Owns the shared Workspace and
  * thread registry; clients talk to AppThread facets, not this DO's chat.
- * Serving traffic stays on AppDO — this isolate is for agent work only.
+ * Serving traffic stays on AppDataDO — this isolate is for agent work only.
  */
 export class AppAgent extends Think<Env> {
   workspace = new Workspace({

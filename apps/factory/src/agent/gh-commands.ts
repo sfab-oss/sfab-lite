@@ -7,6 +7,7 @@ import {
 } from "just-bash";
 import { bridgeBashFs } from "../bash-fs-bridge.js";
 import {
+  closePullRequest,
   createPullRequest,
   getCheckRun,
   getPullRequestByNumber,
@@ -228,6 +229,21 @@ async function ghPrMerge(
   );
 }
 
+async function ghPrClose(
+  deps: GhCommandDeps,
+  rest: string[]
+): Promise<ExecResult> {
+  const n = Number(rest[0]);
+  if (!Number.isFinite(n) || n < 1) {
+    return fail("gh pr close: missing or invalid PR number\n", 1);
+  }
+  const result = await closePullRequest(deps.env, deps.appId, n);
+  if (!result.ok) {
+    return fail(`gh pr close: ${result.error}\n`, 1);
+  }
+  return ok(`Closed pull request #${result.pr.number}\n`);
+}
+
 async function runGhCommand(
   deps: GhCommandDeps,
   args: string[],
@@ -268,9 +284,11 @@ async function runGhCommand(
         return await ghPrDiff(deps, parsed.rest);
       case "merge":
         return await ghPrMerge(deps, parsed.rest);
+      case "close":
+        return await ghPrClose(deps, parsed.rest);
       default:
         return fail(
-          `gh pr ${parsed.action}: not supported (list|view|checks|create|diff|merge)\n`,
+          `gh pr ${parsed.action}: not supported (list|view|checks|create|diff|merge|close)\n`,
           1
         );
     }

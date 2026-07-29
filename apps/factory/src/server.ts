@@ -10,7 +10,8 @@ import { dispatchFactoryRequest } from "./index.js";
 export { CodemodeRuntime } from "@cloudflare/codemode";
 export { AppAgent } from "./agent/app-agent.js";
 export { AppThread } from "./agent/app-thread.js";
-export { AppDO } from "./app-do.js";
+export { AppCreateDO } from "./app-create-do.js";
+export { AppDataDO } from "./app-data-do.js";
 export { OrgEvents } from "./org-events-do.js";
 export { ScopedSql } from "./scoped-sql.js";
 

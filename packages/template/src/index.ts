@@ -5,7 +5,7 @@ import manifest from "../manifest.json" with { type: "json" };
  *
  * `app/` is the payload: the source tree a new app starts life as. It runs
  * standalone from this package (`pnpm dev`) and is also what the factory
- * seeds into an AppDO.
+ * seeds into an AppDataDO.
  *
  * This module exports the one thing the factory needs to know about that
  * payload — where its entry points are.

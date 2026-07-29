@@ -21,7 +21,7 @@ ADRs under [`../decisions/`](../decisions/).
                     ┌─────────────────────────┐
                     │  apps/factory (host)    │
                     │  protected /api + UI    │
-                    │  AppDO per app          │
+                    │  AppDataDO + AppCreateDO│
                     └───────────┬─────────────┘
                                 │
           ┌─────────────────────┼─────────────────────┐
@@ -34,8 +34,15 @@ ADRs under [`../decisions/`](../decisions/).
 
 - **Code host** holds each app's Git repo (R2 stand-in now; Cloudflare
   Artifacts later). **CD** writes immutable **builds** keyed by sha; D1
-  `live_sha` is the thin pointer serve reads. **AppDO** is runtime SQLite
-  (+ create jobs) only — not code history.
+  `live_sha` is the thin pointer serve reads. **AppDataDO** is runtime
+  SQLite only — one class, many ids (`${appId}:live`, `${appId}:pr:N`,
+  later `${appId}:ws:…`). **AppCreateDO** (`idFromName(appId)`) owns create
+  jobs + alarms. There is no forever bare-`appId` live special case.
+- **Live** `/a/:appId/*` is public at the host layer (the app's own
+  better-auth still applies inside). **PR preview**
+  `/a/:appId/preview/:prNumber/*` requires factory session + membership in
+  the app's org; preview SQLite is empty+migrations from preview source
+  (never a live clone) and is destroyed when the PR leaves `open`.
 - **The seed is a snapshot, not a link.** `TEMPLATE_SEED.sourceFiles` becomes
   the initial commit on `main` at create; later work is normal Git. A fix to
   `packages/template` reaches *new* apps only — existing repos never pick it
@@ -57,6 +64,7 @@ Shared contracts live in `packages/core`.
 | Template, frozen kernel, host, check, lint | Tasks-lite |
 | Auth, organizations, app registry | Diffs, quotas, schema evolution, eject |
 | Factory console + in-console agent loop | Agent over the protected `/api` |
+| Isolated org-auth PR previews | Design board / workspace serve |
 
 ## Related
 
