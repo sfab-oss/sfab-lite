@@ -1,12 +1,12 @@
-import type { DynamicToolUIPart, ToolUIPart } from "ai";
-import { memo } from "react";
 import {
   Tool,
   ToolContent,
   ToolHeader,
   ToolInput,
   ToolOutput,
-} from "@/components/ai-elements/tool";
+} from "@sfab-lite/ui/components/ai-elements/tool";
+import type { DynamicToolUIPart, ToolUIPart } from "ai";
+import { memo } from "react";
 import { idToReadableText } from "../../lib/id-to-readable-text";
 
 export interface DefaultToolProps {
