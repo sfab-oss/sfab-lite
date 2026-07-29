@@ -1,15 +1,18 @@
 /**
- * Serve a sub-app at /a/:appId/* (live) or /a/:appId/preview/:prNumber/*
- * (that PR's preview_sha build).
+ * Serve a sub-app at /a/:appId/* (live), /a/:appId/preview/:prNumber/*
+ * (PR preview_sha), or /a/:appId/workspace/* (AppAgent WIP compile).
  *
  * Live pointer is D1 `live_sha` → immutable build in CODE_R2.
  * Preview is per-PR: pull_request.preview_sha → BuildStore by sha.
+ * Workspace is ephemeral R2 `builds/{appId}/workspace.json` from AppAgent.
  * AppDataDO is runtime SQLite only (seed credentials + SQL), keyed by
- * `${appId}:live` or `${appId}:pr:N`.
+ * `${appId}:live`, `${appId}:pr:N`, or `${appId}:ws:default`.
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
+import { getAgentByName } from "agents";
+import { collectAgentWorkspaceFiles } from "./agent/workspace-files.js";
 import type { AppDataDO } from "./app-data-do.js";
-import { liveDataId, prDataId } from "./app-data-ids.js";
+import { liveDataId, prDataId, wsDataId } from "./app-data-ids.js";
 import { collectMigrations } from "./app-migrations.js";
 import { appDataStub } from "./app-stub.js";
 import type { AppBuild } from "./build-store.js";
@@ -19,6 +22,7 @@ import { kernelModules } from "./kernel-modules.js";
 import { createR2BuildStore } from "./r2-build-store.js";
 import { createR2CodeHost } from "./r2-code-host.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
+import { getWorkspaceBuild } from "./workspace-build.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
 
@@ -45,7 +49,7 @@ interface HostExports {
   ScopedSql: (opts: { props: ScopedSqlProps }) => unknown;
 }
 
-export type ServeMode = "live" | "preview";
+export type ServeMode = "live" | "preview" | "workspace";
 
 export interface ServePreviewOpts {
   prNumber: number;
@@ -56,6 +60,9 @@ function dataIdFor(
   mode: ServeMode,
   preview?: ServePreviewOpts
 ): string {
+  if (mode === "workspace") {
+    return wsDataId(appId);
+  }
   if (mode === "preview" && preview?.prNumber != null) {
     return prDataId(appId, preview.prNumber);
   }
@@ -63,10 +70,16 @@ function dataIdFor(
 }
 
 type LoadBuildResult =
-  | { ok: true; build: AppBuild }
+  | { ok: true; build: AppBuild; generation?: number }
   | {
       ok: false;
-      error: "preview_not_open" | "no_preview_build" | "no_live_build";
+      error:
+        | "preview_not_open"
+        | "no_preview_build"
+        | "no_live_build"
+        | "no_workspace_build"
+        | "workspace_compile_failed";
+      detail?: string;
     };
 
 async function loadBuild(
@@ -75,6 +88,10 @@ async function loadBuild(
   mode: ServeMode,
   preview?: ServePreviewOpts
 ): Promise<LoadBuildResult> {
+  if (mode === "workspace") {
+    return loadWorkspaceBuild(env, appId);
+  }
+
   if (mode === "preview") {
     if (!preview?.prNumber) {
       return { ok: false, error: "no_preview_build" };
@@ -104,11 +121,49 @@ async function loadBuild(
   return { ok: true, build };
 }
 
+async function loadWorkspaceBuild(
+  env: Env,
+  appId: string
+): Promise<LoadBuildResult> {
+  let record = await getWorkspaceBuild(env, appId);
+  if (!record) {
+    try {
+      const agent = await getAgentByName(env.AppAgent, appId);
+      const status = await agent.compileWorkspaceNow();
+      if (status.status === "error") {
+        return {
+          ok: false,
+          error: "workspace_compile_failed",
+          detail: status.error ?? undefined,
+        };
+      }
+      record = await getWorkspaceBuild(env, appId);
+    } catch (e) {
+      return {
+        ok: false,
+        error: "workspace_compile_failed",
+        detail: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+  if (!record) {
+    return { ok: false, error: "no_workspace_build" };
+  }
+  return {
+    ok: true,
+    build: record.build,
+    generation: record.generation,
+  };
+}
+
 function pathPrefixFor(
   appId: string,
   mode: ServeMode,
   preview?: ServePreviewOpts
 ): string {
+  if (mode === "workspace") {
+    return `/a/${encodeURIComponent(appId)}/workspace`;
+  }
   if (mode === "preview" && preview?.prNumber != null) {
     return `/a/${encodeURIComponent(appId)}/preview/${preview.prNumber}`;
   }
@@ -150,6 +205,23 @@ async function ensureDataMigrated(
   await appDataStub(env, dataId).bootstrap(migrations);
 }
 
+async function ensureWorkspaceDataMigrated(
+  env: Env,
+  appId: string,
+  dataId: string
+): Promise<void> {
+  const agent = await getAgentByName(env.AppAgent, appId);
+  const sourceFiles = await collectAgentWorkspaceFiles({
+    glob: (pattern) => agent.glob(pattern),
+    readFile: (path) => agent.readFile(path),
+  });
+  const migrations = collectMigrations(sourceFiles);
+  if (migrations.length === 0) {
+    return;
+  }
+  await appDataStub(env, dataId).bootstrap(migrations);
+}
+
 async function serveApiRoute(
   request: Request,
   env: Env,
@@ -161,7 +233,8 @@ async function serveApiRoute(
   mode: ServeMode,
   stub: DurableObjectStub<AppDataDO>,
   dataId: string,
-  preview?: ServePreviewOpts
+  preview?: ServePreviewOpts,
+  generation?: number
 ): Promise<Response> {
   const secret = env.APP_BETTER_AUTH_SECRET;
   if (!secret) {
@@ -173,7 +246,10 @@ async function serveApiRoute(
 
   const url = new URL(request.url);
   const innerUrl = new URL(`/${rest}${url.search}`, url.origin);
-  const workerKey = `app:${appId}:${mode}:${preview?.prNumber ?? "live"}:${build.sha}`;
+  const workerKey =
+    mode === "workspace"
+      ? `app:${appId}:workspace:default:${generation ?? build.sha}`
+      : `app:${appId}:${mode}:${preview?.prNumber ?? "live"}:${build.sha}`;
 
   const ex = ctx.exports as unknown as HostExports;
   const worker = env.LOADER.get(workerKey, async () => ({
@@ -264,6 +340,48 @@ function serveStaticAsset(
   });
 }
 
+async function bootstrapServeData(
+  env: Env,
+  appId: string,
+  dataId: string,
+  mode: ServeMode,
+  build: AppBuild,
+  preview?: ServePreviewOpts
+): Promise<Response | null> {
+  if (mode === "preview") {
+    try {
+      await ensureDataMigrated(env, appId, dataId, build.sha);
+    } catch {
+      return Response.json(
+        {
+          ok: false,
+          error: "preview_schema_bootstrap_failed",
+          appId,
+          prNumber: preview?.prNumber,
+        },
+        { status: 500 }
+      );
+    }
+    return null;
+  }
+  if (mode !== "workspace") {
+    return null;
+  }
+  try {
+    await ensureWorkspaceDataMigrated(env, appId, dataId);
+  } catch {
+    return Response.json(
+      {
+        ok: false,
+        error: "workspace_schema_bootstrap_failed",
+        appId,
+      },
+      { status: 500 }
+    );
+  }
+  return null;
+}
+
 export async function serveSubApp(
   request: Request,
   env: Env,
@@ -288,18 +406,24 @@ export async function serveSubApp(
   const loaded = await loadBuild(env, appId, mode, preview);
 
   if (!loaded.ok) {
+    const status =
+      loaded.error === "workspace_compile_failed" ||
+      loaded.error === "no_workspace_build"
+        ? 503
+        : 404;
     return Response.json(
       {
         ok: false,
         error: loaded.error,
         appId,
         ...(preview?.prNumber == null ? {} : { prNumber: preview.prNumber }),
+        ...(loaded.detail == null ? {} : { detail: loaded.detail }),
       },
-      { status: 404 }
+      { status }
     );
   }
 
-  const { build } = loaded;
+  const { build, generation } = loaded;
 
   if (
     build.serverSurfaceHash != null &&
@@ -318,20 +442,16 @@ export async function serveSubApp(
     );
   }
 
-  if (mode === "preview") {
-    try {
-      await ensureDataMigrated(env, appId, dataId, build.sha);
-    } catch {
-      return Response.json(
-        {
-          ok: false,
-          error: "preview_schema_bootstrap_failed",
-          appId,
-          prNumber: preview?.prNumber,
-        },
-        { status: 500 }
-      );
-    }
+  const bootstrapError = await bootstrapServeData(
+    env,
+    appId,
+    dataId,
+    mode,
+    build,
+    preview
+  );
+  if (bootstrapError) {
+    return bootstrapError;
   }
 
   const { rest, publicBase } = buildPathContext(
@@ -348,6 +468,9 @@ export async function serveSubApp(
     headers.set("X-Sfab-Serve", mode);
     if (preview?.prNumber != null) {
       headers.set("X-Sfab-Preview-Pr", String(preview.prNumber));
+    }
+    if (generation != null) {
+      headers.set("X-Sfab-Workspace-Generation", String(generation));
     }
     return new Response(res.body, {
       status: res.status,
@@ -368,7 +491,8 @@ export async function serveSubApp(
       mode,
       stub,
       dataId,
-      preview
+      preview,
+      generation
     );
     return withShaHeader(res);
   }

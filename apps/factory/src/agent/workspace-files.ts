@@ -37,3 +37,33 @@ export async function collectWorkspaceSourceFiles(
   }
   return files;
 }
+
+export interface AgentWorkspaceFs {
+  glob: (pattern: string) => Promise<Array<{ path: string; type: string }>>;
+  readFile: (path: string) => Promise<string | null>;
+}
+
+/**
+ * Snapshot AppAgent workspace files as factory `sourceFiles` (no leading slash).
+ */
+export async function collectAgentWorkspaceFiles(
+  fs: AgentWorkspaceFs
+): Promise<Record<string, string>> {
+  const found = await fs.glob("**/*");
+  const files: Record<string, string> = {};
+  for (const entry of found) {
+    if (entry.type !== "file") {
+      continue;
+    }
+    const path = entry.path.startsWith("/") ? entry.path : `/${entry.path}`;
+    if (!shouldCollect(path)) {
+      continue;
+    }
+    const content = await fs.readFile(path);
+    if (content == null) {
+      continue;
+    }
+    files[toSourcePath(path)] = content;
+  }
+  return files;
+}
