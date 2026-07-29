@@ -3,6 +3,7 @@ import { NOT_FOUND_BODY } from "../../routes.js";
 import { requireActor } from "../middleware.js";
 import type { AdminEnv } from "../types.js";
 import appsRoutes from "./apps.js";
+import forgeRoutes from "./forge.js";
 import healthRoutes from "./health.js";
 import lifecycleRoutes from "./lifecycle.js";
 import liveRoutes from "./live.js";
@@ -26,6 +27,7 @@ const protectedApp = new Hono<AdminEnv>()
   .route("/apps", sqlRoutes)
   .route("/apps", liveRoutes)
   .route("/apps", lifecycleRoutes)
+  .route("/apps", forgeRoutes)
   .route("/org-events", orgEventsRoutes);
 
 protectedApp.notFound(() => new Response(NOT_FOUND_BODY, { status: 404 }));

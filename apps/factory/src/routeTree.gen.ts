@@ -23,6 +23,9 @@ import { Route as ProtectedAppsIndexRouteImport } from './routes/_protected/apps
 import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
 import { Route as ProtectedAppsAppIdIndexRouteImport } from './routes/_protected/apps.$appId.index'
 import { Route as ProtectedAppsAppIdPreviewRouteImport } from './routes/_protected/apps.$appId.preview'
+import { Route as ProtectedAppsAppIdPrsRouteImport } from './routes/_protected/apps.$appId.prs'
+import { Route as ProtectedAppsAppIdPrsIndexRouteImport } from './routes/_protected/apps.$appId.prs.index'
+import { Route as ProtectedAppsAppIdPrsPrNumberRouteImport } from './routes/_protected/apps.$appId.prs.$prNumber'
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as DevChatAppsAppIdTThreadIdRouteImport } from './routes/dev.chat.apps.$appId.t.$threadId'
 
@@ -96,6 +99,23 @@ const ProtectedAppsAppIdPreviewRoute =
     path: '/preview',
     getParentRoute: () => ProtectedAppsAppIdRoute,
   } as any)
+const ProtectedAppsAppIdPrsRoute = ProtectedAppsAppIdPrsRouteImport.update({
+  id: '/prs',
+  path: '/prs',
+  getParentRoute: () => ProtectedAppsAppIdRoute,
+} as any)
+const ProtectedAppsAppIdPrsIndexRoute =
+  ProtectedAppsAppIdPrsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ProtectedAppsAppIdPrsRoute,
+  } as any)
+const ProtectedAppsAppIdPrsPrNumberRoute =
+  ProtectedAppsAppIdPrsPrNumberRouteImport.update({
+    id: '/$prNumber',
+    path: '/$prNumber',
+    getParentRoute: () => ProtectedAppsAppIdPrsRoute,
+  } as any)
 const ProtectedAppsAppIdTThreadIdRoute =
   ProtectedAppsAppIdTThreadIdRouteImport.update({
     id: '/t/$threadId',
@@ -123,6 +143,9 @@ export interface FileRoutesByFullPath {
   '/dev/chat/': typeof DevChatIndexRoute
   '/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
   '/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
+  '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
+  '/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
+  '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -137,6 +160,8 @@ export interface FileRoutesByTo {
   '/dev/chat': typeof DevChatIndexRoute
   '/apps/$appId': typeof ProtectedAppsAppIdIndexRoute
   '/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
+  '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsIndexRoute
+  '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -156,6 +181,9 @@ export interface FileRoutesById {
   '/dev/chat/': typeof DevChatIndexRoute
   '/_protected/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
   '/_protected/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
+  '/_protected/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
+  '/_protected/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
+  '/_protected/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -175,6 +203,9 @@ export interface FileRouteTypes {
     | '/dev/chat/'
     | '/apps/$appId/'
     | '/apps/$appId/preview'
+    | '/apps/$appId/prs'
+    | '/apps/$appId/prs/'
+    | '/apps/$appId/prs/$prNumber'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesByTo: FileRoutesByTo
@@ -189,6 +220,8 @@ export interface FileRouteTypes {
     | '/dev/chat'
     | '/apps/$appId'
     | '/apps/$appId/preview'
+    | '/apps/$appId/prs'
+    | '/apps/$appId/prs/$prNumber'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   id:
@@ -207,6 +240,9 @@ export interface FileRouteTypes {
     | '/dev/chat/'
     | '/_protected/apps/$appId/'
     | '/_protected/apps/$appId/preview'
+    | '/_protected/apps/$appId/prs'
+    | '/_protected/apps/$appId/prs/'
+    | '/_protected/apps/$appId/prs/$prNumber'
     | '/_protected/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesById: FileRoutesById
@@ -321,6 +357,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdPreviewRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
+    '/_protected/apps/$appId/prs': {
+      id: '/_protected/apps/$appId/prs'
+      path: '/prs'
+      fullPath: '/apps/$appId/prs'
+      preLoaderRoute: typeof ProtectedAppsAppIdPrsRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
+    }
+    '/_protected/apps/$appId/prs/': {
+      id: '/_protected/apps/$appId/prs/'
+      path: '/'
+      fullPath: '/apps/$appId/prs/'
+      preLoaderRoute: typeof ProtectedAppsAppIdPrsIndexRouteImport
+      parentRoute: typeof ProtectedAppsAppIdPrsRoute
+    }
+    '/_protected/apps/$appId/prs/$prNumber': {
+      id: '/_protected/apps/$appId/prs/$prNumber'
+      path: '/$prNumber'
+      fullPath: '/apps/$appId/prs/$prNumber'
+      preLoaderRoute: typeof ProtectedAppsAppIdPrsPrNumberRouteImport
+      parentRoute: typeof ProtectedAppsAppIdPrsRoute
+    }
     '/_protected/apps/$appId/t/$threadId': {
       id: '/_protected/apps/$appId/t/$threadId'
       path: '/t/$threadId'
@@ -338,15 +395,30 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ProtectedAppsAppIdPrsRouteChildren {
+  ProtectedAppsAppIdPrsIndexRoute: typeof ProtectedAppsAppIdPrsIndexRoute
+  ProtectedAppsAppIdPrsPrNumberRoute: typeof ProtectedAppsAppIdPrsPrNumberRoute
+}
+
+const ProtectedAppsAppIdPrsRouteChildren: ProtectedAppsAppIdPrsRouteChildren = {
+  ProtectedAppsAppIdPrsIndexRoute: ProtectedAppsAppIdPrsIndexRoute,
+  ProtectedAppsAppIdPrsPrNumberRoute: ProtectedAppsAppIdPrsPrNumberRoute,
+}
+
+const ProtectedAppsAppIdPrsRouteWithChildren =
+  ProtectedAppsAppIdPrsRoute._addFileChildren(ProtectedAppsAppIdPrsRouteChildren)
+
 interface ProtectedAppsAppIdRouteChildren {
   ProtectedAppsAppIdIndexRoute: typeof ProtectedAppsAppIdIndexRoute
   ProtectedAppsAppIdPreviewRoute: typeof ProtectedAppsAppIdPreviewRoute
+  ProtectedAppsAppIdPrsRoute: typeof ProtectedAppsAppIdPrsRouteWithChildren
   ProtectedAppsAppIdTThreadIdRoute: typeof ProtectedAppsAppIdTThreadIdRoute
 }
 
 const ProtectedAppsAppIdRouteChildren: ProtectedAppsAppIdRouteChildren = {
   ProtectedAppsAppIdIndexRoute: ProtectedAppsAppIdIndexRoute,
   ProtectedAppsAppIdPreviewRoute: ProtectedAppsAppIdPreviewRoute,
+  ProtectedAppsAppIdPrsRoute: ProtectedAppsAppIdPrsRouteWithChildren,
   ProtectedAppsAppIdTThreadIdRoute: ProtectedAppsAppIdTThreadIdRoute,
 }
 

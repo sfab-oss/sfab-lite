@@ -13,6 +13,22 @@ export const renameAppBodySchema = z
   })
   .strict();
 
+export const createPrBodySchema = z
+  .object({
+    title: z.string().trim().min(1),
+    body: z.string().optional(),
+    headBranch: z.string().trim().min(1),
+    baseBranch: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export const listRunsQuerySchema = z
+  .object({
+    sha: z.string().optional(),
+    limit: z.coerce.number().int().positive().max(200).optional(),
+  })
+  .strict();
+
 export const sqlBodySchema = z
   .object({
     query: z.string().min(1),
@@ -45,6 +61,7 @@ export const revertBodySchema = z
 
 export type CreateAppBody = z.infer<typeof createAppBodySchema>;
 export type RenameAppBody = z.infer<typeof renameAppBodySchema>;
+export type CreatePrBody = z.infer<typeof createPrBodySchema>;
 export type SqlBody = z.infer<typeof sqlBodySchema>;
 export type CheckBody = z.infer<typeof checkBodySchema>;
 export type CommitBody = z.infer<typeof commitBodySchema>;

@@ -247,3 +247,127 @@ export async function getAttempt(
   const body = await res.json();
   return body.attempt;
 }
+
+export type PrRecord = Ok<
+  InferResponseType<(typeof protectedApi.apps)[":appId"]["prs"]["$get"], 200>
+>["prs"][number];
+
+export type CheckRunRecord = Ok<
+  InferResponseType<(typeof protectedApi.apps)[":appId"]["runs"]["$get"], 200>
+>["runs"][number];
+
+export async function listPrs(appId: string): Promise<PrRecord[]> {
+  const res = await protectedApi.apps[":appId"].prs.$get({
+    param: { appId },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(await errorMessage(res, `list prs failed (${res.status})`));
+  }
+  const body = await res.json();
+  return body.prs;
+}
+
+export async function createPr(
+  appId: string,
+  input: {
+    title: string;
+    body?: string;
+    headBranch: string;
+    baseBranch?: string;
+  }
+): Promise<{ pr: PrRecord; checkRun: CheckRunRecord }> {
+  const res = await protectedApi.apps[":appId"].prs.$post({
+    param: { appId },
+    json: input,
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 201) {
+    throw new Error(
+      await errorMessage(res, `create pr failed (${res.status})`)
+    );
+  }
+  const body = await res.json();
+  return { pr: body.pr, checkRun: body.checkRun };
+}
+
+export async function getPr(
+  appId: string,
+  number: number
+): Promise<{ pr: PrRecord; checks: CheckRunRecord[] }> {
+  const res = await protectedApi.apps[":appId"].prs[":number"].$get({
+    param: { appId, number: String(number) },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(await errorMessage(res, `get pr failed (${res.status})`));
+  }
+  const body = await res.json();
+  return { pr: body.pr, checks: body.checks };
+}
+
+export async function mergePr(
+  appId: string,
+  number: number
+): Promise<{ pr: PrRecord; liveSha: string }> {
+  const res = await protectedApi.apps[":appId"].prs[":number"].merge.$post({
+    param: { appId, number: String(number) },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(await errorMessage(res, `merge pr failed (${res.status})`));
+  }
+  const body = await res.json();
+  return { pr: body.pr, liveSha: body.liveSha };
+}
+
+export async function listRuns(
+  appId: string,
+  opts?: { sha?: string; limit?: number }
+): Promise<CheckRunRecord[]> {
+  const res = await protectedApi.apps[":appId"].runs.$get({
+    param: { appId },
+    query: {
+      ...(opts?.sha ? { sha: opts.sha } : {}),
+      ...(opts?.limit == null ? {} : { limit: opts.limit }),
+    },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(
+      await errorMessage(res, `list runs failed (${res.status})`)
+    );
+  }
+  const body = await res.json();
+  return body.runs;
+}
+
+export async function getRun(
+  appId: string,
+  runId: string
+): Promise<CheckRunRecord> {
+  const res = await protectedApi.apps[":appId"].runs[":runId"].$get({
+    param: { appId, runId },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(await errorMessage(res, `get run failed (${res.status})`));
+  }
+  const body = await res.json();
+  return body.run;
+}
+
+export async function rerunRun(
+  appId: string,
+  runId: string
+): Promise<CheckRunRecord> {
+  const res = await protectedApi.apps[":appId"].runs[":runId"].rerun.$post({
+    param: { appId, runId },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(await errorMessage(res, `rerun failed (${res.status})`));
+  }
+  const body = await res.json();
+  return body.run;
+}

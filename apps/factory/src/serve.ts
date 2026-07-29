@@ -1,13 +1,14 @@
 /**
- * Serve a sub-app at /a/:appId/* (live) or /a/:appId/preview/* (same tip for now).
+ * Serve a sub-app at /a/:appId/* (live) or /a/:appId/preview/* (preview_sha).
  *
  * Live pointer is D1 `live_sha` → immutable build in CODE_R2.
+ * Preview pointer is D1 `preview_sha` (last successful PR check build).
  * AppDO is runtime SQLite only (seed credentials + SQL).
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import type { AppDO } from "./app-do.js";
 import type { AppBuild } from "./build-store.js";
-import { getLiveSha } from "./cd.js";
+import { getLiveSha, getPreviewSha } from "./cd.js";
 import { kernelModules } from "./kernel-modules.js";
 import { createR2BuildStore } from "./r2-build-store.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
@@ -42,9 +43,12 @@ export type ServeMode = "live" | "preview";
 async function loadBuild(
   env: Env,
   appId: string,
-  _mode: ServeMode
+  mode: ServeMode
 ): Promise<AppBuild | null> {
-  const sha = await getLiveSha(env, appId);
+  const sha =
+    mode === "preview"
+      ? await getPreviewSha(env, appId)
+      : await getLiveSha(env, appId);
   if (!sha) {
     return null;
   }
@@ -102,7 +106,10 @@ async function serveApiRoute(
       DB: ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps }),
       BETTER_AUTH_SECRET: secret,
       BETTER_AUTH_URL: new URL(publicBase).origin,
-      APP_BASE_PATH: `/a/${encodeURIComponent(appId)}`,
+      APP_BASE_PATH:
+        mode === "preview"
+          ? `/a/${encodeURIComponent(appId)}/preview`
+          : `/a/${encodeURIComponent(appId)}`,
       SEED_TOKEN: (await stub.seedCredentials()).token,
     },
     globalOutbound: null,

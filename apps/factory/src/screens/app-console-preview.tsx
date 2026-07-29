@@ -16,7 +16,7 @@ import {
 import { subscribeLive } from "@/features/preview/live-bus";
 import { PreviewCodePanel } from "@/features/preview/preview-code-panel";
 import {
-  appBasePath,
+  appPreviewBasePath,
   reloadPreviewFrame,
 } from "@/features/preview/reload-preview";
 import { useApp } from "@/hooks/use-apps";
@@ -28,7 +28,7 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
   const app = appQuery.data ?? null;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const liveRef = useRef<string | null>(null);
-  const rootSrc = `${appBasePath(appId)}/`;
+  const rootSrc = `${appPreviewBasePath(appId)}/`;
   const isMobile = useIsMobile();
   const [codeOpen, setCodeOpen] = useState(false);
 
@@ -141,7 +141,7 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
             <RotateCw className="size-4" />
           </Button>
           <Button
-            aria-label="Open live in new tab"
+            aria-label="Open preview in new tab"
             className="size-8"
             onClick={() =>
               window.open(rootSrc, "_blank", "noopener,noreferrer")
