@@ -22,11 +22,17 @@ import { Route as DevChatIndexRouteImport } from './routes/dev.chat.index'
 import { Route as ProtectedAppsIndexRouteImport } from './routes/_protected/apps.index'
 import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
 import { Route as ProtectedAppsAppIdIndexRouteImport } from './routes/_protected/apps.$appId.index'
-import { Route as ProtectedAppsAppIdPreviewRouteImport } from './routes/_protected/apps.$appId.preview'
 import { Route as ProtectedAppsAppIdPrsRouteImport } from './routes/_protected/apps.$appId.prs'
+import { Route as ProtectedAppsAppIdPreviewRouteImport } from './routes/_protected/apps.$appId.preview'
+import { Route as ProtectedAppsAppIdDeploymentsRouteImport } from './routes/_protected/apps.$appId.deployments'
+import { Route as ProtectedAppsAppIdCodeRouteImport } from './routes/_protected/apps.$appId.code'
+import { Route as ProtectedAppsAppIdAgentRouteImport } from './routes/_protected/apps.$appId.agent'
+import { Route as ProtectedAppsAppIdActionsRouteImport } from './routes/_protected/apps.$appId.actions'
 import { Route as ProtectedAppsAppIdPrsIndexRouteImport } from './routes/_protected/apps.$appId.prs.index'
-import { Route as ProtectedAppsAppIdPrsPrNumberRouteImport } from './routes/_protected/apps.$appId.prs.$prNumber'
+import { Route as ProtectedAppsAppIdAgentIndexRouteImport } from './routes/_protected/apps.$appId.agent.index'
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
+import { Route as ProtectedAppsAppIdPrsPrNumberRouteImport } from './routes/_protected/apps.$appId.prs.$prNumber'
+import { Route as ProtectedAppsAppIdAgentThreadIdRouteImport } from './routes/_protected/apps.$appId.agent.$threadId'
 import { Route as DevChatAppsAppIdTThreadIdRouteImport } from './routes/dev.chat.apps.$appId.t.$threadId'
 
 const SigninRoute = SigninRouteImport.update({
@@ -93,22 +99,56 @@ const ProtectedAppsAppIdIndexRoute = ProtectedAppsAppIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProtectedAppsAppIdRoute,
 } as any)
+const ProtectedAppsAppIdPrsRoute = ProtectedAppsAppIdPrsRouteImport.update({
+  id: '/prs',
+  path: '/prs',
+  getParentRoute: () => ProtectedAppsAppIdRoute,
+} as any)
 const ProtectedAppsAppIdPreviewRoute =
   ProtectedAppsAppIdPreviewRouteImport.update({
     id: '/preview',
     path: '/preview',
     getParentRoute: () => ProtectedAppsAppIdRoute,
   } as any)
-const ProtectedAppsAppIdPrsRoute = ProtectedAppsAppIdPrsRouteImport.update({
-  id: '/prs',
-  path: '/prs',
+const ProtectedAppsAppIdDeploymentsRoute =
+  ProtectedAppsAppIdDeploymentsRouteImport.update({
+    id: '/deployments',
+    path: '/deployments',
+    getParentRoute: () => ProtectedAppsAppIdRoute,
+  } as any)
+const ProtectedAppsAppIdCodeRoute = ProtectedAppsAppIdCodeRouteImport.update({
+  id: '/code',
+  path: '/code',
   getParentRoute: () => ProtectedAppsAppIdRoute,
 } as any)
+const ProtectedAppsAppIdAgentRoute = ProtectedAppsAppIdAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => ProtectedAppsAppIdRoute,
+} as any)
+const ProtectedAppsAppIdActionsRoute =
+  ProtectedAppsAppIdActionsRouteImport.update({
+    id: '/actions',
+    path: '/actions',
+    getParentRoute: () => ProtectedAppsAppIdRoute,
+  } as any)
 const ProtectedAppsAppIdPrsIndexRoute =
   ProtectedAppsAppIdPrsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => ProtectedAppsAppIdPrsRoute,
+  } as any)
+const ProtectedAppsAppIdAgentIndexRoute =
+  ProtectedAppsAppIdAgentIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ProtectedAppsAppIdAgentRoute,
+  } as any)
+const ProtectedAppsAppIdTThreadIdRoute =
+  ProtectedAppsAppIdTThreadIdRouteImport.update({
+    id: '/t/$threadId',
+    path: '/t/$threadId',
+    getParentRoute: () => ProtectedAppsAppIdRoute,
   } as any)
 const ProtectedAppsAppIdPrsPrNumberRoute =
   ProtectedAppsAppIdPrsPrNumberRouteImport.update({
@@ -116,11 +156,11 @@ const ProtectedAppsAppIdPrsPrNumberRoute =
     path: '/$prNumber',
     getParentRoute: () => ProtectedAppsAppIdPrsRoute,
   } as any)
-const ProtectedAppsAppIdTThreadIdRoute =
-  ProtectedAppsAppIdTThreadIdRouteImport.update({
-    id: '/t/$threadId',
-    path: '/t/$threadId',
-    getParentRoute: () => ProtectedAppsAppIdRoute,
+const ProtectedAppsAppIdAgentThreadIdRoute =
+  ProtectedAppsAppIdAgentThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => ProtectedAppsAppIdAgentRoute,
   } as any)
 const DevChatAppsAppIdTThreadIdRoute =
   DevChatAppsAppIdTThreadIdRouteImport.update({
@@ -141,12 +181,18 @@ export interface FileRoutesByFullPath {
   '/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
   '/apps/': typeof ProtectedAppsIndexRoute
   '/dev/chat/': typeof DevChatIndexRoute
-  '/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
+  '/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
+  '/apps/$appId/agent': typeof ProtectedAppsAppIdAgentRouteWithChildren
+  '/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
+  '/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
   '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
-  '/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
+  '/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
+  '/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
+  '/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
+  '/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
 export interface FileRoutesByTo {
@@ -158,11 +204,16 @@ export interface FileRoutesByTo {
   '/': typeof ProtectedIndexRoute
   '/apps': typeof ProtectedAppsIndexRoute
   '/dev/chat': typeof DevChatIndexRoute
-  '/apps/$appId': typeof ProtectedAppsAppIdIndexRoute
+  '/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
+  '/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
+  '/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
-  '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsIndexRoute
+  '/apps/$appId': typeof ProtectedAppsAppIdIndexRoute
+  '/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
+  '/apps/$appId/agent': typeof ProtectedAppsAppIdAgentIndexRoute
+  '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsIndexRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
 export interface FileRoutesById {
@@ -179,12 +230,18 @@ export interface FileRoutesById {
   '/_protected/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
   '/_protected/apps/': typeof ProtectedAppsIndexRoute
   '/dev/chat/': typeof DevChatIndexRoute
-  '/_protected/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
+  '/_protected/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
+  '/_protected/apps/$appId/agent': typeof ProtectedAppsAppIdAgentRouteWithChildren
+  '/_protected/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
+  '/_protected/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/_protected/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
   '/_protected/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
-  '/_protected/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
+  '/_protected/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
+  '/_protected/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/_protected/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
+  '/_protected/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
+  '/_protected/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
 export interface FileRouteTypes {
@@ -201,12 +258,18 @@ export interface FileRouteTypes {
     | '/apps/$appId'
     | '/apps/'
     | '/dev/chat/'
-    | '/apps/$appId/'
+    | '/apps/$appId/actions'
+    | '/apps/$appId/agent'
+    | '/apps/$appId/code'
+    | '/apps/$appId/deployments'
     | '/apps/$appId/preview'
     | '/apps/$appId/prs'
-    | '/apps/$appId/prs/'
+    | '/apps/$appId/'
+    | '/apps/$appId/agent/$threadId'
     | '/apps/$appId/prs/$prNumber'
     | '/apps/$appId/t/$threadId'
+    | '/apps/$appId/agent/'
+    | '/apps/$appId/prs/'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -218,11 +281,16 @@ export interface FileRouteTypes {
     | '/'
     | '/apps'
     | '/dev/chat'
-    | '/apps/$appId'
+    | '/apps/$appId/actions'
+    | '/apps/$appId/code'
+    | '/apps/$appId/deployments'
     | '/apps/$appId/preview'
-    | '/apps/$appId/prs'
+    | '/apps/$appId'
+    | '/apps/$appId/agent/$threadId'
     | '/apps/$appId/prs/$prNumber'
     | '/apps/$appId/t/$threadId'
+    | '/apps/$appId/agent'
+    | '/apps/$appId/prs'
     | '/dev/chat/apps/$appId/t/$threadId'
   id:
     | '__root__'
@@ -238,12 +306,18 @@ export interface FileRouteTypes {
     | '/_protected/apps/$appId'
     | '/_protected/apps/'
     | '/dev/chat/'
-    | '/_protected/apps/$appId/'
+    | '/_protected/apps/$appId/actions'
+    | '/_protected/apps/$appId/agent'
+    | '/_protected/apps/$appId/code'
+    | '/_protected/apps/$appId/deployments'
     | '/_protected/apps/$appId/preview'
     | '/_protected/apps/$appId/prs'
-    | '/_protected/apps/$appId/prs/'
+    | '/_protected/apps/$appId/'
+    | '/_protected/apps/$appId/agent/$threadId'
     | '/_protected/apps/$appId/prs/$prNumber'
     | '/_protected/apps/$appId/t/$threadId'
+    | '/_protected/apps/$appId/agent/'
+    | '/_protected/apps/$appId/prs/'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesById: FileRoutesById
 }
@@ -350,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdIndexRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
+    '/_protected/apps/$appId/prs': {
+      id: '/_protected/apps/$appId/prs'
+      path: '/prs'
+      fullPath: '/apps/$appId/prs'
+      preLoaderRoute: typeof ProtectedAppsAppIdPrsRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
+    }
     '/_protected/apps/$appId/preview': {
       id: '/_protected/apps/$appId/preview'
       path: '/preview'
@@ -357,11 +438,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdPreviewRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
-    '/_protected/apps/$appId/prs': {
-      id: '/_protected/apps/$appId/prs'
-      path: '/prs'
-      fullPath: '/apps/$appId/prs'
-      preLoaderRoute: typeof ProtectedAppsAppIdPrsRouteImport
+    '/_protected/apps/$appId/deployments': {
+      id: '/_protected/apps/$appId/deployments'
+      path: '/deployments'
+      fullPath: '/apps/$appId/deployments'
+      preLoaderRoute: typeof ProtectedAppsAppIdDeploymentsRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
+    }
+    '/_protected/apps/$appId/code': {
+      id: '/_protected/apps/$appId/code'
+      path: '/code'
+      fullPath: '/apps/$appId/code'
+      preLoaderRoute: typeof ProtectedAppsAppIdCodeRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
+    }
+    '/_protected/apps/$appId/agent': {
+      id: '/_protected/apps/$appId/agent'
+      path: '/agent'
+      fullPath: '/apps/$appId/agent'
+      preLoaderRoute: typeof ProtectedAppsAppIdAgentRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
+    }
+    '/_protected/apps/$appId/actions': {
+      id: '/_protected/apps/$appId/actions'
+      path: '/actions'
+      fullPath: '/apps/$appId/actions'
+      preLoaderRoute: typeof ProtectedAppsAppIdActionsRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
     '/_protected/apps/$appId/prs/': {
@@ -371,12 +473,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdPrsIndexRouteImport
       parentRoute: typeof ProtectedAppsAppIdPrsRoute
     }
-    '/_protected/apps/$appId/prs/$prNumber': {
-      id: '/_protected/apps/$appId/prs/$prNumber'
-      path: '/$prNumber'
-      fullPath: '/apps/$appId/prs/$prNumber'
-      preLoaderRoute: typeof ProtectedAppsAppIdPrsPrNumberRouteImport
-      parentRoute: typeof ProtectedAppsAppIdPrsRoute
+    '/_protected/apps/$appId/agent/': {
+      id: '/_protected/apps/$appId/agent/'
+      path: '/'
+      fullPath: '/apps/$appId/agent/'
+      preLoaderRoute: typeof ProtectedAppsAppIdAgentIndexRouteImport
+      parentRoute: typeof ProtectedAppsAppIdAgentRoute
     }
     '/_protected/apps/$appId/t/$threadId': {
       id: '/_protected/apps/$appId/t/$threadId'
@@ -384,6 +486,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/apps/$appId/t/$threadId'
       preLoaderRoute: typeof ProtectedAppsAppIdTThreadIdRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
+    }
+    '/_protected/apps/$appId/prs/$prNumber': {
+      id: '/_protected/apps/$appId/prs/$prNumber'
+      path: '/$prNumber'
+      fullPath: '/apps/$appId/prs/$prNumber'
+      preLoaderRoute: typeof ProtectedAppsAppIdPrsPrNumberRouteImport
+      parentRoute: typeof ProtectedAppsAppIdPrsRoute
+    }
+    '/_protected/apps/$appId/agent/$threadId': {
+      id: '/_protected/apps/$appId/agent/$threadId'
+      path: '/$threadId'
+      fullPath: '/apps/$appId/agent/$threadId'
+      preLoaderRoute: typeof ProtectedAppsAppIdAgentThreadIdRouteImport
+      parentRoute: typeof ProtectedAppsAppIdAgentRoute
     }
     '/dev/chat/apps/$appId/t/$threadId': {
       id: '/dev/chat/apps/$appId/t/$threadId'
@@ -395,30 +511,56 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ProtectedAppsAppIdAgentRouteChildren {
+  ProtectedAppsAppIdAgentThreadIdRoute: typeof ProtectedAppsAppIdAgentThreadIdRoute
+  ProtectedAppsAppIdAgentIndexRoute: typeof ProtectedAppsAppIdAgentIndexRoute
+}
+
+const ProtectedAppsAppIdAgentRouteChildren: ProtectedAppsAppIdAgentRouteChildren =
+  {
+    ProtectedAppsAppIdAgentThreadIdRoute: ProtectedAppsAppIdAgentThreadIdRoute,
+    ProtectedAppsAppIdAgentIndexRoute: ProtectedAppsAppIdAgentIndexRoute,
+  }
+
+const ProtectedAppsAppIdAgentRouteWithChildren =
+  ProtectedAppsAppIdAgentRoute._addFileChildren(
+    ProtectedAppsAppIdAgentRouteChildren,
+  )
+
 interface ProtectedAppsAppIdPrsRouteChildren {
-  ProtectedAppsAppIdPrsIndexRoute: typeof ProtectedAppsAppIdPrsIndexRoute
   ProtectedAppsAppIdPrsPrNumberRoute: typeof ProtectedAppsAppIdPrsPrNumberRoute
+  ProtectedAppsAppIdPrsIndexRoute: typeof ProtectedAppsAppIdPrsIndexRoute
 }
 
 const ProtectedAppsAppIdPrsRouteChildren: ProtectedAppsAppIdPrsRouteChildren = {
-  ProtectedAppsAppIdPrsIndexRoute: ProtectedAppsAppIdPrsIndexRoute,
   ProtectedAppsAppIdPrsPrNumberRoute: ProtectedAppsAppIdPrsPrNumberRoute,
+  ProtectedAppsAppIdPrsIndexRoute: ProtectedAppsAppIdPrsIndexRoute,
 }
 
 const ProtectedAppsAppIdPrsRouteWithChildren =
-  ProtectedAppsAppIdPrsRoute._addFileChildren(ProtectedAppsAppIdPrsRouteChildren)
+  ProtectedAppsAppIdPrsRoute._addFileChildren(
+    ProtectedAppsAppIdPrsRouteChildren,
+  )
 
 interface ProtectedAppsAppIdRouteChildren {
-  ProtectedAppsAppIdIndexRoute: typeof ProtectedAppsAppIdIndexRoute
+  ProtectedAppsAppIdActionsRoute: typeof ProtectedAppsAppIdActionsRoute
+  ProtectedAppsAppIdAgentRoute: typeof ProtectedAppsAppIdAgentRouteWithChildren
+  ProtectedAppsAppIdCodeRoute: typeof ProtectedAppsAppIdCodeRoute
+  ProtectedAppsAppIdDeploymentsRoute: typeof ProtectedAppsAppIdDeploymentsRoute
   ProtectedAppsAppIdPreviewRoute: typeof ProtectedAppsAppIdPreviewRoute
   ProtectedAppsAppIdPrsRoute: typeof ProtectedAppsAppIdPrsRouteWithChildren
+  ProtectedAppsAppIdIndexRoute: typeof ProtectedAppsAppIdIndexRoute
   ProtectedAppsAppIdTThreadIdRoute: typeof ProtectedAppsAppIdTThreadIdRoute
 }
 
 const ProtectedAppsAppIdRouteChildren: ProtectedAppsAppIdRouteChildren = {
-  ProtectedAppsAppIdIndexRoute: ProtectedAppsAppIdIndexRoute,
+  ProtectedAppsAppIdActionsRoute: ProtectedAppsAppIdActionsRoute,
+  ProtectedAppsAppIdAgentRoute: ProtectedAppsAppIdAgentRouteWithChildren,
+  ProtectedAppsAppIdCodeRoute: ProtectedAppsAppIdCodeRoute,
+  ProtectedAppsAppIdDeploymentsRoute: ProtectedAppsAppIdDeploymentsRoute,
   ProtectedAppsAppIdPreviewRoute: ProtectedAppsAppIdPreviewRoute,
   ProtectedAppsAppIdPrsRoute: ProtectedAppsAppIdPrsRouteWithChildren,
+  ProtectedAppsAppIdIndexRoute: ProtectedAppsAppIdIndexRoute,
   ProtectedAppsAppIdTThreadIdRoute: ProtectedAppsAppIdTThreadIdRoute,
 }
 

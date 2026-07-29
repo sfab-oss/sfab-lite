@@ -5,10 +5,8 @@ import {
   ResizablePanelGroup,
 } from "@sfab-lite/ui/components/shadcn/resizable";
 import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
-import { Link } from "@tanstack/react-router";
 import { Code2, ExternalLink, RotateCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { AppLayoutHeader } from "@/components/brand/app-layout";
 import {
   readPreviewCodeOpen,
   writePreviewCodeOpen,
@@ -19,13 +17,10 @@ import {
   appBasePath,
   reloadPreviewFrame,
 } from "@/features/preview/reload-preview";
-import { useApp } from "@/hooks/use-apps";
 
 const IFRAME_SANDBOX = "allow-same-origin allow-scripts allow-forms";
 
 export function AppConsolePreviewScreen({ appId }: { appId: string }) {
-  const appQuery = useApp(appId);
-  const app = appQuery.data ?? null;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const liveRef = useRef<string | null>(null);
   const rootSrc = `${appBasePath(appId)}/`;
@@ -104,25 +99,8 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
 
   return (
     <>
-      <AppLayoutHeader className="px-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Link
-            className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
-            to="/apps"
-          >
-            Apps
-          </Link>
-          <span className="text-muted-foreground text-sm">/</span>
-          <Link
-            className="truncate font-medium text-sm no-underline hover:underline"
-            params={{ appId }}
-            to="/apps/$appId"
-          >
-            {app?.name ?? "App"}
-          </Link>
-          <span className="text-muted-foreground text-sm">/</span>
-          <span className="shrink-0 text-sm">Preview</span>
-        </div>
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-border border-b px-3">
+        <span className="text-sm">Preview</span>
         <div className="flex shrink-0 items-center gap-1">
           <Button
             aria-label={codeOpen ? "Hide code panel" : "Show code panel"}
@@ -159,7 +137,7 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
             <ExternalLink className="size-4" />
           </Button>
         </div>
-      </AppLayoutHeader>
+      </div>
       {body}
     </>
   );

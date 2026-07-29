@@ -1,4 +1,4 @@
-export type ThreadStatus = "done" | "idle" | "needs-you" | "running";
+type ThreadStatus = "done" | "idle" | "needs-you" | "running";
 
 export interface Thread {
   appId: string | null;

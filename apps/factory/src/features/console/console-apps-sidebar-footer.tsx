@@ -20,7 +20,7 @@ import { useTheme } from "next-themes";
 import { useCallback } from "react";
 import { authClient } from "@/auth-client";
 
-export function ThreadsSidebarFooter({
+export function ConsoleAppsSidebarFooter({
   onSignOut,
 }: {
   onSignOut?: () => void;

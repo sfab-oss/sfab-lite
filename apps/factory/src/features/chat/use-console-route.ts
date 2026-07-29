@@ -1,4 +1,4 @@
-import { useMatch, useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useMatch, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 
 export interface ConsoleRoute {
@@ -7,15 +7,22 @@ export interface ConsoleRoute {
   isDevChat: boolean;
   appsRoute: boolean;
   appDashboardId: string | null;
-  homeActive: boolean;
+  goAgentHome: (appId: string) => void;
   goChatHome: () => void;
   goThread: (appId: string, threadId: string) => void;
 }
 
 export function useConsoleRoute(): ConsoleRoute {
   const navigate = useNavigate();
-  const matchRoute = useMatchRoute();
-  const protectedThread = useMatch({
+  const agentThread = useMatch({
+    from: "/_protected/apps/$appId/agent/$threadId",
+    shouldThrow: false,
+  });
+  const agentLayout = useMatch({
+    from: "/_protected/apps/$appId/agent",
+    shouldThrow: false,
+  });
+  const legacyThread = useMatch({
     from: "/_protected/apps/$appId/t/$threadId",
     shouldThrow: false,
   });
@@ -26,30 +33,51 @@ export function useConsoleRoute(): ConsoleRoute {
   const isDevChat = Boolean(
     useMatch({ from: "/dev/chat", shouldThrow: false })
   );
+  const appLayout = useMatch({
+    from: "/_protected/apps/$appId",
+    shouldThrow: false,
+  });
+  const appsIndex = useMatch({
+    from: "/_protected/apps/",
+    shouldThrow: false,
+  });
 
-  const threadMatch = protectedThread ?? devThread;
-  const appId = threadMatch?.params.appId ?? null;
+  const threadMatch = agentThread ?? legacyThread ?? devThread;
   const threadId = threadMatch?.params.threadId ?? null;
+  const appId = threadMatch?.params.appId ?? agentLayout?.params.appId ?? null;
 
-  const appDashboard =
-    threadMatch || isDevChat
-      ? false
-      : matchRoute({ to: "/apps/$appId", fuzzy: false });
-  const appsRoute =
-    Boolean(appDashboard) ||
-    (!isDevChat && Boolean(matchRoute({ to: "/apps", fuzzy: false })));
-  const appDashboardId =
-    appDashboard && typeof appDashboard === "object"
-      ? appDashboard.appId
-      : null;
+  const appsRoute = Boolean(appLayout) || Boolean(appsIndex);
+  const appDashboardId = appLayout?.params.appId ?? null;
+
+  const goAgentHome = useCallback(
+    (nextAppId: string) => {
+      if (import.meta.env.DEV && isDevChat) {
+        navigate({ to: "/dev/chat" });
+        return;
+      }
+      navigate({
+        to: "/apps/$appId/agent",
+        params: { appId: nextAppId },
+      });
+    },
+    [isDevChat, navigate]
+  );
 
   const goChatHome = useCallback(() => {
     if (import.meta.env.DEV && isDevChat) {
       navigate({ to: "/dev/chat" });
       return;
     }
-    navigate({ to: "/" });
-  }, [isDevChat, navigate]);
+    const scoped = appId ?? appLayout?.params.appId ?? null;
+    if (scoped) {
+      navigate({
+        to: "/apps/$appId/agent",
+        params: { appId: scoped },
+      });
+      return;
+    }
+    navigate({ to: "/apps" });
+  }, [appId, appLayout?.params.appId, isDevChat, navigate]);
 
   const goThread = useCallback(
     (nextAppId: string, nextThreadId: string) => {
@@ -61,7 +89,7 @@ export function useConsoleRoute(): ConsoleRoute {
         return;
       }
       navigate({
-        to: "/apps/$appId/t/$threadId",
+        to: "/apps/$appId/agent/$threadId",
         params: { appId: nextAppId, threadId: nextThreadId },
       });
     },
@@ -75,7 +103,7 @@ export function useConsoleRoute(): ConsoleRoute {
       isDevChat,
       appsRoute,
       appDashboardId,
-      homeActive: !(appsRoute || threadMatch),
+      goAgentHome,
       goChatHome,
       goThread,
     }),
@@ -83,11 +111,11 @@ export function useConsoleRoute(): ConsoleRoute {
       appDashboardId,
       appId,
       appsRoute,
+      goAgentHome,
       goChatHome,
       goThread,
       isDevChat,
       threadId,
-      threadMatch,
     ]
   );
 }
