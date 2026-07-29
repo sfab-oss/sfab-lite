@@ -62,6 +62,8 @@ export interface CodeHost {
   ensureRepo: (appId: string) => Promise<CodeHostRepo>;
   credentialsForAgent: (appId: string) => Promise<CodeHostCredentials>;
   tipSha: (appId: string, ref?: string) => Promise<string | null>;
+  /** Branch names under `refs/heads` (e.g. `main`, `feat/foo`). */
+  listBranches: (appId: string) => Promise<string[]>;
   cloneTo: (
     appId: string,
     targetFs: GitWorkFs,

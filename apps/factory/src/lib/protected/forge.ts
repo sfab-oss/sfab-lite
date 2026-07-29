@@ -6,6 +6,7 @@ import {
   listPullRequests,
   mergePullRequest,
   prDiffSummary,
+  readTreeAtRef,
   rerunCheckRun,
   wireCheckRun,
   wirePr,
@@ -147,6 +148,25 @@ export async function handlePrDiff(rc: AppCtx, number: number) {
       baseSha: diff.baseSha,
       headSha: diff.headSha,
       changedPaths: diff.changedPaths,
+      files: diff.files,
+    },
+  };
+}
+
+export async function handleGetTree(rc: AppCtx, ref: string) {
+  const tree = await readTreeAtRef(rc.env, rc.appId, ref);
+  if (!tree.ok) {
+    return protectedError(tree.error, 404);
+  }
+  return {
+    status: 200 as const,
+    body: {
+      ok: true as const,
+      appId: rc.appId,
+      ref: tree.ref,
+      sha: tree.sha,
+      branches: tree.branches,
+      sourceFiles: tree.sourceFiles,
     },
   };
 }

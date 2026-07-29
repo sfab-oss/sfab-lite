@@ -39,6 +39,35 @@ async function readRef(fs: GitWorkFs, path: string): Promise<string | null> {
   return raw || null;
 }
 
+async function listRefNames(
+  fs: GitWorkFs,
+  dir: string,
+  prefix: string
+): Promise<string[]> {
+  if (!(await fs.exists(dir))) {
+    return [];
+  }
+  const st = await fs.lstat(dir);
+  if (st.type !== "directory") {
+    return [];
+  }
+  const names: string[] = [];
+  for (const name of await fs.readdir(dir)) {
+    if (name === "." || name === "..") {
+      continue;
+    }
+    const path = dir === "/" ? `/${name}` : `${dir}/${name}`;
+    const child = await fs.lstat(path);
+    const refName = prefix ? `${prefix}/${name}` : name;
+    if (child.type === "directory") {
+      names.push(...(await listRefNames(fs, path, refName)));
+    } else {
+      names.push(refName);
+    }
+  }
+  return names;
+}
+
 async function copyTree(
   from: GitWorkFs,
   fromDir: string,
@@ -160,6 +189,12 @@ export function createR2CodeHost(env: Env): CodeHost {
     async tipSha(appId: string, ref = "main"): Promise<string | null> {
       const fs = bareFs(appId);
       return await readRef(fs, `/refs/heads/${ref}`);
+    },
+
+    async listBranches(appId: string): Promise<string[]> {
+      await this.ensureRepo(appId);
+      const names = await listRefNames(bareFs(appId), "/refs/heads", "");
+      return names.sort((a, b) => a.localeCompare(b));
     },
 
     async cloneTo(

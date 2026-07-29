@@ -29,6 +29,12 @@ export const listRunsQuerySchema = z
   })
   .strict();
 
+export const treeQuerySchema = z
+  .object({
+    ref: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
 export const sqlBodySchema = z
   .object({
     query: z.string().min(1),
