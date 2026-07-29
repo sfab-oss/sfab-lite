@@ -1,7 +1,7 @@
 /**
  * Factory worker entry for TanStack Start + Cloudflare Vite.
  *
- * Host routes (/admin, /api, /agents, /a/, /kernel, /mcp, …) stay on the
+ * Host routes (/api, /agents, /a/, /kernel, /mcp, …) stay on the
  * existing dispatch; unmatched document paths fall through to Start.
  */
 import handler from "@tanstack/react-start/server-entry";

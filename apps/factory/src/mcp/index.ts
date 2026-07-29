@@ -88,7 +88,7 @@ async function organizationForBearer(
  * server, registers itself, sends its user through consent, and comes back
  * bound to the organization that consent chose. The shared `ADMIN_TOKEN` is
  * the machine door for callers that have no browser — CI, scripts — and grants
- * nothing the `/admin/*` API does not already grant that same token.
+ * nothing the `/api/protected/*` API does not already grant that same token.
  *
  * The org is the one thing a caller never asserts on the OAuth path: it comes
  * from the grant row, re-checked against live membership on every request.

@@ -64,7 +64,7 @@ That is a deliberate narrowing, not tidiness. While they were on workers.dev,
 `/check` and `/lint` failed closed on a missing `ADMIN_TOKEN` but `/health`
 answered anyone who found the URL, and check's `/health` enumerates the entire
 types VFS: every dependency and version the build environment carries. The
-diagnostic still exists — the factory's `/admin/health` aggregates both over the
+diagnostic still exists — the factory's `/api/protected/health` aggregates both over the
 service bindings, which is the documented way to read it.
 
 The cost is that neither worker can be curled directly any more. If you need to,
@@ -107,10 +107,10 @@ lint_failed   lintHttp: 401
 
 which names the lint worker when the fault is the token the *factory* sent.
 This cost a real debugging detour on the first production deploy, which is why
-`/admin/health` now answers the question directly:
+`/api/protected/health` now answers the question directly:
 
 ```bash
-curl -s -H "X-Admin-Token: $ADMIN_TOKEN" https://<factory>/admin/health | jq .adminToken
+curl -s -H "X-Admin-Token: $ADMIN_TOKEN" https://<factory>/api/protected/health | jq .adminToken
 ```
 
 ```json
@@ -215,7 +215,7 @@ has not been exercised, because it needs real credentials.
    `pnpm upload-kernel-r2 -- --remote`
 3. `wrangler deploy` all three workers.
 4. Set the secrets above. `ADMIN_TOKEN` three times, same value.
-5. `curl .../admin/health` and confirm `adminToken.agree` is `true`.
+5. `curl .../api/protected/health` and confirm `adminToken.agree` is `true`.
 6. Confirm `passwordAuth` / `githubAuth` / `githubSecrets` describe what you
    intended — `githubSecrets` reports the two separately because exactly one
    set is the plausible mistake and is otherwise indistinguishable from

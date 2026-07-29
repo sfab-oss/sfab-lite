@@ -1,8 +1,8 @@
 /**
- * Who is acting on `/admin/*`, and on whose behalf.
+ * Who is acting on `/api/protected/*`, and on whose behalf.
  *
- * The admin surface accepts two credentials, and they are not the same kind
- * of thing:
+ * The protected surface accepts two credentials, and they are not the same
+ * kind of thing:
  *
  * - **`ADMIN_TOKEN`** is a root credential. It belongs to no organization, so
  *   it cannot *have* an active one — a token caller that wants to act on a
@@ -15,7 +15,7 @@
  *   someone else's.
  *
  * An explicit `organizationId` is always a query parameter — including on
- * `POST /admin/apps`. The dispatcher resolves it for `scope: "organization"`
+ * `POST /api/protected/apps`. The dispatcher resolves it for `scope: "organization"`
  * routes (`handleListApps`, `handleCreateApp`) and puts the result on
  * `OrgCtx`. App-scoped routes never call the resolver: `requireAppAccess`
  * is the gate, and root may address them by app id alone.
@@ -139,7 +139,7 @@ export function resolveOrganization(
 }
 
 /**
- * Gate an app-scoped admin route (`/admin/apps/:id/…`).
+ * Gate an app-scoped protected route (`/api/protected/apps/:id/…`).
  *
  * Returns the error to send, or `null` when the caller may proceed.
  *

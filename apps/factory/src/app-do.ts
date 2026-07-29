@@ -902,7 +902,7 @@ export class AppDO extends DurableObject<Env> {
    * past in a terminal is an app you have to reset to get back into.
    *
    * Key-value storage, not a `_sfab_` table: the app's own `DB` binding and
-   * `/admin/apps/:id/sql` both run unfiltered SQL against this Durable
+   * `/api/protected/apps/:id/sql` both run unfiltered SQL against this Durable
    * Object's database, and app code is agent-written. The key-value namespace
    * is one neither of them can address.
    */

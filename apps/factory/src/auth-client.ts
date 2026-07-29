@@ -6,10 +6,10 @@ export const authClient = createAuthClient({
 });
 
 /**
- * End a session `/admin/*` will not accept, then let the UI fall back to
+ * End a session `/api/protected/*` will not accept, then let the UI fall back to
  * sign-in.
  *
- * A 401 from the admin API does **not** imply the session cookie is invalid.
+ * A 401 from the protected API does **not** imply the session cookie is invalid.
  * `tenancy.ts` rejects a session whose organization it cannot confirm — a
  * stale `activeOrganizationId`, or a `member` row removed since sign-in — and
  * better-auth keeps reporting a signed-in user throughout.

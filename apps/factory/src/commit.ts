@@ -127,7 +127,7 @@ export function appStub(env: Env, appId: string): AppStub {
   return env.APP_DO.get(env.APP_DO.idFromName(appId)) as unknown as AppStub;
 }
 
-/** Fail closed for /admin when ADMIN_TOKEN is configured. */
+/** Fail closed for /api/protected when ADMIN_TOKEN is configured. */
 function serviceHeaders(env: Env): Record<string, string> {
   const h: Record<string, string> = { "content-type": "application/json" };
   if (env.ADMIN_TOKEN) {
@@ -634,7 +634,7 @@ export function attemptAccepted(
       attemptId,
       parentId,
       status: "pending",
-      poll: `/admin/apps/${encodeURIComponent(appId)}/attempts/${attemptId}`,
+      poll: `/api/protected/apps/${encodeURIComponent(appId)}/attempts/${attemptId}`,
       ...extra,
     },
   };

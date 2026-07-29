@@ -10,13 +10,13 @@ export interface McpContext {
 }
 
 /**
- * Call the factory's own `/admin/*` API.
+ * Call the factory's own `/api/protected/*` API.
  *
- * The admin handlers own tenancy, validation and the create/commit choreography
- * already; reaching them over the loopback rather than re-implementing them is
- * what stops the MCP surface from drifting into a second, subtly different
- * factory API. Same pattern as `internal.ts`, minus the derived token — this
- * caller has `ADMIN_TOKEN` itself.
+ * The protected handlers own tenancy, validation and the create/commit
+ * choreography already; reaching them over the loopback rather than
+ * re-implementing them is what stops the MCP surface from drifting into a
+ * second, subtly different factory API. Same pattern as `internal.ts`, minus
+ * the derived token — this caller has `ADMIN_TOKEN` itself.
  */
 export async function adminFetch(
   ctx: McpContext,

@@ -228,7 +228,7 @@ export const accountRelations = relations(account, ({ one }) => ({
 }));
 
 /**
- * The app registry — the row that makes `GET /admin/apps` answerable.
+ * The app registry — the row that makes `GET /api/protected/apps` answerable.
  *
  * `id` is a **server-generated opaque ULID** (`app_…`), never caller-supplied:
  * the DO's identity *is* this string (`idFromName(id)`), so a human-chosen
@@ -428,7 +428,7 @@ export const oauthConsent = sqliteTable(
  * Which organization an MCP token acts in.
  *
  * The access token carries a user and a client, never an org — so without this
- * row a valid token would have nothing to scope `/admin/*` to, and the tools
+ * row a valid token would have nothing to scope `/api/protected/*` to, and the tools
  * would have to trust a caller-supplied `organizationId`. Chosen once at
  * consent, re-checked against live membership on every request, and the only
  * live kill-switch for an issued token: deleting the row denies the client

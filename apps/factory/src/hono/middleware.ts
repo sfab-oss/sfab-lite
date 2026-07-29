@@ -8,8 +8,8 @@ import {
 import type { AdminEnv } from "./types.js";
 
 /**
- * Credential first on every `/admin/*` path — including unknowns — so an
- * anonymous probe gets 401 rather than a route map via 404.
+ * Credential first on every `/api/protected/*` path — including unknowns — so
+ * an anonymous probe gets 401 rather than a route map via 404.
  */
 export const requireActor = createMiddleware<AdminEnv>(async (c, next) => {
   const db = createDb(c.env);

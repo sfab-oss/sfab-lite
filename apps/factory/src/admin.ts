@@ -1,5 +1,5 @@
 /**
- * `/admin/*` handlers for the factory host worker.
+ * `/api/protected/*` handlers for the factory host worker.
  *
  * Business logic lives here; Hono routing, credential middleware, and
  * `AppType` live in `hono/`. Each handler still receives AdminCtx / OrgCtx /

@@ -67,7 +67,7 @@ Each worker has its own `dev` script and runs standalone under
 ### Factory console UI
 
 The factory is a **single** TanStack Start + Vite + `@cloudflare/vite-plugin`
-process (`agents/vite` included). Host routes (`/admin`, `/api`, `/agents`,
+process (`agents/vite` included). Host routes (`/api`, `/agents`,
 `/a/`, `/kernel`, MCP, …) dispatch in the worker; the console SPA still lives
 under `apps/factory/` and is mounted by a thin Start shell.
 
@@ -240,9 +240,9 @@ That was measured and refuted: DO warmth survives ~5s of idle but not
 30s, and full template checks inside a DO never stay warm at all.
 
 Commit is therefore **asynchronous in transport, synchronous in
-semantics**. `POST /admin/apps/:appId/commit` and `POST /admin/apps`
+semantics**. `POST /api/protected/apps/:appId/commit` and `POST /api/protected/apps`
 return **202 with an `attemptId`**; poll
-`GET /admin/apps/:appId/attempts/:attemptId`.
+`GET /api/protected/apps/:appId/attempts/:attemptId`.
 
 | Operation | Request returns | Work still takes |
 | --- | --- | --- |
@@ -290,7 +290,7 @@ first, and the disagreement would surface as a sign-in button that posts to a
 guaranteed failure. Setting exactly one of the two leaves the provider off
 **silently** — there is no warning log, because one emitted from the auth
 factory would repeat on every request and still not be where anyone looks.
-The signal is `GET /admin/health`, which reports the two secrets as separate
+The signal is `GET /api/protected/health`, which reports the two secrets as separate
 booleans precisely so "half-configured" is distinguishable from "GitHub off
 on purpose".
 
@@ -322,9 +322,9 @@ callback URL is `<origin>/api/auth/callback/github`.
 Token expiry does not matter here: better-auth mints its own session cookie
 and never reuses the GitHub token after the sign-in exchange.
 
-### `/admin/*` takes two credentials, and they are not equivalent
+### `/api/protected/*` takes two credentials, and they are not equivalent
 
-Every admin request needs one of:
+Every protected API request needs one of:
 
 | Credential | Scope | How it names an organization |
 | --- | --- | --- |
@@ -334,9 +334,9 @@ Every admin request needs one of:
 A token belongs to no organization, so it cannot have an active one — that
 asymmetry is the whole reason the two paths differ. An explicit
 `organizationId` is always a query parameter, including on
-`POST /admin/apps` (the JSON body carries only `name`, and may omit it — the
+`POST /api/protected/apps` (the JSON body carries only `name`, and may omit it — the
 host then assigns a placeholder from its own list, renameable via
-`PATCH /admin/apps/:appId`). The dispatcher
+`PATCH /api/protected/apps/:appId`). The dispatcher
 resolves it for organization-scoped routes and puts the result on the
 handler context; no handler branches on which credential arrived.
 
@@ -360,7 +360,7 @@ Two consequences worth stating plainly:
   error. Its access control is the app's own better-auth, and app ids are
   unguessable ULIDs rather than names.
 
-App-scoped admin routes (`/admin/apps/:id/…`) check registry ownership
+App-scoped protected routes (`/api/protected/apps/:id/…`) check registry ownership
 *before* touching the Durable Object, so a cross-tenant commit or SQL call
 never reaches another tenant's app at all. A token caller may address those
 by app id alone — root does not need to name an organization on an
