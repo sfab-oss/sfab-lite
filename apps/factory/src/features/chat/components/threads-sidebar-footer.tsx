@@ -15,10 +15,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@sfab-lite/ui/components/shadcn/sidebar";
-import { ChevronsUpDown, LogOut } from "lucide-react";
+import { ChevronsUpDown, LogOut, MoonIcon, SunIcon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useCallback } from "react";
 import { authClient } from "@/auth-client";
-import { ThemeToggle } from "@/components/common/theme-toggle";
 
 export function ThreadsSidebarFooter({
   onSignOut,
@@ -27,9 +27,14 @@ export function ThreadsSidebarFooter({
 }) {
   const { isMobile } = useSidebar();
   const { data: session } = authClient.useSession();
+  const { theme, setTheme } = useTheme() as {
+    theme: string | undefined;
+    setTheme: (theme: string) => void;
+  };
   const email = session?.user?.email ?? "signed in";
   const name = session?.user?.name?.trim() || email.split("@")[0] || "User";
   const initials = name.slice(0, 2).toUpperCase();
+  const nextTheme = theme === "light" ? "dark" : "light";
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -86,12 +91,14 @@ export function ThreadsSidebarFooter({
                 </DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <div className="p-1">
-                <ThemeToggle />
-              </div>
+              <DropdownMenuItem onClick={() => setTheme(nextTheme)}>
+                <SunIcon className="hidden [html.dark_&]:block" />
+                <MoonIcon className="hidden [html.light_&]:block" />
+                {nextTheme === "dark" ? "Dark mode" : "Light mode"}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="mr-2 size-4" />
+                <LogOut />
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
