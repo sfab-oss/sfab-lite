@@ -1,3 +1,4 @@
+import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
 import type { AppRecord } from "../api";
 import {
@@ -8,7 +9,6 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
-import { Link, useRouter } from "../console-router";
 import {
   useApps,
   useCreateApp,
@@ -17,7 +17,7 @@ import {
 } from "../hooks/use-apps";
 
 export function AppsListScreen() {
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
   const appsQuery = useApps();
   const createApp = useCreateApp();
 
@@ -27,7 +27,10 @@ export function AppsListScreen() {
     }
     try {
       const created = await createApp.mutateAsync(undefined);
-      navigate({ name: "app", appId: created.appId });
+      navigate({
+        to: "/apps/$appId",
+        params: { appId: created.appId },
+      });
     } catch {
       // Error surfaced via createApp.error
     }
@@ -69,8 +72,9 @@ export function AppsListScreen() {
         {apps.map((app) => (
           <li key={app.id} className="flex items-center hover:bg-muted">
             <Link
-              to={{ name: "app", appId: app.id }}
               className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-foreground no-underline hover:underline"
+              params={{ appId: app.id }}
+              to="/apps/$appId"
             >
               <span>
                 <span className="font-medium">{app.name}</span>
