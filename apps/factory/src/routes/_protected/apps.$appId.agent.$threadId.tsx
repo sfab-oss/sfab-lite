@@ -1,22 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
-import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
-
-const ChatScreen = lazy(() =>
-  import("@/features/chat/page").then((m) => ({ default: m.ChatScreen }))
-);
+import { LazyChatScreen } from "@/features/chat/lazy-chat-screen";
 
 export const Route = createFileRoute("/_protected/apps/$appId/agent/$threadId")(
   {
     ssr: false,
-    component: ProtectedAgentThread,
+    component: LazyChatScreen,
   }
 );
-
-function ProtectedAgentThread() {
-  return (
-    <Suspense fallback={<ConsoleShellSkeleton />}>
-      <ChatScreen />
-    </Suspense>
-  );
-}

@@ -2,8 +2,8 @@ import { TooltipProvider } from "@sfab-lite/ui/components/shadcn/tooltip";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useCallback, useMemo } from "react";
 import { AppLayout, AppLayoutPage } from "@/components/brand/app-layout";
+import { ConsoleAppsSidebar } from "@/features/console/console-apps-sidebar";
 import { useApps, useCreateApp } from "@/hooks/use-apps";
-import { SessionThreadsSidebar } from "./components/threads-sidebar";
 import { useConsoleRoute } from "./use-console-route";
 
 export { ConsoleProviders } from "./console-session";
@@ -51,7 +51,7 @@ function ConsoleSidebar() {
   };
 
   return (
-    <SessionThreadsSidebar
+    <ConsoleAppsSidebar
       activeAppId={route.appDashboardId}
       apps={apps}
       appsActive={route.appsRoute}

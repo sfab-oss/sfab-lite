@@ -15,10 +15,6 @@ import { useNavigate } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  AppLayoutHeader,
-  AppLayoutHeaderActions,
-} from "@/components/brand/app-layout";
 import { readyAppsFromList, useApps, useCreateApp } from "@/hooks/use-apps";
 import type { ComposerScope } from "./components/composer-scope-chip";
 import {
@@ -592,7 +588,7 @@ function ThreadHeader({
   }
 
   return (
-    <AppLayoutHeader className="px-3">
+    <div className="flex h-10 shrink-0 items-center gap-2 border-border border-b px-3">
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         <span className="truncate font-medium text-sm">
           {activeThread.title}
@@ -603,7 +599,7 @@ function ThreadHeader({
           thread={activeThread}
         />
       </div>
-      <AppLayoutHeaderActions>
+      <div className="ml-auto flex items-center gap-2">
         <Button
           aria-label={summaryOpen ? "Hide summary panel" : "Show summary panel"}
           aria-pressed={summaryOpen}
@@ -626,7 +622,7 @@ function ThreadHeader({
         >
           <PanelRight className="size-4" />
         </Button>
-      </AppLayoutHeaderActions>
-    </AppLayoutHeader>
+      </div>
+    </div>
   );
 }

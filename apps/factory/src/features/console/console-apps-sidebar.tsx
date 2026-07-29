@@ -16,9 +16,9 @@ import {
 } from "@sfab-lite/ui/components/shadcn/sidebar";
 import { useNavigate } from "@tanstack/react-router";
 import { AppWindow, Plus } from "lucide-react";
-import { ThreadsSidebarFooter } from "./threads-sidebar-footer";
+import { ConsoleAppsSidebarFooter } from "./console-apps-sidebar-footer";
 
-export interface SessionThreadsSidebarProps {
+export interface ConsoleAppsSidebarProps {
   activeAppId?: string | null;
   apps: Array<{ appId: string; appName: string }>;
   appsActive?: boolean;
@@ -29,7 +29,7 @@ export interface SessionThreadsSidebarProps {
   showRail?: boolean;
 }
 
-export function SessionThreadsSidebar({
+export function ConsoleAppsSidebar({
   apps,
   activeAppId = null,
   onNewApp,
@@ -38,7 +38,7 @@ export function SessionThreadsSidebar({
   showRail = true,
   railClassName = "inset-y-2",
   showCollapseTrigger = true,
-}: SessionThreadsSidebarProps) {
+}: ConsoleAppsSidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   const navigate = useNavigate();
 
@@ -136,7 +136,7 @@ export function SessionThreadsSidebar({
           )}
         </SidebarGroup>
       </SidebarContent>
-      <ThreadsSidebarFooter onSignOut={onSignOut} />
+      <ConsoleAppsSidebarFooter onSignOut={onSignOut} />
       {showRail ? <SidebarRail className={railClassName} /> : null}
     </Sidebar>
   );
