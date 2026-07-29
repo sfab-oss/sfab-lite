@@ -9,7 +9,8 @@
   // workers.dev subdomain was therefore pure surface: `/check` fails closed on
   // a missing ADMIN_TOKEN, but `/health` answered anyone with the URL and
   // enumerated the whole types VFS — every dependency and version the build
-  // environment carries. Reach it through the factory's /admin/health instead.
+  // environment carries. Reach it through the factory's /api/protected/health
+  // instead.
   "workers_dev": false,
   "limits": {
     "cpu_ms": 300000

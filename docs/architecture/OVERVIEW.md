@@ -20,7 +20,7 @@ ADRs under [`../decisions/`](../decisions/).
 ```text
                     ┌─────────────────────────┐
                     │  apps/factory (host)    │
-                    │  admin API + factory UI │
+                    │  protected /api + UI    │
                     │  AppDO per app          │
                     └───────────┬─────────────┘
                                 │
@@ -53,7 +53,7 @@ Shared contracts live in `packages/core`.
 | --- | --- |
 | Template, frozen kernel, host, check, lint | Tasks-lite |
 | Auth, organizations, app registry | Diffs, quotas, schema evolution, eject |
-| Factory console + in-console agent loop | Agent over the admin API |
+| Factory console + in-console agent loop | Agent over the protected `/api` |
 
 ## Related
 

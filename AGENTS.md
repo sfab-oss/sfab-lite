@@ -78,6 +78,7 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 | `packages/template` | Starter-lite seed in `app/` (independently runnable) |
 | `packages/kernel` | Frozen universe + prebuild |
 | `packages/core` | Shared contracts |
+| `packages/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
 | `packages/tsconfig` | Shared TS configs |
 | `packages/biome-config` | Shared Biome presets |
 
