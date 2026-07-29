@@ -11,10 +11,25 @@
   "safelist": "safelist.txt",
   "migrations": "migrations",
   "schema": "src/db/schema.ts",
+  "readonly": [
+    "tsconfig.json",
+    "biome.json",
+    "components.json",
+    "vite.config.ts"
+  ],
+  "inject": {
+    "biome.json": "../core/app-biome.json"
+  },
   "source": {
     "dirs": ["src", "migrations"],
     "extensions": [".ts", ".tsx", ".css", ".sql", ".json"],
-    "files": ["safelist.txt", "package.json"],
+    "files": [
+      "safelist.txt",
+      "package.json",
+      "tsconfig.json",
+      "components.json",
+      "vite.config.ts"
+    ],
     "exclude": ["src/worker.ts"]
   }
 }

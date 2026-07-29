@@ -1,8 +1,10 @@
 import type { WorkspaceFsLike } from "@cloudflare/shell";
+import { assertWritableWorkspacePath } from "./platform-readonly.js";
 
 /**
  * Every FS op awaits `ensureReady` before hitting the underlying workspace.
  * Keeps AppAgent / SharedWorkspace / MCP / tools on one readiness contract.
+ * Mutating ops refuse platform-owned read-only paths.
  */
 export class GatedWorkspace implements WorkspaceFsLike {
   readonly #ensureReady: () => Promise<void>;
@@ -31,6 +33,7 @@ export class GatedWorkspace implements WorkspaceFsLike {
     content: string,
     mimeType?: Parameters<WorkspaceFsLike["writeFile"]>[2]
   ) {
+    assertWritableWorkspacePath(path);
     return (await this.#fs()).writeFile(path, content, mimeType);
   }
 
@@ -39,6 +42,7 @@ export class GatedWorkspace implements WorkspaceFsLike {
     content: Parameters<WorkspaceFsLike["writeFileBytes"]>[1],
     mimeType?: Parameters<WorkspaceFsLike["writeFileBytes"]>[2]
   ) {
+    assertWritableWorkspacePath(path);
     return (await this.#fs()).writeFileBytes(path, content, mimeType);
   }
 
@@ -47,6 +51,7 @@ export class GatedWorkspace implements WorkspaceFsLike {
     content: string,
     mimeType?: Parameters<WorkspaceFsLike["appendFile"]>[2]
   ) {
+    assertWritableWorkspacePath(path);
     return (await this.#fs()).appendFile(path, content, mimeType);
   }
 
@@ -62,6 +67,7 @@ export class GatedWorkspace implements WorkspaceFsLike {
   }
 
   async rm(path: string, opts?: Parameters<WorkspaceFsLike["rm"]>[1]) {
+    assertWritableWorkspacePath(path);
     return (await this.#fs()).rm(path, opts);
   }
 
@@ -86,14 +92,18 @@ export class GatedWorkspace implements WorkspaceFsLike {
     dest: string,
     opts?: Parameters<WorkspaceFsLike["cp"]>[2]
   ) {
+    assertWritableWorkspacePath(dest);
     return (await this.#fs()).cp(src, dest, opts);
   }
 
   async mv(src: string, dest: string) {
+    assertWritableWorkspacePath(src);
+    assertWritableWorkspacePath(dest);
     return (await this.#fs()).mv(src, dest);
   }
 
   async symlink(target: string, linkPath: string) {
+    assertWritableWorkspacePath(linkPath);
     return (await this.#fs()).symlink(target, linkPath);
   }
 

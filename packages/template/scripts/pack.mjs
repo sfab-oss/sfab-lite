@@ -58,6 +58,11 @@ for (const dir of manifest.source.dirs) {
 for (const file of manifest.source.files) {
   sourceFiles[file] = readFileSync(join(appRoot, file), "utf8");
 }
+// Platform-owned files that must not live under app/ as Biome/tooling roots
+// (a real `biome.json` there would nest-root the monorepo). Injected at pack.
+for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
+  sourceFiles[dest] = readFileSync(join(packageRoot, src), "utf8");
+}
 // Standalone-only scaffolding (the `wrangler dev` entry, the Vite HTML
 // shell): the factory builds its own, and shipping ours would leave dead
 // files in every app's source tree.

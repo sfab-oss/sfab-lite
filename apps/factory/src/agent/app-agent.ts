@@ -252,7 +252,7 @@ export class AppAgent extends Think<Env> {
    */
   async runShell(script: string): Promise<ShellResult> {
     await this.#ensureWorkspaceReady();
-    const { bash } = createWorkspaceTools(this.workspace, {
+    const { bash } = createWorkspaceTools(this.#fs, {
       bash: {
         timeout: SHELL_TIMEOUT_MS,
         customCommands: createAppShellCommands({
