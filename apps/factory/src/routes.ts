@@ -2,8 +2,8 @@
  * Routing and HTTP primitives for the factory host worker.
  *
  * Owns the request-context types, the public route shape, and the shared
- * matchers / error helpers. Protected routing lives in `hono/`; handlers in
- * `protected-handlers.ts`.
+ * matchers / error helpers. Protected routing lives in `hono/protected/`;
+ * domain handlers in `lib/protected/`.
  */
 import type { Actor } from "./tenancy.js";
 

@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback } from "@sfab-lite/ui/components/shadcn/avatar";
-import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,9 +15,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@sfab-lite/ui/components/shadcn/sidebar";
-import { ChevronsUpDown, LogOut, MoonIcon, SunIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { ChevronsUpDown, LogOut } from "lucide-react";
+import { useCallback } from "react";
 import { authClient } from "@/auth-client";
+import { ThemeToggle } from "@/components/common/theme-toggle";
 
 export function ThreadsSidebarFooter({
   onSignOut,
@@ -99,29 +99,5 @@ export function ThreadsSidebarFooter({
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarFooter>
-  );
-}
-
-function ThemeToggle() {
-  const [dark, setDark] = useState(() =>
-    typeof document === "undefined"
-      ? false
-      : document.documentElement.classList.contains("dark")
-  );
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
-
-  return (
-    <Button
-      onClick={() => setDark((value) => !value)}
-      size="icon"
-      type="button"
-      variant="ghost"
-    >
-      {dark ? <SunIcon /> : <MoonIcon />}
-      <span className="sr-only">Toggle theme</span>
-    </Button>
   );
 }
