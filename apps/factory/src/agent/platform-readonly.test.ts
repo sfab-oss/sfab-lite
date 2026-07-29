@@ -20,9 +20,20 @@ describe("platform-readonly", () => {
     ]);
   });
 
-  it("normalizes leading slashes", () => {
+  it("normalizes leading slashes and dot segments", () => {
     assert.equal(normalizeWorkspaceRelPath("/tsconfig.json"), "tsconfig.json");
+    assert.equal(normalizeWorkspaceRelPath("./tsconfig.json"), "tsconfig.json");
+    assert.equal(
+      normalizeWorkspaceRelPath("foo/../tsconfig.json"),
+      "tsconfig.json"
+    );
     assert.equal(isPlatformReadonlyPath("/biome.json"), true);
+    assert.equal(
+      normalizeWorkspaceRelPath("../tsconfig.json"),
+      "tsconfig.json"
+    );
+    assert.equal(isPlatformReadonlyPath("../biome.json"), true);
+    assert.equal(isPlatformReadonlyPath("x/../vite.config.ts"), true);
     assert.equal(isPlatformReadonlyPath("package.json"), false);
     assert.equal(isPlatformReadonlyPath("/src/db/schema.ts"), false);
   });

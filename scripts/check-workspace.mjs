@@ -100,20 +100,10 @@ for (const path of declared) {
   }
 }
 
-const onDiskRoots = new Set(manifest.source.files);
 for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
   const abs = join(templateRoot, src);
   if (!existsSync(abs)) {
     console.error(`template inject source missing: ${dest} ← ${src}`);
-    failed = true;
-  }
-  onDiskRoots.add(dest);
-}
-for (const path of manifest.readonly ?? []) {
-  if (!onDiskRoots.has(path)) {
-    console.error(
-      `template manifest readonly path is neither sourced nor injected: ${path}`
-    );
     failed = true;
   }
 }

@@ -11,12 +11,6 @@
   "safelist": "safelist.txt",
   "migrations": "migrations",
   "schema": "src/db/schema.ts",
-  "readonly": [
-    "tsconfig.json",
-    "biome.json",
-    "components.json",
-    "vite.config.ts"
-  ],
   "inject": {
     "biome.json": "../core/app-biome.json"
   },

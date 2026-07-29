@@ -1,17 +1,45 @@
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
+/**
+ * Factory-owned write policy for seeded platform chrome.
+ *
+ * The template ships ordinary root files (tsconfig, biome, components.json,
+ * vite.config). This module — not the template manifest — decides they are
+ * not writable on the host FS (GatedWorkspace, MCP workspace_write/rm, lint
+ * format write-back, bash sync via the same surface).
+ */
+const PLATFORM_READONLY_PATHS = [
+  "tsconfig.json",
+  "biome.json",
+  "components.json",
+  "vite.config.ts",
+] as const;
 
+const READONLY = new Set<string>(PLATFORM_READONLY_PATHS);
 const LEADING_SLASHES = /^\/+/;
 
+/**
+ * Canonical workspace-relative path for deny matching.
+ * Strips leading slashes, collapses `.` / `..` (POSIX: `..` at root is a no-op).
+ */
 export function normalizeWorkspaceRelPath(path: string): string {
-  return path.replace(LEADING_SLASHES, "");
+  const raw = path.replace(LEADING_SLASHES, "");
+  const parts: string[] = [];
+  for (const part of raw.split("/")) {
+    if (!part || part === ".") {
+      continue;
+    }
+    if (part === "..") {
+      if (parts.length > 0) {
+        parts.pop();
+      }
+      continue;
+    }
+    parts.push(part);
+  }
+  return parts.join("/");
 }
 
-const READONLY = new Set(
-  (TEMPLATE_MANIFEST.readonly ?? []).map(normalizeWorkspaceRelPath)
-);
-
 export function platformReadonlyPaths(): readonly string[] {
-  return [...READONLY].sort();
+  return [...PLATFORM_READONLY_PATHS].sort();
 }
 
 export function isPlatformReadonlyPath(path: string): boolean {

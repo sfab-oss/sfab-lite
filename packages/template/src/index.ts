@@ -8,8 +8,7 @@ import manifest from "../manifest.json" with { type: "json" };
  * seeds into an AppDataDO.
  *
  * This module exports the one thing the factory needs to know about that
- * payload — where its entry points are, and which roots are platform-owned
- * read-only.
+ * payload — where its entry points are.
  *
  * ## Why a manifest
  *

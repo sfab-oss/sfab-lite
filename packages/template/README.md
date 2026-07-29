@@ -11,8 +11,7 @@ This package wears two hats, and the directory split is the whole design:
 | `scripts/` | `pack.mjs`, which bakes `app/` into the seed JSON the factory ships as a constant.               |
 
 Everything outside `app/` is scaffolding for us. Everything inside `app/`
-is code the user will open, read, and edit — except a small set of
-**platform-owned read-only** roots (see below).
+is the ordinary single-project tree a new app starts as.
 
 ## Seeded app layout
 
@@ -20,19 +19,17 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 
 | Path | Role |
 | --- | --- |
-| `package.json` | Writable. Describes the frozen kernel surface the app runs on. |
-| `tsconfig.json` | **Read-only.** Platform TypeScript chrome. |
-| `biome.json` | **Read-only.** Injected at pack from `packages/core/app-biome.json` (not stored as `app/biome.json` — that would nest-root the monorepo Biome). Same rules the factory lint worker applies. |
-| `components.json` | **Read-only.** shadcn orientation for the seed UI tree. |
-| `vite.config.ts` | **Read-only.** Visible Vite chrome (standalone package still uses the package-root Vite config with `root: "app"`). |
+| `package.json` | Describes the frozen kernel surface the app runs on. |
+| `tsconfig.json` | TypeScript chrome (mirrors the host check surface). |
+| `biome.json` | Injected at pack from `packages/core/app-biome.json` (not stored as `app/biome.json` — that would nest-root the monorepo Biome). Same rules the factory lint worker applies. |
+| `components.json` | shadcn orientation for the seed UI tree. |
+| `vite.config.ts` | Vite chrome (standalone package still uses the package-root Vite config with `root: "app"`). |
 | `src/db/` | Schema (`schema.ts`). |
 | `migrations/` | Applied SQL migrations (root of the app tree). |
 | `src/hono/` | API (Hono routes, middleware, validation). |
 | `src/ui/` | SPA pages, components, styles. |
 
-`wrangler` config is **not** seeded this pass. Writes to the read-only roots
-are hard-denied in MCP `workspace_write` / agent file tools (and refused when
-bash syncs those paths back). Soft prompt text alone is not enough.
+`wrangler` config is **not** seeded this pass.
 
 ## Run it standalone
 
@@ -116,8 +113,8 @@ across the host — including a regex over the literal string
 `src/ui/main.tsx` and a `?? ""` fallback that silently produced the wrong
 CSS when the styles entry moved. Now `pack.mjs` and the factory both read
 the manifest, and `scripts/check-workspace.mjs` fails CI the moment a
-declared path stops existing. `readonly` lists the platform-owned roots
-the host refuses to overwrite.
+declared path stops existing. `inject` adds pack-only files (today:
+`biome.json` from core).
 
 Renaming a payload entry point is therefore a two-line change: move the
 file, update `manifest.json`.

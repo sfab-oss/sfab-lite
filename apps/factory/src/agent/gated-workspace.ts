@@ -4,7 +4,7 @@ import { assertWritableWorkspacePath } from "./platform-readonly.js";
 /**
  * Every FS op awaits `ensureReady` before hitting the underlying workspace.
  * Keeps AppAgent / SharedWorkspace / MCP / tools on one readiness contract.
- * Mutating ops refuse platform-owned read-only paths.
+ * Mutating ops apply factory write policy (`platform-readonly.ts`).
  */
 export class GatedWorkspace implements WorkspaceFsLike {
   readonly #ensureReady: () => Promise<void>;
