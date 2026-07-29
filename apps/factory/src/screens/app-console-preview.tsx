@@ -1,9 +1,20 @@
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@sfab-lite/ui/components/shadcn/resizable";
+import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
 import { Link } from "@tanstack/react-router";
-import { ExternalLink, RotateCw } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Code2, ExternalLink, RotateCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { AppLayoutHeader } from "@/components/brand/app-layout";
+import {
+  readPreviewCodeOpen,
+  writePreviewCodeOpen,
+} from "@/features/preview/code-panel-preference";
 import { subscribeLiveVersion } from "@/features/preview/live-version-bus";
+import { PreviewCodePanel } from "@/features/preview/preview-code-panel";
 import {
   appBasePath,
   reloadPreviewFrame,
@@ -18,6 +29,17 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const liveRef = useRef<string | null>(null);
   const rootSrc = `${appBasePath(appId)}/`;
+  const isMobile = useIsMobile();
+  const [codeOpen, setCodeOpen] = useState(false);
+
+  useEffect(() => {
+    setCodeOpen(readPreviewCodeOpen());
+  }, []);
+
+  const setCodeOpenPersisted = (open: boolean) => {
+    setCodeOpen(open);
+    writePreviewCodeOpen(open);
+  };
 
   useEffect(
     () =>
@@ -37,6 +59,42 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
   const reload = () => {
     reloadPreviewFrame(iframeRef.current, appId, "/");
   };
+
+  const previewFrame = (
+    <iframe
+      className="min-h-0 w-full flex-1 border-0 bg-background"
+      ref={iframeRef}
+      sandbox={IFRAME_SANDBOX}
+      src={rootSrc}
+      title="App preview"
+    />
+  );
+
+  let body: React.ReactNode = previewFrame;
+  if (codeOpen && isMobile) {
+    body = (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <PreviewCodePanel appId={appId} />
+      </div>
+    );
+  } else if (codeOpen) {
+    body = (
+      <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
+        <ResizablePanel className="min-h-0" defaultSize={58} minSize={30}>
+          {previewFrame}
+        </ResizablePanel>
+        <ResizableHandle />
+        <ResizablePanel
+          className="flex min-h-0 flex-col border-l"
+          defaultSize={42}
+          maxSize={70}
+          minSize={22}
+        >
+          <PreviewCodePanel appId={appId} />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    );
+  }
 
   return (
     <>
@@ -61,6 +119,18 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Button
+            aria-label={codeOpen ? "Hide code panel" : "Show code panel"}
+            aria-pressed={codeOpen}
+            className="h-8 gap-1.5 px-2"
+            onClick={() => setCodeOpenPersisted(!codeOpen)}
+            size="sm"
+            type="button"
+            variant={codeOpen ? "secondary" : "ghost"}
+          >
+            <Code2 className="size-4" />
+            <span className="text-xs">Code</span>
+          </Button>
+          <Button
             aria-label="Reload preview"
             className="size-8"
             onClick={reload}
@@ -84,13 +154,7 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
           </Button>
         </div>
       </AppLayoutHeader>
-      <iframe
-        className="min-h-0 w-full flex-1 border-0 bg-background"
-        ref={iframeRef}
-        sandbox={IFRAME_SANDBOX}
-        src={rootSrc}
-        title="App preview"
-      />
+      {body}
     </>
   );
 }

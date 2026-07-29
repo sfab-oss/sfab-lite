@@ -18,15 +18,7 @@ export interface AppVersion {
   live: boolean;
 }
 
-export interface WorkspaceFileEntry {
-  name: string;
-  path: string;
-  type: "directory" | "file";
-}
-
-export interface WorkspaceFileContent {
-  content: string;
-  encoding: "binary" | "text" | "too-large";
-  mimeType: string;
-  size: number;
-}
+export type {
+  WorkspaceFileContent,
+  WorkspaceFileEntry,
+} from "@/features/workspace-files/types";

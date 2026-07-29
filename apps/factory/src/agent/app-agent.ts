@@ -182,6 +182,11 @@ export class AppAgent extends Think<Env> {
     return { stdout, stderr, exitCode };
   }
 
+  /**
+   * Browser-callable read of the agent workspace (WIP). Same substrate as MCP
+   * `workspace_read`. Writes stay stub-only — not published on the WS surface.
+   */
+  @callable()
   readFile(path: string) {
     return this.workspace.readFile(path);
   }
@@ -218,6 +223,8 @@ export class AppAgent extends Think<Env> {
     return this.workspace.exists(path);
   }
 
+  /** Browser-callable directory listing — MCP `workspace_ls` counterpart. */
+  @callable()
   readDir(path: string, opts?: Parameters<Workspace["readDir"]>[1]) {
     return this.workspace.readDir(path, opts);
   }
