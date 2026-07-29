@@ -66,10 +66,8 @@ export function registerBuildTools(server: McpServer, ctx: McpContext): void {
     "app_deploy",
     {
       description:
-        "Publish the workspace: lint, compile, typecheck, schema gate, then " +
-        "mint a version and make it live. This is what turns workspace edits " +
-        "into the running app. On failure the attempt payload (see " +
-        "apps_attempts) carries the diagnostics.",
+        "Refused — main is merge-only. Push a feature branch, open a PR " +
+        "(gh pr create), wait for checks, then gh pr merge.",
       inputSchema: { appId },
     },
     ({ appId: id }) => run(id, "pnpm run deploy")

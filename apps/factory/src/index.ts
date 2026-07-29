@@ -2,7 +2,7 @@
  * @sfab-lite/factory — host worker entry.
  *
  * Create returns `202` with a create-job id; poll `GET .../attempts/:id`.
- * Shipping code is git push of `main` (CD writes an immutable build and sets
+ * Shipping code is PR merge onto `main` (CD writes an immutable build and sets
  * D1 `live_sha`). Protected API credentials: `X-Admin-Token` or session.
  * See `tenancy.ts`. Domain handlers in `lib/protected/`; Hono in
  * `hono/protected/`; CD in `cd.ts`; code host in `r2-code-host.ts`.

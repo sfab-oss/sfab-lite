@@ -5,7 +5,7 @@ import type { AppCtx } from "../../routes.js";
 
 /**
  * Typecheck posted source overlays. Commit/revert version APIs are removed —
- * ship by pushing `main` (bash git).
+ * ship via feature branch → PR → merge (bash git + virtual gh).
  */
 export async function handleCheck(
   rc: AppCtx,
@@ -41,7 +41,7 @@ export function handleCommit(
 ): Promise<ProtectedReply<unknown>> {
   return Promise.resolve({
     status: 410,
-    body: { ok: false as const, error: "commit_removed_use_git_push_main" },
+    body: { ok: false as const, error: "commit_removed_use_pr_merge" },
   });
 }
 

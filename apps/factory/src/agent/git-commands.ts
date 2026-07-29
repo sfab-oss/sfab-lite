@@ -1,12 +1,15 @@
 import { createGit } from "@cloudflare/shell/git";
 import type { CommandContext, ExecResult } from "just-bash";
 import { bridgeBashFs } from "../bash-fs-bridge.js";
-import { ensureLiveMatchesMain } from "../cd.js";
+import { onBranchPushed } from "../forge.js";
 import { createR2CodeHost } from "../r2-code-host.js";
+import { parsePushArgs } from "./git-push-args.js";
 
 const AUTHOR = { name: "sfab-agent", email: "agent@sfab.dev" };
 const TOKEN_RE = /token[=:]\S+/gi;
-const NOTHING_COMMIT_RE = /nothing to commit|No changes/i;
+
+const MAIN_MERGE_ONLY =
+  "main is merge-only. Push a feature branch, open a PR with `gh pr create`, wait for checks, then `gh pr merge`.\n";
 
 function ok(stdout: string): ExecResult {
   return { stdout, stderr: "", exitCode: 0 };
@@ -48,73 +51,6 @@ function takeOption(
     value,
     rest: [...args.slice(0, idx), ...args.slice(idx + 2)],
   };
-}
-
-type PushParse =
-  | { ok: true; remote: string | null; branch: string }
-  | { ok: false; error: string };
-
-/**
- * Supported: `git push`, `git push origin`, `git push origin main`,
- * `git push origin HEAD:main`. Flags and other arities are rejected.
- */
-function parsePushArgs(rest: string[]): PushParse {
-  if (rest.some((a) => a.startsWith("-"))) {
-    return {
-      ok: false,
-      error: "git push: flags are not supported in this shell\n",
-    };
-  }
-  if (rest.length === 0) {
-    return { ok: true, remote: null, branch: "main" };
-  }
-  if (rest.length === 1) {
-    return { ok: true, remote: rest[0] ?? null, branch: "main" };
-  }
-  if (rest.length === 2) {
-    const remote = rest[0] ?? "origin";
-    const refspec = rest[1] ?? "main";
-    if (refspec.includes(":")) {
-      const colon = refspec.indexOf(":");
-      const src = refspec.slice(0, colon);
-      const dst = refspec.slice(colon + 1);
-      if (!dst || dst.includes(":") || dst.includes("*")) {
-        return {
-          ok: false,
-          error: `git push: unsupported refspec '${refspec}'\n`,
-        };
-      }
-      if (src !== "" && src !== "HEAD" && src !== dst) {
-        return {
-          ok: false,
-          error: `git push: unsupported refspec '${refspec}' (only HEAD:<branch> or <branch>:<branch>)\n`,
-        };
-      }
-      return { ok: true, remote, branch: dst };
-    }
-    return { ok: true, remote, branch: refspec };
-  }
-  return {
-    ok: false,
-    error:
-      "git push: unsupported arguments (use `git push`, `git push origin`, or `git push origin <branch>`)\n",
-  };
-}
-
-async function afterMainPushCd(
-  deps: GitCommandDeps,
-  signal?: AbortSignal
-): Promise<ExecResult | null> {
-  const result = await ensureLiveMatchesMain(deps.env, deps.appId, {
-    signal,
-  });
-  if (result.status === "cd_failed") {
-    return fail(
-      `cd: failed after push (${result.error})\n${JSON.stringify(result.detail ?? {}, null, 2)}\n`,
-      1
-    );
-  }
-  return null;
 }
 
 async function gitStatus(
@@ -235,6 +171,10 @@ async function gitPush(
     return fail(parsed.error, 1);
   }
   const { branch } = parsed;
+  if (branch === "main") {
+    return fail(`git push: refused — ${MAIN_MERGE_ONLY}`, 1);
+  }
+
   const fs = bridgeBashFs(ctx.fs);
   const host = createR2CodeHost(deps.env);
   await host.credentialsForAgent(deps.appId);
@@ -242,26 +182,11 @@ async function gitPush(
     dir: "/",
     ref: branch,
   });
-  const refLine = pushed.advancedMain
-    ? `push: ${branch} updated${pushed.sha ? ` (${pushed.sha.slice(0, 12)})` : ""}\n`
+  const refLine = pushed.sha
+    ? `push: ${branch} updated (${pushed.sha.slice(0, 12)})\n`
     : `push: ${branch} unchanged\n`;
 
-  if (branch !== "main") {
-    return ok(refLine);
-  }
-
-  const cdFail = await afterMainPushCd(deps, ctx.signal ?? undefined);
-  if (cdFail) {
-    return {
-      stdout: refLine,
-      stderr: cdFail.stderr,
-      exitCode: cdFail.exitCode,
-    };
-  }
-  const tip = pushed.sha ?? (await host.tipSha(deps.appId, "main"));
-  if (tip) {
-    return ok(`${refLine}cd: live matches main ${tip.slice(0, 12)}\n`);
-  }
+  await onBranchPushed(deps.env, deps.appId, branch, pushed.sha);
   return ok(refLine);
 }
 
@@ -364,52 +289,12 @@ export async function runGitCommand(
   }
 }
 
-export async function commitAllAndPushMain(
-  deps: GitCommandDeps,
+export function commitAllAndPushMain(
+  _deps: GitCommandDeps,
   ctx: CommandContext
 ): Promise<ExecResult> {
   if (ctx.signal?.aborted) {
-    return fail("deploy: aborted before start\n", 124);
+    return Promise.resolve(fail("deploy: aborted before start\n", 124));
   }
-  const fs = bridgeBashFs(ctx.fs);
-  const git = createGit(fs as never, "/");
-  try {
-    await git.add({ filepath: "." });
-    const status = await git.status();
-    const dirty = status.some((e) => e.status !== "unmodified");
-    if (dirty) {
-      await git.commit({
-        message: "chore: deploy from workspace",
-        author: AUTHOR,
-      });
-    }
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (!NOTHING_COMMIT_RE.test(msg)) {
-      return fail(`deploy: commit failed: ${msg}\n`, 1);
-    }
-  }
-
-  const host = createR2CodeHost(deps.env);
-  const pushed = await host.receivePush(deps.appId, fs, {
-    dir: "/",
-    ref: "main",
-  });
-  const refLine = pushed.advancedMain
-    ? `deploy: main updated${pushed.sha ? ` (${pushed.sha.slice(0, 12)})` : ""}\n`
-    : "deploy: main unchanged\n";
-
-  const cdFail = await afterMainPushCd(deps, ctx.signal ?? undefined);
-  if (cdFail) {
-    return {
-      stdout: refLine,
-      stderr: cdFail.stderr,
-      exitCode: cdFail.exitCode,
-    };
-  }
-  const tip = pushed.sha ?? (await host.tipSha(deps.appId, "main"));
-  if (tip) {
-    return ok(`${refLine}deploy: live matches main ${tip.slice(0, 12)}\n`);
-  }
-  return ok(`${refLine}deploy: nothing to CD\n`);
+  return Promise.resolve(fail(`deploy: refused — ${MAIN_MERGE_ONLY}`, 1));
 }
