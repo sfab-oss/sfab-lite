@@ -1,10 +1,16 @@
+import { MultiFileDiff } from "@pierre/diffs/react";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import type { CheckRunRecord, PrRecord } from "../api";
+import type { CheckRunRecord, PrDiffFile, PrRecord } from "../api";
 import { appPrPreviewBasePath } from "../features/preview/reload-preview";
-import { useMergePr, usePr, useRerun } from "../hooks/use-prs";
+import { useMergePr, usePr, usePrDiff, useRerun } from "../hooks/use-prs";
+
+const PIERRE_THEME = {
+  dark: "pierre-dark" as const,
+  light: "pierre-light" as const,
+};
 
 export function AppPrDetailScreen({
   appId,
@@ -14,6 +20,7 @@ export function AppPrDetailScreen({
   prNumber: number;
 }) {
   const prQuery = usePr(appId, prNumber);
+  const diffQuery = usePrDiff(appId, prNumber);
   const mergePr = useMergePr(appId, prNumber);
   const rerun = useRerun(appId);
   const [mergeError, setMergeError] = useState<string | null>(null);
@@ -66,7 +73,14 @@ export function AppPrDetailScreen({
       {pr ? (
         <PrBody
           appId={appId}
+          baseSha={diffQuery.data?.baseSha ?? null}
           checks={checks}
+          diffError={
+            diffQuery.error instanceof Error ? diffQuery.error.message : null
+          }
+          diffFiles={diffQuery.data?.files ?? []}
+          diffPending={diffQuery.isPending}
+          headSha={diffQuery.data?.headSha ?? pr.headSha}
           mergeError={mergeError}
           mergePending={mergePr.isPending}
           onMerge={onMerge}
@@ -88,6 +102,11 @@ function PrBody({
   onMerge,
   onRerun,
   rerunPending,
+  diffFiles,
+  diffPending,
+  diffError,
+  baseSha,
+  headSha,
 }: {
   appId: string;
   pr: PrRecord;
@@ -97,6 +116,11 @@ function PrBody({
   onMerge: () => void;
   onRerun: (runId: string) => void;
   rerunPending: boolean;
+  diffFiles: PrDiffFile[];
+  diffPending: boolean;
+  diffError: string | null;
+  baseSha: string | null;
+  headSha: string;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -157,6 +181,33 @@ function PrBody({
       </section>
 
       <section>
+        <h2 className="m-0 mb-2 font-semibold text-base">Files changed</h2>
+        {diffPending ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ) : null}
+        {diffError ? (
+          <p className="text-destructive text-sm">{diffError}</p>
+        ) : null}
+        {!(diffPending || diffError) && diffFiles.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No file changes.</p>
+        ) : null}
+        {diffFiles.length > 0 ? (
+          <div className="flex flex-col gap-4">
+            {diffFiles.map((file) => (
+              <PrFileDiff
+                baseSha={baseSha}
+                file={file}
+                headSha={headSha}
+                key={file.path}
+              />
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <section>
         <h2 className="m-0 mb-2 font-semibold text-base">Checks</h2>
         {checks.length === 0 ? (
           <p className="text-muted-foreground text-sm">No check runs.</p>
@@ -173,6 +224,44 @@ function PrBody({
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function PrFileDiff({
+  file,
+  baseSha,
+  headSha,
+}: {
+  file: PrDiffFile;
+  baseSha: string | null;
+  headSha: string;
+}) {
+  const name = file.path.includes("/")
+    ? file.path.slice(file.path.lastIndexOf("/") + 1)
+    : file.path;
+  return (
+    <div className="overflow-hidden rounded-md border border-border">
+      <div className="border-b px-3 py-2 font-mono text-xs">{file.path}</div>
+      <MultiFileDiff
+        disableWorkerPool
+        newFile={{
+          name,
+          contents: file.after ?? "",
+          cacheKey: `${headSha}:${file.path}:after`,
+        }}
+        oldFile={{
+          name,
+          contents: file.before ?? "",
+          cacheKey: `${baseSha ?? "none"}:${file.path}:before`,
+        }}
+        options={{
+          theme: PIERRE_THEME,
+          diffStyle: "unified",
+          overflow: "scroll",
+          disableFileHeader: true,
+        }}
+      />
     </div>
   );
 }

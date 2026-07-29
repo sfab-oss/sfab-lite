@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createPr,
   getPr,
+  getPrDiff,
   getRun,
   listPrs,
   listRuns,
@@ -12,7 +13,11 @@ import {
 const prsQueryKey = (appId: string) => ["apps", appId, "prs"] as const;
 const prQueryKey = (appId: string, number: number) =>
   ["apps", appId, "prs", number] as const;
+const prDiffQueryKey = (appId: string, number: number) =>
+  ["apps", appId, "prs", number, "diff"] as const;
 const runsQueryKey = (appId: string) => ["apps", appId, "runs"] as const;
+const runQueryKey = (appId: string, runId: string) =>
+  ["apps", appId, "runs", runId] as const;
 
 export function usePrs(appId: string) {
   return useQuery({
@@ -30,11 +35,32 @@ export function usePr(appId: string, number: number) {
   });
 }
 
+export function usePrDiff(appId: string, number: number) {
+  return useQuery({
+    queryKey: prDiffQueryKey(appId, number),
+    queryFn: () => getPrDiff(appId, number),
+    enabled: Boolean(appId && number > 0),
+  });
+}
+
 export function useRuns(appId: string) {
   return useQuery({
     queryKey: runsQueryKey(appId),
-    queryFn: () => listRuns(appId, { limit: 20 }),
+    queryFn: () => listRuns(appId, { limit: 50 }),
     enabled: Boolean(appId),
+  });
+}
+
+export function useRun(appId: string, runId: string | null) {
+  return useQuery({
+    queryKey: runQueryKey(appId, runId ?? ""),
+    queryFn: () => {
+      if (!runId) {
+        throw new Error("run id required");
+      }
+      return getRun(appId, runId);
+    },
+    enabled: Boolean(appId && runId),
   });
 }
 

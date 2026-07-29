@@ -48,12 +48,14 @@ export function FileBrowser({
   source,
   banner,
   rootPath = "",
+  revision,
   selectedPath: controlledPath,
   onSelectedPathChange,
 }: {
   source: WorkspaceFilesSource;
   banner?: React.ReactNode;
   rootPath?: string;
+  revision?: string;
   selectedPath?: string | null;
   onSelectedPathChange?: (path: string | null) => void;
 }) {
@@ -88,6 +90,7 @@ export function FileBrowser({
         <FileViewer
           onBack={() => setSelectedPath(null)}
           path={selectedPath}
+          revision={revision}
           source={source}
         />
       </div>
@@ -95,7 +98,7 @@ export function FileBrowser({
   }
 
   const viewer = selectedPath ? (
-    <FileViewer path={selectedPath} source={source} />
+    <FileViewer path={selectedPath} revision={revision} source={source} />
   ) : (
     <NoFileSelected />
   );
@@ -294,10 +297,12 @@ function FileNode({
 function FileViewer({
   source,
   path,
+  revision,
   onBack,
 }: {
   source: WorkspaceFilesSource;
   path: string;
+  revision?: string;
   onBack?: () => void;
 }) {
   useEffect(() => {
@@ -335,7 +340,7 @@ function FileViewer({
         ) : null}
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
-        {renderViewerBody(file, path, loading)}
+        {renderViewerBody(file, path, loading, revision)}
       </div>
     </div>
   );
@@ -344,10 +349,11 @@ function FileViewer({
 function renderViewerBody(
   file: WorkspaceFileContent | null,
   path: string,
-  loading: boolean
+  loading: boolean,
+  revision?: string
 ) {
   if (file) {
-    return renderFileBody(file, path);
+    return renderFileBody(file, path, revision);
   }
   if (loading) {
     return <p className="p-4 text-muted-foreground text-sm">Loading…</p>;
@@ -359,7 +365,11 @@ function renderViewerBody(
   );
 }
 
-function renderFileBody(file: WorkspaceFileContent, path: string) {
+function renderFileBody(
+  file: WorkspaceFileContent,
+  path: string,
+  revision?: string
+) {
   if (file.encoding === "too-large") {
     return (
       <FileNotice>
@@ -376,7 +386,9 @@ function renderFileBody(file: WorkspaceFileContent, path: string) {
     );
   }
 
-  return <FileCodeView content={file.content} path={path} />;
+  return (
+    <FileCodeView content={file.content} path={path} revision={revision} />
+  );
 }
 
 function FileNotice({ children }: { children: React.ReactNode }) {

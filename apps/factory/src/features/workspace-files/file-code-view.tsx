@@ -1,23 +1,49 @@
-/** biome-ignore-all lint/suspicious/noArrayIndexKey: plain file lines have no stable ids */
+import { File as PierreFile } from "@pierre/diffs/react";
 
-const TRAILING_NEWLINE = /\n$/;
+const PIERRE_THEME = {
+  dark: "pierre-dark" as const,
+  light: "pierre-light" as const,
+};
 
-export function FileCodeView({ content }: { content: string; path: string }) {
-  const lines = content.replace(TRAILING_NEWLINE, "").split("\n");
+function contentFingerprint(content: string): string {
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    hash = (hash * 31 + content.charCodeAt(i)) % 2_147_483_647;
+  }
+  return `${content.length}:${hash}`;
+}
+
+export function FileCodeView({
+  content,
+  path,
+  revision,
+}: {
+  content: string;
+  path: string;
+  revision?: string;
+}) {
+  const name = path.includes("/")
+    ? path.slice(path.lastIndexOf("/") + 1)
+    : path;
+  const cacheKey = revision
+    ? `${revision}:${path}`
+    : `${path}:${contentFingerprint(content)}`;
   return (
-    <div className="h-full overflow-auto">
-      <pre className="m-0 min-h-full p-3 font-mono text-[12px] leading-5">
-        {lines.map((line, index) => (
-          <div className="flex" key={`${index}-${line.slice(0, 12)}`}>
-            <span className="mr-4 inline-block min-w-8 shrink-0 select-none text-right text-muted-foreground">
-              {index + 1}
-            </span>
-            <span className="whitespace-pre-wrap break-all text-foreground">
-              {line.length > 0 ? line : " "}
-            </span>
-          </div>
-        ))}
-      </pre>
+    <div className="h-full min-h-0 overflow-auto">
+      <PierreFile
+        disableWorkerPool
+        file={{
+          name,
+          contents: content,
+          cacheKey,
+        }}
+        options={{
+          theme: PIERRE_THEME,
+          overflow: "scroll",
+          disableFileHeader: true,
+        }}
+        style={{ height: "100%", minHeight: "100%" }}
+      />
     </div>
   );
 }

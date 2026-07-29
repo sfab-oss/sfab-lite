@@ -3,6 +3,7 @@ import {
   handleCreatePr,
   handleGetPr,
   handleGetRun,
+  handleGetTree,
   handleListPrChecks,
   handleListPrs,
   handleListRuns,
@@ -12,7 +13,11 @@ import {
 } from "../../lib/protected/forge.js";
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
-import { createPrBodySchema, listRunsQuerySchema } from "../schemas.js";
+import {
+  createPrBodySchema,
+  listRunsQuerySchema,
+  treeQuerySchema,
+} from "../schemas.js";
 import type { AdminEnv } from "../types.js";
 import { jsonBody, queryParams } from "../validate.js";
 
@@ -75,6 +80,14 @@ const forgeRoutes = new Hono<AdminEnv>()
       return c.json({ ok: false as const, error: "invalid_pr_number" }, 400);
     }
     const r = await handlePrDiff(appCtx(c), number);
+    if (r.status === 200) {
+      return c.json(r.body, 200);
+    }
+    return c.json(r.body, r.status);
+  })
+  .get("/:appId/tree", requireApp, queryParams(treeQuerySchema), async (c) => {
+    const q = c.req.valid("query");
+    const r = await handleGetTree(appCtx(c), q.ref ?? "main");
     if (r.status === 200) {
       return c.json(r.body, 200);
     }

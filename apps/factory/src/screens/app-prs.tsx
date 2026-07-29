@@ -3,12 +3,11 @@ import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { PrRecord } from "../api";
-import { useCreatePr, usePrs, useRuns } from "../hooks/use-prs";
+import { useCreatePr, usePrs } from "../hooks/use-prs";
 
 export function AppPrsScreen({ appId }: { appId: string }) {
   const navigate = useNavigate();
   const prsQuery = usePrs(appId);
-  const runsQuery = useRuns(appId);
   const createPr = useCreatePr(appId);
   const [title, setTitle] = useState("");
   const [headBranch, setHeadBranch] = useState("");
@@ -95,27 +94,6 @@ export function AppPrsScreen({ appId }: { appId: string }) {
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {prsQuery.data.map((pr) => (
               <PrRow appId={appId} key={pr.id} pr={pr} />
-            ))}
-          </ul>
-        ) : null}
-      </section>
-
-      <section className="mt-8">
-        <h2 className="m-0 mb-3 font-semibold text-base">Recent check runs</h2>
-        {runsQuery.data && runsQuery.data.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No check runs yet.</p>
-        ) : null}
-        {runsQuery.data && runsQuery.data.length > 0 ? (
-          <ul className="m-0 flex list-none flex-col gap-1 p-0 font-mono text-xs">
-            {runsQuery.data.map((run) => (
-              <li className="flex flex-wrap gap-3" key={run.id}>
-                <span>{run.name}</span>
-                <span>{run.status}</span>
-                <span>{run.conclusion ?? "—"}</span>
-                <span className="text-muted-foreground">
-                  {run.sha.slice(0, 12)}
-                </span>
-              </li>
             ))}
           </ul>
         ) : null}

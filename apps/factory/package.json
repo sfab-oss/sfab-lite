@@ -29,6 +29,7 @@
     "@cloudflare/vite-plugin": "1.46.0",
     "@cloudflare/worker-bundler": "0.2.2",
     "@modelcontextprotocol/sdk": "1.29.0",
+    "@pierre/diffs": "^1.2.12",
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
     "@sfab-lite/template": "workspace:*",

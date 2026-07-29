@@ -231,6 +231,32 @@ export async function getLiveSources(appId: string): Promise<{
   };
 }
 
+export async function getTreeAtRef(
+  appId: string,
+  ref = "main"
+): Promise<{
+  ref: string;
+  sha: string;
+  branches: string[];
+  sourceFiles: Record<string, string>;
+}> {
+  const res = await protectedApi.apps[":appId"].tree.$get({
+    param: { appId },
+    query: { ref },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(await errorMessage(res, `get tree failed (${res.status})`));
+  }
+  const body = await res.json();
+  return {
+    ref: body.ref,
+    sha: body.sha,
+    branches: body.branches,
+    sourceFiles: body.sourceFiles,
+  };
+}
+
 export async function getAttempt(
   appId: string,
   attemptId: string
@@ -370,4 +396,37 @@ export async function rerunRun(
   }
   const body = await res.json();
   return body.run;
+}
+
+export interface PrDiffFile {
+  path: string;
+  before: string | null;
+  after: string | null;
+}
+
+export async function getPrDiff(
+  appId: string,
+  number: number
+): Promise<{
+  baseSha: string | null;
+  headSha: string;
+  changedPaths: string[];
+  files: PrDiffFile[];
+}> {
+  const res = await protectedApi.apps[":appId"].prs[":number"].diff.$get({
+    param: { appId, number: String(number) },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(
+      await errorMessage(res, `get pr diff failed (${res.status})`)
+    );
+  }
+  const body = await res.json();
+  return {
+    baseSha: body.baseSha,
+    headSha: body.headSha,
+    changedPaths: body.changedPaths,
+    files: body.files,
+  };
 }

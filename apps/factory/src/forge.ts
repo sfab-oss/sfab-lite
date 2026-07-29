@@ -457,6 +457,33 @@ export async function mergePullRequest(
   return { ok: true, pr: merged, liveSha };
 }
 
+export async function readTreeAtRef(
+  env: Env,
+  appId: string,
+  ref: string
+): Promise<
+  | {
+      ok: true;
+      ref: string;
+      sha: string;
+      branches: string[];
+      sourceFiles: Record<string, string>;
+    }
+  | { ok: false; error: string }
+> {
+  const host = createR2CodeHost(env);
+  const branches = await host.listBranches(appId);
+  const sha = await host.tipSha(appId, ref);
+  if (!sha) {
+    return { ok: false, error: "ref_not_found" };
+  }
+  const sourceFiles = await host.readTreeAt(appId, sha);
+  if (!sourceFiles) {
+    return { ok: false, error: "tree_missing" };
+  }
+  return { ok: true, ref, sha, branches, sourceFiles };
+}
+
 export async function prDiffSummary(
   env: Env,
   appId: string,
@@ -467,6 +494,11 @@ export async function prDiffSummary(
       baseSha: string | null;
       headSha: string;
       changedPaths: string[];
+      files: {
+        path: string;
+        before: string | null;
+        after: string | null;
+      }[];
     }
   | { ok: false; error: string }
 > {
@@ -486,9 +518,17 @@ export async function prDiffSummary(
     ...Object.keys(baseTree ?? {}),
   ]);
   const changedPaths: string[] = [];
+  const files: {
+    path: string;
+    before: string | null;
+    after: string | null;
+  }[] = [];
   for (const path of [...paths].sort()) {
-    if ((headTree[path] ?? null) !== (baseTree?.[path] ?? null)) {
+    const before = baseTree?.[path] ?? null;
+    const after = headTree[path] ?? null;
+    if (before !== after) {
       changedPaths.push(path);
+      files.push({ path, before, after });
     }
   }
   return {
@@ -496,5 +536,6 @@ export async function prDiffSummary(
     baseSha,
     headSha: pr.headSha,
     changedPaths,
+    files,
   };
 }
