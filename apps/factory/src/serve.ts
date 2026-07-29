@@ -1,14 +1,16 @@
 /**
- * Serve a sub-app at /a/:appId/* (live) or /a/:appId/preview/* (preview_sha).
+ * Serve a sub-app at /a/:appId/* (live) or /a/:appId/preview/:prNumber/*
+ * (that PR's preview_sha build).
  *
  * Live pointer is D1 `live_sha` → immutable build in CODE_R2.
- * Preview pointer is D1 `preview_sha` (last successful PR check build).
+ * Preview is per-PR: pull_request.preview_sha → BuildStore by sha.
  * AppDO is runtime SQLite only (seed credentials + SQL).
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import type { AppDO } from "./app-do.js";
 import type { AppBuild } from "./build-store.js";
-import { getLiveSha, getPreviewSha } from "./cd.js";
+import { getLiveSha } from "./cd.js";
+import { getPullRequestByNumber } from "./forge.js";
 import { kernelModules } from "./kernel-modules.js";
 import { createR2BuildStore } from "./r2-build-store.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
@@ -40,33 +42,53 @@ interface HostExports {
 
 export type ServeMode = "live" | "preview";
 
+export interface ServePreviewOpts {
+  prNumber: number;
+}
+
 async function loadBuild(
   env: Env,
   appId: string,
-  mode: ServeMode
+  mode: ServeMode,
+  preview?: ServePreviewOpts
 ): Promise<AppBuild | null> {
-  const sha =
-    mode === "preview"
-      ? await getPreviewSha(env, appId)
-      : await getLiveSha(env, appId);
+  let sha: string | null = null;
+  if (mode === "preview") {
+    if (!preview?.prNumber) {
+      return null;
+    }
+    const pr = await getPullRequestByNumber(env, appId, preview.prNumber);
+    sha = pr?.previewSha ?? null;
+  } else {
+    sha = await getLiveSha(env, appId);
+  }
   if (!sha) {
     return null;
   }
   return createR2BuildStore(env).getBuild(appId, sha);
 }
 
+function pathPrefixFor(
+  appId: string,
+  mode: ServeMode,
+  preview?: ServePreviewOpts
+): string {
+  if (mode === "preview" && preview?.prNumber != null) {
+    return `/a/${encodeURIComponent(appId)}/preview/${preview.prNumber}`;
+  }
+  return `/a/${encodeURIComponent(appId)}`;
+}
+
 function buildPathContext(
   request: Request,
   appId: string,
   restPath: string,
-  mode: ServeMode
+  mode: ServeMode,
+  preview?: ServePreviewOpts
 ): { rest: string; publicBase: string } {
   const url = new URL(request.url);
   const rest = restPath.replace(LEADING_SLASHES_RE, "");
-  const pathPrefix =
-    mode === "preview"
-      ? `/a/${encodeURIComponent(appId)}/preview`
-      : `/a/${encodeURIComponent(appId)}`;
+  const pathPrefix = pathPrefixFor(appId, mode, preview);
   return { rest, publicBase: `${url.origin}${pathPrefix}` };
 }
 
@@ -79,7 +101,8 @@ async function serveApiRoute(
   rest: string,
   publicBase: string,
   mode: ServeMode,
-  stub: DurableObjectStub<AppDO>
+  stub: DurableObjectStub<AppDO>,
+  preview?: ServePreviewOpts
 ): Promise<Response> {
   const secret = env.APP_BETTER_AUTH_SECRET;
   if (!secret) {
@@ -91,7 +114,7 @@ async function serveApiRoute(
 
   const url = new URL(request.url);
   const innerUrl = new URL(`/${rest}${url.search}`, url.origin);
-  const workerKey = `app:${appId}:${mode}:${build.sha}`;
+  const workerKey = `app:${appId}:${mode}:${preview?.prNumber ?? "live"}:${build.sha}`;
 
   const ex = ctx.exports as unknown as HostExports;
   const worker = env.LOADER.get(workerKey, async () => ({
@@ -106,10 +129,7 @@ async function serveApiRoute(
       DB: ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps }),
       BETTER_AUTH_SECRET: secret,
       BETTER_AUTH_URL: new URL(publicBase).origin,
-      APP_BASE_PATH:
-        mode === "preview"
-          ? `/a/${encodeURIComponent(appId)}/preview`
-          : `/a/${encodeURIComponent(appId)}`,
+      APP_BASE_PATH: pathPrefixFor(appId, mode, preview),
       SEED_TOKEN: (await stub.seedCredentials()).token,
     },
     globalOutbound: null,
@@ -191,17 +211,29 @@ export async function serveSubApp(
   ctx: ExecutionContext,
   appId: string,
   restPath: string,
-  mode: ServeMode = "live"
+  mode: ServeMode = "live",
+  preview?: ServePreviewOpts
 ): Promise<Response> {
+  if (
+    mode === "preview" &&
+    (preview?.prNumber == null || preview.prNumber < 1)
+  ) {
+    return Response.json(
+      { ok: false, error: "preview_pr_required", appId },
+      { status: 404 }
+    );
+  }
+
   const stub = env.APP_DO.get(env.APP_DO.idFromName(appId));
-  const build = await loadBuild(env, appId, mode);
+  const build = await loadBuild(env, appId, mode, preview);
 
   if (!build) {
     return Response.json(
       {
         ok: false,
-        error: mode === "preview" ? "no_build" : "no_live_build",
+        error: mode === "preview" ? "no_preview_build" : "no_live_build",
         appId,
+        ...(preview?.prNumber == null ? {} : { prNumber: preview.prNumber }),
       },
       { status: 404 }
     );
@@ -224,12 +256,21 @@ export async function serveSubApp(
     );
   }
 
-  const { rest, publicBase } = buildPathContext(request, appId, restPath, mode);
+  const { rest, publicBase } = buildPathContext(
+    request,
+    appId,
+    restPath,
+    mode,
+    preview
+  );
 
   const withShaHeader = (res: Response): Response => {
     const headers = new Headers(res.headers);
     headers.set("X-Sfab-Live-Sha", build.sha);
     headers.set("X-Sfab-Serve", mode);
+    if (preview?.prNumber != null) {
+      headers.set("X-Sfab-Preview-Pr", String(preview.prNumber));
+    }
     return new Response(res.body, {
       status: res.status,
       statusText: res.statusText,
@@ -247,7 +288,8 @@ export async function serveSubApp(
       rest,
       publicBase,
       mode,
-      stub
+      stub,
+      preview
     );
     return withShaHeader(res);
   }

@@ -23,7 +23,6 @@ export interface AppRecord {
   status: AppStatus;
   createAttemptId: string | null;
   liveSha: string | null;
-  previewSha: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,7 +39,6 @@ function toRecord(row: typeof app.$inferSelect): AppRecord {
     status: row.status as AppStatus,
     createAttemptId: row.createAttemptId,
     liveSha: row.liveSha ?? null,
-    previewSha: row.previewSha ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

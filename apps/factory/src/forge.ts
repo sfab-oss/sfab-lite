@@ -3,12 +3,7 @@
  */
 import { and, desc, eq, max } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
-import {
-  ensureLiveMatchesMain,
-  getLiveSha,
-  runCdForSha,
-  setPreviewSha,
-} from "./cd.js";
+import { ensureLiveMatchesMain, getLiveSha, runCdForSha } from "./cd.js";
 import { createDb, type Db } from "./db/index.js";
 import { checkRun, pullRequest } from "./db/schema.js";
 import type {
@@ -240,14 +235,15 @@ export async function getCheckRun(
   return row ? toCheck(row) : null;
 }
 
-async function insertCheckRun(
+async function insertCompletedCheckRun(
   env: Env,
   values: {
     appId: string;
     prId: string | null;
     sha: string;
     name: string;
-    status: CheckRunStatus;
+    conclusion: CheckConclusion;
+    detail?: unknown;
   }
 ): Promise<CheckRunRecord> {
   const db = createDb(env);
@@ -259,9 +255,12 @@ async function insertCheckRun(
     prId: values.prId,
     sha: values.sha,
     name: values.name,
-    status: values.status,
+    status: "completed",
+    conclusion: values.conclusion,
+    detail: values.detail == null ? null : JSON.stringify(values.detail),
     createdAt: now,
     updatedAt: now,
+    completedAt: now,
   });
   const created = await getCheckRun(env, values.appId, id);
   if (!created) {
@@ -270,54 +269,27 @@ async function insertCheckRun(
   return created;
 }
 
-async function completeCheckRun(
-  env: Env,
-  appId: string,
-  runId: string,
-  conclusion: CheckConclusion,
-  detail?: unknown
-): Promise<CheckRunRecord> {
-  const db = createDb(env);
-  const now = new Date();
-  await db
-    .update(checkRun)
-    .set({
-      status: "completed",
-      conclusion,
-      detail: detail == null ? null : JSON.stringify(detail),
-      completedAt: now,
-      updatedAt: now,
-    })
-    .where(and(eq(checkRun.appId, appId), eq(checkRun.id, runId)));
-  const completed = await getCheckRun(env, appId, runId);
-  if (!completed) {
-    throw new Error(`check_run_missing:${runId}`);
-  }
-  return completed;
-}
-
 /**
- * Create a check run and execute platform CD for the sha (build without live).
- * On success, sets PR + app preview_sha.
+ * Run platform CD for a sha (build without live / without AppDO migrate) and
+ * record a completed check run. Checks are synchronous — create/push/rerun
+ * return only after CD finishes.
  */
 async function startCheckRun(
   env: Env,
   appId: string,
   input: { prId: string | null; sha: string; name?: string }
 ): Promise<CheckRunRecord> {
-  const run = await insertCheckRun(env, {
-    appId,
-    prId: input.prId,
-    sha: input.sha,
-    name: input.name ?? "cd",
-    status: "in_progress",
-  });
-
+  const name = input.name ?? "cd";
   const host = createR2CodeHost(env);
   const sourceFiles = await host.readTreeAt(appId, input.sha);
   if (!sourceFiles) {
-    return await completeCheckRun(env, appId, run.id, "failure", {
-      error: "tree_missing",
+    return insertCompletedCheckRun(env, {
+      appId,
+      prId: input.prId,
+      sha: input.sha,
+      name,
+      conclusion: "failure",
+      detail: { error: "tree_missing" },
     });
   }
 
@@ -326,17 +298,16 @@ async function startCheckRun(
   });
 
   if (!cd.ok) {
-    return await completeCheckRun(env, appId, run.id, "failure", {
-      error: cd.error,
-      detail: cd.detail,
+    return insertCompletedCheckRun(env, {
+      appId,
+      prId: input.prId,
+      sha: input.sha,
+      name,
+      conclusion: "failure",
+      detail: { error: cd.error, detail: cd.detail },
     });
   }
 
-  const completed = await completeCheckRun(env, appId, run.id, "success", {
-    sha: cd.sha,
-  });
-
-  await setPreviewSha(env, appId, input.sha);
   if (input.prId) {
     const db = createDb(env);
     await db
@@ -345,7 +316,14 @@ async function startCheckRun(
       .where(eq(pullRequest.id, input.prId));
   }
 
-  return completed;
+  return insertCompletedCheckRun(env, {
+    appId,
+    prId: input.prId,
+    sha: input.sha,
+    name,
+    conclusion: "success",
+    detail: { sha: cd.sha },
+  });
 }
 
 export async function rerunCheckRun(
@@ -434,6 +412,14 @@ export async function mergePullRequest(
       .set({ headSha: headTip, updatedAt: new Date() })
       .where(eq(pullRequest.id, pr.id));
     return { ok: false, error: "head_moved" };
+  }
+
+  const mainTip = await host.tipSha(appId, "main");
+  if (mainTip) {
+    const ff = await host.isAncestor(appId, mainTip, headTip);
+    if (!ff) {
+      return { ok: false, error: "not_fast_forward" };
+    }
   }
 
   await host.updateRef(appId, "main", headTip);

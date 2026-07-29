@@ -49,7 +49,11 @@ export function formatPrView(pr: PrRecord): string {
     `number:\t${pr.number}\n` +
     `head:\t${pr.headBranch} (${pr.headSha.slice(0, 12)})\n` +
     `base:\t${pr.baseBranch}\n` +
-    `preview:\t${pr.previewSha?.slice(0, 12) ?? "—"}\n` +
+    `preview:\t${
+      pr.previewSha
+        ? `${pr.previewSha.slice(0, 12)} (/a/{app}/preview/${pr.number}/)`
+        : "—"
+    }\n` +
     body
   );
 }

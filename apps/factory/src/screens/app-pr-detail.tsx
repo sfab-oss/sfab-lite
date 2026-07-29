@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CheckRunRecord, PrRecord } from "../api";
 import { AppLayoutHeader } from "../components/brand/app-layout";
+import { appPrPreviewBasePath } from "../features/preview/reload-preview";
 import { useApp } from "../hooks/use-apps";
 import { useMergePr, usePr, useRerun } from "../hooks/use-prs";
 
@@ -157,7 +158,7 @@ function PrBody({
             <Button
               render={
                 <a
-                  href={`/a/${encodeURIComponent(appId)}/preview/`}
+                  href={`${appPrPreviewBasePath(appId, pr.number)}/`}
                   rel="noreferrer"
                   target="_blank"
                 />

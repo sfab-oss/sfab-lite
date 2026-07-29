@@ -27,10 +27,6 @@ export function usePr(appId: string, number: number) {
     queryKey: prQueryKey(appId, number),
     queryFn: () => getPr(appId, number),
     enabled: Boolean(appId && number > 0),
-    refetchInterval: (query) => {
-      const checks = query.state.data?.checks ?? [];
-      return checks.some((c) => c.status !== "completed") ? 2500 : false;
-    },
   });
 }
 

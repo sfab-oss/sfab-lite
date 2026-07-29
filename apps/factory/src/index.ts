@@ -29,6 +29,7 @@ export { ScopedSql } from "./scoped-sql.js";
 
 const RE_KERNEL = /^\/kernel\/(.+)$/;
 const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
+const RE_PREVIEW_PR = /^\d+$/;
 
 /**
  * Where an MCP client looks to discover that this factory *is* an
@@ -63,13 +64,30 @@ async function handleKernel(rc: RouteCtx): Promise<Response> {
 
 function handleSubApp(rc: RouteCtx): Promise<Response> {
   const appId = decodeURIComponent(rc.match[1] ?? "");
-  let rest = rc.match[2] ?? "";
-  let mode: "live" | "preview" = "live";
+  const rest = rc.match[2] ?? "";
   if (rest === "preview" || rest.startsWith("preview/")) {
-    mode = "preview";
-    rest = rest === "preview" ? "" : rest.slice("preview/".length);
+    const after = rest === "preview" ? "" : rest.slice("preview/".length);
+    const slash = after.indexOf("/");
+    const prToken = slash === -1 ? after : after.slice(0, slash);
+    const prNumber = Number(prToken);
+    if (
+      !Number.isFinite(prNumber) ||
+      prNumber < 1 ||
+      !RE_PREVIEW_PR.test(prToken)
+    ) {
+      return Promise.resolve(
+        Response.json(
+          { ok: false, error: "preview_pr_required", appId },
+          { status: 404 }
+        )
+      );
+    }
+    const inner = slash === -1 ? "" : after.slice(slash + 1);
+    return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "preview", {
+      prNumber,
+    });
   }
-  return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, mode);
+  return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, "live");
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   parseGhArgs,
 } from "./agent/gh-cli-text.ts";
 import { parsePushArgs } from "./agent/git-push-args.ts";
+import { isFastForwardTip } from "./forge-ff.ts";
 import {
   type CheckRunRecord,
   type PrRecord,
@@ -134,5 +135,17 @@ describe("parsePushArgs", () => {
       remote: "origin",
       branch: "feat/x",
     });
+  });
+});
+
+describe("isFastForwardTip", () => {
+  it("allows equal tips and empty main", () => {
+    assert.equal(isFastForwardTip(null, "abc", []), true);
+    assert.equal(isFastForwardTip("abc", "abc", []), true);
+  });
+
+  it("requires main tip in head ancestry", () => {
+    assert.equal(isFastForwardTip("main1", "head9", ["head9", "main1"]), true);
+    assert.equal(isFastForwardTip("main1", "head9", ["head9", "other"]), false);
   });
 });

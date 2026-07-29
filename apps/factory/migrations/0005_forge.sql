@@ -1,4 +1,4 @@
--- Forge: PRs, check runs, and an app-level preview pointer.
+-- Forge: PRs and check runs. Preview builds are keyed by PR (pull_request.preview_sha).
 -- Greenfield: no backfill.
 
 CREATE TABLE `pull_request` (
@@ -42,5 +42,3 @@ CREATE TABLE `check_run` (
 CREATE INDEX `check_run_app_sha_idx` ON `check_run` (`app_id`,`sha`);
 CREATE INDEX `check_run_pr_idx` ON `check_run` (`pr_id`);
 CREATE INDEX `check_run_app_created_idx` ON `check_run` (`app_id`,`created_at`);
-
-ALTER TABLE `app` ADD COLUMN `preview_sha` text;

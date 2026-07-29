@@ -114,12 +114,10 @@ interface SchemaGateFailure {
   detail: unknown;
 }
 
-async function gateSchema(
+async function validateSchema(
   env: Env,
-  appId: string,
   files: Record<string, string>
 ): Promise<SchemaGateFailure | null> {
-  const stub = appStub(env, appId);
   const probe = await probeSchema(env, files);
   if (!probe.ok) {
     return {
@@ -158,20 +156,44 @@ async function gateSchema(
     };
   }
 
-  const migrations = collectMigrations(files);
-  if (migrations.length > 0) {
-    try {
-      await stub.bootstrap(migrations);
-    } catch (cause) {
-      return {
-        error: "schema_history_changed",
-        message: cause instanceof Error ? cause.message : String(cause),
-        detail: null,
-      };
-    }
-  }
-
   return null;
+}
+
+async function applySchemaMigrations(
+  env: Env,
+  appId: string,
+  files: Record<string, string>
+): Promise<SchemaGateFailure | null> {
+  const migrations = collectMigrations(files);
+  if (migrations.length === 0) {
+    return null;
+  }
+  try {
+    await appStub(env, appId).bootstrap(migrations);
+  } catch (cause) {
+    return {
+      error: "schema_history_changed",
+      message: cause instanceof Error ? cause.message : String(cause),
+      detail: null,
+    };
+  }
+  return null;
+}
+
+async function gateSchema(
+  env: Env,
+  appId: string,
+  files: Record<string, string>,
+  opts?: { applyMigrations?: boolean }
+): Promise<SchemaGateFailure | null> {
+  const validated = await validateSchema(env, files);
+  if (validated) {
+    return validated;
+  }
+  if (opts?.applyMigrations === false) {
+    return null;
+  }
+  return applySchemaMigrations(env, appId, files);
 }
 
 async function compileAll(files: Record<string, string>) {
@@ -212,30 +234,6 @@ export async function getLiveSha(
   return row?.liveSha ?? null;
 }
 
-export async function getPreviewSha(
-  env: Env,
-  appId: string
-): Promise<string | null> {
-  const db = createDb(env);
-  const row = await db.query.app.findFirst({
-    where: eq(appTable.id, appId),
-    columns: { previewSha: true },
-  });
-  return row?.previewSha ?? null;
-}
-
-export async function setPreviewSha(
-  env: Env,
-  appId: string,
-  sha: string
-): Promise<void> {
-  const db = createDb(env);
-  await db
-    .update(appTable)
-    .set({ previewSha: sha, updatedAt: new Date() })
-    .where(eq(appTable.id, appId));
-}
-
 function aborted(signal?: AbortSignal): boolean {
   return Boolean(signal?.aborted);
 }
@@ -244,7 +242,11 @@ async function cdBuildArtifacts(
   env: Env,
   appId: string,
   sourceFiles: Record<string, string>,
-  opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
+  opts?: {
+    forceColdCheck?: boolean;
+    signal?: AbortSignal;
+    applyMigrations?: boolean;
+  }
 ): Promise<
   | { ok: true; compiled: Awaited<ReturnType<typeof compileAll>> }
   | { ok: false; error: string; detail?: unknown }
@@ -312,7 +314,9 @@ async function cdBuildArtifacts(
     return { ok: false, error: "cd_aborted" };
   }
 
-  const schemaFailure = await gateSchema(env, appId, sourceFiles);
+  const schemaFailure = await gateSchema(env, appId, sourceFiles, {
+    applyMigrations: opts?.applyMigrations,
+  });
   if (schemaFailure) {
     return {
       ok: false,
@@ -344,7 +348,10 @@ export async function runCdForSha(
   const advanceLive = opts?.advanceLive !== false;
 
   try {
-    const built = await cdBuildArtifacts(env, appId, sourceFiles, opts);
+    const built = await cdBuildArtifacts(env, appId, sourceFiles, {
+      ...opts,
+      applyMigrations: advanceLive,
+    });
     if (!built.ok) {
       return { ok: false, error: built.error, detail: built.detail };
     }

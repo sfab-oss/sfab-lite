@@ -260,6 +260,32 @@ export function createR2CodeHost(env: Env): CodeHost {
       return { previous };
     },
 
+    async isAncestor(
+      appId: string,
+      ancestorSha: string,
+      descendantSha: string
+    ): Promise<boolean> {
+      if (ancestorSha === descendantSha) {
+        return true;
+      }
+      await this.ensureRepo(appId);
+      const bare = bareFs(appId);
+      const work = new InMemoryFs() as unknown as GitWorkFs;
+      const git = createGit(asShellFs(work), "/");
+      await git.init({ defaultBranch: "main" });
+      await copyTree(bare, "/objects", work, "/.git/objects");
+      await copyTree(bare, "/refs", work, "/.git/refs");
+      if (await bare.exists("/HEAD")) {
+        await work.writeFile("/.git/HEAD", await bare.readFile("/HEAD"));
+      }
+      try {
+        const entries = await git.log({ ref: descendantSha, depth: 10_000 });
+        return entries.some((e) => e.oid === ancestorSha);
+      } catch {
+        return false;
+      }
+    },
+
     async readTreeAt(
       appId: string,
       sha: string

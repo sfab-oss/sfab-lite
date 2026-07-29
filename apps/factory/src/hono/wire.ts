@@ -7,7 +7,6 @@ export interface WireApp {
   status: "creating" | "ready" | "failed";
   createAttemptId: string | null;
   liveSha: string | null;
-  previewSha: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,7 +19,6 @@ export function wireApp(record: AppRecord): WireApp {
     status: record.status,
     createAttemptId: record.createAttemptId,
     liveSha: record.liveSha,
-    previewSha: record.previewSha,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };

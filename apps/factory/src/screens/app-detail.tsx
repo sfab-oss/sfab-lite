@@ -88,12 +88,6 @@ function AppBody({
             </dd>
           </div>
           <div className="flex gap-3">
-            <dt className="w-28 text-muted-foreground">Preview sha</dt>
-            <dd className="m-0 font-mono text-xs">
-              {app.previewSha ? app.previewSha.slice(0, 12) : "—"}
-            </dd>
-          </div>
-          <div className="flex gap-3">
             <dt className="w-28 text-muted-foreground">Created</dt>
             <dd className="m-0">{formatWhen(app.createdAt)}</dd>
           </div>
@@ -118,7 +112,7 @@ function AppBody({
               }
               variant="outline"
             >
-              Open preview
+              Open console
             </Button>
             <Button
               render={<Link params={{ appId: app.id }} to="/apps/$appId/prs" />}

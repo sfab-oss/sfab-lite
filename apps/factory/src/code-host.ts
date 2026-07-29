@@ -83,6 +83,12 @@ export interface CodeHost {
     ref: string,
     sha: string
   ) => Promise<{ previous: string | null }>;
+  /** True when `ancestorSha` is reachable from `descendantSha` (incl. equal). */
+  isAncestor: (
+    appId: string,
+    ancestorSha: string,
+    descendantSha: string
+  ) => Promise<boolean>;
   /** Checkout / archive the tree at `sha` from the bare repo. */
   readTreeAt: (
     appId: string,

@@ -62,10 +62,6 @@ async function currentBranch(ctx: CommandContext): Promise<string | null> {
   return null;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function ghRunList(deps: GhCommandDeps): Promise<ExecResult> {
   const runs = await listCheckRuns(deps.env, deps.appId, { limit: 30 });
   return ok(formatCheckRuns(runs));
@@ -94,26 +90,14 @@ async function ghRunWatch(
   if (!id) {
     return fail("gh run watch: missing run id\n", 1);
   }
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    const run = await getCheckRun(deps.env, deps.appId, id);
-    if (!run) {
-      return fail(`gh run watch: run not found: ${id}\n`, 1);
-    }
-    if (run.status === "completed") {
-      return ok(formatCheckRunView(run));
-    }
-    await sleep(1000);
-  }
-  const last = await getCheckRun(deps.env, deps.appId, id);
-  if (!last) {
+  const run = await getCheckRun(deps.env, deps.appId, id);
+  if (!run) {
     return fail(`gh run watch: run not found: ${id}\n`, 1);
   }
-  return {
-    stdout: formatCheckRunView(last),
-    stderr: "gh run watch: timed out after 30s (run still in progress)\n",
-    exitCode: 1,
-  };
+  return ok(
+    `${formatCheckRunView(run)}` +
+      "note:\tchecks finish when create/push/rerun returns; watch is a view alias\n"
+  );
 }
 
 async function ghRunRerun(

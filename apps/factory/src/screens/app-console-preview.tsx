@@ -16,7 +16,7 @@ import {
 import { subscribeLive } from "@/features/preview/live-bus";
 import { PreviewCodePanel } from "@/features/preview/preview-code-panel";
 import {
-  appPreviewBasePath,
+  appBasePath,
   reloadPreviewFrame,
 } from "@/features/preview/reload-preview";
 import { useApp } from "@/hooks/use-apps";
@@ -28,7 +28,7 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
   const app = appQuery.data ?? null;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const liveRef = useRef<string | null>(null);
-  const rootSrc = `${appPreviewBasePath(appId)}/`;
+  const rootSrc = `${appBasePath(appId)}/`;
   const isMobile = useIsMobile();
   const [codeOpen, setCodeOpen] = useState(false);
 

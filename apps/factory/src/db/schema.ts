@@ -258,8 +258,6 @@ export const app = sqliteTable(
     createAttemptId: text("create_attempt_id"),
     /** Tip sha serve reads; builds live in CODE_R2 keyed by appId+sha. */
     liveSha: text("live_sha"),
-    /** PR-head build serve reads at /preview; advanced when checks succeed. */
-    previewSha: text("preview_sha"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),
