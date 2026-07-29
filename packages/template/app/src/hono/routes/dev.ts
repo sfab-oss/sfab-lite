@@ -84,6 +84,92 @@ const requireSeedToken = createMiddleware<AppEnv>(async (c, next) => {
   await next();
 });
 
+function seedErrorMessage(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message;
+  }
+  if (typeof err === "string") {
+    return err;
+  }
+  return "Seed failed";
+}
+
+function authErrorStatus(statusCode: number): 400 | 403 | 409 | 422 | 500 {
+  if (
+    statusCode === 400 ||
+    statusCode === 403 ||
+    statusCode === 409 ||
+    statusCode === 422
+  ) {
+    return statusCode;
+  }
+  return 500;
+}
+
+/**
+ * Sequential inserts — drizzle `db.batch` cannot cross LOADER→ScopedSql RPC
+ * (`prepare().bind()` returns RpcPromise; DataCloneError). Org slug is the
+ * completion marker, so callers must delete this org on mid-graph failure
+ * or retry answers "already seeded" for a half-written graph.
+ */
+async function insertSeedGraph(
+  db: AppEnv["Variables"]["db"],
+  userId: string,
+  organizationId: string
+): Promise<"ok" | "empty"> {
+  const parties = PARTIES.map((party) => ({
+    id: crypto.randomUUID(),
+    organizationId,
+    ...party,
+  }));
+  const catalog = PRODUCTS.map((item) => ({
+    id: crypto.randomUUID(),
+    organizationId,
+    ...item,
+  }));
+
+  const customer = parties[0];
+  const widget = catalog[0];
+  if (!(customer && widget)) {
+    return "empty";
+  }
+
+  const documentId = crypto.randomUUID();
+
+  await db.insert(organization).values({
+    id: organizationId,
+    name: SEED_ORG,
+    slug: SEED_ORG_SLUG,
+  });
+  await db.insert(member).values({
+    id: crypto.randomUUID(),
+    organizationId,
+    userId,
+    role: "owner",
+  });
+  await db.insert(entity).values(parties);
+  await db.insert(product).values(catalog);
+  await db.insert(document).values({
+    id: documentId,
+    organizationId,
+    entityId: customer.id,
+    entityNameSnapshot: customer.name,
+    status: "finalized",
+    number: 1,
+    totalCents: ISSUED_QUANTITY * widget.unitPriceCents,
+    issuedAt: new Date(),
+  });
+  await db.insert(documentLine).values({
+    id: crypto.randomUUID(),
+    documentId,
+    productId: widget.id,
+    nameSnapshot: widget.name,
+    quantity: ISSUED_QUANTITY,
+    unitPriceCents: widget.unitPriceCents,
+  });
+  return "ok";
+}
+
 /**
  * The response never echoes the password back. Whoever is allowed to call
  * this already knows it — they just sent it — so returning it would only add
@@ -165,12 +251,14 @@ export const devRoutes = new Hono<AppEnv>().post(
       // Explicitly, rather than leaning on the cascade: foreign-key
       // enforcement is a connection pragma, and a leftover session row is a
       // credential that outlives the account it belonged to.
-      await db.batch([
-        db.delete(session).where(eq(session.userId, existingUser.id)),
-        db.delete(account).where(eq(account.userId, existingUser.id)),
-      ]);
+      //
+      // Sequential awaits — drizzle `db.batch` cannot cross LOADER→ScopedSql
+      // RPC (`prepare().bind()` returns RpcPromise; DataCloneError).
+      await db.delete(session).where(eq(session.userId, existingUser.id));
+      await db.delete(account).where(eq(account.userId, existingUser.id));
     }
 
+    let organizationId: string | undefined;
     try {
       const ctx = await auth.$context;
       const hash = await ctx.password.hash(password);
@@ -194,87 +282,40 @@ export const devRoutes = new Hono<AppEnv>().post(
         accountId: seedUser.id,
         password: hash,
       });
-      const userId = seedUser.id;
 
-      const organizationId = crypto.randomUUID();
-      const parties = PARTIES.map((party) => ({
-        id: crypto.randomUUID(),
-        organizationId,
-        ...party,
-      }));
-      const catalog = PRODUCTS.map((item) => ({
-        id: crypto.randomUUID(),
-        organizationId,
-        ...item,
-      }));
-
-      const customer = parties[0];
-      const widget = catalog[0];
-      if (!(customer && widget)) {
+      organizationId = crypto.randomUUID();
+      const graph = await insertSeedGraph(db, seedUser.id, organizationId);
+      if (graph === "empty") {
+        await db
+          .delete(organization)
+          .where(eq(organization.id, organizationId));
         return c.json({ error: "seed_data_empty" as const }, 500);
       }
 
-      const documentId = crypto.randomUUID();
-
-      /**
-       * One batch, so the sample graph either exists whole or not at all. A
-       * document that committed without its line would be a finalized total with
-       * nothing behind it — a state `routes/documents.ts` cannot produce, since
-       * finalize requires a line and recomputes the total from the lines.
-       */
-      await db.batch([
-        db.insert(organization).values({
-          id: organizationId,
-          name: SEED_ORG,
-          slug: SEED_ORG_SLUG,
-        }),
-        db.insert(member).values({
-          id: crypto.randomUUID(),
-          organizationId,
-          userId,
-          role: "owner",
-        }),
-        db.insert(entity).values(parties),
-        db.insert(product).values(catalog),
-        db.insert(document).values({
-          id: documentId,
-          organizationId,
-          entityId: customer.id,
-          entityNameSnapshot: customer.name,
-          status: "finalized",
-          number: 1,
-          totalCents: ISSUED_QUANTITY * widget.unitPriceCents,
-          issuedAt: new Date(),
-        }),
-        db.insert(documentLine).values({
-          id: crypto.randomUUID(),
-          documentId,
-          productId: widget.id,
-          nameSnapshot: widget.name,
-          quantity: ISSUED_QUANTITY,
-          unitPriceCents: widget.unitPriceCents,
-        }),
-      ]);
-
       return c.json({ seeded: true as const, ...demoLogin });
     } catch (err) {
+      if (organizationId) {
+        try {
+          await db
+            .delete(organization)
+            .where(eq(organization.id, organizationId));
+        } catch {
+          // Best-effort: surface the original failure below.
+        }
+      }
       if (isAuthApiError(err)) {
-        const status =
-          err.statusCode === 400 ||
-          err.statusCode === 403 ||
-          err.statusCode === 409 ||
-          err.statusCode === 422
-            ? err.statusCode
-            : 500;
         return c.json(
           {
             error: err.body?.code ?? ("auth_error" as const),
             message: err.body?.message ?? err.message ?? "Authentication error",
           },
-          status
+          authErrorStatus(err.statusCode)
         );
       }
-      throw err;
+      return c.json(
+        { error: "seed_failed" as const, message: seedErrorMessage(err) },
+        500
+      );
     }
   }
 );

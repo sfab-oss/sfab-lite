@@ -5,6 +5,8 @@
  * Caveats (kept from E12):
  * - batch() → AppDO.transactionSync sequential emulation
  * - D1 `meta` approximated from rowsRead/rowsWritten + last_insert_rowid()
+ * - drizzle `db.batch` from Dynamic Workers hits RpcPromise serialization
+ *   (`prepare().bind()` is async over RPC); await statements individually
  */
 import { RpcTarget, WorkerEntrypoint } from "cloudflare:workers";
 import type { AppDO } from "./app-do.js";
