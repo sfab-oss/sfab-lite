@@ -58,6 +58,20 @@ for (const dir of manifest.source.dirs) {
 for (const file of manifest.source.files) {
   sourceFiles[file] = readFileSync(join(appRoot, file), "utf8");
 }
+// Injected files that must not live under app/ as Biome/tooling roots
+// (a real `biome.json` there would nest-root the monorepo). Seeded as
+// ordinary app-root chrome; rewrite monorepo-relative `$schema` for the
+// single-project payload.
+const BIOME_SEED_SCHEMA = "https://biomejs.dev/schemas/2.5.2/schema.json";
+for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
+  let text = readFileSync(join(packageRoot, src), "utf8");
+  if (dest === "biome.json") {
+    const parsed = JSON.parse(text);
+    parsed.$schema = BIOME_SEED_SCHEMA;
+    text = `${JSON.stringify(parsed, null, 2)}\n`;
+  }
+  sourceFiles[dest] = text;
+}
 // Standalone-only scaffolding (the `wrangler dev` entry, the Vite HTML
 // shell): the factory builds its own, and shipping ours would leave dead
 // files in every app's source tree.

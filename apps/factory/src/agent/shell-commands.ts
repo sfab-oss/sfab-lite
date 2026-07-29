@@ -17,6 +17,7 @@ import {
 } from "../schema-snapshots.js";
 import { createGhCommand } from "./gh-commands.js";
 import { commitAllAndPushMain, runGitCommand } from "./git-commands.js";
+import { isPlatformReadonlyPath } from "./platform-readonly.js";
 import { renderCheckText, renderLintText } from "./render-diagnostics.js";
 import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
@@ -66,6 +67,29 @@ async function runTypecheck(
   }
 }
 
+async function writeLintFormatFixes(
+  ctx: CommandContext,
+  files: {
+    path: string;
+    formatted: string | null;
+    formatChanged: boolean | null;
+  }[]
+): Promise<string[]> {
+  const wrote: string[] = [];
+  for (const f of files) {
+    if (f.formatted == null || !f.formatChanged) {
+      continue;
+    }
+    if (isPlatformReadonlyPath(f.path)) {
+      continue;
+    }
+    const abs = f.path.startsWith("/") ? f.path : `/${f.path}`;
+    await ctx.fs.writeFile(abs, f.formatted);
+    wrote.push(f.path);
+  }
+  return wrote;
+}
+
 async function runLint(
   deps: ShellCommandDeps,
   ctx: CommandContext,
@@ -84,16 +108,7 @@ async function runLint(
       1
     );
   }
-  const wrote: string[] = [];
-  if (fix) {
-    for (const f of lint.body.files) {
-      if (f.formatted != null && f.formatChanged) {
-        const abs = f.path.startsWith("/") ? f.path : `/${f.path}`;
-        await ctx.fs.writeFile(abs, f.formatted);
-        wrote.push(f.path);
-      }
-    }
-  }
+  const wrote = fix ? await writeLintFormatFixes(ctx, lint.body.files) : [];
   const text = renderLintText(lint.body, {
     wroteFiles: wrote.length ? wrote : undefined,
   });

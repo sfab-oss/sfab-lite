@@ -1,5 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import {
+  isPlatformReadonlyPath,
+  PlatformReadonlyError,
+} from "../../agent/platform-readonly.js";
 import { appAgent, type McpContext } from "../lib/context.js";
 import { toolError, toolResult } from "../lib/tool-result.js";
 
@@ -59,13 +63,25 @@ export function registerWorkspaceTools(
     {
       description:
         "Write a workspace file, creating or replacing it. Parent directories " +
-        "are created. The change is visible to app_typecheck and app_deploy " +
-        "immediately; it does not reach the live app until app_deploy passes.",
+        "are created. Platform-owned read-only roots (tsconfig, biome, " +
+        "components.json, vite.config.ts) are refused. The change is visible " +
+        "to app_typecheck and app_deploy immediately; it does not reach the " +
+        "live app until app_deploy passes.",
       inputSchema: { appId, path, content: z.string() },
     },
     async ({ appId: id, path: file, content }) => {
+      if (isPlatformReadonlyPath(file)) {
+        return toolError("read_only", { path: file });
+      }
       const agent = await appAgent(ctx.env, id);
-      await agent.writeFile(file, content);
+      try {
+        await agent.writeFile(file, content);
+      } catch (e) {
+        if (e instanceof PlatformReadonlyError) {
+          return toolError("read_only", { path: e.path });
+        }
+        throw e;
+      }
       return toolResult({ path: file, bytes: content.length });
     }
   );
@@ -74,7 +90,8 @@ export function registerWorkspaceTools(
     "workspace_rm",
     {
       description:
-        "Delete a workspace file or directory. Use recursive for a directory.",
+        "Delete a workspace file or directory. Use recursive for a directory. " +
+        "Platform-owned read-only roots are refused.",
       inputSchema: {
         appId,
         path,
@@ -82,8 +99,18 @@ export function registerWorkspaceTools(
       },
     },
     async ({ appId: id, path: target, recursive }) => {
+      if (isPlatformReadonlyPath(target)) {
+        return toolError("read_only", { path: target });
+      }
       const agent = await appAgent(ctx.env, id);
-      await agent.rm(target, { recursive });
+      try {
+        await agent.rm(target, { recursive });
+      } catch (e) {
+        if (e instanceof PlatformReadonlyError) {
+          return toolError("read_only", { path: e.path });
+        }
+        throw e;
+      }
       return toolResult({ path: target, removed: true });
     }
   );

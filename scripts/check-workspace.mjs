@@ -100,6 +100,14 @@ for (const path of declared) {
   }
 }
 
+for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
+  const abs = join(templateRoot, src);
+  if (!existsSync(abs)) {
+    console.error(`template inject source missing: ${dest} ← ${src}`);
+    failed = true;
+  }
+}
+
 // One TypeScript across the repo, and it is the kernel's. The kernel ships
 // a specific compiler's lib/*.d.ts inside TYPES_VFS, so apps/check must match
 // it exactly or the check worker typechecks apps against libs it did not

@@ -79,7 +79,7 @@ function rootFilesFor(overlay: Map<string, string>): string[] {
   const fromOverlay = [...overlay.keys()]
     .filter(
       (k) =>
-        k.startsWith("/app/") &&
+        k.startsWith("/app/src/") &&
         (k.endsWith(".ts") || k.endsWith(".tsx") || k.endsWith(".d.ts"))
     )
     .sort();
