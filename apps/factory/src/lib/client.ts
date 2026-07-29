@@ -1,5 +1,5 @@
 import { hc } from "hono/client";
-import type { AppType } from "../../../src/hono";
+import type { AppType } from "../hono";
 
 /**
  * Typed `/admin` client inferred from `adminApp`. Credentials ride every

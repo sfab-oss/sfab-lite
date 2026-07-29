@@ -8,13 +8,13 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Skeleton } from "../components/ui/skeleton";
+import { Link, useRouter } from "../console-router";
 import {
   useApps,
   useCreateApp,
   useDeleteApp,
   useRenameApp,
 } from "../hooks/use-apps";
-import { Link, useRouter } from "../router";
 
 export function AppsListScreen() {
   const { navigate } = useRouter();

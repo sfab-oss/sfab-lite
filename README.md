@@ -69,7 +69,7 @@ Each worker has its own `dev` script and runs standalone under
 The factory is a **single** TanStack Start + Vite + `@cloudflare/vite-plugin`
 process (`agents/vite` included). Host routes (`/admin`, `/api`, `/agents`,
 `/a/`, `/kernel`, MCP, …) dispatch in the worker; the console SPA still lives
-under `apps/factory/ui/` and is mounted by a thin Start shell.
+under `apps/factory/` and is mounted by a thin Start shell.
 
 ```bash
 # once: copy apps/factory/.dev.vars.example → apps/factory/.dev.vars

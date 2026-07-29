@@ -16,7 +16,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(factoryRoot, "ui/src"),
+      "@": resolve(factoryRoot, "src"),
     },
   },
   plugins: [

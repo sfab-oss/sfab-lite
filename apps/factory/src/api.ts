@@ -1,18 +1,13 @@
-/** Wire types for `/admin/*` and `/api/config` — shapes match the worker. */
+/** Wire helpers for `/admin/*` and `/api/config` — shapes come from `hc`. */
 
+import type { InferResponseType } from "hono/client";
 import { client } from "./lib/client";
 
-type AppStatus = "creating" | "ready" | "failed";
+type Ok<T> = Extract<T, { ok: true }>;
 
-export interface AppRecord {
-  id: string;
-  organizationId: string;
-  name: string;
-  status: AppStatus;
-  createAttemptId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+export type AppRecord = Ok<
+  InferResponseType<(typeof client.apps)["$get"], 200>
+>["apps"][number];
 
 export interface AuthConfig {
   passwordAuth: boolean;
@@ -24,25 +19,17 @@ export interface AuthConfig {
   signUpAvailable: boolean;
 }
 
-export interface AttemptRecord {
-  id: string;
-  kind: string;
-  status: string;
-  parentId: string | null;
-  versionId: string | null;
-  createdAt: number;
-  updatedAt: number;
-  payload: unknown;
-}
+export type AttemptRecord = Ok<
+  InferResponseType<
+    (typeof client.apps)[":appId"]["attempts"][":attemptId"]["$get"],
+    200
+  >
+>["attempt"];
 
-export interface VersionSummary {
-  id: string;
-  parentId: string | null;
-  createdAt: number;
-  kernelVersion: string;
-  serverBundleBytes: number;
-  assetKeys: string[];
-}
+export type VersionSummary = InferResponseType<
+  (typeof client.apps)[":appId"]["versions"]["$get"],
+  200
+>["versions"][number];
 
 export class AuthRequiredError extends Error {
   constructor() {
@@ -57,18 +44,14 @@ interface HttpResult {
   json: () => Promise<unknown>;
 }
 
-async function readJson<T>(res: HttpResult): Promise<T> {
-  return (await res.json()) as T;
-}
-
 async function errorMessage(
   res: HttpResult,
   fallback: string
 ): Promise<string> {
-  const body = await readJson<{ error?: string }>(res).catch(() => ({
-    error: undefined as string | undefined,
-  }));
-  return body.error ?? fallback;
+  const body = (await res.json().catch(() => null)) as {
+    error?: string;
+  } | null;
+  return body?.error ?? fallback;
 }
 
 function throwIfUnauthorized(res: HttpResult): void {
@@ -82,7 +65,7 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
   if (!res.ok) {
     throw new Error(`config failed (${res.status})`);
   }
-  return readJson<AuthConfig>(res);
+  return (await res.json()) as AuthConfig;
 }
 
 export interface McpConsentContext {
@@ -103,7 +86,7 @@ export async function fetchMcpConsentContext(): Promise<McpConsentContext | null
   if (!res.ok) {
     throw new Error(await errorMessage(res, `consent failed (${res.status})`));
   }
-  return readJson<McpConsentContext>(res);
+  return (await res.json()) as McpConsentContext;
 }
 
 /**
@@ -132,7 +115,7 @@ export async function submitMcpConsent(input: {
   if (!res.ok) {
     throw new Error(await errorMessage(res, `consent failed (${res.status})`));
   }
-  const body = await readJson<{ url?: string }>(res);
+  const body = (await res.json()) as { url?: string };
   if (!body.url) {
     throw new Error("the authorization server returned no redirect");
   }
@@ -145,16 +128,12 @@ export async function listApps(): Promise<{
 }> {
   const res = await client.apps.$get();
   throwIfUnauthorized(res);
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error(
       await errorMessage(res, `list apps failed (${res.status})`)
     );
   }
-  const body = await readJson<{
-    ok: true;
-    organizationId: string;
-    apps: AppRecord[];
-  }>(res);
+  const body = await res.json();
   return { organizationId: body.organizationId, apps: body.apps };
 }
 
@@ -168,42 +147,40 @@ export async function createApp(name?: string): Promise<{
   attemptId: string;
   name: string;
 }> {
-  const res = await client.apps.$post(undefined, {
-    init: {
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(name ? { name } : {}),
-    },
+  const res = await client.apps.$post({
+    json: name ? { name } : {},
   });
   throwIfUnauthorized(res);
   if (res.status !== 202) {
     throw new Error(await errorMessage(res, `create failed (${res.status})`));
   }
-  const body = await readJson<{
-    appId: string;
-    attemptId: string;
-    name: string;
-  }>(res);
-  return { appId: body.appId, attemptId: body.attemptId, name: body.name };
+  const body = await res.json();
+  let nameOut = "";
+  if (typeof body.name === "string") {
+    nameOut = body.name;
+  } else if (typeof name === "string") {
+    nameOut = name;
+  }
+  return {
+    appId: body.appId,
+    attemptId: body.attemptId,
+    name: nameOut,
+  };
 }
 
 export async function renameApp(
   appId: string,
   name: string
 ): Promise<AppRecord> {
-  const res = await client.apps[":appId"].$patch(
-    { param: { appId } },
-    {
-      init: {
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
-      },
-    }
-  );
+  const res = await client.apps[":appId"].$patch({
+    param: { appId },
+    json: { name },
+  });
   throwIfUnauthorized(res);
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error(await errorMessage(res, `rename failed (${res.status})`));
   }
-  const body = await readJson<{ ok: true; app: AppRecord }>(res);
+  const body = await res.json();
   return body.app;
 }
 
@@ -212,10 +189,10 @@ export async function getApp(appId: string): Promise<AppRecord> {
     param: { appId },
   });
   throwIfUnauthorized(res);
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error(await errorMessage(res, `get app failed (${res.status})`));
   }
-  const body = await readJson<{ ok: true; app: AppRecord }>(res);
+  const body = await res.json();
   return body.app;
 }
 
@@ -232,8 +209,6 @@ export async function deleteApp(appId: string): Promise<void> {
   throwIfUnauthorized(res);
   if (!res.ok) {
     const detail = await errorMessage(res, `delete failed (${res.status})`);
-    // The wire code is accurate and unreadable; the worker's own vocabulary
-    // should not be what a person sees on a button they just pressed.
     throw new Error(
       detail === "attempt_in_flight"
         ? "a commit is still running — try again in a moment"
@@ -250,15 +225,16 @@ export async function listVersions(appId: string): Promise<{
     param: { appId },
   });
   throwIfUnauthorized(res);
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error(
       await errorMessage(res, `list versions failed (${res.status})`)
     );
   }
-  return readJson<{
-    liveVersionId: string | null;
-    versions: VersionSummary[];
-  }>(res);
+  const body = await res.json();
+  return {
+    liveVersionId: body.liveVersionId,
+    versions: body.versions,
+  };
 }
 
 export async function getLiveSources(appId: string): Promise<{
@@ -269,16 +245,12 @@ export async function getLiveSources(appId: string): Promise<{
     param: { appId },
   });
   throwIfUnauthorized(res);
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error(
       await errorMessage(res, `get live sources failed (${res.status})`)
     );
   }
-  const body = await readJson<{
-    ok: true;
-    liveVersionId: string;
-    sourceFiles: Record<string, string>;
-  }>(res);
+  const body = await res.json();
   return {
     liveVersionId: body.liveVersionId,
     sourceFiles: body.sourceFiles,
@@ -293,11 +265,11 @@ export async function getAttempt(
     param: { appId, attemptId },
   });
   throwIfUnauthorized(res);
-  if (!res.ok) {
+  if (res.status !== 200) {
     throw new Error(
       await errorMessage(res, `get attempt failed (${res.status})`)
     );
   }
-  const body = await readJson<{ ok: true; attempt: AttemptRecord }>(res);
+  const body = await res.json();
   return body.attempt;
 }

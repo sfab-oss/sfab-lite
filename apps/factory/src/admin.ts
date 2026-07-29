@@ -3,7 +3,8 @@
  *
  * Business logic lives here; Hono routing, credential middleware, and
  * `AppType` live in `hono/`. Each handler still receives AdminCtx / OrgCtx /
- * AppCtx built by thin adapters.
+ * AppCtx built by thin adapters, and returns `{ status, body }` so routes can
+ * emit typed `c.json(...)`.
  */
 import { mergeSources } from "@sfab-lite/core";
 import { APP_NAME_MAX_LENGTH, pickAppName } from "./app-names.js";
@@ -25,6 +26,16 @@ import {
 } from "./commit.js";
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
+import { type AdminReply, adminError } from "./hono/reply.js";
+import type {
+  CheckBody,
+  CommitBody,
+  CreateAppBody,
+  RenameAppBody,
+  RevertBody,
+  SqlBody,
+} from "./hono/schemas.js";
+import { wireApp } from "./hono/wire.js";
 import {
   deleteAppUnscoped,
   getAppUnscoped,
@@ -37,7 +48,6 @@ import {
   setCreateAttemptId,
 } from "./registry.js";
 import type { AdminCtx, AppCtx, OrgCtx } from "./routes.js";
-import { jsonError } from "./routes.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
 /** ctx.exports typing for WorkerEntrypoint classes isn't inferred by tsc alone. */
@@ -86,33 +96,22 @@ function scopedDb(ctx: ExecutionContext, appId: string) {
  * is created from a prompt describing what to build rather than what to call
  * it. Omitting it draws a placeholder from `app-names.ts`.
  */
-export async function handleCreateApp(rc: OrgCtx): Promise<Response> {
-  const body = (await rc.request.json().catch(() => null)) as {
-    organizationId?: unknown;
-    name?: string;
-  } | null;
-  // Body `organizationId` moved to `?organizationId=`. Reject the
-  // legacy field so a session cannot silently ignore a named-other-org and a
-  // token/session do not disagree on the same request shape.
-  if (body != null && Object.hasOwn(body, "organizationId")) {
-    return jsonError("organizationId_must_be_query_param");
-  }
+export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   const { organizationId } = rc;
-  const requested = body?.name?.trim();
+  const requested = body.name?.trim();
   if (requested && requested.length > APP_NAME_MAX_LENGTH) {
-    return jsonError("name_too_long");
+    return adminError("name_too_long");
   }
 
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
-    return jsonError("organization_not_found", 404);
+    return adminError("organization_not_found", 404);
   }
 
   const name =
     requested ||
     pickAppName(await listAppNamesForOrganization(db, organizationId));
 
-  // Row before DO work: the UI needs something to poll during the ~18–25s seed.
   const created = await insertCreatingApp(db, { organizationId, name });
   const appId = created.id;
   const stub = appStub(rc.env, appId);
@@ -121,12 +120,9 @@ export async function handleCreateApp(rc: OrgCtx): Promise<Response> {
     await stub.bootstrap(TEMPLATE_SEED.migrations);
   } catch (e) {
     await markCreateFailed(db, appId);
-    return jsonError(e instanceof Error ? e.message : "bootstrap_failed", 500);
+    return adminError(e instanceof Error ? e.message : "bootstrap_failed", 500);
   }
 
-  // Creation *is* a commit — same gate, same 202 — but the registry must
-  // settle when the attempt does. That transition lives in `internal.ts`
-  // (not inside `runCommitAttempt`) so ordinary commits stay unaware of D1.
   const start = await stub.startAttempt("create", null);
   if (!start.ok) {
     await markCreateFailed(db, appId);
@@ -134,11 +130,6 @@ export async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   }
 
   await setCreateAttemptId(db, appId, start.attemptId);
-
-  // Handed to the AppDO's alarm rather than run under `waitUntil`, which is
-  // killed at ~30s — and a killed attempt writes no terminal status, so the
-  // app sat in `creating` until the stale sweep. The alarm outlives the
-  // invocation, so a check-worker OOM costs latency instead of the app.
   await stub.scheduleCreateRun(start.attemptId);
 
   return attemptAccepted(appId, "create", start.attemptId, null, {
@@ -148,18 +139,25 @@ export async function handleCreateApp(rc: OrgCtx): Promise<Response> {
   });
 }
 
-export async function handleListApps(rc: OrgCtx): Promise<Response> {
+export async function handleListApps(rc: OrgCtx) {
   const { organizationId } = rc;
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
-    return jsonError("organization_not_found", 404);
+    return adminError("organization_not_found", 404);
   }
   const apps = await listAppsForOrganization(
     db,
     organizationId,
     attemptResolver(rc.env)
   );
-  return Response.json({ ok: true, organizationId, apps });
+  return {
+    status: 200 as const,
+    body: {
+      ok: true as const,
+      organizationId,
+      apps: apps.map(wireApp),
+    },
+  };
 }
 
 /**
@@ -169,38 +167,35 @@ export async function handleListApps(rc: OrgCtx): Promise<Response> {
  * same as every other app-scoped route. The stale-`creating` sweep lives
  * here because a status poll is when reconciling matters.
  */
-export async function handleGetApp(rc: AppCtx): Promise<Response> {
+export async function handleGetApp(rc: AppCtx) {
   const record = await getAppUnscoped(
     createDb(rc.env),
     rc.appId,
     attemptResolver(rc.env)
   );
   if (!record) {
-    return jsonError("app_not_found", 404);
+    return adminError("app_not_found", 404);
   }
-  return Response.json({ ok: true, app: record });
+  return {
+    status: 200 as const,
+    body: { ok: true as const, app: wireApp(record) },
+  };
 }
 
 /**
  * Rename an app. The generated name is a placeholder, so replacing it is an
  * ordinary edit rather than a recovery from an error.
  */
-export async function handleRenameApp(rc: AppCtx): Promise<Response> {
-  const body = (await rc.request.json().catch(() => null)) as {
-    name?: string;
-  } | null;
-  const name = body?.name?.trim();
-  if (!name) {
-    return jsonError("name required");
-  }
-  if (name.length > APP_NAME_MAX_LENGTH) {
-    return jsonError("name_too_long");
-  }
+export async function handleRenameApp(rc: AppCtx, body: RenameAppBody) {
+  const name = body.name.trim();
   const record = await renameAppUnscoped(createDb(rc.env), rc.appId, name);
   if (!record) {
-    return jsonError("app_not_found", 404);
+    return adminError("app_not_found", 404);
   }
-  return Response.json({ ok: true, app: record });
+  return {
+    status: 200 as const,
+    body: { ok: true as const, app: wireApp(record) },
+  };
 }
 
 /**
@@ -215,128 +210,128 @@ export async function handleRenameApp(rc: AppCtx): Promise<Response> {
  * empty) and reports `removed: false` for the row, so a caller retrying after
  * a partial failure gets told what was actually left to do.
  */
-export async function handleDeleteApp(rc: AppCtx): Promise<Response> {
+export async function handleDeleteApp(
+  rc: AppCtx
+): Promise<AdminReply<unknown>> {
   const { appId } = rc;
   const destroyed = await appStub(rc.env, appId).destroy();
   if (!destroyed.ok) {
-    return Response.json({ appId, ...destroyed }, { status: 409 });
+    return { status: 409, body: { appId, ...destroyed } };
   }
   const removed = await deleteAppUnscoped(createDb(rc.env), appId);
-  return Response.json({
-    ok: true,
-    appId,
-    removed,
-    bytesFreed: destroyed.bytesFreed,
-  });
+  return {
+    status: 200,
+    body: {
+      ok: true as const,
+      appId,
+      removed,
+      bytesFreed: destroyed.bytesFreed,
+    },
+  };
 }
 
-export async function handleTouch(rc: AppCtx): Promise<Response> {
+export async function handleTouch(rc: AppCtx): Promise<AdminReply<unknown>> {
   const { appId } = rc;
   const touch = await appStub(rc.env, appId).touch();
-  return Response.json({ ok: true, appId, touch });
+  return { status: 200, body: { ok: true as const, appId, touch } };
 }
 
-export async function handleSql(rc: AppCtx): Promise<Response> {
+export async function handleSql(
+  rc: AppCtx,
+  body: SqlBody
+): Promise<AdminReply<unknown>> {
   const { appId } = rc;
-  const body = (await rc.request.json().catch(() => null)) as {
-    query?: string;
-    binds?: unknown[];
-  } | null;
-  if (!body?.query) {
-    return jsonError("query required");
-  }
   const db = scopedDb(rc.ctx, appId);
   const ping = await db.pingScope();
   const result = await db
     .prepare(body.query)
     .bind(...(body.binds ?? []))
     .all();
-  return Response.json({ ok: true, appId, ping, result });
+  return { status: 200, body: { ok: true as const, appId, ping, result } };
 }
 
-export async function handleListVersions(rc: AppCtx): Promise<Response> {
+export async function handleListVersions(rc: AppCtx) {
   const { appId } = rc;
   const listed = await appStub(rc.env, appId).listVersions();
-  return Response.json({ appId, ...listed });
+  return { status: 200 as const, body: { appId, ...listed } };
 }
 
-export async function handleGetLive(rc: AppCtx): Promise<Response> {
+export async function handleGetLive(rc: AppCtx) {
   const { appId } = rc;
   const live = await appStub(rc.env, appId).getLive();
   if (!(live.version?.sourceFiles && live.liveVersionId)) {
-    return jsonError("no_live_version", 404);
+    return adminError("no_live_version", 404);
   }
-  return Response.json({
-    ok: true,
-    appId,
-    liveVersionId: live.liveVersionId,
-    sourceFiles: live.version.sourceFiles,
-  });
+  return {
+    status: 200 as const,
+    body: {
+      ok: true as const,
+      appId,
+      liveVersionId: live.liveVersionId,
+      sourceFiles: live.version.sourceFiles,
+    },
+  };
 }
 
-export async function handleGetAttempt(rc: AppCtx): Promise<Response> {
+export async function handleGetAttempt(rc: AppCtx) {
   const { appId } = rc;
   const attemptId = rc.attemptId ?? decodeURIComponent(rc.match[2] ?? "");
   const { attempt } = await appStub(rc.env, appId).getAttempt(attemptId);
   if (!attempt) {
-    return jsonError("attempt_not_found", 404);
+    return adminError("attempt_not_found", 404);
   }
-  return Response.json({ ok: true, appId, attempt });
+  return {
+    status: 200 as const,
+    body: { ok: true as const, appId, attempt },
+  };
 }
 
-export async function handleListAttempts(rc: AppCtx): Promise<Response> {
+export async function handleListAttempts(
+  rc: AppCtx
+): Promise<AdminReply<unknown>> {
   const { appId } = rc;
   const raw = Number(rc.url.searchParams.get("limit"));
   const { attempts } = await appStub(rc.env, appId).listAttempts(
     Number.isFinite(raw) && raw > 0 ? raw : undefined
   );
-  return Response.json({ ok: true, appId, attempts });
+  return { status: 200, body: { ok: true as const, appId, attempts } };
 }
 
-export async function handleCheck(rc: AppCtx): Promise<Response> {
+export async function handleCheck(
+  rc: AppCtx,
+  body: CheckBody
+): Promise<AdminReply<unknown>> {
   const { appId } = rc;
-  const body = (await rc.request.json().catch(() => null)) as {
-    files?: Record<string, string | null>;
-    forceCold?: boolean;
-  } | null;
   const latest = await appStub(rc.env, appId).getLatest();
   const base = latest.version?.sourceFiles ?? {};
   if (!latest.version?.sourceFiles) {
-    return jsonError("no_version_with_sources", 404);
+    return adminError("no_version_with_sources", 404);
   }
-  const files = mergeSources(base, body?.files ?? {});
-  const check = await callCheck(
-    rc.env,
-    appId,
-    files,
-    body?.forceCold !== false
-  );
-  // Records nothing. This is a dry-run probe against the latest version, not
-  // a commit — it mints no version, so there is no attempt to attach a result
-  // to. Persisting it would put a status in the log that never gated anything.
+  const files = mergeSources(base, body.files ?? {});
+  const check = await callCheck(rc.env, appId, files, body.forceCold !== false);
   const pass = checkPasses(check.body);
-  return Response.json({
-    ok: check.http < 500 && Boolean(check.body?.ok),
-    appId,
-    baseVersionId: latest.version.id,
-    wallMs: check.wallMs,
-    publishGate: pass,
-    check: check.body,
-  });
+  return {
+    status: 200,
+    body: {
+      ok: check.http < 500 && Boolean(check.body?.ok),
+      appId,
+      baseVersionId: latest.version.id,
+      wallMs: check.wallMs,
+      publishGate: pass,
+      check: check.body,
+    },
+  };
 }
 
-export async function handleCommit(rc: AppCtx): Promise<Response> {
+export async function handleCommit(
+  rc: AppCtx,
+  body: CommitBody
+): Promise<AdminReply<unknown>> {
   const { appId } = rc;
-  const body = (await rc.request.json().catch(() => null)) as {
-    files?: Record<string, string | null>;
-  } | null;
-  if (!body?.files || Object.keys(body.files).length === 0) {
-    return jsonError("files overlay required");
-  }
   const stub = appStub(rc.env, appId);
   const live = await stub.getLive();
   if (!(live.version?.sourceFiles && live.liveVersionId)) {
-    return jsonError("no_live_version", 404);
+    return adminError("no_live_version", 404);
   }
   const files = mergeSources(live.version.sourceFiles, body.files);
   return enqueueCommit(
@@ -349,25 +344,19 @@ export async function handleCommit(rc: AppCtx): Promise<Response> {
   );
 }
 
-export async function handleRevert(rc: AppCtx): Promise<Response> {
+export async function handleRevert(
+  rc: AppCtx,
+  body: RevertBody
+): Promise<AdminReply<unknown>> {
   const { appId } = rc;
-  const body = (await rc.request.json().catch(() => null)) as {
-    versionId?: string;
-  } | null;
-  if (!body?.versionId) {
-    return jsonError("versionId required");
-  }
-  // Stays synchronous: revert restores an already-checked version, so there is
-  // nothing to wait on. It still records an attempt (see `AppDO.revertTo`),
-  // which is why no status write happens here.
   const result = await appStub(rc.env, appId).revertTo(body.versionId);
   if (!result.ok) {
-    return Response.json(
-      { appId, ...result },
-      { status: result.error === "attempt_in_flight" ? 409 : 404 }
-    );
+    return {
+      status: result.error === "attempt_in_flight" ? 409 : 404,
+      body: { appId, ...result },
+    };
   }
-  return Response.json({ appId, action: "revert", ...result });
+  return { status: 200, body: { appId, action: "revert" as const, ...result } };
 }
 
 /**
@@ -419,44 +408,36 @@ async function probePeerToken(
  * secret the factory presented. `adminToken.agree` answers it directly, and
  * answers it *before* anyone tries to commit.
  */
-export async function handleHealth(rc: AdminCtx): Promise<Response> {
+export async function handleHealth(rc: AdminCtx): Promise<AdminReply<unknown>> {
   const token = rc.env.ADMIN_TOKEN;
   const [check, lint] = await Promise.all([
     probePeerToken(rc.env.CHECK, token),
     probePeerToken(rc.env.LINT, token),
   ]);
-  return Response.json({
-    ok: true,
-    service: "sfab-lite-factory",
-    phase: "s3d",
-    bindings: {
-      check: Boolean(rc.env.CHECK),
-      lint: Boolean(rc.env.LINT),
-      loader: Boolean(rc.env.LOADER),
+  return {
+    status: 200,
+    body: {
+      ok: true as const,
+      service: "sfab-lite-factory",
+      phase: "s3d",
+      bindings: {
+        check: Boolean(rc.env.CHECK),
+        lint: Boolean(rc.env.LINT),
+        loader: Boolean(rc.env.LOADER),
+      },
+      adminToken: {
+        configured: Boolean(token),
+        check,
+        lint,
+        agree: Boolean(token) && check.matchesCaller && lint.matchesCaller,
+      },
+      seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
+      seedMigrations: TEMPLATE_SEED.migrations.length,
+      passwordAuth: passwordAuthEnabled(rc.env),
+      githubAuth: githubAuthEnabled(rc.env),
+      githubSecrets: githubSecretsPresent(rc.env),
+      signUpOpen: signUpOpen(rc.env),
+      signUpAllowlisted: signUpAllowlist(rc.env).size,
     },
-    adminToken: {
-      configured: Boolean(token),
-      check,
-      lint,
-      agree: Boolean(token) && check.matchesCaller && lint.matchesCaller,
-    },
-    seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
-    seedMigrations: TEMPLATE_SEED.migrations.length,
-    // Which sign-in methods this deploy actually has. `/api/config` reports
-    // the same two booleans publicly for the sign-in screen; here they are
-    // ops diagnostics, which is why the GitHub secrets are reported
-    // *separately* rather than as one derived flag: exactly one of them set
-    // is the plausible deploy mistake, and it is otherwise indistinguishable
-    // from GitHub being off on purpose.
-    passwordAuth: passwordAuthEnabled(rc.env),
-    githubAuth: githubAuthEnabled(rc.env),
-    githubSecrets: githubSecretsPresent(rc.env),
-    // Registration, not sign-in. `false` is the intended production state and
-    // is reported so "can anyone still create an account here?" is answerable
-    // without reading the deploy's env. The allowlist size is reported beside
-    // it because it is the other way that answer can be yes — the count alone,
-    // since the addresses themselves are not the admin surface's business.
-    signUpOpen: signUpOpen(rc.env),
-    signUpAllowlisted: signUpAllowlist(rc.env).size,
-  });
+  };
 }
