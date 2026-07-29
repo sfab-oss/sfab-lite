@@ -9,27 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProtectedRouteImport } from './routes/_protected'
-import { Route as ChatRouteImport } from './routes/chat'
-import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SigninRouteImport } from './routes/signin'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as ChatRouteImport } from './routes/chat'
+import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
-import { Route as ProtectedAppsRouteImport } from './routes/_protected/apps'
-import { Route as DevChatRouteImport } from './routes/dev.chat'
-import { Route as DevUiRouteImport } from './routes/dev.ui'
 import { Route as McpConsentRouteImport } from './routes/mcp.consent'
-import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
+import { Route as DevUiRouteImport } from './routes/dev.ui'
+import { Route as DevChatRouteImport } from './routes/dev.chat'
+import { Route as ProtectedAppsRouteImport } from './routes/_protected/apps'
 import { Route as DevChatIndexRouteImport } from './routes/dev.chat.index'
+import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as DevChatAppsAppIdTThreadIdRouteImport } from './routes/dev.chat.apps.$appId.t.$threadId'
 
-const ProtectedRoute = ProtectedRouteImport.update({
-  id: '/_protected',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChatRoute = ChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignInRoute = SignInRouteImport.update({
@@ -37,9 +33,13 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SigninRoute = SigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
+const ChatRoute = ChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedRoute = ProtectedRouteImport.update({
+  id: '/_protected',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
@@ -47,14 +47,9 @@ const ProtectedIndexRoute = ProtectedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedAppsRoute = ProtectedAppsRouteImport.update({
-  id: '/apps',
-  path: '/apps',
-  getParentRoute: () => ProtectedRoute,
-} as any)
-const DevChatRoute = DevChatRouteImport.update({
-  id: '/dev/chat',
-  path: '/dev/chat',
+const McpConsentRoute = McpConsentRouteImport.update({
+  id: '/mcp/consent',
+  path: '/mcp/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DevUiRoute = DevUiRouteImport.update({
@@ -62,20 +57,25 @@ const DevUiRoute = DevUiRouteImport.update({
   path: '/dev/ui',
   getParentRoute: () => rootRouteImport,
 } as any)
-const McpConsentRoute = McpConsentRouteImport.update({
-  id: '/mcp/consent',
-  path: '/mcp/consent',
+const DevChatRoute = DevChatRouteImport.update({
+  id: '/dev/chat',
+  path: '/dev/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedAppsAppIdRoute = ProtectedAppsAppIdRouteImport.update({
-  id: '/$appId',
-  path: '/$appId',
-  getParentRoute: () => ProtectedAppsRoute,
+const ProtectedAppsRoute = ProtectedAppsRouteImport.update({
+  id: '/apps',
+  path: '/apps',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 const DevChatIndexRoute = DevChatIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DevChatRoute,
+} as any)
+const ProtectedAppsAppIdRoute = ProtectedAppsAppIdRouteImport.update({
+  id: '/$appId',
+  path: '/$appId',
+  getParentRoute: () => ProtectedAppsRoute,
 } as any)
 const ProtectedAppsAppIdTThreadIdRoute =
   ProtectedAppsAppIdTThreadIdRouteImport.update({
@@ -190,18 +190,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_protected': {
-      id: '/_protected'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ProtectedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/chat': {
-      id: '/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof ChatRouteImport
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-in': {
@@ -211,11 +204,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/signin': {
-      id: '/signin'
-      path: '/signin'
-      fullPath: '/signin'
-      preLoaderRoute: typeof SigninRouteImport
+    '/chat': {
+      id: '/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ProtectedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/': {
@@ -225,18 +225,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedIndexRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/apps': {
-      id: '/_protected/apps'
-      path: '/apps'
-      fullPath: '/apps'
-      preLoaderRoute: typeof ProtectedAppsRouteImport
-      parentRoute: typeof ProtectedRoute
-    }
-    '/dev/chat': {
-      id: '/dev/chat'
-      path: '/dev/chat'
-      fullPath: '/dev/chat'
-      preLoaderRoute: typeof DevChatRouteImport
+    '/mcp/consent': {
+      id: '/mcp/consent'
+      path: '/mcp/consent'
+      fullPath: '/mcp/consent'
+      preLoaderRoute: typeof McpConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dev/ui': {
@@ -246,19 +239,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevUiRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mcp/consent': {
-      id: '/mcp/consent'
-      path: '/mcp/consent'
-      fullPath: '/mcp/consent'
-      preLoaderRoute: typeof McpConsentRouteImport
+    '/dev/chat': {
+      id: '/dev/chat'
+      path: '/dev/chat'
+      fullPath: '/dev/chat'
+      preLoaderRoute: typeof DevChatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/apps/$appId': {
-      id: '/_protected/apps/$appId'
-      path: '/$appId'
-      fullPath: '/apps/$appId'
-      preLoaderRoute: typeof ProtectedAppsAppIdRouteImport
-      parentRoute: typeof ProtectedAppsRoute
+    '/_protected/apps': {
+      id: '/_protected/apps'
+      path: '/apps'
+      fullPath: '/apps'
+      preLoaderRoute: typeof ProtectedAppsRouteImport
+      parentRoute: typeof ProtectedRoute
     }
     '/dev/chat/': {
       id: '/dev/chat/'
@@ -266,6 +259,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dev/chat/'
       preLoaderRoute: typeof DevChatIndexRouteImport
       parentRoute: typeof DevChatRoute
+    }
+    '/_protected/apps/$appId': {
+      id: '/_protected/apps/$appId'
+      path: '/$appId'
+      fullPath: '/apps/$appId'
+      preLoaderRoute: typeof ProtectedAppsAppIdRouteImport
+      parentRoute: typeof ProtectedAppsRoute
     }
     '/_protected/apps/$appId/t/$threadId': {
       id: '/_protected/apps/$appId/t/$threadId'
@@ -346,3 +346,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
