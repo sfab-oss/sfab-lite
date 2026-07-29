@@ -1,26 +1,32 @@
 import { LogoDots } from "@sfab-lite/ui/components/icons/logo-dots";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@sfab-lite/ui/components/shadcn/collapsible";
+import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from "@sfab-lite/ui/components/shadcn/sidebar";
-import { cn } from "@sfab-lite/ui/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { AppWindow, Home, Plus } from "lucide-react";
+import { AppWindow, ChevronRight, Home, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { groupThreadsByApp, searchThreads } from "../model/thread-list";
 import type { Thread } from "../model/types";
-import { ThreadMenuItem, useIconCollapsed } from "./thread-menu-item";
+import { ThreadMenuItem } from "./thread-menu-item";
 import { ThreadSearch } from "./thread-search";
 import { ThreadsSidebarFooter } from "./threads-sidebar-footer";
 
@@ -63,7 +69,6 @@ export function SessionThreadsSidebar({
 }: SessionThreadsSidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   const navigate = useNavigate();
-  const quietRows = useIconCollapsed();
 
   const visible = useMemo(
     () => searchThreads(threads, search),
@@ -176,21 +181,22 @@ export function SessionThreadsSidebar({
             <p className="px-2 py-3 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
               {search.trim() ? "No apps match this search." : "No apps yet."}
             </p>
-          ) : null}
-
-          {appGroups.map((group) => (
-            <AppBucket
-              active={activeAppId === group.appId}
-              activeThreadId={activeThreadId}
-              key={group.appId}
-              label={group.appName}
-              onOpenApp={() => openApp(group.appId)}
-              onSelectThread={selectThread}
-              onThreadDeleted={onThreadDeleted}
-              quiet={quietRows}
-              threads={group.threads}
-            />
-          ))}
+          ) : (
+            <SidebarMenu>
+              {appGroups.map((group) => (
+                <AppBucket
+                  active={activeAppId === group.appId}
+                  activeThreadId={activeThreadId}
+                  key={group.appId}
+                  label={group.appName}
+                  onOpenApp={() => openApp(group.appId)}
+                  onSelectThread={selectThread}
+                  onThreadDeleted={onThreadDeleted}
+                  threads={group.threads}
+                />
+              ))}
+            </SidebarMenu>
+          )}
         </SidebarGroup>
       </SidebarContent>
       <ThreadsSidebarFooter onSignOut={onSignOut} />
@@ -198,15 +204,6 @@ export function SessionThreadsSidebar({
     </Sidebar>
   );
 }
-
-/**
- * An app's name is whatever prompt created it, so this label carries arbitrary
- * user prose rather than a short noun. Upper-casing it turned the longest
- * string in the sidebar into its loudest, sitting directly above thread titles
- * drawn from the same sentence.
- */
-const APP_BUCKET_LABEL =
-  "block w-full truncate px-2 py-1 text-left font-medium text-[11px] text-muted-foreground group-data-[collapsible=icon]:hidden hover:text-foreground";
 
 function AppBucket({
   active,
@@ -216,7 +213,6 @@ function AppBucket({
   onOpenApp,
   onSelectThread,
   onThreadDeleted,
-  quiet = false,
 }: {
   active: boolean;
   activeThreadId: string | null;
@@ -224,37 +220,68 @@ function AppBucket({
   onOpenApp: () => void;
   onSelectThread: (threadId: string) => void;
   onThreadDeleted?: (thread: Thread) => void;
-  quiet?: boolean;
   threads: Thread[];
 }) {
+  const hasThreads = threads.length > 0;
+  const defaultOpen =
+    active || threads.some((thread) => thread.id === activeThreadId);
+
+  if (!hasThreads) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={active}
+          onClick={onOpenApp}
+          tooltip={label}
+          type="button"
+        >
+          <AppWindow className="size-4" />
+          <span>{label}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
   return (
-    <div className="mt-1">
-      <button
-        className={cn(APP_BUCKET_LABEL, active && "text-foreground")}
+    <Collapsible
+      className="group/collapsible"
+      defaultOpen={defaultOpen}
+      render={<SidebarMenuItem />}
+    >
+      <SidebarMenuButton
+        isActive={active}
         onClick={onOpenApp}
-        title={label}
+        tooltip={label}
         type="button"
       >
-        {label}
-      </button>
-      {threads.length === 0 ? (
-        <p className="px-2 pb-2 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
-          No threads yet.
-        </p>
-      ) : (
-        <SidebarMenu>
+        <AppWindow className="size-4" />
+        <span>{label}</span>
+      </SidebarMenuButton>
+      <CollapsibleTrigger
+        render={
+          <SidebarMenuAction
+            aria-label={`Toggle threads for ${label}`}
+            className="data-[panel-open]:rotate-90"
+          />
+        }
+      >
+        <ChevronRight />
+        <span className="sr-only">Toggle</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarMenuSub>
           {threads.map((thread) => (
             <ThreadMenuItem
               active={activeThreadId === thread.id}
               key={thread.id}
+              nested
               onDeleted={onThreadDeleted}
               onSelect={() => onSelectThread(thread.id)}
-              quiet={quiet}
               thread={thread}
             />
           ))}
-        </SidebarMenu>
-      )}
-    </div>
+        </SidebarMenuSub>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
