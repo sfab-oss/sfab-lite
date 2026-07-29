@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { queryClient } from "@/lib/query-client";
 import appCss from "../styles.css?url";
 
@@ -39,7 +40,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
         <Scripts />
       </body>
     </html>
