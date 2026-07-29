@@ -11,13 +11,6 @@ export interface Thread {
   updatedAt: number;
 }
 
-export interface AppVersion {
-  createdAt: string;
-  id: string;
-  label: string;
-  live: boolean;
-}
-
 export type {
   WorkspaceFileContent,
   WorkspaceFileEntry,

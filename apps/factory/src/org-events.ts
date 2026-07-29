@@ -20,8 +20,8 @@ export type OrgEventInput =
       payload: { appId: string };
     }
   | {
-      topic: "app_live_version_changed";
-      payload: { appId: string; liveVersionId: string };
+      topic: "app_live_changed";
+      payload: { appId: string; liveSha: string };
     };
 
 export interface OrgEventWire {

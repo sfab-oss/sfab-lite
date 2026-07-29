@@ -1,13 +1,15 @@
 /**
- * Serve a sub-app at /a/:appId/* (live) or /a/:appId/preview/* (latest).
- * Routing seam is path-based; host-header routing can replace the matcher later.
+ * Serve a sub-app at /a/:appId/* (live) or /a/:appId/preview/* (same tip for now).
  *
- * No `/api/` string rewrite — the template builds URLs from
- * `window.__SFAB_PUBLIC_BASE__`.
+ * Live pointer is D1 `live_sha` → immutable build in CODE_R2.
+ * AppDO is runtime SQLite only (seed credentials + SQL).
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
-import type { AppDO, VersionRecord } from "./app-do.js";
+import type { AppDO } from "./app-do.js";
+import type { AppBuild } from "./build-store.js";
+import { getLiveSha } from "./cd.js";
 import { kernelModules } from "./kernel-modules.js";
+import { createR2BuildStore } from "./r2-build-store.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
@@ -37,16 +39,16 @@ interface HostExports {
 
 export type ServeMode = "live" | "preview";
 
-async function loadVersion(
-  stub: DurableObjectStub<AppDO>,
-  mode: ServeMode
-): Promise<VersionRecord | null> {
-  if (mode === "preview") {
-    const latest = await stub.getLatest();
-    return latest.version;
+async function loadBuild(
+  env: Env,
+  appId: string,
+  _mode: ServeMode
+): Promise<AppBuild | null> {
+  const sha = await getLiveSha(env, appId);
+  if (!sha) {
+    return null;
   }
-  const live = await stub.getLive();
-  return live.version;
+  return createR2BuildStore(env).getBuild(appId, sha);
 }
 
 function buildPathContext(
@@ -69,17 +71,12 @@ async function serveApiRoute(
   env: Env,
   ctx: ExecutionContext,
   appId: string,
-  version: VersionRecord,
+  build: AppBuild,
   rest: string,
   publicBase: string,
   mode: ServeMode,
   stub: DurableObjectStub<AppDO>
 ): Promise<Response> {
-  // `APP_BETTER_AUTH_SECRET` on the host, injected into the sub-app as plain
-  // `BETTER_AUTH_SECRET` below. The host now runs better-auth for the factory
-  // itself, so the unqualified name belongs to the factory — per GLOSSARY.md,
-  // factory terms go unqualified and app-side ones take the `app` qualifier.
-  // The sub-app's own variable name is unchanged; only the host binding moved.
   const secret = env.APP_BETTER_AUTH_SECRET;
   if (!secret) {
     return Response.json(
@@ -90,33 +87,22 @@ async function serveApiRoute(
 
   const url = new URL(request.url);
   const innerUrl = new URL(`/${rest}${url.search}`, url.origin);
-  const workerKey = `app:${appId}:${mode}:${version.id}`;
+  const workerKey = `app:${appId}:${mode}:${build.sha}`;
 
   const ex = ctx.exports as unknown as HostExports;
-  // Async, so the seed token costs a DO round-trip only when the worker is
-  // actually built. Resolving it before this call would put a second RPC on
-  // every request the app serves, on top of the one `loadVersion` already made.
   const worker = env.LOADER.get(workerKey, async () => ({
     compatibilityDate: "2026-07-23",
     compatibilityFlags: ["nodejs_compat"],
     mainModule: "index.js",
     modules: {
       ...kernelModules(),
-      "index.js": version.serverBundle,
+      "index.js": build.serverBundle,
     },
     env: {
       DB: ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps }),
       BETTER_AUTH_SECRET: secret,
-      // Origin only — LOADER sees stripped `/api/auth/*` paths.
       BETTER_AUTH_URL: new URL(publicBase).origin,
-      // Which is exactly why the mount has to travel separately: the app
-      // scopes its cookies to this path so it cannot clobber the console's
-      // session, or another app's, on the origin they all share. Deliberately
-      // the *live* prefix in both modes — preview is a subpath of it, so the
-      // two keep sharing one session rather than asking for a second sign-in.
       APP_BASE_PATH: `/a/${encodeURIComponent(appId)}`,
-      // Authorizes the app's own seed route. Held here rather than in the
-      // template so the published source carries no working credential.
       SEED_TOKEN: (await stub.seedCredentials()).token,
     },
     globalOutbound: null,
@@ -138,7 +124,7 @@ async function serveApiRoute(
 }
 
 function resolveStaticAsset(
-  version: VersionRecord,
+  build: AppBuild,
   rest: string
 ): { assetKey: string; body: string } | null {
   let assetKey = rest === "" || rest.endsWith("/") ? "index.html" : rest;
@@ -146,18 +132,15 @@ function resolveStaticAsset(
     assetKey = assetKey.slice(2);
   }
 
-  let body = version.assets[assetKey];
+  let body = build.assets[assetKey];
   if (body == null && !assetKey.includes(".")) {
-    body = version.assets["index.html"];
+    body = build.assets["index.html"];
     assetKey = "index.html";
   }
   if (body == null) {
     return null;
   }
 
-  if (assetKey === "index.html") {
-    return { assetKey, body };
-  }
   return { assetKey, body };
 }
 
@@ -170,11 +153,11 @@ function injectPublicBase(body: string, publicBase: string): string {
 }
 
 function serveStaticAsset(
-  version: VersionRecord,
+  build: AppBuild,
   rest: string,
   publicBase: string
 ): Response {
-  const resolved = resolveStaticAsset(version, rest);
+  const resolved = resolveStaticAsset(build, rest);
   if (!resolved) {
     const assetKey = rest === "" || rest.endsWith("/") ? "index.html" : rest;
     return new Response(`not found: ${assetKey}`, { status: 404 });
@@ -204,32 +187,30 @@ export async function serveSubApp(
   mode: ServeMode = "live"
 ): Promise<Response> {
   const stub = env.APP_DO.get(env.APP_DO.idFromName(appId));
-  const version = await loadVersion(stub, mode);
+  const build = await loadBuild(env, appId, mode);
 
-  if (!version) {
+  if (!build) {
     return Response.json(
       {
         ok: false,
-        error: mode === "preview" ? "no_version" : "no_live_version",
+        error: mode === "preview" ? "no_build" : "no_live_build",
         appId,
       },
       { status: 404 }
     );
   }
 
-  // Pre-column versions have no stored hash. Serving them is deliberate —
-  // 409ing would recreate the fleet-blanking bug this guard replaces.
   if (
-    version.serverSurfaceHash != null &&
-    version.serverSurfaceHash !== SERVER_SURFACE_HASH
+    build.serverSurfaceHash != null &&
+    build.serverSurfaceHash !== SERVER_SURFACE_HASH
   ) {
     return Response.json(
       {
         ok: false,
         error: "server_surface_mismatch",
         appId,
-        versionId: version.id,
-        versionServerSurface: version.serverSurfaceHash,
+        sha: build.sha,
+        buildServerSurface: build.serverSurfaceHash,
         hostServerSurface: SERVER_SURFACE_HASH,
       },
       { status: 409 }
@@ -238,9 +219,9 @@ export async function serveSubApp(
 
   const { rest, publicBase } = buildPathContext(request, appId, restPath, mode);
 
-  const withVersionHeader = (res: Response): Response => {
+  const withShaHeader = (res: Response): Response => {
     const headers = new Headers(res.headers);
-    headers.set("X-Sfab-Version", version.id);
+    headers.set("X-Sfab-Live-Sha", build.sha);
     headers.set("X-Sfab-Serve", mode);
     return new Response(res.body, {
       status: res.status,
@@ -255,14 +236,14 @@ export async function serveSubApp(
       env,
       ctx,
       appId,
-      version,
+      build,
       rest,
       publicBase,
       mode,
       stub
     );
-    return withVersionHeader(res);
+    return withShaHeader(res);
   }
 
-  return withVersionHeader(serveStaticAsset(version, rest, publicBase));
+  return withShaHeader(serveStaticAsset(build, rest, publicBase));
 }

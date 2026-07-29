@@ -1,15 +1,7 @@
-import { getLiveSources, listVersions } from "@/api";
-import type { AppVersion, Thread } from "../model/types";
+import { getLiveSources } from "@/api";
+import type { Thread } from "../model/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";
-
-function formatCreatedAt(ms: number): string {
-  try {
-    return new Date(ms).toLocaleString();
-  } catch {
-    return String(ms);
-  }
-}
 
 export interface RealChatData extends ChatData {
   getRevision: () => number;
@@ -18,8 +10,8 @@ export interface RealChatData extends ChatData {
 
 export function createRealChatData(): RealChatData {
   let appId: string | null = null;
+  let liveSha: string | null = null;
   let sourceFiles: Record<string, string> = {};
-  let versions: AppVersion[] = [];
   let threads: Thread[] = [];
   let revision = 0;
   const syncedApps = new Set<string>();
@@ -130,29 +122,21 @@ export function createRealChatData(): RealChatData {
       writeThreads(threads.filter((thread) => thread.id !== threadId));
     },
     getAppId: () => appId,
-    listVersions: () => versions,
+    getLiveSha: () => liveSha,
     getWorkspaceDir: (path) => dirEntries(sourceFiles, path),
     getWorkspaceFile: (path) => fileContent(sourceFiles, path),
     async refreshApp(nextAppId) {
       if (!nextAppId) {
         appId = null;
+        liveSha = null;
         sourceFiles = {};
-        versions = [];
         notify();
         return;
       }
-      const [listed, live] = await Promise.all([
-        listVersions(nextAppId),
-        getLiveSources(nextAppId).catch(() => null),
-      ]);
+      const live = await getLiveSources(nextAppId).catch(() => null);
       appId = nextAppId;
+      liveSha = live?.liveSha ?? null;
       sourceFiles = live?.sourceFiles ?? {};
-      versions = listed.versions.map((version, index) => ({
-        id: version.id,
-        label: `v${listed.versions.length - index}`,
-        createdAt: formatCreatedAt(version.createdAt),
-        live: version.id === listed.liveVersionId,
-      }));
       notify();
     },
   };

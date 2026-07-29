@@ -1,15 +1,14 @@
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
-import type { AppRecord, AttemptRecord, VersionSummary } from "../api";
+import type { AppRecord, AttemptRecord } from "../api";
 import { AppLayoutHeader } from "../components/brand/app-layout";
-import { useApp, useAppAttempt, useAppVersions } from "../hooks/use-apps";
+import { useApp, useAppAttempt } from "../hooks/use-apps";
 import { StatusBadge } from "./apps-list";
 
 export function AppDetailScreen({ appId }: { appId: string }) {
   const appQuery = useApp(appId);
   const app = appQuery.data ?? null;
-  const versionsQuery = useAppVersions(appId, app?.status === "ready");
   const attemptQuery = useAppAttempt(
     appId,
     app?.status === "creating" || app?.status === "failed"
@@ -21,8 +20,6 @@ export function AppDetailScreen({ appId }: { appId: string }) {
   let error: string | null = null;
   if (appQuery.error instanceof Error) {
     error = appQuery.error.message;
-  } else if (versionsQuery.error instanceof Error) {
-    error = versionsQuery.error.message;
   }
 
   return (
@@ -57,14 +54,7 @@ export function AppDetailScreen({ appId }: { appId: string }) {
           </div>
         ) : null}
 
-        {app ? (
-          <AppBody
-            app={app}
-            attempt={attemptQuery.data ?? null}
-            versions={versionsQuery.data?.versions ?? null}
-            liveVersionId={versionsQuery.data?.liveVersionId ?? null}
-          />
-        ) : null}
+        {app ? <AppBody app={app} attempt={attemptQuery.data ?? null} /> : null}
       </div>
     </>
   );
@@ -73,13 +63,9 @@ export function AppDetailScreen({ appId }: { appId: string }) {
 function AppBody({
   app,
   attempt,
-  versions,
-  liveVersionId,
 }: {
   app: AppRecord;
   attempt: AttemptRecord | null;
-  versions: VersionSummary[] | null;
-  liveVersionId: string | null;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -93,6 +79,12 @@ function AppBody({
             <dt className="w-28 text-muted-foreground">Status</dt>
             <dd className="m-0">
               <StatusBadge status={app.status} />
+            </dd>
+          </div>
+          <div className="flex gap-3">
+            <dt className="w-28 text-muted-foreground">Live sha</dt>
+            <dd className="m-0 font-mono text-xs">
+              {app.liveSha ? app.liveSha.slice(0, 12) : "—"}
             </dd>
           </div>
           <div className="flex gap-3">
@@ -127,7 +119,7 @@ function AppBody({
 
         {app.status === "creating" ? (
           <p className="mt-4 text-muted-foreground text-sm">
-            Seeding the template while check runs. Polling automatically.
+            Initializing the repo and running CD. Polling automatically.
           </p>
         ) : null}
       </section>
@@ -136,12 +128,8 @@ function AppBody({
 
       {app.status === "failed" && !app.createAttemptId ? (
         <p className="text-destructive text-sm">
-          Create failed during bootstrap (no attempt id).
+          Create failed during bootstrap (no job id).
         </p>
-      ) : null}
-
-      {app.status === "ready" && versions ? (
-        <VersionsSection versions={versions} liveVersionId={liveVersionId} />
       ) : null}
     </div>
   );
@@ -159,7 +147,7 @@ function AttemptSection({
   }
   return (
     <section>
-      <h2 className="m-0 mb-2 font-semibold text-base">Create attempt</h2>
+      <h2 className="m-0 mb-2 font-semibold text-base">Create job</h2>
       <dl className="m-0 grid gap-2 text-sm">
         <div className="flex gap-3">
           <dt className="w-28 text-muted-foreground">Id</dt>
@@ -177,61 +165,22 @@ function AttemptSection({
       )}
       {app.status === "failed" && attempt.payload == null ? (
         <p className="mt-2 text-destructive text-sm">
-          Create failed before an attempt payload was recorded.
+          Create failed before a job payload was recorded.
         </p>
       ) : null}
     </section>
   );
 }
 
-function VersionsSection({
-  versions,
-  liveVersionId,
-}: {
-  versions: VersionSummary[];
-  liveVersionId: string | null;
-}) {
-  return (
-    <section>
-      <h2 className="m-0 mb-2 font-semibold text-base">Versions</h2>
-      {versions.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No versions yet.</p>
-      ) : (
-        <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0 text-sm">
-          {versions.map((v) => (
-            <li
-              key={v.id}
-              className="flex items-center justify-between gap-3 px-3 py-2"
-            >
-              <span className="font-mono text-xs">
-                {v.id}
-                {v.id === liveVersionId ? (
-                  <>
-                    {" "}
-                    <span className="font-sans text-primary">live</span>
-                  </>
-                ) : null}
-              </span>
-              <span className="text-muted-foreground">
-                {new Date(v.createdAt).toLocaleString()}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function formatWhen(value: string): string {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+function formatWhen(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
+  }
 }
 
 function formatPayload(payload: unknown): string {
-  if (typeof payload === "string") {
-    return payload;
-  }
   try {
     return JSON.stringify(payload, null, 2);
   } catch {

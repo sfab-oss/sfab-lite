@@ -33,7 +33,7 @@ export class AppThread extends Think<Env> {
   );
 
   #appId: string | null = null;
-  #liveVersionId: string | null = null;
+  #repoHint = "main";
   #model: LanguageModel | null = null;
   #sourceFiles: string[] = [];
 
@@ -42,7 +42,8 @@ export class AppThread extends Think<Env> {
     this.#appId = appId;
 
     const parent = await this.parentAgent(AppAgent);
-    this.#liveVersionId = await parent.liveVersionId();
+    const sha = await parent.liveSha();
+    this.#repoHint = sha ? `main @ ${sha.slice(0, 12)}` : "main";
     this.#sourceFiles = await this.#listSourceFiles();
 
     const key = this.env.ZAI_API_KEY?.trim();
@@ -130,7 +131,7 @@ export class AppThread extends Think<Env> {
     return [
       buildSystemPrompt({
         appId: this.#appId ?? this.requireAppId(),
-        liveVersionId: this.#liveVersionId ?? "unknown",
+        repoHint: this.#repoHint,
         sourceFiles: this.#sourceFiles,
       }),
       "",

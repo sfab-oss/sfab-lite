@@ -29,8 +29,7 @@ function captureDeps() {
     invalidateApp: (appId) => calls.push(`app:${appId}`),
     invalidateVersions: (appId) => calls.push(`versions:${appId}`),
     refreshAttendedApp: (appId) => calls.push(`refresh:${appId}`),
-    onLiveVersion: (appId, liveVersionId) =>
-      calls.push(`live:${appId}:${liveVersionId}`),
+    onLive: (appId, liveSha) => calls.push(`live:${appId}:${liveSha}`),
   };
   return { calls, deps };
 }
@@ -48,25 +47,25 @@ describe("routeOrgEvent", () => {
     assert.deepEqual(calls, ["app:app_1", "apps"]);
   });
 
-  it("reloads preview on app_live_version_changed", () => {
+  it("reloads preview on app_live_changed", () => {
     const { calls, deps } = captureDeps();
     routeOrgEvent(
-      frame("app_live_version_changed", {
+      frame("app_live_changed", {
         appId: "app_1",
-        liveVersionId: "v_9",
+        liveSha: "abc123",
       }),
       deps
     );
     assert.deepEqual(calls, [
       "versions:app_1",
       "refresh:app_1",
-      "live:app_1:v_9",
+      "live:app_1:abc123",
     ]);
   });
 
   it("ignores live events missing ids", () => {
     const { calls, deps } = captureDeps();
-    routeOrgEvent(frame("app_live_version_changed", { appId: "app_1" }), deps);
+    routeOrgEvent(frame("app_live_changed", { appId: "app_1" }), deps);
     assert.deepEqual(calls, []);
   });
 });

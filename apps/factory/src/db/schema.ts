@@ -251,8 +251,13 @@ export const app = sqliteTable(
     name: text("name").notNull(),
     /** `creating` → `ready` | `failed`. Never trust a `creating` row as live. */
     status: text("status").notNull().default("creating"),
-    /** The commit attempt seeding this app, for polling. Null once ready. */
+    /**
+     * Opaque create-job id for polling while status is `creating`. Null once
+     * ready. No longer coupled to AppDO version attempts.
+     */
     createAttemptId: text("create_attempt_id"),
+    /** Tip sha serve reads; builds live in CODE_R2 keyed by appId+sha. */
+    liveSha: text("live_sha"),
     createdAt: integer("created_at", { mode: "timestamp_ms" })
       .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
       .notNull(),

@@ -1,25 +1,11 @@
 /**
  * @sfab-lite/factory — host worker entry.
  *
- * Commit is **asynchronous in transport, synchronous in semantics**: check is
- * still the gate, no version exists without a pass, and a version is live the
- * moment it exists. Only the waiting moved off the HTTP request, because a
- * commit costs 10–24s in production (measured).
- *
- * `POST .../commit` and `POST /api/protected/apps` return `202` with an
- * `attemptId`; poll `GET .../attempts/:attemptId`. Create also writes a D1
- * registry row (`creating` → `ready`|`failed`) so apps are enumerable. Revert
- * stays synchronous — it restores an already-checked version, so there is
- * nothing to wait for.
- *
- * Protected API: every `/api/protected/*` request needs a credential — a
- * matching `X-Admin-Token` (root: must pass `organizationId` as a query param
- * on organization-scoped routes; app-scoped routes need none) or a signed-in
- * session (scoped to its own organization). No credential is 401 whatever the
- * config says; a missing `ADMIN_TOKEN` no longer opens the surface. See
- * `tenancy.ts`. Domain handlers live in `lib/protected/`; Hono routing in
- * `hono/protected/`; commit orchestration in `commit.ts`; route primitives in
- * `routes.ts`.
+ * Create returns `202` with a create-job id; poll `GET .../attempts/:id`.
+ * Shipping code is git push of `main` (CD writes an immutable build and sets
+ * D1 `live_sha`). Protected API credentials: `X-Admin-Token` or session.
+ * See `tenancy.ts`. Domain handlers in `lib/protected/`; Hono in
+ * `hono/protected/`; CD in `cd.ts`; code host in `r2-code-host.ts`.
  */
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { dispatchAgents } from "./agent/dispatch.js";

@@ -1,22 +1,17 @@
 /**
  * `/internal/*` — the host's own loopback surface. Not an API.
  *
- * Only the AppDO calls this, over `SELF`, from an alarm. It exists because a
- * create attempt has to run somewhere with a real lifetime: `ctx.waitUntil` is
- * killed at ~30s and a killed attempt writes no terminal status, which is what
- * leaves an app stuck in `creating` until the stale sweep reclaims it. An
- * ordinary request handler has no such cap, and the alarm that drives it
- * survives the invocation, so a death becomes a retry instead of an orphan.
- *
- * Every route here is authenticated by a derived capability token
- * (`internal-token.ts`), never by session or admin token — the caller is a
- * Durable Object, which has neither.
+ * Create runs here (alarm → SELF) so a killed isolate retries instead of
+ * orphaning a `creating` row. Auth is a derived capability token.
  */
-import { runCommitAttempt } from "./commit.js";
+
+import { appStub } from "./app-stub.js";
+import { runCdForSha } from "./cd.js";
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
 import { INTERNAL_TOKEN_HEADER, verifyAttemptRun } from "./internal-token.js";
 import { publishOrgEvent } from "./org-events.js";
+import { createR2CodeHost } from "./r2-code-host.js";
 import { settleCreateApp } from "./registry.js";
 import type { RequestCtx } from "./routes.js";
 import { NOT_FOUND_BODY } from "./routes.js";
@@ -24,44 +19,81 @@ import { NOT_FOUND_BODY } from "./routes.js";
 const RE_RUN_CREATE =
   /^\/internal\/apps\/([^/]+)\/attempts\/([^/]+)\/run-create$/;
 
-/**
- * Unauthorized is 404, not 401: an unauthenticated caller learns nothing about
- * whether the route is there. Same reasoning as the sub-app seed route.
- */
 function notFound(): Response {
   return new Response(NOT_FOUND_BODY, { status: 404 });
 }
 
 /**
- * Run a create attempt to a terminal status, and settle its registry row.
- *
- * The seed is a bundle constant, which is the whole reason a create can be
- * retried at all — there is no workspace to persist and replay, so the DO only
- * has to remember two ids. An ordinary commit carries the agent's files and
- * has no such property; it still runs under `waitUntil`.
+ * ensureRepo → commit TEMPLATE_SEED to main → CD → settle registry.
  */
 async function handleRunCreate(
   rc: RequestCtx,
   appId: string,
-  attemptId: string
+  jobId: string
 ): Promise<Response> {
-  const status = await runCommitAttempt(
-    rc.env,
-    appId,
-    attemptId,
-    TEMPLATE_SEED.sourceFiles,
-    null,
-    { forceColdCheck: true }
-  );
-  const attemptStatus = status === "aborted" ? "error" : status;
-  const record = await settleCreateApp(createDb(rc.env), appId, attemptStatus);
-  if (record) {
-    publishOrgEvent(
-      { env: rc.env, organizationId: record.organizationId },
-      { topic: "app_list_changed", payload: { appId } }
+  const stub = appStub(rc.env, appId);
+  const host = createR2CodeHost(rc.env);
+
+  try {
+    await host.ensureRepo(appId);
+    const { sha } = await host.commitTree(
+      appId,
+      TEMPLATE_SEED.sourceFiles,
+      "chore: initial template seed"
     );
+    const cd = await runCdForSha(
+      rc.env,
+      appId,
+      sha,
+      TEMPLATE_SEED.sourceFiles,
+      { forceColdCheck: true }
+    );
+    if (!cd.ok) {
+      await stub.failCreateJob(jobId, "fail", cd);
+      const record = await settleCreateApp(createDb(rc.env), appId, "fail");
+      if (record) {
+        publishOrgEvent(
+          { env: rc.env, organizationId: record.organizationId },
+          { topic: "app_list_changed", payload: { appId } }
+        );
+      }
+      return Response.json({
+        ok: true,
+        appId,
+        attemptId: jobId,
+        status: "fail",
+      });
+    }
+    await stub.completeCreateJob(jobId, { liveSha: cd.liveSha });
+    const record = await settleCreateApp(createDb(rc.env), appId, "pass");
+    if (record) {
+      publishOrgEvent(
+        { env: rc.env, organizationId: record.organizationId },
+        { topic: "app_list_changed", payload: { appId } }
+      );
+    }
+    return Response.json({ ok: true, appId, attemptId: jobId, status: "pass" });
+  } catch (e) {
+    await stub
+      .failCreateJob(jobId, "error", {
+        error: "create_crashed",
+        message: e instanceof Error ? e.message : String(e),
+      })
+      .catch(() => undefined);
+    const record = await settleCreateApp(createDb(rc.env), appId, "error");
+    if (record) {
+      publishOrgEvent(
+        { env: rc.env, organizationId: record.organizationId },
+        { topic: "app_list_changed", payload: { appId } }
+      );
+    }
+    return Response.json({
+      ok: true,
+      appId,
+      attemptId: jobId,
+      status: "error",
+    });
   }
-  return Response.json({ ok: true, appId, attemptId, status });
 }
 
 export async function dispatchInternal(rc: RequestCtx): Promise<Response> {
@@ -70,19 +102,15 @@ export async function dispatchInternal(rc: RequestCtx): Promise<Response> {
     return notFound();
   }
   const appId = decodeURIComponent(match[1] ?? "");
-  const attemptId = decodeURIComponent(match[2] ?? "");
+  const jobId = decodeURIComponent(match[2] ?? "");
 
   const token = rc.request.headers.get(INTERNAL_TOKEN_HEADER);
   const secret = rc.env.BETTER_AUTH_SECRET;
   if (
-    !(
-      token &&
-      secret &&
-      (await verifyAttemptRun(secret, appId, attemptId, token))
-    )
+    !(token && secret && (await verifyAttemptRun(secret, appId, jobId, token)))
   ) {
     return notFound();
   }
 
-  return await handleRunCreate(rc, appId, attemptId);
+  return await handleRunCreate(rc, appId, jobId);
 }

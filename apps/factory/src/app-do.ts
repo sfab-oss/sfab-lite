@@ -1,12 +1,7 @@
 /**
  * AppDO — one Durable Object per sub-app (`idFromName(appId)`).
- * Owns SQLite: application tables + append-only version store + live pointer.
- *
- * Storage rules:
- * - `_sfab_versions` is append-only (INSERT only; never UPDATE a version row)
- * - every version has `parent_id` (null for the seed tip's parent)
- * - `_sfab_live` is a pointer only — live source is never stored inline
- * - revert appends a new version; it never moves the pointer backwards alone
+ * Runtime SQLite only: application tables + migrations ledger + create jobs.
+ * Code history lives in the code host; builds in CODE_R2; live tip on D1.
  */
 import { DurableObject } from "cloudflare:workers";
 import { monotonicFactory } from "ulid";
@@ -16,34 +11,9 @@ import {
 } from "./app-migrations.js";
 import { INTERNAL_TOKEN_HEADER, signAttemptRun } from "./internal-token.js";
 
-/**
- * Version ids are monotonic ULIDs: 48-bit ms timestamp + 80 bits entropy,
- * Crockford base32. Unique *and* lexicographically sortable by creation
- * time, which is why `listVersions` can order on `id` instead of
- * `created_at` — `created_at` is also `Date.now()`, so ties there are
- * ambiguous and "the latest version" was resolvable to the wrong row.
- *
- * The monotonic factory matters: plain `ulid()` randomises within a single
- * millisecond, which would move the ambiguity rather than remove it. This
- * one guarantees each id is strictly greater than the last.
- *
- * Minted only here, in the DO — the single writer and serialization point
- * for an app. Handing this to the host worker would put two isolates on
- * two independent sequences and the guarantee would be nominal.
- */
 const nextUlid = monotonicFactory();
 
-function newVersionId(): string {
-  return `v_${nextUlid()}`;
-}
-
-/**
- * Attempt ids share the version sequence deliberately: an attempt and the
- * version it may mint are the same event seen before and after the gate, so
- * ordering one against the other has to be meaningful. The prefix keeps them
- * impossible to confuse in a URL or a log line.
- */
-function newAttemptId(): string {
+function newJobId(): string {
   return `a_${nextUlid()}`;
 }
 
@@ -73,10 +43,6 @@ function d1Meta(cursor: { rowsRead: number; rowsWritten: number }): SqlMeta {
 
 const SEED_CREDENTIALS_KEY = "seed:credentials";
 
-/**
- * 24 bytes of CSPRNG, base64url so it survives a header, a JSON body and a
- * copy-paste out of a terminal without escaping.
- */
 function randomSecret(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   return btoa(String.fromCharCode(...bytes))
@@ -85,119 +51,54 @@ function randomSecret(): string {
     .replaceAll("=", "");
 }
 
-/** Host-owned meta DDL (prefixed `_sfab_` to avoid colliding with app tables). */
 const META_DDL = `
 ${SCHEMA_VERSION_DDL}
-CREATE TABLE IF NOT EXISTS _sfab_versions (
+CREATE TABLE IF NOT EXISTS _sfab_create_jobs (
   id TEXT PRIMARY KEY NOT NULL,
-  parent_id TEXT,
-  created_at INTEGER NOT NULL,
-  source_files TEXT,
-  server_bundle TEXT,
-  assets TEXT,
-  kernel_version TEXT,
-  server_surface_hash TEXT,
-  FOREIGN KEY (parent_id) REFERENCES _sfab_versions(id)
-);
-CREATE TABLE IF NOT EXISTS _sfab_live (
-  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
-  version_id TEXT
-);
-CREATE TABLE IF NOT EXISTS _sfab_commit_attempts (
-  id TEXT PRIMARY KEY NOT NULL,
-  kind TEXT NOT NULL,
   status TEXT NOT NULL,
-  parent_id TEXT,
-  version_id TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  payload TEXT,
-  FOREIGN KEY (version_id) REFERENCES _sfab_versions(id)
+  payload TEXT
 );
-CREATE INDEX IF NOT EXISTS _sfab_commit_attempts_status
-  ON _sfab_commit_attempts (status);
+CREATE INDEX IF NOT EXISTS _sfab_create_jobs_status
+  ON _sfab_create_jobs (status);
 `.trim();
 
-/**
- * A pending attempt older than this is presumed dead and swept to `error`.
- *
- * `waitUntil` is best-effort: a dropped invocation would otherwise leave an
- * attempt pending forever, and the one-in-flight rule would lock the app out
- * of committing. Five minutes is the factory's `limits.cpu_ms` ceiling
- * (`wrangler.jsonc`) — past it the work provably cannot still be running.
- *
- * Exported so the app registry can reuse the same ceiling for stale
- * `creating` rows (same cause: a dropped `waitUntil` between the D1 insert
- * and a terminal attempt status). Two timeouts for one failure mode would
- * drift.
- */
+/** Same ceiling as before — create alarm / waitUntil abandon. */
 export const STALE_ATTEMPT_MS = 5 * 60_000;
 
-/** Storage key for the in-flight create the alarm is responsible for. */
 const CREATE_RUN_KEY = "create-attempt-run";
 
 interface CreateRunState {
-  attemptId: string;
+  jobId: string;
   tries: number;
 }
 
-/**
- * How many times the alarm will drive one create attempt.
- *
- * Every try is a fresh isolate, so this is the number of check-worker OOMs a
- * single create survives. `CHECK_ATTEMPTS` inside one run stays at 2 for the
- * reason `making-it-fit.md` records — the budget there is wall clock.
- */
 const CREATE_RUN_TRIES = 3;
-
-/**
- * The alarm is re-armed to this *before* the run starts, and cleared when it
- * finishes. That ordering is the whole mechanism: an invocation killed
- * mid-flight leaves the alarm armed and the runtime fires it again, which is
- * exactly the failure `waitUntil` could not recover from.
- *
- * Must exceed a healthy create (15–25s measured) or a slow run would be
- * retried alongside itself.
- */
 const CREATE_RUN_WATCHDOG_MS = 45_000;
-
 const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
+const JOB_RETENTION = 50;
 
-export type AttemptKind = "create" | "commit" | "revert";
-type AttemptStatus = "pending" | "pass" | "fail" | "error";
+type JobStatus = "pending" | "pass" | "fail" | "error";
 
-export interface AttemptRecord {
+export interface CreateJobRecord {
   id: string;
-  kind: AttemptKind;
-  status: AttemptStatus;
-  parentId: string | null;
-  versionId: string | null;
+  status: JobStatus;
   createdAt: number;
   updatedAt: number;
   payload: unknown;
 }
 
-/** Attempts are an event log, not history — versions are the history. */
-const ATTEMPT_RETENTION = 50;
-
-interface AttemptRow {
+interface JobRow {
   id: string;
-  kind: string;
   status: string;
-  parent_id: string | null;
-  version_id: string | null;
   created_at: number;
   updated_at: number;
   payload: string | null;
 }
 
-/**
- * The single SQL-row → record boundary for attempts. Takes `unknown` on
- * purpose: cursor rows are `Record<string, SqlStorageValue>`, and narrowing
- * here means neither caller needs a cast of its own.
- */
-function toAttemptRecord(raw: unknown): AttemptRecord {
-  const row = raw as AttemptRow;
+function toJobRecord(raw: unknown): CreateJobRecord {
+  const row = raw as JobRow;
   let payload: unknown = null;
   if (row.payload) {
     try {
@@ -208,36 +109,11 @@ function toAttemptRecord(raw: unknown): AttemptRecord {
   }
   return {
     id: row.id,
-    kind: row.kind as AttemptKind,
-    status: row.status as AttemptStatus,
-    parentId: row.parent_id,
-    versionId: row.version_id,
+    status: row.status as JobStatus,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     payload,
   };
-}
-
-export interface PutVersionInput {
-  parentId: string | null;
-  sourceFiles: Record<string, string>;
-  serverBundle: string;
-  assets: Record<string, string>;
-  kernelVersion: string;
-  /** Null only when reverting a pre-column version row. */
-  serverSurfaceHash: string | null;
-}
-
-export interface VersionRecord {
-  id: string;
-  parentId: string | null;
-  createdAt: number;
-  sourceFiles: Record<string, string> | null;
-  serverBundle: string;
-  assets: Record<string, string>;
-  kernelVersion: string;
-  /** Null on versions published before the server-surface column existed. */
-  serverSurfaceHash: string | null;
 }
 
 export class AppDO extends DurableObject<Env> {
@@ -252,30 +128,13 @@ export class AppDO extends DurableObject<Env> {
   #ensureMeta(): void {
     this.ctx.storage.sql.exec("PRAGMA foreign_keys = ON;");
     this.ctx.storage.sql.exec(META_DDL);
-    // An earlier design removed `_sfab_check_status`. It was keyed by version_id and only
-    // ever written *after* a version existed, so it could never describe a
-    // commit still in flight — `_sfab_commit_attempts` replaces it. DOs
-    // deployed before that change still carry the old table and `CREATE TABLE IF NOT
-    // EXISTS` cannot remove it, so drop it here.
+    // Greenfield wipe of legacy version tables if an old DO still has them.
     this.ctx.storage.sql.exec("DROP TABLE IF EXISTS _sfab_check_status;");
-    this.#ensureServerSurfaceHashColumn();
+    this.ctx.storage.sql.exec("DROP TABLE IF EXISTS _sfab_commit_attempts;");
+    this.ctx.storage.sql.exec("DROP TABLE IF EXISTS _sfab_live;");
+    this.ctx.storage.sql.exec("DROP TABLE IF EXISTS _sfab_versions;");
   }
 
-  #ensureServerSurfaceHashColumn(): void {
-    const cols = this.ctx.storage.sql
-      .exec("PRAGMA table_info(_sfab_versions)")
-      .toArray() as { name: string }[];
-    if (!cols.some((c) => c.name === "server_surface_hash")) {
-      this.ctx.storage.sql.exec(
-        "ALTER TABLE _sfab_versions ADD COLUMN server_surface_hash TEXT"
-      );
-    }
-  }
-
-  /**
-   * Apply app-schema migrations from the template seed (or later agent
-   * additive migrations). Forward-only; schema version = migration count.
-   */
   #ensureAppSchema(migrations: { id: string; sql: string }[]): {
     bootstrapped: boolean;
     appSchemaVersion: number;
@@ -318,62 +177,26 @@ export class AppDO extends DurableObject<Env> {
     };
   }
 
-  /**
-   * Drop everything this app owns: versions, attempts, and its own tables.
-   *
-   * The in-flight refusal is decided **here** rather than by the caller. A
-   * caller-side check would pass and then race the `waitUntil` chain that runs
-   * commits, which writes through this object and would recreate rows in
-   * storage the registry no longer indexes — and a Durable Object nothing
-   * indexes cannot be found again, because `idFromName` is a hash.
-   *
-   * `deleteAll` is atomic on SQLite-backed storage but does **not** clear
-   * alarms, so the create-run alarm is deleted explicitly. Left armed, it
-   * would fire against an emptied object and re-create the tables it just
-   * dropped.
-   */
-  async destroy(): Promise<
-    | { ok: true; bytesFreed: number }
-    | { ok: false; error: "attempt_in_flight"; attemptId: string }
-  > {
+  async destroy(): Promise<{ ok: true; bytesFreed: number }> {
     this.#ensureMeta();
-    const running = this.ctx.storage.transactionSync(() =>
-      this.#pendingAttemptId()
-    );
-    if (running) {
-      return {
-        ok: false as const,
-        error: "attempt_in_flight" as const,
-        attemptId: running,
-      };
-    }
     const bytesFreed = Number(this.ctx.storage.sql.databaseSize);
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
     return { ok: true as const, bytesFreed };
   }
 
-  /**
-   * Take responsibility for running a create attempt, and fire immediately.
-   *
-   * The host opens the attempt and hands it over rather than running it
-   * itself: a create's only input is the template seed, a bundle constant, so
-   * the two ids below are the entire state a retry needs. An ordinary commit
-   * carries the agent's workspace and has no such property — it still runs
-   * under `waitUntil`.
-   */
-  async scheduleCreateRun(attemptId: string): Promise<void> {
+  async scheduleCreateRun(jobId: string): Promise<void> {
     await this.ctx.storage.put<CreateRunState>(CREATE_RUN_KEY, {
-      attemptId,
+      jobId,
       tries: 0,
     });
     await this.ctx.storage.setAlarm(Date.now());
   }
 
-  #attemptStatus(attemptId: string): AttemptStatus | null {
+  #jobStatus(jobId: string): JobStatus | null {
     const row = this.ctx.storage.sql
-      .exec("SELECT status FROM _sfab_commit_attempts WHERE id = ?", attemptId)
-      .toArray()[0] as { status?: AttemptStatus } | undefined;
+      .exec("SELECT status FROM _sfab_create_jobs WHERE id = ?", jobId)
+      .toArray()[0] as { status?: JobStatus } | undefined;
     return row?.status ?? null;
   }
 
@@ -382,17 +205,6 @@ export class AppDO extends DurableObject<Env> {
     await this.ctx.storage.deleteAlarm();
   }
 
-  /**
-   * Drive the create attempt this object owns, once per firing.
-   *
-   * Deliberately not "throw and let the runtime retry": the failure being
-   * recovered from is an *invocation kill*, not an exception, and a killed
-   * handler throws nothing. Re-arming the alarm before the work starts covers
-   * both — a kill leaves it armed, a clean finish clears it.
-   *
-   * The run happens in the host over `SELF` because that is where D1 is, and
-   * because `runCommitAttempt` talks to this object through its own stub.
-   */
   override async alarm(): Promise<void> {
     const state = await this.ctx.storage.get<CreateRunState>(CREATE_RUN_KEY);
     if (!state) {
@@ -400,15 +212,13 @@ export class AppDO extends DurableObject<Env> {
     }
 
     this.#ensureMeta();
-    if (this.#attemptStatus(state.attemptId) !== "pending") {
+    if (this.#jobStatus(state.jobId) !== "pending") {
       await this.#clearCreateRun();
       return;
     }
 
     if (state.tries >= CREATE_RUN_TRIES) {
-      // The registry row stays `creating` until `sweepStaleCreating` reclaims
-      // it. Settling it needs D1, which this object deliberately cannot reach.
-      this.failAttempt(state.attemptId, "error", {
+      this.failCreateJob(state.jobId, "error", {
         error: "create_retries_exhausted",
         tries: state.tries,
       });
@@ -422,23 +232,22 @@ export class AppDO extends DurableObject<Env> {
     });
     await this.ctx.storage.setAlarm(Date.now() + CREATE_RUN_WATCHDOG_MS);
 
-    const ok = await this.#runCreateInHost(state.attemptId);
+    const ok = await this.#runCreateInHost(state.jobId);
     if (ok) {
       await this.#clearCreateRun();
       return;
     }
-    // A clean failure needs no watchdog wait — only a kill does.
     await this.ctx.storage.setAlarm(Date.now());
   }
 
-  async #runCreateInHost(attemptId: string): Promise<boolean> {
+  async #runCreateInHost(jobId: string): Promise<boolean> {
     const appId = this.ctx.id.name;
     const secret = this.env.BETTER_AUTH_SECRET;
     if (!(appId && secret)) {
       return false;
     }
-    const token = await signAttemptRun(secret, appId, attemptId);
-    const path = `/internal/apps/${encodeURIComponent(appId)}/attempts/${encodeURIComponent(attemptId)}/run-create`;
+    const token = await signAttemptRun(secret, appId, jobId);
+    const path = `/internal/apps/${encodeURIComponent(appId)}/attempts/${encodeURIComponent(jobId)}/run-create`;
     try {
       const res = await this.env.SELF.fetch(
         new Request(`${LOOPBACK_ORIGIN}${path}`, {
@@ -457,7 +266,6 @@ export class AppDO extends DurableObject<Env> {
     appIdHint: string;
     appSchemaVersion: number;
     userCount: number | null;
-    liveVersionId: string | null;
   } {
     this.#ensureMeta();
     const schemaRow = this.ctx.storage.sql
@@ -472,15 +280,11 @@ export class AppDO extends DurableObject<Env> {
     } catch {
       userCount = null;
     }
-    const live = this.ctx.storage.sql
-      .exec("SELECT version_id FROM _sfab_live WHERE singleton = 1")
-      .toArray()[0] as { version_id?: string } | undefined;
     return {
       ok: true,
       appIdHint: this.ctx.id.name ?? this.ctx.id.toString(),
       appSchemaVersion: schemaRow?.version ?? 0,
       userCount,
-      liveVersionId: live?.version_id ?? null,
     };
   }
 
@@ -488,424 +292,111 @@ export class AppDO extends DurableObject<Env> {
     return { ok: true, id: this.ctx.id.toString() };
   }
 
-  /**
-   * Append a checked version and point live at it.
-   * INSERT only — never UPDATE an existing version row.
-   */
-  putVersion(input: PutVersionInput): {
-    ok: true;
-    id: string;
-    liveVersionId: string;
-    parentId: string | null;
-  } {
-    this.#ensureMeta();
-    return this.#putVersionSync(input);
-  }
-
-  /** Sync core of `putVersion`, callable from inside `transactionSync`. */
-  #putVersionSync(input: PutVersionInput): {
-    ok: true;
-    id: string;
-    liveVersionId: string;
-    parentId: string | null;
-  } {
-    const id = newVersionId();
-    if (input.parentId != null) {
-      const parent = this.ctx.storage.sql
-        .exec("SELECT id FROM _sfab_versions WHERE id = ?", input.parentId)
-        .toArray();
-      if (parent.length === 0) {
-        throw new Error(`putVersion: parent_id ${input.parentId} not found`);
-      }
-    }
-    const createdAt = Date.now();
+  #sweepStaleJobs(): void {
     this.ctx.storage.sql.exec(
-      `INSERT INTO _sfab_versions
-        (id, parent_id, created_at, source_files, server_bundle, assets,
-         kernel_version, server_surface_hash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      id,
-      input.parentId,
-      createdAt,
-      JSON.stringify(input.sourceFiles),
-      input.serverBundle,
-      JSON.stringify(input.assets),
-      input.kernelVersion,
-      input.serverSurfaceHash
-    );
-    // A version only exists if checks passed, and on creation it is live.
-    this.ctx.storage.sql.exec(
-      "INSERT OR REPLACE INTO _sfab_live (singleton, version_id) VALUES (1, ?)",
-      id
-    );
-    return {
-      ok: true,
-      id,
-      liveVersionId: id,
-      parentId: input.parentId,
-    };
-  }
-
-  /**
-   * Revert = append a new version whose content equals an older one.
-   * Never move the live pointer backwards onto the old id.
-   */
-  async revertTo(versionId: string): Promise<
-    | {
-        ok: true;
-        id: string;
-        attemptId: string;
-        liveVersionId: string;
-        parentId: string;
-        restoredFrom: string;
-      }
-    | { ok: false; error: string }
-  > {
-    this.#ensureMeta();
-    const { version } = await this.getVersion(versionId);
-    if (!version?.sourceFiles) {
-      return { ok: false, error: "version_not_found" };
-    }
-    const live = await this.getLive();
-    if (!live.liveVersionId) {
-      return { ok: false, error: "no_live_version" };
-    }
-    if (live.liveVersionId === versionId) {
-      return { ok: false, error: "already_live" };
-    }
-    // Revert goes through the attempt path even though it never waits on a
-    // check: it is subject to the same one-in-flight rule (reverting mid-commit
-    // would race the parent pointer), and `kind` is the only place the history
-    // records *why* a version exists. It settles in the same DO turn, so a
-    // revert attempt is never observably pending.
-    const start = this.startAttempt("revert", live.liveVersionId);
-    if (!start.ok) {
-      return { ok: false, error: start.error };
-    }
-    const put = this.completeAttempt(
-      start.attemptId,
-      {
-        parentId: live.liveVersionId,
-        sourceFiles: version.sourceFiles,
-        serverBundle: version.serverBundle,
-        assets: version.assets,
-        kernelVersion: version.kernelVersion,
-        serverSurfaceHash: version.serverSurfaceHash,
-      },
-      { source: "revert", restoredFrom: versionId, trusted: true }
-    );
-    return {
-      ok: true,
-      id: put.id,
-      attemptId: start.attemptId,
-      liveVersionId: put.liveVersionId,
-      parentId: live.liveVersionId,
-      restoredFrom: versionId,
-    };
-  }
-
-  listVersions(): {
-    ok: true;
-    liveVersionId: string | null;
-    versions: {
-      id: string;
-      parentId: string | null;
-      createdAt: number;
-      kernelVersion: string;
-      serverBundleBytes: number;
-      assetKeys: string[];
-    }[];
-  } {
-    this.#ensureMeta();
-    const live = this.ctx.storage.sql
-      .exec("SELECT version_id FROM _sfab_live WHERE singleton = 1")
-      .toArray()[0] as { version_id?: string } | undefined;
-    const rows = this.ctx.storage.sql
-      .exec(
-        `SELECT id, parent_id, created_at, kernel_version, server_bundle, assets
-         FROM _sfab_versions ORDER BY id DESC`
-      )
-      .toArray() as {
-      id: string;
-      parent_id: string | null;
-      created_at: number;
-      kernel_version: string;
-      server_bundle: string;
-      assets: string;
-    }[];
-    return {
-      ok: true,
-      liveVersionId: live?.version_id ?? null,
-      versions: rows.map((r) => {
-        let assetKeys: string[] = [];
-        try {
-          assetKeys = Object.keys(
-            JSON.parse(r.assets) as Record<string, string>
-          );
-        } catch {
-          assetKeys = [];
-        }
-        return {
-          id: r.id,
-          parentId: r.parent_id,
-          createdAt: r.created_at,
-          kernelVersion: r.kernel_version,
-          serverBundleBytes: r.server_bundle?.length ?? 0,
-          assetKeys,
-        };
-      }),
-    };
-  }
-
-  getVersion(versionId: string): {
-    ok: true;
-    version: VersionRecord | null;
-  } {
-    const row = this.ctx.storage.sql
-      .exec(
-        `SELECT id, parent_id, created_at, source_files, server_bundle, assets,
-                kernel_version, server_surface_hash
-         FROM _sfab_versions WHERE id = ?`,
-        versionId
-      )
-      .toArray()[0] as
-      | {
-          id: string;
-          parent_id: string | null;
-          created_at: number;
-          source_files: string | null;
-          server_bundle: string;
-          assets: string;
-          kernel_version: string;
-          server_surface_hash: string | null;
-        }
-      | undefined;
-    if (!row) {
-      return { ok: true, version: null };
-    }
-    return {
-      ok: true,
-      version: {
-        id: row.id,
-        parentId: row.parent_id,
-        createdAt: row.created_at,
-        sourceFiles: row.source_files
-          ? (JSON.parse(row.source_files) as Record<string, string>)
-          : null,
-        serverBundle: row.server_bundle,
-        assets: JSON.parse(row.assets) as Record<string, string>,
-        kernelVersion: row.kernel_version,
-        serverSurfaceHash: row.server_surface_hash ?? null,
-      },
-    };
-  }
-
-  /**
-   * Sweep pending attempts that outlived `STALE_ATTEMPT_MS`.
-   *
-   * Async commit moved the work into `waitUntil`, which is best-effort — a
-   * dropped invocation writes no terminal status. Without this the app would
-   * be permanently blocked by the one-in-flight rule below.
-   */
-  #sweepStaleAttempts(): void {
-    this.ctx.storage.sql.exec(
-      `UPDATE _sfab_commit_attempts
+      `UPDATE _sfab_create_jobs
           SET status = 'error', updated_at = ?, payload = ?
         WHERE status = 'pending' AND created_at < ?`,
       Date.now(),
-      JSON.stringify({ error: "attempt_abandoned", staleMs: STALE_ATTEMPT_MS }),
+      JSON.stringify({ error: "job_abandoned", staleMs: STALE_ATTEMPT_MS }),
       Date.now() - STALE_ATTEMPT_MS
     );
   }
 
-  /**
-   * The attempt currently in flight, after sweeping the stale ones.
-   *
-   * Callers must run this inside `transactionSync` — the answer is only
-   * meaningful while nothing else can open an attempt between the read and
-   * whatever the caller does about it.
-   */
-  #pendingAttemptId(): string | null {
-    this.#sweepStaleAttempts();
+  #pendingJobId(): string | null {
+    this.#sweepStaleJobs();
     const running = this.ctx.storage.sql
-      .exec(
-        "SELECT id FROM _sfab_commit_attempts WHERE status = 'pending' LIMIT 1"
-      )
+      .exec("SELECT id FROM _sfab_create_jobs WHERE status = 'pending' LIMIT 1")
       .toArray()[0] as { id?: string } | undefined;
     return running?.id ?? null;
   }
 
-  /**
-   * Open a commit attempt, or refuse because one is already running.
-   *
-   * **At most one attempt in flight per app.** Two concurrent commits would
-   * both check against the same parent and both mint a version, quietly
-   * breaking the linear history the whole model rests on. Refusing is also
-   * the honest answer to the agent: its edit did not land, rather than
-   * landing later against a tree it never saw.
-   */
-  startAttempt(
-    kind: AttemptKind,
-    parentId: string | null
-  ):
-    | { ok: true; attemptId: string }
-    | { ok: false; error: "attempt_in_flight"; attemptId: string } {
+  startCreateJob():
+    | { ok: true; jobId: string }
+    | { ok: false; error: "job_in_flight"; jobId: string } {
     this.#ensureMeta();
     return this.ctx.storage.transactionSync(() => {
-      const running = this.#pendingAttemptId();
+      const running = this.#pendingJobId();
       if (running) {
         return {
           ok: false as const,
-          error: "attempt_in_flight" as const,
-          attemptId: running,
+          error: "job_in_flight" as const,
+          jobId: running,
         };
       }
-      const id = newAttemptId();
+      const id = newJobId();
       const now = Date.now();
       this.ctx.storage.sql.exec(
-        `INSERT INTO _sfab_commit_attempts
-          (id, kind, status, parent_id, version_id, created_at, updated_at, payload)
-         VALUES (?, ?, 'pending', ?, NULL, ?, ?, NULL)`,
+        `INSERT INTO _sfab_create_jobs
+          (id, status, created_at, updated_at, payload)
+         VALUES (?, 'pending', ?, ?, NULL)`,
         id,
-        kind,
-        parentId,
         now,
         now
       );
-      this.#pruneAttempts();
-      return { ok: true as const, attemptId: id };
+      this.#pruneJobs();
+      return { ok: true as const, jobId: id };
     });
   }
 
-  /**
-   * Keep the attempt log bounded. Never touches `pending` rows — an attempt
-   * still running is not a candidate for eviction however old the log is.
-   */
-  #pruneAttempts(): void {
+  #pruneJobs(): void {
     this.ctx.storage.sql.exec(
-      `DELETE FROM _sfab_commit_attempts
+      `DELETE FROM _sfab_create_jobs
         WHERE status != 'pending'
           AND id NOT IN (
-            SELECT id FROM _sfab_commit_attempts ORDER BY id DESC LIMIT ?
+            SELECT id FROM _sfab_create_jobs ORDER BY id DESC LIMIT ?
           )`,
-      ATTEMPT_RETENTION
+      JOB_RETENTION
     );
   }
 
-  /** Terminal failure — no version is minted. */
-  failAttempt(
-    attemptId: string,
+  failCreateJob(
+    jobId: string,
     status: "fail" | "error",
     payload: unknown = null
-  ): { ok: true; attemptId: string; status: string } {
+  ): { ok: true } {
     this.#ensureMeta();
     this.ctx.storage.sql.exec(
-      `UPDATE _sfab_commit_attempts
+      `UPDATE _sfab_create_jobs
           SET status = ?, updated_at = ?, payload = ?
         WHERE id = ?`,
       status,
       Date.now(),
       payload == null ? null : JSON.stringify(payload),
-      attemptId
+      jobId
     );
-    return { ok: true, attemptId, status };
+    return { ok: true };
   }
 
-  /**
-   * Mint the version and settle the attempt in one transaction.
-   *
-   * Two RPCs would leave a window where the version is live but the attempt
-   * still reads `pending` — a poller would show "checking" for code already
-   * serving traffic.
-   */
-  completeAttempt(
-    attemptId: string,
-    input: PutVersionInput,
-    payload: unknown = null
-  ): { ok: true; id: string; liveVersionId: string; parentId: string | null } {
+  completeCreateJob(jobId: string, payload: unknown = null): { ok: true } {
     this.#ensureMeta();
-    return this.ctx.storage.transactionSync(() => {
-      const put = this.#putVersionSync(input);
-      this.ctx.storage.sql.exec(
-        `UPDATE _sfab_commit_attempts
-            SET status = 'pass', version_id = ?, updated_at = ?, payload = ?
-          WHERE id = ?`,
-        put.id,
-        Date.now(),
-        payload == null ? null : JSON.stringify(payload),
-        attemptId
-      );
-      return put;
-    });
+    this.ctx.storage.sql.exec(
+      `UPDATE _sfab_create_jobs
+          SET status = 'pass', updated_at = ?, payload = ?
+        WHERE id = ?`,
+      Date.now(),
+      payload == null ? null : JSON.stringify(payload),
+      jobId
+    );
+    return { ok: true };
   }
 
-  getAttempt(attemptId: string): {
+  getCreateJob(jobId: string): {
     ok: true;
-    attempt: AttemptRecord | null;
+    job: CreateJobRecord | null;
   } {
     this.#ensureMeta();
-    // Sweep on read too: a poller must not sit on `pending` forever waiting
-    // for a writer that will never come back.
-    this.#sweepStaleAttempts();
+    this.#sweepStaleJobs();
     const row = this.ctx.storage.sql
       .exec(
-        `SELECT id, kind, status, parent_id, version_id, created_at, updated_at, payload
-           FROM _sfab_commit_attempts WHERE id = ?`,
-        attemptId
+        `SELECT id, status, created_at, updated_at, payload
+           FROM _sfab_create_jobs WHERE id = ?`,
+        jobId
       )
       .toArray()[0];
-    return { ok: true, attempt: row ? toAttemptRecord(row) : null };
+    return { ok: true, job: row ? toJobRecord(row) : null };
   }
 
-  listAttempts(limit = 20): {
-    ok: true;
-    attempts: AttemptRecord[];
-  } {
-    this.#ensureMeta();
-    this.#sweepStaleAttempts();
-    const rows = this.ctx.storage.sql
-      .exec(
-        `SELECT id, kind, status, parent_id, version_id, created_at, updated_at, payload
-           FROM _sfab_commit_attempts ORDER BY id DESC LIMIT ?`,
-        Math.max(1, Math.min(limit, 100))
-      )
-      .toArray();
-    return { ok: true, attempts: rows.map(toAttemptRecord) };
-  }
-
-  /** Latest version by created_at — equals live tip under append-only commit. */
-  getLatest(): {
-    ok: true;
-    version: VersionRecord | null;
-  } {
-    this.#ensureMeta();
-    const row = this.ctx.storage.sql
-      .exec("SELECT id FROM _sfab_versions ORDER BY id DESC LIMIT 1")
-      .toArray()[0] as { id?: string } | undefined;
-    if (!row?.id) {
-      return { ok: true, version: null };
-    }
-    return this.getVersion(row.id);
-  }
-
-  /**
-   * The app's demo login, minted once and then stable.
-   *
-   * It lives here rather than in the template because the template is public
-   * source: a password written there is a published owner login for every app
-   * that ever seeded. The token is the same idea from the other direction —
-   * the app cannot authorize its own seed route, so the host holds the value
-   * and injects it.
-   *
-   * Deliberately recoverable, not one-shot. `pnpm seed` has to be able to
-   * reprint a working login, and an app whose only demo credential scrolled
-   * past in a terminal is an app you have to reset to get back into.
-   *
-   * Key-value storage, not a `_sfab_` table: the app's own `DB` binding and
-   * `/api/protected/apps/:id/sql` both run unfiltered SQL against this Durable
-   * Object's database, and app code is agent-written. The key-value namespace
-   * is one neither of them can address.
-   */
   async seedCredentials(): Promise<{ token: string; password: string }> {
     const stored = await this.ctx.storage.get<{
       token: string;
@@ -919,22 +410,6 @@ export class AppDO extends DurableObject<Env> {
     const minted = { token: randomSecret(), password: randomSecret() };
     await this.ctx.storage.put(SEED_CREDENTIALS_KEY, minted);
     return minted;
-  }
-
-  async getLive(): Promise<{
-    ok: true;
-    liveVersionId: string | null;
-    version: VersionRecord | null;
-  }> {
-    const live = this.ctx.storage.sql
-      .exec("SELECT version_id FROM _sfab_live WHERE singleton = 1")
-      .toArray()[0] as { version_id?: string } | undefined;
-    const liveVersionId = live?.version_id ?? null;
-    if (!liveVersionId) {
-      return { ok: true, liveVersionId: null, version: null };
-    }
-    const { version } = await this.getVersion(liveVersionId);
-    return { ok: true, liveVersionId, version };
   }
 
   execAll(
@@ -1010,11 +485,6 @@ export class AppDO extends DurableObject<Env> {
     return rows;
   }
 
-  /**
-   * Caveat (exp-12): batch is emulated with transactionSync — sequential
-   * statements inside one sync transaction. Not byte-identical to D1.batch
-   * for every edge case; enough for better-auth/drizzle.
-   */
   execBatch(
     statements: { query: string; binds: unknown[] }[]
   ): { success: true; results: unknown[]; meta: SqlMeta }[] {

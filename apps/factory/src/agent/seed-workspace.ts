@@ -1,46 +1,41 @@
 import type { WorkspaceFsLike } from "@cloudflare/shell";
-import { appStub } from "../commit.js";
+import { createR2CodeHost } from "../r2-code-host.js";
 
-const SEEDED_KEY = "workspaceSeededFromLive";
-
-function toWorkspacePath(sourcePath: string): string {
-  return sourcePath.startsWith("/") ? sourcePath : `/${sourcePath}`;
-}
+const CLONED_KEY = "workspaceClonedFromCodeHost";
 
 export type SeedWorkspaceResult =
-  | { liveVersionId: string }
+  | { sha: string | null }
   | { skipped: true; reason: string };
 
 /**
- * Seed AppAgent's shared workspace from the app's live version once, when
- * empty. Never auto-re-seed — from then on the workspace is the working copy.
- * Missing live source fails locally (skipped) so onStart still completes and
- * the agent stays reachable; callers surface the reason.
+ * Clone the app repo into AppAgent's shared workspace once, when empty.
+ * Never auto-re-clone — from then on the workspace is the working copy.
  */
-export async function seedWorkspaceFromLive(
+export async function seedWorkspaceFromCodeHost(
   env: Env,
   storage: DurableObjectStorage,
   workspace: WorkspaceFsLike,
   appId: string
 ): Promise<SeedWorkspaceResult> {
-  const already = await storage.get<string>(SEEDED_KEY);
+  const already = await storage.get<string>(CLONED_KEY);
   if (already) {
-    return { liveVersionId: already };
+    return { sha: already === "empty" ? null : already };
   }
 
-  const live = await appStub(env, appId).getLive();
-  const files = live.version?.sourceFiles;
-  if (!(live.liveVersionId && files)) {
+  try {
+    const host = createR2CodeHost(env);
+    await host.ensureRepo(appId);
+    const { sha } = await host.cloneTo(
+      appId,
+      workspace as unknown as import("../code-host.js").GitWorkFs,
+      "/"
+    );
+    await storage.put(CLONED_KEY, sha ?? "empty");
+    return { sha };
+  } catch (e) {
     return {
       skipped: true,
-      reason: `app ${appId} has no live version with source_files`,
+      reason: `clone failed for ${appId}: ${e instanceof Error ? e.message : String(e)}`,
     };
   }
-
-  for (const [path, content] of Object.entries(files)) {
-    await workspace.writeFile(toWorkspacePath(path), content);
-  }
-
-  await storage.put(SEEDED_KEY, live.liveVersionId);
-  return { liveVersionId: live.liveVersionId };
 }
