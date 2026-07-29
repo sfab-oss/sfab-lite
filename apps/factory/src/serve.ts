@@ -62,26 +62,46 @@ function dataIdFor(
   return liveDataId(appId);
 }
 
+type LoadBuildResult =
+  | { ok: true; build: AppBuild }
+  | {
+      ok: false;
+      error: "preview_not_open" | "no_preview_build" | "no_live_build";
+    };
+
 async function loadBuild(
   env: Env,
   appId: string,
   mode: ServeMode,
   preview?: ServePreviewOpts
-): Promise<AppBuild | null> {
-  let sha: string | null = null;
+): Promise<LoadBuildResult> {
   if (mode === "preview") {
     if (!preview?.prNumber) {
-      return null;
+      return { ok: false, error: "no_preview_build" };
     }
     const pr = await getPullRequestByNumber(env, appId, preview.prNumber);
-    sha = pr?.previewSha ?? null;
-  } else {
-    sha = await getLiveSha(env, appId);
+    if (pr?.status !== "open") {
+      return { ok: false, error: "preview_not_open" };
+    }
+    if (!pr.previewSha) {
+      return { ok: false, error: "no_preview_build" };
+    }
+    const build = await createR2BuildStore(env).getBuild(appId, pr.previewSha);
+    if (!build) {
+      return { ok: false, error: "no_preview_build" };
+    }
+    return { ok: true, build };
   }
+
+  const sha = await getLiveSha(env, appId);
   if (!sha) {
-    return null;
+    return { ok: false, error: "no_live_build" };
   }
-  return createR2BuildStore(env).getBuild(appId, sha);
+  const build = await createR2BuildStore(env).getBuild(appId, sha);
+  if (!build) {
+    return { ok: false, error: "no_live_build" };
+  }
+  return { ok: true, build };
 }
 
 function pathPrefixFor(
@@ -265,19 +285,21 @@ export async function serveSubApp(
 
   const dataId = dataIdFor(appId, mode, preview);
   const stub = env.APP_DATA_DO.get(env.APP_DATA_DO.idFromName(dataId));
-  const build = await loadBuild(env, appId, mode, preview);
+  const loaded = await loadBuild(env, appId, mode, preview);
 
-  if (!build) {
+  if (!loaded.ok) {
     return Response.json(
       {
         ok: false,
-        error: mode === "preview" ? "no_preview_build" : "no_live_build",
+        error: loaded.error,
         appId,
         ...(preview?.prNumber == null ? {} : { prNumber: preview.prNumber }),
       },
       { status: 404 }
     );
   }
+
+  const { build } = loaded;
 
   if (
     build.serverSurfaceHash != null &&

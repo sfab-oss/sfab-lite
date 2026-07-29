@@ -320,9 +320,10 @@ async function startCheckRun(
     const db = createDb(env);
     const prRow = await db.query.pullRequest.findFirst({
       where: eq(pullRequest.id, input.prId),
-      columns: { number: true },
+      columns: { number: true, status: true },
     });
-    if (prRow?.number != null) {
+    // Closed/merged PRs must not resurrect a destroyed preview DO.
+    if (prRow?.status === "open" && prRow.number != null) {
       const migrated = await applyPreviewSchemaMigrations(
         env,
         appId,
@@ -342,11 +343,11 @@ async function startCheckRun(
           },
         });
       }
+      await db
+        .update(pullRequest)
+        .set({ previewSha: input.sha, updatedAt: new Date() })
+        .where(eq(pullRequest.id, input.prId));
     }
-    await db
-      .update(pullRequest)
-      .set({ previewSha: input.sha, updatedAt: new Date() })
-      .where(eq(pullRequest.id, input.prId));
   }
 
   return insertCompletedCheckRun(env, {
@@ -477,6 +478,7 @@ export async function mergePullRequest(
     .update(pullRequest)
     .set({
       status: "merged",
+      previewSha: null,
       mergedSha: liveSha,
       mergedAt: now,
       updatedAt: now,
@@ -523,7 +525,7 @@ export async function closePullRequest(
   const now = new Date();
   await db
     .update(pullRequest)
-    .set({ status: "closed", updatedAt: now })
+    .set({ status: "closed", previewSha: null, updatedAt: now })
     .where(eq(pullRequest.id, pr.id));
 
   await destroyPreviewData(env, appId, number);

@@ -155,7 +155,7 @@ function PrBody({
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-3">
-          {pr.previewSha ? (
+          {pr.status === "open" && pr.previewSha ? (
             <Button
               render={
                 <a

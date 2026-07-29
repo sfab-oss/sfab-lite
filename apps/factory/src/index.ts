@@ -73,17 +73,25 @@ async function requirePreviewAccess(
   const actor = await resolveActor(rc.env, db, rc.request, rc.url.origin);
   if (actor instanceof Response) {
     const accept = rc.request.headers.get("Accept") ?? "";
-    if (
+    const htmlNav =
       (rc.request.method === "GET" || rc.request.method === "HEAD") &&
-      accept.includes("text/html")
-    ) {
-      const next = encodeURIComponent(`${rc.url.pathname}${rc.url.search}`);
-      return Response.redirect(
-        new URL(`/signin?redirect=${next}`, rc.url.origin),
-        302
+      accept.includes("text/html");
+    if (!htmlNav) {
+      return actor;
+    }
+    const next = encodeURIComponent(`${rc.url.pathname}${rc.url.search}`);
+    const signIn = new URL(`/signin?redirect=${next}`, rc.url.origin);
+    // Don't 302 factory chrome into an iframe (expired console embed).
+    if (rc.request.headers.get("Sec-Fetch-Dest") === "iframe") {
+      return new Response(
+        `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sign in required</title></head><body><p>Sign in required to view this preview.</p><p><a href="${signIn.href}" target="_top" rel="noopener">Open sign-in</a></p></body></html>`,
+        {
+          status: 401,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }
       );
     }
-    return actor;
+    return Response.redirect(signIn, 302);
   }
   return requireAppAccess(db, actor, appId);
 }

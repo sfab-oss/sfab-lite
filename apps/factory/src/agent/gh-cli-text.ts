@@ -50,7 +50,7 @@ export function formatPrView(pr: PrRecord): string {
     `head:\t${pr.headBranch} (${pr.headSha.slice(0, 12)})\n` +
     `base:\t${pr.baseBranch}\n` +
     `preview:\t${
-      pr.previewSha
+      pr.status === "open" && pr.previewSha
         ? `${pr.previewSha.slice(0, 12)} (/a/{app}/preview/${pr.number}/)`
         : "—"
     }\n` +
