@@ -1,6 +1,7 @@
 import { and, eq, notExists } from "drizzle-orm";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import {
   account,
@@ -15,6 +16,22 @@ import {
 } from "../../db/schema";
 import type { AppEnv } from "../middleware";
 import { jsonBody } from "../validate";
+
+function isAuthApiError(err: unknown): err is {
+  name: "APIError";
+  statusCode: number;
+  body?: { message?: string; code?: string };
+  message?: string;
+} {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "name" in err &&
+    (err as { name: unknown }).name === "APIError" &&
+    "statusCode" in err &&
+    typeof (err as { statusCode: unknown }).statusCode === "number"
+  );
+}
 
 /**
  * The demo account every seeded app carries. The password is **not** here:
@@ -155,73 +172,103 @@ export const devRoutes = new Hono<AppEnv>().post(
       ]);
     }
 
-    // better-auth owns password hashing, so the account is created through its
-    // API rather than by writing the `account` row.
-    const { user: seedUser } = await auth.api.signUpEmail({
-      body: { email: SEED_EMAIL, password, name: SEED_NAME },
-    });
-    const userId = seedUser.id;
+    try {
+      const ctx = await auth.$context;
+      const hash = await ctx.password.hash(password);
+      const seedUser = await ctx.internalAdapter.createUser({
+        email: SEED_EMAIL.toLowerCase(),
+        name: SEED_NAME,
+        emailVerified: false,
+      });
+      if (!seedUser) {
+        return c.json(
+          {
+            error: "seed_user_create_failed" as const,
+            message: "Failed to create demo user",
+          },
+          500
+        );
+      }
+      await ctx.internalAdapter.linkAccount({
+        userId: seedUser.id,
+        providerId: "credential",
+        accountId: seedUser.id,
+        password: hash,
+      });
+      const userId = seedUser.id;
 
-    const organizationId = crypto.randomUUID();
-    const parties = PARTIES.map((party) => ({
-      id: crypto.randomUUID(),
-      organizationId,
-      ...party,
-    }));
-    const catalog = PRODUCTS.map((item) => ({
-      id: crypto.randomUUID(),
-      organizationId,
-      ...item,
-    }));
+      const organizationId = crypto.randomUUID();
+      const parties = PARTIES.map((party) => ({
+        id: crypto.randomUUID(),
+        organizationId,
+        ...party,
+      }));
+      const catalog = PRODUCTS.map((item) => ({
+        id: crypto.randomUUID(),
+        organizationId,
+        ...item,
+      }));
 
-    const customer = parties[0];
-    const widget = catalog[0];
-    if (!(customer && widget)) {
-      return c.json({ error: "seed_data_empty" as const }, 500);
+      const customer = parties[0];
+      const widget = catalog[0];
+      if (!(customer && widget)) {
+        return c.json({ error: "seed_data_empty" as const }, 500);
+      }
+
+      const documentId = crypto.randomUUID();
+
+      /**
+       * One batch, so the sample graph either exists whole or not at all. A
+       * document that committed without its line would be a finalized total with
+       * nothing behind it — a state `routes/documents.ts` cannot produce, since
+       * finalize requires a line and recomputes the total from the lines.
+       */
+      await db.batch([
+        db.insert(organization).values({
+          id: organizationId,
+          name: SEED_ORG,
+          slug: SEED_ORG_SLUG,
+        }),
+        db.insert(member).values({
+          id: crypto.randomUUID(),
+          organizationId,
+          userId,
+          role: "owner",
+        }),
+        db.insert(entity).values(parties),
+        db.insert(product).values(catalog),
+        db.insert(document).values({
+          id: documentId,
+          organizationId,
+          entityId: customer.id,
+          entityNameSnapshot: customer.name,
+          status: "finalized",
+          number: 1,
+          totalCents: ISSUED_QUANTITY * widget.unitPriceCents,
+          issuedAt: new Date(),
+        }),
+        db.insert(documentLine).values({
+          id: crypto.randomUUID(),
+          documentId,
+          productId: widget.id,
+          nameSnapshot: widget.name,
+          quantity: ISSUED_QUANTITY,
+          unitPriceCents: widget.unitPriceCents,
+        }),
+      ]);
+
+      return c.json({ seeded: true as const, ...demoLogin });
+    } catch (err) {
+      if (isAuthApiError(err)) {
+        return c.json(
+          {
+            error: err.body?.code ?? ("auth_error" as const),
+            message: err.body?.message ?? err.message ?? "Authentication error",
+          },
+          err.statusCode as ContentfulStatusCode
+        );
+      }
+      throw err;
     }
-
-    const documentId = crypto.randomUUID();
-
-    /**
-     * One batch, so the sample graph either exists whole or not at all. A
-     * document that committed without its line would be a finalized total with
-     * nothing behind it — a state `routes/documents.ts` cannot produce, since
-     * finalize requires a line and recomputes the total from the lines.
-     */
-    await db.batch([
-      db.insert(organization).values({
-        id: organizationId,
-        name: SEED_ORG,
-        slug: SEED_ORG_SLUG,
-      }),
-      db.insert(member).values({
-        id: crypto.randomUUID(),
-        organizationId,
-        userId,
-        role: "owner",
-      }),
-      db.insert(entity).values(parties),
-      db.insert(product).values(catalog),
-      db.insert(document).values({
-        id: documentId,
-        organizationId,
-        entityId: customer.id,
-        entityNameSnapshot: customer.name,
-        status: "finalized",
-        number: 1,
-        totalCents: ISSUED_QUANTITY * widget.unitPriceCents,
-        issuedAt: new Date(),
-      }),
-      db.insert(documentLine).values({
-        id: crypto.randomUUID(),
-        documentId,
-        productId: widget.id,
-        nameSnapshot: widget.name,
-        quantity: ISSUED_QUANTITY,
-        unitPriceCents: widget.unitPriceCents,
-      }),
-    ]);
-
-    return c.json({ seeded: true as const, ...demoLogin });
   }
 );

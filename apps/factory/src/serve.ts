@@ -108,7 +108,7 @@ async function serveApiRoute(
       DB: ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps }),
       BETTER_AUTH_SECRET: secret,
       // Origin only — LOADER sees stripped `/api/auth/*` paths.
-      BETTER_AUTH_URL: url.origin,
+      BETTER_AUTH_URL: new URL(publicBase).origin,
       // Which is exactly why the mount has to travel separately: the app
       // scopes its cookies to this path so it cannot clobber the console's
       // session, or another app's, on the origin they all share. Deliberately
@@ -123,7 +123,7 @@ async function serveApiRoute(
   }));
 
   const headers = new Headers(request.headers);
-  headers.set("origin", publicBase);
+  headers.set("Origin", url.origin);
 
   const init: RequestInit = {
     method: request.method,
