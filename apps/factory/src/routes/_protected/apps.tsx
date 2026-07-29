@@ -1,7 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AppsListScreen } from "@/screens/apps-list";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_protected/apps")({
   ssr: false,
-  component: AppsListScreen,
+  component: () => <Outlet />,
 });
