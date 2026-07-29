@@ -71,6 +71,15 @@ export function ConsoleProviders({ children }: { children: ReactNode }) {
 
   const clearThreadSeed = consumeThreadSeed;
 
+  const refreshAttendedApp = useCallback(
+    (appId: string) => {
+      if (chatData.getAppId() === appId) {
+        chatData.refreshApp(appId).catch(() => undefined);
+      }
+    },
+    [chatData]
+  );
+
   const session = useMemo(
     () => ({
       scopeAppId,
@@ -98,7 +107,7 @@ export function ConsoleProviders({ children }: { children: ReactNode }) {
     <ChatDataProvider value={chatData}>
       <AppAgentRegistryProvider>
         <ConsoleSessionContext.Provider value={session}>
-          <OrgEventsRouter />
+          <OrgEventsRouter refreshAttendedApp={refreshAttendedApp} />
           {children}
         </ConsoleSessionContext.Provider>
       </AppAgentRegistryProvider>

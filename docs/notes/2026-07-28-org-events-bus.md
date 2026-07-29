@@ -80,3 +80,11 @@ bus client injected into serve `preview` mode.
 **Closed 2026-07-28** — shared understanding confirmed. Next: implement from
 this note (org DO + WS + publish choke points + `OrgEventsRouter` + chat
 preview + factory iframe preview route).
+
+
+## Follow-up (not this PR)
+
+Factory console preview route: optional **code panel beside the iframe**,
+ideally updating as workspace/code changes arrive. Sharpen before
+implementing; wait until org-events PR feedback is settled. Do not merge
+#92 into that work without owner go-ahead.

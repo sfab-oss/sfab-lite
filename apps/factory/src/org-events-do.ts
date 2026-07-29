@@ -5,7 +5,7 @@
  * validation, no topic branching, no event log / replay.
  */
 import { DurableObject } from "cloudflare:workers";
-import { newOrgEventId } from "./org-events.js";
+import { newOrgEventId, packOrgEventFrame } from "./org-events.js";
 
 const LAST_SEQ_KEY = "lastSeq";
 const MAX_BUFFERED_AMOUNT = 1024 * 1024;
@@ -40,14 +40,9 @@ export class OrgEvents extends DurableObject<Env> {
     const seq = lastSeq + 1;
     await this.ctx.storage.put(LAST_SEQ_KEY, seq);
     const id = newOrgEventId();
-    const encoded = JSON.stringify({
-      v: 1,
-      kind: "event",
-      seq,
-      id,
-      topic: input.topic,
-      payload: input.payload,
-    });
+    const encoded = JSON.stringify(
+      packOrgEventFrame(input.topic, input.payload, seq, id)
+    );
     for (const ws of this.ctx.getWebSockets()) {
       this.#safeSend(ws, encoded);
     }

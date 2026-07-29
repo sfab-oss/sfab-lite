@@ -42,8 +42,9 @@ export function newOrgEventId(): string {
   return `evt_${nextEventUlid()}`;
 }
 
-export function packOrgEvent(
-  event: OrgEventInput,
+export function packOrgEventFrame(
+  topic: string,
+  payload: Record<string, unknown>,
   seq: number,
   id: string
 ): OrgEventWire {
@@ -52,9 +53,22 @@ export function packOrgEvent(
     kind: "event",
     seq,
     id,
-    topic: event.topic,
-    payload: (event.payload ?? {}) as Record<string, unknown>,
+    topic,
+    payload,
   };
+}
+
+export function packOrgEvent(
+  event: OrgEventInput,
+  seq: number,
+  id: string
+): OrgEventWire {
+  return packOrgEventFrame(
+    event.topic,
+    (event.payload ?? {}) as Record<string, unknown>,
+    seq,
+    id
+  );
 }
 
 export function publishOrgEvent(

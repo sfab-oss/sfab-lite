@@ -16,6 +16,7 @@ import { runCommitAttempt } from "./commit.js";
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
 import { INTERNAL_TOKEN_HEADER, verifyAttemptRun } from "./internal-token.js";
+import { publishOrgEvent } from "./org-events.js";
 import { settleCreateApp } from "./registry.js";
 import type { RequestCtx } from "./routes.js";
 import { NOT_FOUND_BODY } from "./routes.js";
@@ -52,12 +53,14 @@ async function handleRunCreate(
     null,
     { forceColdCheck: true }
   );
-  await settleCreateApp(
-    createDb(rc.env),
-    rc.env,
-    appId,
-    status === "aborted" ? "error" : status
-  );
+  const attemptStatus = status === "aborted" ? "error" : status;
+  const record = await settleCreateApp(createDb(rc.env), appId, attemptStatus);
+  if (record) {
+    publishOrgEvent(
+      { env: rc.env, organizationId: record.organizationId },
+      { topic: "app_list_changed", payload: { appId } }
+    );
+  }
   return Response.json({ ok: true, appId, attemptId, status });
 }
 

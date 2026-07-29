@@ -97,6 +97,7 @@ function BrowserFrame({
 
   pathRef.current = path;
 
+  // Prop path covers same-tab deploy (chat live tip updates before a bus round-trip).
   useEffect(() => {
     if (prevLiveRef.current === liveVersionId) {
       return;
@@ -105,6 +106,7 @@ function BrowserFrame({
     reloadPreviewFrame(iframeRef.current, appId, pathRef.current);
   }, [appId, liveVersionId]);
 
+  // Bus path covers cross-tab / MCP deploys while chat live tip is still outside RQ.
   useEffect(
     () =>
       subscribeLiveVersion((nextAppId, nextLiveVersionId) => {

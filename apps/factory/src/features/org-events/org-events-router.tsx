@@ -1,7 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { useChatData } from "@/features/chat/data/chat-data-context";
-import type { RealChatData } from "@/features/chat/data/create-real-chat-data";
 import { notifyLiveVersion } from "@/features/preview/live-version-bus";
 import type { OrgServerFrame } from "@/org-events";
 import {
@@ -17,17 +15,6 @@ function orgEventsWsUrl(): string {
   return `${proto}//${window.location.host}/api/protected/org-events/ws`;
 }
 
-function isRealChatData(value: unknown): value is RealChatData {
-  return (
-    !!value &&
-    typeof value === "object" &&
-    "refreshApp" in value &&
-    typeof (value as RealChatData).refreshApp === "function" &&
-    "getAppId" in value &&
-    typeof (value as RealChatData).getAppId === "function"
-  );
-}
-
 function fireAndForget(promise: Promise<unknown>): void {
   promise.catch(() => undefined);
 }
@@ -36,9 +23,14 @@ function fireAndForget(promise: Promise<unknown>): void {
  * Long-lived org WebSocket while signed into the factory console.
  * Maps topics → debounced React Query invalidation + preview reload hints.
  */
-export function OrgEventsRouter() {
+export function OrgEventsRouter({
+  refreshAttendedApp,
+}: {
+  refreshAttendedApp?: (appId: string) => void;
+}) {
   const queryClient = useQueryClient();
-  const chatData = useChatData();
+  const refreshRef = useRef(refreshAttendedApp);
+  refreshRef.current = refreshAttendedApp;
   const lastSeqRef = useRef<number | null>(null);
   const pendingRef = useRef<Set<() => void>>(new Set());
   const timerRef = useRef<number | null>(null);
@@ -83,9 +75,7 @@ export function OrgEventsRouter() {
         );
       },
       refreshAttendedApp: (appId) => {
-        if (isRealChatData(chatData) && chatData.getAppId() === appId) {
-          fireAndForget(chatData.refreshApp(appId));
-        }
+        refreshRef.current?.(appId);
       },
       onLiveVersion: notifyLiveVersion,
     };
@@ -179,7 +169,7 @@ export function OrgEventsRouter() {
       }
       socket?.close();
     };
-  }, [chatData, queryClient]);
+  }, [queryClient]);
 
   return null;
 }
