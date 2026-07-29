@@ -10,10 +10,9 @@
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { getAgentByName } from "agents";
-import { collectAgentWorkspaceFiles } from "./agent/workspace-files.js";
 import type { AppDataDO } from "./app-data-do.js";
 import { liveDataId, prDataId, wsDataId } from "./app-data-ids.js";
-import { collectMigrations } from "./app-migrations.js";
+import { type AppMigration, collectMigrations } from "./app-migrations.js";
 import { appDataStub } from "./app-stub.js";
 import type { AppBuild } from "./build-store.js";
 import { getLiveSha } from "./cd.js";
@@ -70,7 +69,12 @@ function dataIdFor(
 }
 
 type LoadBuildResult =
-  | { ok: true; build: AppBuild; generation?: number }
+  | {
+      ok: true;
+      build: AppBuild;
+      generation?: number;
+      migrations?: AppMigration[];
+    }
   | {
       ok: false;
       error:
@@ -153,6 +157,7 @@ async function loadWorkspaceBuild(
     ok: true,
     build: record.build,
     generation: record.generation,
+    migrations: record.migrations ?? [],
   };
 }
 
@@ -207,15 +212,9 @@ async function ensureDataMigrated(
 
 async function ensureWorkspaceDataMigrated(
   env: Env,
-  appId: string,
-  dataId: string
+  dataId: string,
+  migrations: AppMigration[]
 ): Promise<void> {
-  const agent = await getAgentByName(env.AppAgent, appId);
-  const sourceFiles = await collectAgentWorkspaceFiles({
-    glob: (pattern) => agent.glob(pattern),
-    readFile: (path) => agent.readFile(path),
-  });
-  const migrations = collectMigrations(sourceFiles);
   if (migrations.length === 0) {
     return;
   }
@@ -346,7 +345,8 @@ async function bootstrapServeData(
   dataId: string,
   mode: ServeMode,
   build: AppBuild,
-  preview?: ServePreviewOpts
+  preview?: ServePreviewOpts,
+  migrations?: AppMigration[]
 ): Promise<Response | null> {
   if (mode === "preview") {
     try {
@@ -368,7 +368,7 @@ async function bootstrapServeData(
     return null;
   }
   try {
-    await ensureWorkspaceDataMigrated(env, appId, dataId);
+    await ensureWorkspaceDataMigrated(env, dataId, migrations ?? []);
   } catch {
     return Response.json(
       {
@@ -423,7 +423,7 @@ export async function serveSubApp(
     );
   }
 
-  const { build, generation } = loaded;
+  const { build, generation, migrations } = loaded;
 
   if (
     build.serverSurfaceHash != null &&
@@ -448,7 +448,8 @@ export async function serveSubApp(
     dataId,
     mode,
     build,
-    preview
+    preview,
+    migrations
   );
   if (bootstrapError) {
     return bootstrapError;

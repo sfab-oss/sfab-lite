@@ -1,17 +1,18 @@
 /**
  * Ephemeral workspace WIP compile — compileAll only, stored under a fixed R2
- * key (not sha-immutable CD builds).
+ * key (not sha-immutable CD builds). Migrations are snapshotted with the build
+ * so serve bootstraps the same generation it serves.
  */
+import type { AppMigration } from "./app-migrations.js";
 import type { AppBuild } from "./build-store.js";
-import { buildIndexHtml, compileClient } from "./compile-client.js";
-import { compileCss } from "./compile-css.js";
-import { compileServer } from "./compile-server.js";
+import { compileAll } from "./compile-all.js";
 
 const WORKSPACE_BUILD_SHA_PREFIX = "ws:";
 
 export interface WorkspaceBuildRecord {
   generation: number;
   build: AppBuild;
+  migrations: AppMigration[];
   at: number;
 }
 
@@ -22,18 +23,10 @@ function workspaceBuildKey(appId: string): string {
 export async function compileWorkspaceFiles(
   files: Record<string, string>
 ): Promise<Omit<AppBuild, "sha">> {
-  const compiled = await compileServer(files);
-  const client = await compileClient(files);
-  const css = await compileCss(files);
+  const { compiled, assets } = await compileAll(files);
   return {
     serverBundle: compiled.serverBundle,
-    assets: {
-      "index.html": buildIndexHtml({
-        kernelVersion: compiled.kernelVersion,
-      }),
-      "assets/app.js": client.js,
-      "assets/app.css": css.css,
-    },
+    assets,
     kernelVersion: compiled.kernelVersion,
     serverSurfaceHash: compiled.serverSurfaceHash,
   };

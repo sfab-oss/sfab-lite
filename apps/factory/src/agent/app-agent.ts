@@ -3,6 +3,7 @@ import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
+import { collectMigrations } from "../app-migrations.js";
 import { getLiveSha } from "../cd.js";
 import { remoteUrlFor } from "../code-host.js";
 import {
@@ -268,6 +269,7 @@ export class AppAgent extends Think<Env> {
     try {
       const files = await collectAgentWorkspaceFiles(this.#fs);
       const compiled = await compileWorkspaceFiles(files);
+      const migrations = collectMigrations(files);
       const prev =
         (await this.ctx.storage.get<number>(WORKSPACE_BUILD_GEN_KEY)) ?? 0;
       const generation = prev + 1;
@@ -278,6 +280,7 @@ export class AppAgent extends Think<Env> {
       await putWorkspaceBuild(this.env, this.name, {
         generation,
         build,
+        migrations,
         at: Date.now(),
       });
       await this.ctx.storage.put(WORKSPACE_BUILD_GEN_KEY, generation);

@@ -20,7 +20,7 @@ import {
 import { useChatData } from "../data/chat-data-context";
 import { appQuickLinks } from "../lib/extract-app-routes";
 
-const ROUTER_FILE = "src/ui/router.tsx";
+const ROUTER_FILE = "/src/ui/router.tsx";
 const LOCATION_POLL_MS = 300;
 const IFRAME_SANDBOX = "allow-same-origin allow-scripts allow-forms";
 
@@ -136,7 +136,8 @@ function handleWorkspaceAgentMessage(
   data: string,
   generationRef: { current: number | null },
   setBuildHint: (hint: string | null) => void,
-  reloadFrame: () => void
+  reloadFrame: () => void,
+  refreshQuickLinks: () => void
 ): void {
   try {
     const parsed = JSON.parse(data) as {
@@ -145,6 +146,10 @@ function handleWorkspaceAgentMessage(
       status?: string;
       error?: string;
     };
+    if (parsed.type === "workspace-change") {
+      refreshQuickLinks();
+      return;
+    }
     if (parsed.type === "workspace-build-ready") {
       if (
         typeof parsed.generation === "number" &&
@@ -156,6 +161,7 @@ function handleWorkspaceAgentMessage(
         generationRef.current = parsed.generation;
       }
       setBuildHint(null);
+      refreshQuickLinks();
       reloadFrame();
       return;
     }
@@ -174,11 +180,20 @@ function handleWorkspaceAgentMessage(
   }
 }
 
+async function readWipQuickLinks(agent: {
+  ready: Promise<unknown>;
+  call: (name: string, args: unknown[]) => Promise<unknown>;
+}): Promise<string[]> {
+  await agent.ready;
+  const content = (await agent.call("readFile", [ROUTER_FILE])) as
+    | string
+    | null;
+  return appQuickLinks(content);
+}
+
 export function SessionTabBrowser({ active }: { active: boolean }) {
   const data = useChatData();
   const appId = data.getAppId();
-  const routerSource = data.getWorkspaceFile(ROUTER_FILE)?.content ?? null;
-  const quickLinks = appQuickLinks(routerSource);
 
   if (!appId) {
     return (
@@ -191,25 +206,10 @@ export function SessionTabBrowser({ active }: { active: boolean }) {
     );
   }
 
-  return (
-    <BrowserFrame
-      active={active}
-      appId={appId}
-      key={appId}
-      quickLinks={quickLinks}
-    />
-  );
+  return <BrowserFrame active={active} appId={appId} key={appId} />;
 }
 
-function BrowserFrame({
-  active,
-  appId,
-  quickLinks,
-}: {
-  active: boolean;
-  appId: string;
-  quickLinks: string[];
-}) {
+function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pathRef = useRef("/");
   const generationRef = useRef<number | null>(null);
@@ -217,6 +217,7 @@ function BrowserFrame({
   const [draft, setDraft] = useState(localhostDisplayPath("/"));
   const [editing, setEditing] = useState(false);
   const [buildHint, setBuildHint] = useState<string | null>("Preparing…");
+  const [quickLinks, setQuickLinks] = useState<string[]>([]);
   const rootSrc = `${appWorkspaceBasePath(appId)}/`;
 
   pathRef.current = path;
@@ -224,6 +225,8 @@ function BrowserFrame({
   const reloadFrame = useCallback(() => {
     reloadPreviewFrame(iframeRef.current, appId, pathRef.current, "workspace");
   }, [appId]);
+
+  const refreshQuickLinksRef = useRef<() => void>(() => undefined);
 
   const agent = useAgent({
     agent: "AppAgent",
@@ -236,10 +239,29 @@ function BrowserFrame({
         event.data,
         generationRef,
         setBuildHint,
-        reloadFrame
+        reloadFrame,
+        () => refreshQuickLinksRef.current()
       );
     },
   });
+
+  const refreshQuickLinks = useCallback(() => {
+    fireAndForget(
+      readWipQuickLinks(agent)
+        .then((links) => {
+          setQuickLinks(links);
+        })
+        .catch(() => {
+          setQuickLinks([]);
+        })
+    );
+  }, [agent]);
+
+  refreshQuickLinksRef.current = refreshQuickLinks;
+
+  useEffect(() => {
+    refreshQuickLinks();
+  }, [refreshQuickLinks]);
 
   useEffect(() => {
     let cancelled = false;
