@@ -6,7 +6,16 @@ import type { LanguageModel } from "ai";
 import { getLiveSha } from "../cd.js";
 import { remoteUrlFor } from "../code-host.js";
 import { AppThread } from "./app-thread.js";
-import { seedWorkspaceFromCodeHost } from "./seed-workspace.js";
+import { GatedWorkspace } from "./gated-workspace.js";
+import {
+  cloneWorkspaceFromCodeHost,
+  isWorkspaceClonePending,
+  isWorkspaceCloneReady,
+  WORKSPACE_CLONE_PENDING,
+  WORKSPACE_CLONED_KEY,
+  workspaceCloneFailedMarker,
+  workspaceCloneFailureReason,
+} from "./seed-workspace.js";
 import { createAppShellCommands } from "./shell-commands.js";
 
 export interface ShellResult {
@@ -16,6 +25,7 @@ export interface ShellResult {
 }
 
 const SHELL_TIMEOUT_MS = 120_000;
+const SEED_CALLBACK = "seedWorkspaceClone" as const;
 
 export interface ThreadSummary {
   createdAt: number;
@@ -43,10 +53,26 @@ export class AppAgent extends Think<Env> {
     onChange: (event) => this.#broadcastWorkspaceChange(event),
   });
 
+  /**
+   * Public FS surface (MCP stub + SharedWorkspace + @callable reads).
+   * Clone writes go to raw `workspace` so readiness cannot deadlock.
+   */
+  readonly #fs = new GatedWorkspace(
+    () => this.#ensureWorkspaceReady(),
+    () => this.workspace
+  );
+
+  #workspaceClonePromise: Promise<void> | null = null;
+
   override getModel(): LanguageModel {
     throw new Error("AppAgent chat is dormant; connect to an AppThread facet");
   }
 
+  /**
+   * Keep partyserver's `blockConcurrencyWhile(onStart)` tiny: DDL + status
+   * flip + idempotent schedule. R2 clone runs outside the gate via the Agent
+   * schedule alarm (and on-demand from MCP/WS callers that need the tree).
+   */
   override async onStart(): Promise<void> {
     this.sql`CREATE TABLE IF NOT EXISTS thread_meta (
       id TEXT PRIMARY KEY,
@@ -55,14 +81,76 @@ export class AppAgent extends Think<Env> {
       updated_at INTEGER NOT NULL
     )`;
 
-    const seeded = await seedWorkspaceFromCodeHost(
-      this.env,
-      this.ctx.storage,
-      this.workspace,
-      this.name
-    );
-    if ("skipped" in seeded) {
-      console.warn(`[AppAgent] ${this.name}: ${seeded.reason}`);
+    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
+    if (isWorkspaceCloneReady(status)) {
+      return;
+    }
+    if (workspaceCloneFailureReason(status)) {
+      console.warn(
+        `[AppAgent] ${this.name}: workspace clone previously failed: ${workspaceCloneFailureReason(status)}`
+      );
+      return;
+    }
+    if (!status) {
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
+    }
+    await this.schedule(0, SEED_CALLBACK, {}, { idempotent: true });
+  }
+
+  /**
+   * Scheduled callback — must stay outside `onStart`. Agent alarm runs this
+   * after the concurrency gate releases.
+   */
+  async seedWorkspaceClone(
+    _payload: Record<string, never> = {}
+  ): Promise<void> {
+    await this.#ensureWorkspaceReady();
+  }
+
+  async #ensureWorkspaceReady(): Promise<void> {
+    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
+    if (isWorkspaceCloneReady(status)) {
+      return;
+    }
+    // Demand path (MCP / Code / shell / SharedWorkspace): clear a prior
+    // durable failure and retry. Auto onStart never reschedules on failed:.
+    if (workspaceCloneFailureReason(status)) {
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
+    }
+    if (!this.#workspaceClonePromise) {
+      this.#workspaceClonePromise = this.#runWorkspaceClone().finally(() => {
+        this.#workspaceClonePromise = null;
+      });
+    }
+    await this.#workspaceClonePromise;
+  }
+
+  async #runWorkspaceClone(): Promise<void> {
+    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
+    if (isWorkspaceCloneReady(status)) {
+      return;
+    }
+    if (!isWorkspaceClonePending(status)) {
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
+    }
+
+    try {
+      const { sha } = await cloneWorkspaceFromCodeHost(
+        this.env,
+        this.workspace,
+        this.name
+      );
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, sha ?? "empty");
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
+      await this.ctx.storage.put(
+        WORKSPACE_CLONED_KEY,
+        workspaceCloneFailedMarker(reason)
+      );
+      console.error(
+        `[AppAgent] ${this.name}: workspace clone failed: ${reason}`
+      );
+      throw e instanceof Error ? e : new Error(reason);
     }
   }
 
@@ -163,6 +251,7 @@ export class AppAgent extends Think<Env> {
    * is the same capability behind an `AGENT_HARNESS` flag, for the same reason.
    */
   async runShell(script: string): Promise<ShellResult> {
+    await this.#ensureWorkspaceReady();
     const { bash } = createWorkspaceTools(this.workspace, {
       bash: {
         timeout: SHELL_TIMEOUT_MS,
@@ -192,11 +281,11 @@ export class AppAgent extends Think<Env> {
    */
   @callable()
   readFile(path: string) {
-    return this.workspace.readFile(path);
+    return this.#fs.readFile(path);
   }
 
   readFileBytes(path: string) {
-    return this.workspace.readFileBytes(path);
+    return this.#fs.readFileBytes(path);
   }
 
   writeFile(
@@ -204,7 +293,7 @@ export class AppAgent extends Think<Env> {
     content: string,
     mimeType?: Parameters<Workspace["writeFile"]>[2]
   ) {
-    return this.workspace.writeFile(path, content, mimeType);
+    return this.#fs.writeFile(path, content, mimeType);
   }
 
   writeFileBytes(
@@ -212,7 +301,7 @@ export class AppAgent extends Think<Env> {
     content: Parameters<Workspace["writeFileBytes"]>[1],
     mimeType?: Parameters<Workspace["writeFileBytes"]>[2]
   ) {
-    return this.workspace.writeFileBytes(path, content, mimeType);
+    return this.#fs.writeFileBytes(path, content, mimeType);
   }
 
   appendFile(
@@ -220,53 +309,53 @@ export class AppAgent extends Think<Env> {
     content: string,
     mimeType?: Parameters<Workspace["appendFile"]>[2]
   ) {
-    return this.workspace.appendFile(path, content, mimeType);
+    return this.#fs.appendFile(path, content, mimeType);
   }
 
   exists(path: string) {
-    return this.workspace.exists(path);
+    return this.#fs.exists(path);
   }
 
   /** Browser-callable directory listing — MCP `workspace_ls` counterpart. */
   @callable()
   readDir(path: string, opts?: Parameters<Workspace["readDir"]>[1]) {
-    return this.workspace.readDir(path, opts);
+    return this.#fs.readDir(path, opts);
   }
 
   rm(path: string, opts?: Parameters<Workspace["rm"]>[1]) {
-    return this.workspace.rm(path, opts);
+    return this.#fs.rm(path, opts);
   }
 
   glob(pattern: string) {
-    return this.workspace.glob(pattern);
+    return this.#fs.glob(pattern);
   }
 
   mkdir(path: string, opts?: Parameters<Workspace["mkdir"]>[1]) {
-    return this.workspace.mkdir(path, opts);
+    return this.#fs.mkdir(path, opts);
   }
 
   stat(path: string) {
-    return this.workspace.stat(path);
+    return this.#fs.stat(path);
   }
 
   lstat(path: string) {
-    return this.workspace.lstat(path);
+    return this.#fs.lstat(path);
   }
 
   cp(src: string, dest: string, opts?: Parameters<Workspace["cp"]>[2]) {
-    return this.workspace.cp(src, dest, opts);
+    return this.#fs.cp(src, dest, opts);
   }
 
   mv(src: string, dest: string) {
-    return this.workspace.mv(src, dest);
+    return this.#fs.mv(src, dest);
   }
 
   symlink(target: string, linkPath: string) {
-    return this.workspace.symlink(target, linkPath);
+    return this.#fs.symlink(target, linkPath);
   }
 
   readlink(path: string) {
-    return this.workspace.readlink(path);
+    return this.#fs.readlink(path);
   }
 }
 
