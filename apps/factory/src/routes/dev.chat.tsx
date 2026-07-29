@@ -1,10 +1,7 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import { createFileRoute, notFound, Outlet } from "@tanstack/react-router";
+import { Suspense } from "react";
 import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
-
-const ChatScreen = lazy(() =>
-  import("@/features/chat/page").then((m) => ({ default: m.ChatScreen }))
-);
+import { ConsoleProviders, ConsoleShell } from "@/features/chat/console-shell";
 
 export const Route = createFileRoute("/dev/chat")({
   ssr: false,
@@ -13,13 +10,17 @@ export const Route = createFileRoute("/dev/chat")({
       throw notFound();
     }
   },
-  component: DevChat,
+  component: DevChatLayout,
 });
 
-function DevChat() {
+function DevChatLayout() {
   return (
     <Suspense fallback={<ConsoleShellSkeleton />}>
-      <ChatScreen />
+      <ConsoleProviders>
+        <ConsoleShell>
+          <Outlet />
+        </ConsoleShell>
+      </ConsoleProviders>
     </Suspense>
   );
 }

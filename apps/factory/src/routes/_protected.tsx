@@ -1,14 +1,11 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { Suspense } from "react";
 import { AuthRequiredError, listApps } from "@/api";
 import { authClient, endUnusableSession } from "@/auth-client";
 import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
 import { SessionBoot } from "@/components/brand/session-boot";
+import { ConsoleProviders, ConsoleShell } from "@/features/chat/console-shell";
 import { queryClient } from "@/lib/query-client";
-
-const ChatScreen = lazy(() =>
-  import("@/features/chat/page").then((m) => ({ default: m.ChatScreen }))
-);
 
 export const Route = createFileRoute("/_protected")({
   ssr: false,
@@ -37,7 +34,11 @@ export const Route = createFileRoute("/_protected")({
 function ProtectedConsole() {
   return (
     <Suspense fallback={<ConsoleShellSkeleton />}>
-      <ChatScreen />
+      <ConsoleProviders>
+        <ConsoleShell>
+          <Outlet />
+        </ConsoleShell>
+      </ConsoleProviders>
     </Suspense>
   );
 }
