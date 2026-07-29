@@ -10,6 +10,7 @@ import { remoteUrlFor } from "./code-host.js";
 import { R2GitFs } from "./r2-git-fs.js";
 
 const AUTHOR = { name: "sfab-lite", email: "forge@sfab.dev" };
+const TRAILING_SLASH = /\/$/;
 
 function repoPrefix(appId: string): string {
   return `repos/${appId}/`;
@@ -118,6 +119,42 @@ async function collectWorktreeFiles(
   return files;
 }
 
+async function checkoutTreeFiles(
+  bare: R2GitFs,
+  sha: string
+): Promise<Record<string, string> | null> {
+  const work = new InMemoryFs() as unknown as GitWorkFs;
+  const git = createGit(asShellFs(work), "/");
+  await git.init({ defaultBranch: "main" });
+  await copyTree(bare, "/objects", work, "/.git/objects");
+  await copyTree(bare, "/refs", work, "/.git/refs");
+  if (await bare.exists("/HEAD")) {
+    await work.writeFile("/.git/HEAD", await bare.readFile("/HEAD"));
+  }
+  try {
+    await git.checkout({ ref: sha, force: true });
+  } catch {
+    return null;
+  }
+  return await collectWorktreeFiles(work);
+}
+
+async function writeTreeFiles(
+  fs: GitWorkFs,
+  files: Record<string, string>,
+  dir = "/"
+): Promise<void> {
+  const prefix = dir === "/" ? "" : dir.replace(TRAILING_SLASH, "");
+  for (const [rel, content] of Object.entries(files)) {
+    const abs = `${prefix}/${rel}`.replaceAll("//", "/");
+    const lastSlash = abs.lastIndexOf("/");
+    if (lastSlash > 0) {
+      await fs.mkdir(abs.slice(0, lastSlash), { recursive: true });
+    }
+    await fs.writeFile(abs, content);
+  }
+}
+
 export function createR2CodeHost(env: Env): CodeHost {
   const bucket = env.CODE_R2;
 
@@ -188,11 +225,17 @@ export function createR2CodeHost(env: Env): CodeHost {
       }
       const sha = await this.tipSha(appId, "main");
       if (sha) {
-        try {
-          await git.checkout({ ref: "main", force: true });
-        } catch {
-          // Empty tip (no commit yet) — workspace stays empty checkout.
+        // Materialize the working tree via InMemoryFs checkout, then copy
+        // files onto targetFs. Agent Workspace FS often cannot run
+        // isomorphic-git checkout itself (silent empty catch left only
+        // `.git` and no `src/`).
+        const files = await checkoutTreeFiles(bare, sha);
+        if (!files) {
+          throw new Error(
+            `cloneTo: checkout failed for ${appId} at ${sha.slice(0, 12)}`
+          );
         }
+        await writeTreeFiles(targetFs, files, dir);
       }
       await git.remote({
         add: { name: "origin", url: remoteUrlFor(appId) },
@@ -291,21 +334,7 @@ export function createR2CodeHost(env: Env): CodeHost {
       sha: string
     ): Promise<Record<string, string> | null> {
       await this.ensureRepo(appId);
-      const bare = bareFs(appId);
-      const work = new InMemoryFs() as unknown as GitWorkFs;
-      const git = createGit(asShellFs(work), "/");
-      await git.init({ defaultBranch: "main" });
-      await copyTree(bare, "/objects", work, "/.git/objects");
-      await copyTree(bare, "/refs", work, "/.git/refs");
-      if (await bare.exists("/HEAD")) {
-        await work.writeFile("/.git/HEAD", await bare.readFile("/HEAD"));
-      }
-      try {
-        await git.checkout({ ref: sha, force: true });
-      } catch {
-        return null;
-      }
-      return await collectWorktreeFiles(work);
+      return await checkoutTreeFiles(bareFs(appId), sha);
     },
   };
 }
