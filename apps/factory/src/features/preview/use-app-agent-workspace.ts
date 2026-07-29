@@ -285,28 +285,22 @@ export function useAppAgentWorkspace(appId: string): WorkspaceFilesSource {
     };
   }, [loadDir, loadFile]);
 
-  useEffect(() => {
-    fireAndForget(agent.ready.then(() => loadDir(ROOT)));
-  }, [agent, loadDir]);
-
   return useMemo<WorkspaceFilesSource>(
     () => ({
-      getDir: (path) => {
+      getDir: (path) => dirs.get(normalizeDirPath(path)) ?? [],
+      getFile: (path) => files.get(path) ?? null,
+      ensureDir: (path) => {
         const dir = normalizeDirPath(path);
-        if (!(dirs.has(dir) || loadingDirs.has(dir))) {
-          queueMicrotask(() => {
-            fireAndForget(loadDir(dir));
-          });
+        if (dirs.has(dir) || loadingDirs.has(dir)) {
+          return;
         }
-        return dirs.get(dir) ?? [];
+        fireAndForget(loadDir(dir));
       },
-      getFile: (path) => {
-        if (!(files.has(path) || loadingFiles.has(path))) {
-          queueMicrotask(() => {
-            fireAndForget(loadFile(path));
-          });
+      ensureFile: (path) => {
+        if (files.has(path) || loadingFiles.has(path)) {
+          return;
         }
-        return files.get(path) ?? null;
+        fireAndForget(loadFile(path));
       },
       isDirLoading: (path) => loadingDirs.has(normalizeDirPath(path)),
       isFileLoading: (path) => loadingFiles.has(path) && !files.has(path),

@@ -19,7 +19,7 @@ import {
   FileIcon,
   Folder,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileCodeView } from "./file-code-view";
 import type {
   WorkspaceFileContent,
@@ -83,11 +83,14 @@ export function FileBrowser({
       );
     }
     return (
-      <FileViewer
-        onBack={() => setSelectedPath(null)}
-        path={selectedPath}
-        source={source}
-      />
+      <div className="flex h-full min-h-0 flex-col">
+        {banner}
+        <FileViewer
+          onBack={() => setSelectedPath(null)}
+          path={selectedPath}
+          source={source}
+        />
+      </div>
     );
   }
 
@@ -160,6 +163,10 @@ function TreeLevel({
   activePath: string | null;
   onSelectPath: (path: string) => void;
 }) {
+  useEffect(() => {
+    source.ensureDir?.(path);
+  }, [source, path]);
+
   const entries = source.getDir(path);
   const loading = source.isDirLoading?.(path) ?? false;
 
@@ -293,6 +300,10 @@ function FileViewer({
   path: string;
   onBack?: () => void;
 }) {
+  useEffect(() => {
+    source.ensureFile?.(path);
+  }, [source, path]);
+
   const file = source.getFile(path);
   const loading = source.isFileLoading?.(path) ?? false;
 

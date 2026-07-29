@@ -22,12 +22,16 @@ export function PreviewCodePanel({ appId }: { appId: string }) {
   }, [selectedPath, source]);
 
   return (
-    <FileBrowser
-      banner={<WorkspaceBanner />}
-      onSelectedPathChange={setSelectedPath}
-      rootPath="/"
-      selectedPath={selectedPath}
-      source={source}
-    />
+    <div className="flex h-full min-h-0 flex-col">
+      <WorkspaceBanner />
+      <div className="min-h-0 flex-1">
+        <FileBrowser
+          onSelectedPathChange={setSelectedPath}
+          rootPath="/"
+          selectedPath={selectedPath}
+          source={source}
+        />
+      </div>
+    </div>
   );
 }
