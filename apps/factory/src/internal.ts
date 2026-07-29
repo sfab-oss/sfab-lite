@@ -71,13 +71,6 @@ async function handleRunCreate(
         { env: rc.env, organizationId: record.organizationId },
         { topic: "app_list_changed", payload: { appId } }
       );
-      publishOrgEvent(
-        { env: rc.env, organizationId: record.organizationId },
-        {
-          topic: "app_live_changed",
-          payload: { appId, liveSha: cd.liveSha },
-        }
-      );
     }
     return Response.json({ ok: true, appId, attemptId: jobId, status: "pass" });
   } catch (e) {

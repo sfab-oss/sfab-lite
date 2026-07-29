@@ -6,7 +6,7 @@ export interface OrgEventsRouterDeps {
   invalidateApp: (appId: string) => void;
   invalidateVersions: (appId: string) => void;
   refreshAttendedApp: (appId: string) => void;
-  onLiveVersion: (appId: string, liveSha: string) => void;
+  onLive: (appId: string, liveSha: string) => void;
 }
 
 function asString(value: unknown): string | null {
@@ -48,6 +48,6 @@ export function routeOrgEvent(
       deps.invalidateVersions(appId);
     });
     deps.refreshAttendedApp(appId);
-    deps.onLiveVersion(appId, liveSha);
+    deps.onLive(appId, liveSha);
   }
 }

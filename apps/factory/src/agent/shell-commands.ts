@@ -6,13 +6,8 @@ import {
   type ExecResult,
 } from "just-bash";
 import { nextMigrationPath } from "../app-migrations.js";
-import {
-  appStub,
-  callCheck,
-  callLint,
-  checkPasses,
-  getLiveSha,
-} from "../commit.js";
+import { appStub } from "../app-stub.js";
+import { callCheck, callLint, checkPasses, getLiveSha } from "../cd.js";
 import { describeBlocking, diffSchema } from "../schema-ddl.js";
 import { probeSchema } from "../schema-probe.js";
 import {

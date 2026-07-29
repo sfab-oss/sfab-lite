@@ -13,7 +13,7 @@ import {
   readPreviewCodeOpen,
   writePreviewCodeOpen,
 } from "@/features/preview/code-panel-preference";
-import { subscribeLiveVersion } from "@/features/preview/live-version-bus";
+import { subscribeLive } from "@/features/preview/live-bus";
 import { PreviewCodePanel } from "@/features/preview/preview-code-panel";
 import {
   appBasePath,
@@ -43,14 +43,14 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
 
   useEffect(
     () =>
-      subscribeLiveVersion((nextAppId, liveVersionId) => {
+      subscribeLive((nextAppId, nextLiveSha) => {
         if (nextAppId !== appId) {
           return;
         }
-        if (liveRef.current === liveVersionId) {
+        if (liveRef.current === nextLiveSha) {
           return;
         }
-        liveRef.current = liveVersionId;
+        liveRef.current = nextLiveSha;
         reloadPreviewFrame(iframeRef.current, appId, "/");
       }),
     [appId]

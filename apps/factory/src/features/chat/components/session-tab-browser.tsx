@@ -3,7 +3,7 @@ import { Input } from "@sfab-lite/ui/components/shadcn/input";
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { ExternalLink, Home, RotateCw } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { subscribeLiveVersion } from "@/features/preview/live-version-bus";
+import { subscribeLive } from "@/features/preview/live-bus";
 import {
   appBasePath,
   clampToApp,
@@ -50,11 +50,11 @@ function linkLabel(path: string): string {
 export function SessionTabBrowser({ active }: { active: boolean }) {
   const data = useChatData();
   const appId = data.getAppId();
-  const liveVersion = data.listVersions().find((version) => version.live);
+  const liveSha = data.getLiveSha();
   const routerSource = data.getWorkspaceFile(ROUTER_FILE)?.content ?? null;
   const quickLinks = appQuickLinks(routerSource);
 
-  if (!(appId && liveVersion)) {
+  if (!(appId && liveSha)) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
         <p className="font-medium text-sm">No live build yet</p>
@@ -70,7 +70,7 @@ export function SessionTabBrowser({ active }: { active: boolean }) {
       active={active}
       appId={appId}
       key={appId}
-      liveVersionId={liveVersion.id}
+      liveSha={liveSha}
       quickLinks={quickLinks}
     />
   );
@@ -79,17 +79,17 @@ export function SessionTabBrowser({ active }: { active: boolean }) {
 function BrowserFrame({
   active,
   appId,
-  liveVersionId,
+  liveSha,
   quickLinks,
 }: {
   active: boolean;
   appId: string;
-  liveVersionId: string;
+  liveSha: string;
   quickLinks: string[];
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pathRef = useRef("/");
-  const prevLiveRef = useRef(liveVersionId);
+  const prevLiveRef = useRef(liveSha);
   const [path, setPath] = useState("/");
   const [draft, setDraft] = useState("/");
   const [editing, setEditing] = useState(false);
@@ -99,24 +99,24 @@ function BrowserFrame({
 
   // Prop path covers same-tab deploy (chat live tip updates before a bus round-trip).
   useEffect(() => {
-    if (prevLiveRef.current === liveVersionId) {
+    if (prevLiveRef.current === liveSha) {
       return;
     }
-    prevLiveRef.current = liveVersionId;
+    prevLiveRef.current = liveSha;
     reloadPreviewFrame(iframeRef.current, appId, pathRef.current);
-  }, [appId, liveVersionId]);
+  }, [appId, liveSha]);
 
   // Bus path covers cross-tab / MCP deploys while chat live tip is still outside RQ.
   useEffect(
     () =>
-      subscribeLiveVersion((nextAppId, nextLiveVersionId) => {
+      subscribeLive((nextAppId, nextLiveSha) => {
         if (nextAppId !== appId) {
           return;
         }
-        if (prevLiveRef.current === nextLiveVersionId) {
+        if (prevLiveRef.current === nextLiveSha) {
           return;
         }
-        prevLiveRef.current = nextLiveVersionId;
+        prevLiveRef.current = nextLiveSha;
         reloadPreviewFrame(iframeRef.current, appId, pathRef.current);
       }),
     [appId]

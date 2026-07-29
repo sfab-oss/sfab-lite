@@ -3,12 +3,12 @@ import {
   handleGetAttempt,
   handleGetLive,
   handleListAttempts,
-} from "../../lib/protected/versions.js";
+} from "../../lib/protected/live.js";
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
 import type { AdminEnv } from "../types.js";
 
-const versionsRoutes = new Hono<AdminEnv>()
+const liveRoutes = new Hono<AdminEnv>()
   .get("/:appId/live", requireApp, async (c) => {
     const r = await handleGetLive(appCtx(c));
     if (r.status === 200) {
@@ -29,4 +29,4 @@ const versionsRoutes = new Hono<AdminEnv>()
     return c.json(r.body, r.status);
   });
 
-export default versionsRoutes;
+export default liveRoutes;

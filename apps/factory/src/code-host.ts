@@ -1,8 +1,9 @@
 /**
- * Code host port — Git remotes + immutable builds for each app.
+ * Code host port — Git remotes for each app (repo SoT).
  *
- * Cloudflare Artifacts is a future adapter behind this seam; the product noun
- * is always "code host" / "repo" / "build", never "Artifacts".
+ * Builds live on BuildStore. Cloudflare Artifacts is a future adapter behind
+ * these seams; the product noun is always "code host" / "repo" / "build",
+ * never "Artifacts".
  */
 
 /** Minimal FS surface isomorphic-git / createGit need against a worktree. */
@@ -57,15 +58,6 @@ export interface CodeHostCredentials {
   token: string;
 }
 
-export interface AppBuild {
-  sha: string;
-  serverBundle: string;
-  assets: Record<string, string>;
-  kernelVersion: string;
-  serverSurfaceHash: string | null;
-  sourceFiles?: Record<string, string>;
-}
-
 export interface CodeHost {
   ensureRepo: (appId: string) => Promise<CodeHostRepo>;
   credentialsForAgent: (appId: string) => Promise<CodeHostCredentials>;
@@ -85,8 +77,11 @@ export interface CodeHost {
     sourceFs: GitWorkFs,
     opts?: { dir?: string; ref?: string }
   ) => Promise<{ advancedMain: boolean; sha: string | null }>;
-  putBuild: (appId: string, build: AppBuild) => Promise<void>;
-  getBuild: (appId: string, sha: string) => Promise<AppBuild | null>;
+  /** Checkout / archive the tree at `sha` from the bare repo. */
+  readTreeAt: (
+    appId: string,
+    sha: string
+  ) => Promise<Record<string, string> | null>;
 }
 
 export function remoteUrlFor(appId: string): string {

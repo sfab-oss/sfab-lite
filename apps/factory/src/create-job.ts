@@ -1,15 +1,6 @@
 /**
- * Create-job helpers + re-exports for lint/check/CD import paths.
+ * Create-job helpers for the async app-create attempt surface.
  */
-
-export { appStub } from "./app-stub.js";
-export {
-  callCheck,
-  callLint,
-  checkPasses,
-  getLiveSha,
-  runCdForSha,
-} from "./cd.js";
 
 import { appStub } from "./app-stub.js";
 import type { AttemptResolver } from "./registry.js";

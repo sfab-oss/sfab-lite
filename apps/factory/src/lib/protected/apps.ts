@@ -3,12 +3,12 @@
  * code host (TEMPLATE_SEED → main → CD → live_sha).
  */
 import { APP_NAME_MAX_LENGTH, pickAppName } from "../../app-names.js";
+import { appStub } from "../../app-stub.js";
 import {
-  appStub,
   attemptResolver,
   createAccepted,
   createConflict,
-} from "../../commit.js";
+} from "../../create-job.js";
 import { reconcileCreatingApps } from "../../create-reconcile.js";
 import { createDb } from "../../db/index.js";
 import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };

@@ -1,15 +1,7 @@
 import { getLiveSources } from "@/api";
-import type { AppVersion, Thread } from "../model/types";
+import type { Thread } from "../model/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";
-
-function formatCreatedAt(isoOrMs: string | number): string {
-  try {
-    return new Date(isoOrMs).toLocaleString();
-  } catch {
-    return String(isoOrMs);
-  }
-}
 
 export interface RealChatData extends ChatData {
   getRevision: () => number;
@@ -18,8 +10,8 @@ export interface RealChatData extends ChatData {
 
 export function createRealChatData(): RealChatData {
   let appId: string | null = null;
+  let liveSha: string | null = null;
   let sourceFiles: Record<string, string> = {};
-  let versions: AppVersion[] = [];
   let threads: Thread[] = [];
   let revision = 0;
   const syncedApps = new Set<string>();
@@ -130,30 +122,21 @@ export function createRealChatData(): RealChatData {
       writeThreads(threads.filter((thread) => thread.id !== threadId));
     },
     getAppId: () => appId,
-    listVersions: () => versions,
+    getLiveSha: () => liveSha,
     getWorkspaceDir: (path) => dirEntries(sourceFiles, path),
     getWorkspaceFile: (path) => fileContent(sourceFiles, path),
     async refreshApp(nextAppId) {
       if (!nextAppId) {
         appId = null;
+        liveSha = null;
         sourceFiles = {};
-        versions = [];
         notify();
         return;
       }
       const live = await getLiveSources(nextAppId).catch(() => null);
       appId = nextAppId;
+      liveSha = live?.liveSha ?? null;
       sourceFiles = live?.sourceFiles ?? {};
-      versions = live
-        ? [
-            {
-              id: live.liveSha,
-              label: `live ${live.liveSha.slice(0, 12)}`,
-              createdAt: formatCreatedAt(Date.now()),
-              live: true,
-            },
-          ]
-        : [];
       notify();
     },
   };

@@ -1,18 +1,18 @@
+import { appStub } from "../../app-stub.js";
 import { getLiveSha } from "../../cd.js";
-import { appStub } from "../../commit.js";
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import { createR2CodeHost } from "../../r2-code-host.js";
 import type { AppCtx } from "../../routes.js";
 
-/** Live tip + optional source from the stored build (not AppDO versions). */
+/** Live tip + source tree from the code host at `live_sha`. */
 export async function handleGetLive(rc: AppCtx) {
   const { appId } = rc;
   const liveSha = await getLiveSha(rc.env, appId);
   if (!liveSha) {
     return protectedError("no_live_build", 404);
   }
-  const build = await createR2CodeHost(rc.env).getBuild(appId, liveSha);
-  if (!build) {
+  const sourceFiles = await createR2CodeHost(rc.env).readTreeAt(appId, liveSha);
+  if (!sourceFiles) {
     return protectedError("no_live_build", 404);
   }
   return {
@@ -21,7 +21,7 @@ export async function handleGetLive(rc: AppCtx) {
       ok: true as const,
       appId,
       liveSha,
-      sourceFiles: build.sourceFiles ?? {},
+      sourceFiles,
     },
   };
 }

@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { notifyLiveVersion } from "@/features/preview/live-version-bus";
+import { notifyLive } from "@/features/preview/live-bus";
 import type { OrgServerFrame } from "@/org-events";
 import {
   type OrgEventsRouterDeps,
@@ -77,7 +77,7 @@ export function OrgEventsRouter({
       refreshAttendedApp: (appId) => {
         refreshRef.current?.(appId);
       },
-      onLiveVersion: notifyLiveVersion,
+      onLive: notifyLive,
     };
 
     const handleFrame = (frame: OrgServerFrame) => {

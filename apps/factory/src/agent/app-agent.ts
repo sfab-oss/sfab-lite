@@ -148,11 +148,6 @@ export class AppAgent extends Think<Env> {
     return getLiveSha(this.env, this.name);
   }
 
-  /** @deprecated Prefer liveSha — kept for a short call-site rename window. */
-  liveVersionId(): Promise<string | null> {
-    return this.liveSha();
-  }
-
   remoteUrl(): string {
     return remoteUrlFor(this.name);
   }

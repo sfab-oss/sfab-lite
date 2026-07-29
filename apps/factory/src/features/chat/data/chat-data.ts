@@ -1,5 +1,4 @@
 import type {
-  AppVersion,
   Thread,
   WorkspaceFileContent,
   WorkspaceFileEntry,
@@ -12,6 +11,7 @@ import type {
  */
 export interface ChatData {
   getAppId: () => string | null;
+  getLiveSha: () => string | null;
   getWorkspaceDir: (path: string) => {
     entries: WorkspaceFileEntry[];
     path: string;
@@ -20,7 +20,6 @@ export interface ChatData {
   /** Whether AppAgent.listThreads has answered for this app yet. */
   hasSyncedApp: (appId: string) => boolean;
   listThreads: () => Thread[];
-  listVersions: () => AppVersion[];
   patchThread: (threadId: string, patch: Partial<Thread>) => void;
   refreshApp: (appId: string | null) => Promise<void>;
   /** Drop a thread from local state (e.g. right after a successful delete). */

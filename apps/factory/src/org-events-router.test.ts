@@ -29,7 +29,7 @@ function captureDeps() {
     invalidateApp: (appId) => calls.push(`app:${appId}`),
     invalidateVersions: (appId) => calls.push(`versions:${appId}`),
     refreshAttendedApp: (appId) => calls.push(`refresh:${appId}`),
-    onLiveVersion: (appId, liveSha) => calls.push(`live:${appId}:${liveSha}`),
+    onLive: (appId, liveSha) => calls.push(`live:${appId}:${liveSha}`),
   };
   return { calls, deps };
 }

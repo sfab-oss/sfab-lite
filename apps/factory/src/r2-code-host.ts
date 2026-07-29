@@ -1,7 +1,6 @@
 import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
 import type {
-  AppBuild,
   CodeHost,
   CodeHostCredentials,
   CodeHostRepo,
@@ -14,10 +13,6 @@ const AUTHOR = { name: "sfab-lite", email: "forge@sfab.dev" };
 
 function repoPrefix(appId: string): string {
   return `repos/${appId}/`;
-}
-
-function buildKey(appId: string, sha: string): string {
-  return `builds/${appId}/${sha}.json`;
 }
 
 function tokenKey(appId: string): string {
@@ -71,6 +66,56 @@ async function copyTree(
 
 function asShellFs(fs: GitWorkFs) {
   return fs as unknown as Parameters<typeof createGit>[0];
+}
+
+function worktreeChildPath(parent: string, name: string): string {
+  return parent === "/" ? `/${name}` : `${parent}/${name}`;
+}
+
+function sourceKeyFromAbs(path: string): string | null {
+  const key = path.startsWith("/") ? path.slice(1) : path;
+  return key || null;
+}
+
+async function enqueueDirChildren(
+  fs: GitWorkFs,
+  path: string,
+  queue: string[]
+): Promise<void> {
+  for (const name of await fs.readdir(path)) {
+    if (name === "." || name === ".." || name === ".git") {
+      continue;
+    }
+    queue.push(worktreeChildPath(path, name));
+  }
+}
+
+async function collectWorktreeFiles(
+  fs: GitWorkFs,
+  dir = "/"
+): Promise<Record<string, string>> {
+  const files: Record<string, string> = {};
+  const queue = [dir];
+
+  while (queue.length > 0) {
+    const path = queue.pop() as string;
+    if (!(await fs.exists(path))) {
+      continue;
+    }
+    const st = await fs.lstat(path);
+    if (st.type === "file") {
+      const key = sourceKeyFromAbs(path);
+      if (key) {
+        files[key] = await fs.readFile(path);
+      }
+      continue;
+    }
+    if (st.type === "directory") {
+      await enqueueDirChildren(fs, path, queue);
+    }
+  }
+
+  return files;
 }
 
 export function createR2CodeHost(env: Env): CodeHost {
@@ -197,18 +242,26 @@ export function createR2CodeHost(env: Env): CodeHost {
       return { advancedMain, sha: workSha };
     },
 
-    async putBuild(appId: string, build: AppBuild): Promise<void> {
-      await bucket.put(buildKey(appId, build.sha), JSON.stringify(build), {
-        httpMetadata: { contentType: "application/json" },
-      });
-    },
-
-    async getBuild(appId: string, sha: string): Promise<AppBuild | null> {
-      const obj = await bucket.get(buildKey(appId, sha));
-      if (!obj) {
+    async readTreeAt(
+      appId: string,
+      sha: string
+    ): Promise<Record<string, string> | null> {
+      await this.ensureRepo(appId);
+      const bare = bareFs(appId);
+      const work = new InMemoryFs() as unknown as GitWorkFs;
+      const git = createGit(asShellFs(work), "/");
+      await git.init({ defaultBranch: "main" });
+      await copyTree(bare, "/objects", work, "/.git/objects");
+      await copyTree(bare, "/refs", work, "/.git/refs");
+      if (await bare.exists("/HEAD")) {
+        await work.writeFile("/.git/HEAD", await bare.readFile("/HEAD"));
+      }
+      try {
+        await git.checkout({ ref: sha, force: true });
+      } catch {
         return null;
       }
-      return (await obj.json()) as AppBuild;
+      return await collectWorktreeFiles(work);
     },
   };
 }

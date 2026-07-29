@@ -56,33 +56,28 @@ function WorkspaceTabIcon({ tab }: { tab: OpenTab }) {
   return <Icon className="size-3.5 shrink-0" />;
 }
 
-function VersionsBody() {
+function LiveTipBody() {
   const data = useChatData();
-  const versions = data.listVersions();
-  if (versions.length === 0) {
+  const liveSha = data.getLiveSha();
+  if (!liveSha) {
     return (
       <p className="p-3 text-muted-foreground text-sm">No live tip yet.</p>
     );
   }
   return (
-    <ul className="flex h-full flex-col gap-1 overflow-auto p-3">
-      {versions.map((version) => (
-        <li
-          className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2"
-          key={version.id}
-        >
-          <div className="min-w-0">
-            <p className="font-medium text-sm">{version.label}</p>
-            <p className="text-muted-foreground text-xs">{version.createdAt}</p>
-          </div>
-          {version.live ? (
-            <Badge className="shrink-0" variant="secondary">
-              Live
-            </Badge>
-          ) : null}
-        </li>
-      ))}
-    </ul>
+    <div className="flex h-full flex-col gap-1 overflow-auto p-3">
+      <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
+        <div className="min-w-0">
+          <p className="font-medium text-sm">live {liveSha.slice(0, 12)}</p>
+          <p className="truncate font-mono text-muted-foreground text-xs">
+            {liveSha}
+          </p>
+        </div>
+        <Badge className="shrink-0" variant="secondary">
+          Live
+        </Badge>
+      </div>
+    </div>
   );
 }
 
@@ -93,7 +88,7 @@ function TabBody({ active, tab }: { active: boolean; tab: OpenTab }) {
   if (tab.kind === "browser") {
     return <SessionTabBrowser active={active} />;
   }
-  return <VersionsBody />;
+  return <LiveTipBody />;
 }
 
 function AddTabMenu({ onOpen }: { onOpen: (kind: WorkspaceKind) => void }) {

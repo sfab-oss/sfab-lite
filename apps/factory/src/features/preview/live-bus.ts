@@ -9,14 +9,14 @@ type Listener = (appId: string, liveSha: string) => void;
 
 const listeners = new Set<Listener>();
 
-export function subscribeLiveVersion(listener: Listener): () => void {
+export function subscribeLive(listener: Listener): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
   };
 }
 
-export function notifyLiveVersion(appId: string, liveSha: string): void {
+export function notifyLive(appId: string, liveSha: string): void {
   for (const listener of listeners) {
     listener(appId, liveSha);
   }

@@ -19,6 +19,7 @@ import { compileServer } from "./compile-server.js";
 import { createDb } from "./db/index.js";
 import { app as appTable } from "./db/schema.js";
 import { publishOrgEvent } from "./org-events.js";
+import { createR2BuildStore } from "./r2-build-store.js";
 import { createR2CodeHost } from "./r2-code-host.js";
 import { getAppOrganizationId } from "./registry.js";
 import { diffSchema } from "./schema-ddl.js";
@@ -296,14 +297,13 @@ export async function runCdForSha(
       };
     }
 
-    const host = createR2CodeHost(env);
-    await host.putBuild(appId, {
+    const builds = createR2BuildStore(env);
+    await builds.putBuild(appId, {
       sha,
       serverBundle: compiled.compiled.serverBundle,
       assets: compiled.assets,
       kernelVersion: compiled.compiled.kernelVersion,
       serverSurfaceHash: compiled.compiled.serverSurfaceHash,
-      sourceFiles,
     });
     await setLiveSha(env, appId, sha);
 
@@ -329,4 +329,39 @@ export async function runCdForSha(
       detail: { message: e instanceof Error ? e.message : String(e) },
     };
   }
+}
+
+export type EnsureLiveResult =
+  | { status: "in_sync"; tip: string | null }
+  | { status: "updated"; tip: string; liveSha: string }
+  | { status: "cd_failed"; tip: string; error: string; detail?: unknown };
+
+/**
+ * Run CD when main tip exists and differs from D1 `live_sha` (retry path after
+ * a failed CD that already advanced the remote tip).
+ */
+export async function ensureLiveMatchesMain(
+  env: Env,
+  appId: string,
+  sourceFiles: Record<string, string>,
+  opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
+): Promise<EnsureLiveResult> {
+  const tip = await createR2CodeHost(env).tipSha(appId, "main");
+  if (!tip) {
+    return { status: "in_sync", tip: null };
+  }
+  const live = await getLiveSha(env, appId);
+  if (tip === live) {
+    return { status: "in_sync", tip };
+  }
+  const cd = await runCdForSha(env, appId, tip, sourceFiles, opts);
+  if (!cd.ok) {
+    return {
+      status: "cd_failed",
+      tip,
+      error: cd.error,
+      detail: cd.detail,
+    };
+  }
+  return { status: "updated", tip, liveSha: cd.liveSha };
 }

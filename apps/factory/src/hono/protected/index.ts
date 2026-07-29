@@ -5,9 +5,9 @@ import type { AdminEnv } from "../types.js";
 import appsRoutes from "./apps.js";
 import healthRoutes from "./health.js";
 import lifecycleRoutes from "./lifecycle.js";
+import liveRoutes from "./live.js";
 import orgEventsRoutes from "./org-events.js";
 import sqlRoutes from "./sql.js";
-import versionsRoutes from "./versions.js";
 
 /**
  * Credential-gated factory surface at `/api/protected`. Actor middleware
@@ -24,7 +24,7 @@ const protectedApp = new Hono<AdminEnv>()
   .route("/", healthRoutes)
   .route("/apps", appsRoutes)
   .route("/apps", sqlRoutes)
-  .route("/apps", versionsRoutes)
+  .route("/apps", liveRoutes)
   .route("/apps", lifecycleRoutes)
   .route("/org-events", orgEventsRoutes);
 

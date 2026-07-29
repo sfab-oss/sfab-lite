@@ -6,10 +6,10 @@
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import type { AppDO } from "./app-do.js";
+import type { AppBuild } from "./build-store.js";
 import { getLiveSha } from "./cd.js";
-import type { AppBuild } from "./code-host.js";
 import { kernelModules } from "./kernel-modules.js";
-import { createR2CodeHost } from "./r2-code-host.js";
+import { createR2BuildStore } from "./r2-build-store.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
@@ -48,7 +48,7 @@ async function loadBuild(
   if (!sha) {
     return null;
   }
-  return createR2CodeHost(env).getBuild(appId, sha);
+  return createR2BuildStore(env).getBuild(appId, sha);
 }
 
 function buildPathContext(
@@ -210,7 +210,7 @@ export async function serveSubApp(
         error: "server_surface_mismatch",
         appId,
         sha: build.sha,
-        versionServerSurface: build.serverSurfaceHash,
+        buildServerSurface: build.serverSurfaceHash,
         hostServerSurface: SERVER_SURFACE_HASH,
       },
       { status: 409 }
@@ -221,7 +221,7 @@ export async function serveSubApp(
 
   const withShaHeader = (res: Response): Response => {
     const headers = new Headers(res.headers);
-    headers.set("X-Sfab-Version", build.sha);
+    headers.set("X-Sfab-Live-Sha", build.sha);
     headers.set("X-Sfab-Serve", mode);
     return new Response(res.body, {
       status: res.status,
