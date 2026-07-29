@@ -116,11 +116,7 @@ function AppBody({
             </Button>
             <Button
               render={
-                <a
-                  href={`/a/${encodeURIComponent(app.id)}/preview`}
-                  rel="noreferrer"
-                  target="_blank"
-                />
+                <Link params={{ appId: app.id }} to="/apps/$appId/preview" />
               }
               variant="outline"
             >

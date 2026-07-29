@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { OrgEventsRouter } from "@/features/org-events/org-events-router";
 import { AppAgentRegistryProvider } from "./data/app-agent-bridge";
 import { ChatDataProvider } from "./data/chat-data-context";
 import {
@@ -97,6 +98,7 @@ export function ConsoleProviders({ children }: { children: ReactNode }) {
     <ChatDataProvider value={chatData}>
       <AppAgentRegistryProvider>
         <ConsoleSessionContext.Provider value={session}>
+          <OrgEventsRouter />
           {children}
         </ConsoleSessionContext.Provider>
       </AppAgentRegistryProvider>

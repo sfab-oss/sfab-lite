@@ -38,6 +38,7 @@ export { AppAgent } from "./agent/app-agent.js";
 /** Facet of AppAgent — exported so the runtime can construct it; no binding. */
 export { AppThread } from "./agent/app-thread.js";
 export { AppDO } from "./app-do.js";
+export { OrgEvents } from "./org-events-do.js";
 export { ScopedSql } from "./scoped-sql.js";
 
 const RE_KERNEL = /^\/kernel\/(.+)$/;

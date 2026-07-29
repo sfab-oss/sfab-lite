@@ -10,8 +10,10 @@ import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CreateAppBody, RenameAppBody } from "../../hono/schemas.js";
 import { wireApp } from "../../hono/wire.js";
+import { publishOrgEvent } from "../../org-events.js";
 import {
   deleteAppUnscoped,
+  getAppOrganizationId,
   getAppUnscoped,
   insertCreatingApp,
   listAppNamesForOrganization,
@@ -93,6 +95,7 @@ export async function handleListApps(rc: OrgCtx) {
   }
   const apps = await listAppsForOrganization(
     db,
+    rc.env,
     organizationId,
     attemptResolver(rc.env)
   );
@@ -116,6 +119,7 @@ export async function handleListApps(rc: OrgCtx) {
 export async function handleGetApp(rc: AppCtx) {
   const record = await getAppUnscoped(
     createDb(rc.env),
+    rc.env,
     rc.appId,
     attemptResolver(rc.env)
   );
@@ -138,6 +142,10 @@ export async function handleRenameApp(rc: AppCtx, body: RenameAppBody) {
   if (!record) {
     return protectedError("app_not_found", 404);
   }
+  publishOrgEvent(
+    { env: rc.env, organizationId: record.organizationId },
+    { topic: "app_record_changed", payload: { appId: rc.appId } }
+  );
   return {
     status: 200 as const,
     body: { ok: true as const, app: wireApp(record) },
@@ -160,11 +168,19 @@ export async function handleDeleteApp(
   rc: AppCtx
 ): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
+  const db = createDb(rc.env);
+  const organizationId = await getAppOrganizationId(db, appId);
   const destroyed = await appStub(rc.env, appId).destroy();
   if (!destroyed.ok) {
     return { status: 409, body: { appId, ...destroyed } };
   }
-  const removed = await deleteAppUnscoped(createDb(rc.env), appId);
+  const removed = await deleteAppUnscoped(db, appId);
+  if (organizationId) {
+    publishOrgEvent(
+      { env: rc.env, organizationId },
+      { topic: "app_list_changed", payload: { appId } }
+    );
+  }
   return {
     status: 200,
     body: {

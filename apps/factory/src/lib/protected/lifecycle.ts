@@ -5,8 +5,11 @@ import {
   checkPasses,
   enqueueCommit,
 } from "../../commit.js";
+import { createDb } from "../../db/index.js";
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CheckBody, CommitBody, RevertBody } from "../../hono/schemas.js";
+import { publishOrgEvent } from "../../org-events.js";
+import { getAppOrganizationId } from "../../registry.js";
 import type { AppCtx } from "../../routes.js";
 
 export async function handleCheck(
@@ -67,6 +70,19 @@ export async function handleRevert(
       status: result.error === "attempt_in_flight" ? 409 : 404,
       body: { appId, ...result },
     };
+  }
+  const organizationId =
+    rc.actor.kind === "session"
+      ? rc.actor.organizationId
+      : await getAppOrganizationId(createDb(rc.env), appId);
+  if (organizationId) {
+    publishOrgEvent(
+      { env: rc.env, organizationId },
+      {
+        topic: "app_live_version_changed",
+        payload: { appId, liveVersionId: result.liveVersionId },
+      }
+    );
   }
   return { status: 200, body: { appId, action: "revert" as const, ...result } };
 }

@@ -5,6 +5,7 @@ import type { AdminEnv } from "../types.js";
 import appsRoutes from "./apps.js";
 import healthRoutes from "./health.js";
 import lifecycleRoutes from "./lifecycle.js";
+import orgEventsRoutes from "./org-events.js";
 import sqlRoutes from "./sql.js";
 import versionsRoutes from "./versions.js";
 
@@ -24,7 +25,8 @@ const protectedApp = new Hono<AdminEnv>()
   .route("/apps", appsRoutes)
   .route("/apps", sqlRoutes)
   .route("/apps", versionsRoutes)
-  .route("/apps", lifecycleRoutes);
+  .route("/apps", lifecycleRoutes)
+  .route("/org-events", orgEventsRoutes);
 
 protectedApp.notFound(() => new Response(NOT_FOUND_BODY, { status: 404 }));
 

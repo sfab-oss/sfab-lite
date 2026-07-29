@@ -54,6 +54,7 @@ async function handleRunCreate(
   );
   await settleCreateApp(
     createDb(rc.env),
+    rc.env,
     appId,
     status === "aborted" ? "error" : status
   );

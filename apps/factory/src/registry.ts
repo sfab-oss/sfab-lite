@@ -11,6 +11,7 @@ import { monotonicFactory } from "ulid";
 import { STALE_ATTEMPT_MS } from "./app-do.js";
 import type { Db } from "./db/index.js";
 import { app, organization } from "./db/schema.js";
+import { publishOrgEvent } from "./org-events.js";
 
 const nextUlid = monotonicFactory();
 
@@ -120,6 +121,7 @@ export async function setCreateAttemptId(
  */
 export async function settleCreateApp(
   db: Db,
+  env: Env,
   appId: string,
   attemptStatus: "pass" | "fail" | "error"
 ): Promise<AppRecord | null> {
@@ -129,14 +131,42 @@ export async function settleCreateApp(
       .set({ status: "ready", createAttemptId: null })
       .where(and(eq(app.id, appId), eq(app.status, "creating")))
       .returning();
-    return row ? toRecord(row) : null;
+    if (!row) {
+      return null;
+    }
+    const record = toRecord(row);
+    publishOrgEvent(
+      { env, organizationId: record.organizationId },
+      { topic: "app_list_changed", payload: { appId } }
+    );
+    return record;
   }
   const [row] = await db
     .update(app)
     .set({ status: "failed" })
     .where(and(eq(app.id, appId), eq(app.status, "creating")))
     .returning();
-  return row ? toRecord(row) : null;
+  if (!row) {
+    return null;
+  }
+  const record = toRecord(row);
+  publishOrgEvent(
+    { env, organizationId: record.organizationId },
+    { topic: "app_list_changed", payload: { appId } }
+  );
+  return record;
+}
+
+/** One-column ownership read for async publish (e.g. `runCommitAttempt`). */
+export async function getAppOrganizationId(
+  db: Db,
+  appId: string
+): Promise<string | null> {
+  const row = await db.query.app.findFirst({
+    where: eq(app.id, appId),
+    columns: { organizationId: true },
+  });
+  return row?.organizationId ?? null;
 }
 
 /** Mark failed without an attempt — bootstrap/start blew up before one existed. */
@@ -181,6 +211,7 @@ export type AttemptResolver = (
  */
 async function sweepStaleCreating(
   db: Db,
+  env: Env,
   resolveAttempt: AttemptResolver
 ): Promise<void> {
   const cutoff = new Date(Date.now() - STALE_ATTEMPT_MS);
@@ -205,16 +236,17 @@ async function sweepStaleCreating(
     ) {
       continue;
     }
-    await settleCreateApp(db, row.id, status === "pass" ? "pass" : "fail");
+    await settleCreateApp(db, env, row.id, status === "pass" ? "pass" : "fail");
   }
 }
 
 export async function listAppsForOrganization(
   db: Db,
+  env: Env,
   organizationId: string,
   resolveAttempt: AttemptResolver
 ): Promise<AppRecord[]> {
-  await sweepStaleCreating(db, resolveAttempt);
+  await sweepStaleCreating(db, env, resolveAttempt);
   const rows = await db.query.app.findMany({
     where: eq(app.organizationId, organizationId),
     orderBy: [desc(app.createdAt)],
@@ -248,10 +280,11 @@ export async function listAppNamesForOrganization(
  */
 export async function getAppUnscoped(
   db: Db,
+  env: Env,
   appId: string,
   resolveAttempt: AttemptResolver
 ): Promise<AppRecord | null> {
-  await sweepStaleCreating(db, resolveAttempt);
+  await sweepStaleCreating(db, env, resolveAttempt);
   const row = await db.query.app.findFirst({
     where: eq(app.id, appId),
   });
