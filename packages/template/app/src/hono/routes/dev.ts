@@ -1,7 +1,6 @@
 import { and, eq, notExists } from "drizzle-orm";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
 import {
   account,
@@ -260,12 +259,19 @@ export const devRoutes = new Hono<AppEnv>().post(
       return c.json({ seeded: true as const, ...demoLogin });
     } catch (err) {
       if (isAuthApiError(err)) {
+        const status =
+          err.statusCode === 400 ||
+          err.statusCode === 403 ||
+          err.statusCode === 409 ||
+          err.statusCode === 422
+            ? err.statusCode
+            : 500;
         return c.json(
           {
             error: err.body?.code ?? ("auth_error" as const),
             message: err.body?.message ?? err.message ?? "Authentication error",
           },
-          err.statusCode as ContentfulStatusCode
+          status
         );
       }
       throw err;
