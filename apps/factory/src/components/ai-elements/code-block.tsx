@@ -1,5 +1,5 @@
+import { cn } from "@sfab-lite/ui/lib/utils";
 import type { HTMLAttributes } from "react";
-import { cn } from "@/lib/utils";
 
 type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string;

@@ -1,3 +1,11 @@
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
 import type { UIMessage } from "ai";
 import {
   Check,
@@ -8,14 +16,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useThreadLifecycle } from "../hooks/use-thread-lifecycle";
 import { useWorkspaceTabsStore } from "../lib/workspace-tabs-store";
 import type { Thread } from "../model/types";

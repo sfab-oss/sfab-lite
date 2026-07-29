@@ -1,7 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
-import { BoxesIcon } from "lucide-react";
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
-import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
 import {
   Alert,
   AlertDescription,
@@ -15,7 +11,11 @@ import {
   Input,
   Label,
   Separator,
-} from "@/components/ui";
+} from "@sfab-lite/ui/components/shadcn";
+import { useNavigate } from "@tanstack/react-router";
+import { BoxesIcon } from "lucide-react";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
 import type { AuthConfig } from "../api";
 import { fetchAuthConfig } from "../api";
 import { authClient } from "../auth-client";

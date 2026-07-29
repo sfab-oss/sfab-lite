@@ -1,6 +1,3 @@
-import { BoxesIcon } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
-import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
 import {
   Alert,
   AlertDescription,
@@ -12,7 +9,10 @@ import {
   CardHeader,
   CardTitle,
   Label,
-} from "@/components/ui";
+} from "@sfab-lite/ui/components/shadcn";
+import { BoxesIcon } from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
 import type { McpConsentContext } from "../api";
 import { fetchMcpConsentContext, submitMcpConsent } from "../api";
 import { SignInScreen } from "./sign-in";

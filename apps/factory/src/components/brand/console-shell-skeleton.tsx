@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 
 /**
  * Stand-in for AppLayout while the signed-in console chunk loads.

@@ -1,8 +1,8 @@
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
 import type { AppRecord, AttemptRecord, VersionSummary } from "../api";
 import { AppLayoutHeader } from "../components/brand/app-layout";
-import { Button } from "../components/ui/button";
-import { Skeleton } from "../components/ui/skeleton";
 import { useApp, useAppAttempt, useAppVersions } from "../hooks/use-apps";
 import { StatusBadge } from "./apps-list";
 

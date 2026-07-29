@@ -1,4 +1,3 @@
-import { useEffect, useId, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,9 +7,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@sfab-lite/ui/components/shadcn/alert-dialog";
+import { Input } from "@sfab-lite/ui/components/shadcn/input";
+import { Label } from "@sfab-lite/ui/components/shadcn/label";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Thread } from "../model/types";
 
 export function RenameThreadDialog({

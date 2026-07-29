@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 
 /** Card-shaped placeholder for sign-in / consent while config or session settles. */
 export function AuthCardSkeleton() {

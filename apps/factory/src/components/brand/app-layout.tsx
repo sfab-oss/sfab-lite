@@ -1,11 +1,11 @@
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@sfab-lite/ui/components/shadcn/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
-} from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+} from "@sfab-lite/ui/components/shadcn/sidebar";
+import { cn } from "@sfab-lite/ui/lib/utils";
 
 /**
  * Sidebar expand button surfaced inside a page header. Visible on mobile

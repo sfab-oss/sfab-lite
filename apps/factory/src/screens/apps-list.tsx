@@ -1,3 +1,7 @@
+import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { Input } from "@sfab-lite/ui/components/shadcn/input";
+import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
 import type { AppRecord } from "../api";
@@ -5,10 +9,6 @@ import {
   AppLayoutHeader,
   AppLayoutHeaderActions,
 } from "../components/brand/app-layout";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Skeleton } from "../components/ui/skeleton";
 import {
   useApps,
   useCreateApp,

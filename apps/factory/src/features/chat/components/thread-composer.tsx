@@ -1,3 +1,10 @@
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@sfab-lite/ui/components/shadcn/input-group";
+import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
 import { ArrowUpIcon, SquareIcon } from "lucide-react";
 import {
   type FormEvent,
@@ -6,13 +13,6 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from "@/components/ui/input-group";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { type ComposerScope, ComposerScopeChip } from "./composer-scope-chip";
 
 function shouldSubmitOnEnter(

@@ -1,3 +1,17 @@
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@sfab-lite/ui/components/shadcn/resizable";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@sfab-lite/ui/components/shadcn/sheet";
+import { TooltipProvider } from "@sfab-lite/ui/components/shadcn/tooltip";
+import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
 import { useMatch, useMatchRoute, useNavigate } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
@@ -8,21 +22,7 @@ import {
   AppLayoutHeaderActions,
   AppLayoutPage,
 } from "@/components/brand/app-layout";
-import { Button } from "@/components/ui/button";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { readyAppsFromList, useApps, useCreateApp } from "@/hooks/use-apps";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { AppDetailScreen } from "@/screens/app-detail";
 import { AppsListScreen } from "@/screens/apps-list";
 import type { ComposerScope } from "./components/composer-scope-chip";

@@ -1,8 +1,8 @@
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { Input } from "@sfab-lite/ui/components/shadcn/input";
+import { cn } from "@sfab-lite/ui/lib/utils";
 import { ExternalLink, Home, RotateCw } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { useChatData } from "../data/chat-data-context";
 import { appQuickLinks } from "../lib/extract-app-routes";
 

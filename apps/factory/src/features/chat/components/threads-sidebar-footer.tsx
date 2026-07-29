@@ -1,8 +1,5 @@
-import { ChevronsUpDown, LogOut, MoonIcon, SunIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { authClient } from "@/auth-client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@sfab-lite/ui/components/shadcn/avatar";
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,14 +8,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
 import {
   SidebarFooter,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
+} from "@sfab-lite/ui/components/shadcn/sidebar";
+import { ChevronsUpDown, LogOut, MoonIcon, SunIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { authClient } from "@/auth-client";
 
 export function ThreadsSidebarFooter({
   onSignOut,

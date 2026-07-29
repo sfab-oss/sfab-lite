@@ -1,3 +1,17 @@
+import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@sfab-lite/ui/components/shadcn/collapsible";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@sfab-lite/ui/components/shadcn/resizable";
+import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
+import { cn } from "@sfab-lite/ui/lib/utils";
 import {
   ChevronLeft,
   ChevronRight,
@@ -6,20 +20,6 @@ import {
   Folder,
 } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 import { useChatData } from "../data/chat-data-context";
 import type { WorkspaceFileContent, WorkspaceFileEntry } from "../model/types";
 import { FileCodeView } from "./file-code-view";

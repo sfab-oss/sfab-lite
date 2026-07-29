@@ -1,5 +1,4 @@
-import { ChevronDownIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +8,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
+import { ChevronDownIcon } from "lucide-react";
 
 const NEW_APP_VALUE = "__new__";
 
