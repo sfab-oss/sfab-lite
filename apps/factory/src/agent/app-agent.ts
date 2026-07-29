@@ -6,6 +6,7 @@ import type { LanguageModel } from "ai";
 import { getLiveSha } from "../cd.js";
 import { remoteUrlFor } from "../code-host.js";
 import { AppThread } from "./app-thread.js";
+import { GatedWorkspace } from "./gated-workspace.js";
 import {
   cloneWorkspaceFromCodeHost,
   isWorkspaceClonePending,
@@ -51,6 +52,15 @@ export class AppAgent extends Think<Env> {
     name: () => this.name,
     onChange: (event) => this.#broadcastWorkspaceChange(event),
   });
+
+  /**
+   * Public FS surface (MCP stub + SharedWorkspace + @callable reads).
+   * Clone writes go to raw `workspace` so readiness cannot deadlock.
+   */
+  readonly #fs = new GatedWorkspace(
+    () => this.#ensureWorkspaceReady(),
+    () => this.workspace
+  );
 
   #workspaceClonePromise: Promise<void> | null = null;
 
@@ -102,9 +112,10 @@ export class AppAgent extends Think<Env> {
     if (isWorkspaceCloneReady(status)) {
       return;
     }
-    const failed = workspaceCloneFailureReason(status);
-    if (failed) {
-      throw new Error(`workspace clone failed: ${failed}`);
+    // Demand path (MCP / Code / shell / SharedWorkspace): clear a prior
+    // durable failure and retry. Auto onStart never reschedules on failed:.
+    if (workspaceCloneFailureReason(status)) {
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
     }
     if (!this.#workspaceClonePromise) {
       this.#workspaceClonePromise = this.#runWorkspaceClone().finally(() => {
@@ -119,11 +130,6 @@ export class AppAgent extends Think<Env> {
     if (isWorkspaceCloneReady(status)) {
       return;
     }
-    if (workspaceCloneFailureReason(status)) {
-      throw new Error(
-        `workspace clone failed: ${workspaceCloneFailureReason(status)}`
-      );
-    }
     if (!isWorkspaceClonePending(status)) {
       await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
     }
@@ -135,9 +141,6 @@ export class AppAgent extends Think<Env> {
         this.name
       );
       await this.ctx.storage.put(WORKSPACE_CLONED_KEY, sha ?? "empty");
-      this.broadcast(
-        JSON.stringify({ type: "workspace-ready", sha: sha ?? null })
-      );
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
       await this.ctx.storage.put(
@@ -277,13 +280,12 @@ export class AppAgent extends Think<Env> {
    * `workspace_read`. Writes stay stub-only — not published on the WS surface.
    */
   @callable()
-  async readFile(path: string) {
-    await this.#ensureWorkspaceReady();
-    return this.workspace.readFile(path);
+  readFile(path: string) {
+    return this.#fs.readFile(path);
   }
 
   readFileBytes(path: string) {
-    return this.workspace.readFileBytes(path);
+    return this.#fs.readFileBytes(path);
   }
 
   writeFile(
@@ -291,9 +293,7 @@ export class AppAgent extends Think<Env> {
     content: string,
     mimeType?: Parameters<Workspace["writeFile"]>[2]
   ) {
-    return this.#ensureWorkspaceReady().then(() =>
-      this.workspace.writeFile(path, content, mimeType)
-    );
+    return this.#fs.writeFile(path, content, mimeType);
   }
 
   writeFileBytes(
@@ -301,9 +301,7 @@ export class AppAgent extends Think<Env> {
     content: Parameters<Workspace["writeFileBytes"]>[1],
     mimeType?: Parameters<Workspace["writeFileBytes"]>[2]
   ) {
-    return this.#ensureWorkspaceReady().then(() =>
-      this.workspace.writeFileBytes(path, content, mimeType)
-    );
+    return this.#fs.writeFileBytes(path, content, mimeType);
   }
 
   appendFile(
@@ -311,60 +309,53 @@ export class AppAgent extends Think<Env> {
     content: string,
     mimeType?: Parameters<Workspace["appendFile"]>[2]
   ) {
-    return this.#ensureWorkspaceReady().then(() =>
-      this.workspace.appendFile(path, content, mimeType)
-    );
+    return this.#fs.appendFile(path, content, mimeType);
   }
 
   exists(path: string) {
-    return this.#ensureWorkspaceReady().then(() => this.workspace.exists(path));
+    return this.#fs.exists(path);
   }
 
   /** Browser-callable directory listing — MCP `workspace_ls` counterpart. */
   @callable()
-  async readDir(path: string, opts?: Parameters<Workspace["readDir"]>[1]) {
-    await this.#ensureWorkspaceReady();
-    return this.workspace.readDir(path, opts);
+  readDir(path: string, opts?: Parameters<Workspace["readDir"]>[1]) {
+    return this.#fs.readDir(path, opts);
   }
 
   rm(path: string, opts?: Parameters<Workspace["rm"]>[1]) {
-    return this.#ensureWorkspaceReady().then(() =>
-      this.workspace.rm(path, opts)
-    );
+    return this.#fs.rm(path, opts);
   }
 
   glob(pattern: string) {
-    return this.#ensureWorkspaceReady().then(() =>
-      this.workspace.glob(pattern)
-    );
+    return this.#fs.glob(pattern);
   }
 
   mkdir(path: string, opts?: Parameters<Workspace["mkdir"]>[1]) {
-    return this.workspace.mkdir(path, opts);
+    return this.#fs.mkdir(path, opts);
   }
 
   stat(path: string) {
-    return this.workspace.stat(path);
+    return this.#fs.stat(path);
   }
 
   lstat(path: string) {
-    return this.workspace.lstat(path);
+    return this.#fs.lstat(path);
   }
 
   cp(src: string, dest: string, opts?: Parameters<Workspace["cp"]>[2]) {
-    return this.workspace.cp(src, dest, opts);
+    return this.#fs.cp(src, dest, opts);
   }
 
   mv(src: string, dest: string) {
-    return this.workspace.mv(src, dest);
+    return this.#fs.mv(src, dest);
   }
 
   symlink(target: string, linkPath: string) {
-    return this.workspace.symlink(target, linkPath);
+    return this.#fs.symlink(target, linkPath);
   }
 
   readlink(path: string) {
-    return this.workspace.readlink(path);
+    return this.#fs.readlink(path);
   }
 }
 
