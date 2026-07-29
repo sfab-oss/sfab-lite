@@ -1,13 +1,13 @@
-import { getLiveSources, listVersions } from "@/api";
+import { getLiveSources } from "@/api";
 import type { AppVersion, Thread } from "../model/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";
 
-function formatCreatedAt(ms: number): string {
+function formatCreatedAt(isoOrMs: string | number): string {
   try {
-    return new Date(ms).toLocaleString();
+    return new Date(isoOrMs).toLocaleString();
   } catch {
-    return String(ms);
+    return String(isoOrMs);
   }
 }
 
@@ -141,18 +141,19 @@ export function createRealChatData(): RealChatData {
         notify();
         return;
       }
-      const [listed, live] = await Promise.all([
-        listVersions(nextAppId),
-        getLiveSources(nextAppId).catch(() => null),
-      ]);
+      const live = await getLiveSources(nextAppId).catch(() => null);
       appId = nextAppId;
       sourceFiles = live?.sourceFiles ?? {};
-      versions = listed.versions.map((version, index) => ({
-        id: version.id,
-        label: `v${listed.versions.length - index}`,
-        createdAt: formatCreatedAt(version.createdAt),
-        live: version.id === listed.liveVersionId,
-      }));
+      versions = live
+        ? [
+            {
+              id: live.liveSha,
+              label: `live ${live.liveSha.slice(0, 12)}`,
+              createdAt: formatCreatedAt(Date.now()),
+              live: true,
+            },
+          ]
+        : [];
       notify();
     },
   };

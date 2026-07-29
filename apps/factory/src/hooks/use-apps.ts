@@ -5,7 +5,6 @@ import {
   getApp,
   getAttempt,
   listApps,
-  listVersions,
   renameApp,
 } from "@/api";
 import { createReadyApp } from "@/lib/create-ready-app";
@@ -14,8 +13,6 @@ const CREATING_POLL_MS = 2500;
 
 const appsQueryKey = ["apps"] as const;
 const appQueryKey = (appId: string) => ["apps", appId] as const;
-const appVersionsQueryKey = (appId: string) =>
-  ["apps", appId, "versions"] as const;
 const appAttemptQueryKey = (appId: string, attemptId: string) =>
   ["apps", appId, "attempts", attemptId] as const;
 
@@ -37,14 +34,6 @@ export function useApp(appId: string) {
     enabled: Boolean(appId),
     refetchInterval: (query) =>
       query.state.data?.status === "creating" ? CREATING_POLL_MS : false,
-  });
-}
-
-export function useAppVersions(appId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: appVersionsQueryKey(appId),
-    queryFn: () => listVersions(appId),
-    enabled: Boolean(appId) && enabled,
   });
 }
 

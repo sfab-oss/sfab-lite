@@ -57,9 +57,9 @@ export function SessionTabBrowser({ active }: { active: boolean }) {
   if (!(appId && liveVersion)) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-        <p className="font-medium text-sm">No published version yet</p>
+        <p className="font-medium text-sm">No live build yet</p>
         <p className="max-w-xs text-muted-foreground text-sm">
-          The live app appears here once a version is published.
+          The live app appears here once main has a CD build.
         </p>
       </div>
     );

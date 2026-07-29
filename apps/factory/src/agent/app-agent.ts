@@ -3,9 +3,10 @@ import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
-import { appStub } from "../commit.js";
+import { getLiveSha } from "../cd.js";
+import { remoteUrlFor } from "../code-host.js";
 import { AppThread } from "./app-thread.js";
-import { seedWorkspaceFromLive } from "./seed-workspace.js";
+import { seedWorkspaceFromCodeHost } from "./seed-workspace.js";
 import { createAppShellCommands } from "./shell-commands.js";
 
 export interface ShellResult {
@@ -54,7 +55,7 @@ export class AppAgent extends Think<Env> {
       updated_at INTEGER NOT NULL
     )`;
 
-    const seeded = await seedWorkspaceFromLive(
+    const seeded = await seedWorkspaceFromCodeHost(
       this.env,
       this.ctx.storage,
       this.workspace,
@@ -143,9 +144,17 @@ export class AppAgent extends Think<Env> {
     this.sql`DELETE FROM thread_meta WHERE id = ${id}`;
   }
 
-  async liveVersionId(): Promise<string | null> {
-    const live = await appStub(this.env, this.name).getLive();
-    return live.liveVersionId ?? null;
+  liveSha(): Promise<string | null> {
+    return getLiveSha(this.env, this.name);
+  }
+
+  /** @deprecated Prefer liveSha — kept for a short call-site rename window. */
+  liveVersionId(): Promise<string | null> {
+    return this.liveSha();
+  }
+
+  remoteUrl(): string {
+    return remoteUrlFor(this.name);
   }
 
   /**

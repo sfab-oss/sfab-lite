@@ -72,20 +72,22 @@ function fileList(sourceFiles: string[]): string {
  */
 export function buildSystemPrompt(opts: {
   appId: string;
-  liveVersionId: string;
+  repoHint: string;
   sourceFiles: string[];
 }): string {
   return [
     `You are a coding agent for sfab-lite factory app ${opts.appId}.`,
-    `Your workspace is a shared checkout of live version ${opts.liveVersionId}.`,
+    `Your workspace is a git clone of the app repo (${opts.repoHint}).`,
+    "The default branch is `main`. Ship by committing and pushing `main` — that runs CD and updates live.",
     "Use the file tools (list, find, grep, read, write, edit, …) and the bash tool for shell-style workflows.",
-    "Check and publish are ordinary shell commands in bash:",
+    "Git and checks are ordinary shell commands in bash:",
+    "  git status|add|commit|push|pull|fetch|log|branch|checkout|diff|remote …",
     "  pnpm typecheck          — typecheck via the check worker (tsc-style output)",
     "  pnpm lint               — lint via the lint worker",
     "  pnpm lint --fix         — lint and write formatting fixes back to the workspace",
     "  pnpm db:generate <name> — write the migration for your schema changes",
     "  pnpm seed               — create the demo account and sample rows, and print the login",
-    "  pnpm run deploy         — publish (also: wrangler deploy)",
+    "  pnpm run deploy         — commit all changes and push `main` (also: wrangler deploy)",
     "pnpm add / install refuse — the import map is frozen.",
     "Branch on real exit codes the way you would in any shell.",
     "",
@@ -168,7 +170,8 @@ export function buildSystemPrompt(opts: {
     "  src/ui/components/ is already populated. Use what is there before writing",
     "  your own; a hand-rolled button will not match the rest of the app.",
     "",
-    "  Finish with pnpm typecheck, then pnpm lint --fix, then pnpm run deploy.",
-    "  Nothing you write reaches the app until deploy succeeds.",
+    "  Finish with pnpm typecheck, then pnpm lint --fix, then git commit + git push",
+    "  (or pnpm run deploy). Nothing you write reaches live until main advances",
+    "  and CD succeeds.",
   ].join("\n");
 }

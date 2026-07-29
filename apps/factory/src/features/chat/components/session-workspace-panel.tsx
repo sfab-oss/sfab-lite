@@ -38,7 +38,7 @@ const WORKSPACE_DEFS: Record<
 > = {
   browser: { icon: Globe, title: "Browser" },
   files: { icon: FolderTree, title: "Published files" },
-  versions: { icon: History, title: "Versions" },
+  versions: { icon: History, title: "Live tip" },
 };
 
 function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
@@ -61,7 +61,7 @@ function VersionsBody() {
   const versions = data.listVersions();
   if (versions.length === 0) {
     return (
-      <p className="p-3 text-muted-foreground text-sm">No versions yet.</p>
+      <p className="p-3 text-muted-foreground text-sm">No live tip yet.</p>
     );
   }
   return (

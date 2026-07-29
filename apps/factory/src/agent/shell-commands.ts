@@ -11,7 +11,7 @@ import {
   callCheck,
   callLint,
   checkPasses,
-  runCommitAttempt,
+  getLiveSha,
 } from "../commit.js";
 import { describeBlocking, diffSchema } from "../schema-ddl.js";
 import { probeSchema } from "../schema-probe.js";
@@ -20,6 +20,7 @@ import {
   serializeSnapshot,
   snapshotPathFor,
 } from "../schema-snapshots.js";
+import { commitAllAndPushMain, runGitCommand } from "./git-commands.js";
 import { renderCheckText, renderLintText } from "./render-diagnostics.js";
 import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
@@ -51,11 +52,6 @@ async function runTypecheck(
 ): Promise<ExecResult> {
   const files = await collectWorkspaceSourceFiles(ctx);
   try {
-    // Warm. This is the edit loop the incremental path was built for — one
-    // app checked repeatedly — and `syncOverlay` drops overlay paths the
-    // request omits, so deletions need no cold pass. Forcing cold rebuilt a
-    // full program over the types VFS on every call, which is both the
-    // slowest and the most memory-hungry thing the factory can do.
     const check = await callCheck(deps.env, deps.appId, files);
     const text = renderCheckText(check.body);
     if (check.http >= 500 || !check.body?.ok) {
@@ -110,24 +106,6 @@ async function runLint(
   return ok(text || "lint passed\n");
 }
 
-/**
- * Write the migration that closes the gap between the schema and the last one.
- *
- * The agent does not author migration SQL — it edits `src/db/schema.ts`, and
- * this derives the DDL, the same division of labour `drizzle-kit generate`
- * gives a normal project. Deriving it is what makes the file trustworthy: a
- * hand-written migration can disagree with the schema it claims to implement,
- * and nothing would notice until a query failed.
- *
- * Offline, like `drizzle-kit generate` and unlike `drizzle-kit push`. The
- * previous state comes from `migrations/meta/`, not from the app's database,
- * so generating a migration touches no Durable Object and can be tested
- * exactly as it runs.
- *
- * Refuses rather than guesses when the change is destructive. Dropping a column
- * or retyping one needs a human to say what happens to the rows, and there is
- * no prompt here to ask on.
- */
 async function runDbGenerate(
   deps: ShellCommandDeps,
   ctx: CommandContext,
@@ -159,8 +137,6 @@ async function runDbGenerate(
   const path = nextMigrationPath(files, name);
   const snapshotPath = snapshotPathFor(path);
   await ctx.fs.writeFile(`/${path}`, `${diff.statements.join("\n")}\n`);
-  // The snapshot is what the *next* generate diffs against, so it records the
-  // schema this migration implements rather than the one it started from.
   await ctx.fs.writeFile(`/${snapshotPath}`, serializeSnapshot(probe.snapshot));
   const summary = diff.additive
     .map((change) => `  ${change.kind} ${change.table}`)
@@ -168,32 +144,18 @@ async function runDbGenerate(
   return ok(`db:generate: wrote ${path} and ${snapshotPath}\n${summary}\n`);
 }
 
-/**
- * The origin is arbitrary — a service binding routes by binding, not by host —
- * but it must parse, because `serve.ts` derives the app's `BETTER_AUTH_URL`
- * and public base from it.
- */
 const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
 
-/**
- * Put the demo account and sample rows into the live app.
- *
- * The credentials are the host's, not the template's: a password committed to
- * the seed source would be a working owner login for every app ever generated
- * from it. The factory mints one per app and this is how you read it back —
- * re-running prints the same login rather than a new one, so the answer to
- * "what was the password" is always to run this again.
- */
 async function runSeed(deps: ShellCommandDeps): Promise<ExecResult> {
-  const stub = appStub(deps.env, deps.appId);
-  const live = await stub.getLive();
-  if (!live.liveVersionId) {
+  const liveSha = await getLiveSha(deps.env, deps.appId);
+  if (!liveSha) {
     return fail(
-      "seed: app has no live version yet — run `pnpm run deploy` first\n",
+      "seed: app has no live build yet — push main (or pnpm run deploy) first\n",
       1
     );
   }
 
+  const stub = appStub(deps.env, deps.appId);
   const { token, password } = await stub.seedCredentials();
   const path = `/a/${encodeURIComponent(deps.appId)}/api/dev/seed`;
   const res = await deps.env.SELF.fetch(
@@ -226,55 +188,6 @@ async function runSeed(deps: ShellCommandDeps): Promise<ExecResult> {
       `  email         ${body.email}\n` +
       `  password      ${password}\n`
   );
-}
-
-/**
- * Await the commit on the agent turn (exit codes must be real). Justified
- * against DO limits: factory `limits.cpu_ms` is 300_000 and a commit is
- * measured at 10–24s. Unlike HTTP `waitUntil`, we must settle before returning
- * — but abort must still fail the attempt so bash timeout cannot leave it
- * pending until STALE_ATTEMPT_MS.
- */
-async function runDeploy(
-  deps: ShellCommandDeps,
-  ctx: CommandContext
-): Promise<ExecResult> {
-  const files = await collectWorkspaceSourceFiles(ctx);
-  const stub = appStub(deps.env, deps.appId);
-  const live = await stub.getLive();
-  if (!(live.version?.sourceFiles && live.liveVersionId)) {
-    return fail("deploy: app has no live version to publish from\n", 1);
-  }
-  if (ctx.signal?.aborted) {
-    return fail("deploy: aborted before start\n", 124);
-  }
-  const start = await stub.startAttempt("commit", live.liveVersionId);
-  if (!start.ok) {
-    return fail(`deploy: attempt already in flight (${start.attemptId})\n`, 1);
-  }
-
-  const result = await runCommitAttempt(
-    deps.env,
-    deps.appId,
-    start.attemptId,
-    files,
-    live.liveVersionId,
-    { signal: ctx.signal }
-  );
-
-  if (result === "aborted") {
-    return fail(`deploy: aborted (attempt ${start.attemptId})\n`, 124);
-  }
-  if (result === "pass") {
-    return ok(`deploy: published successfully (attempt ${start.attemptId})\n`);
-  }
-  const { attempt } = await stub.getAttempt(start.attemptId);
-  const detail =
-    attempt?.payload == null
-      ? "\n"
-      : `\n${JSON.stringify(attempt.payload, null, 2)}\n`;
-  const kind = result === "fail" ? "publish gate failed" : "publish error";
-  return fail(`deploy: ${kind} (attempt ${start.attemptId})${detail}`, 1);
 }
 
 function parsePnpmInvocation(args: string[]): {
@@ -323,7 +236,7 @@ export function createAppShellCommands(
       return await runDbGenerate(deps, ctx, scriptArgs);
     }
     if (script === "deploy") {
-      return await runDeploy(deps, ctx);
+      return await commitAllAndPushMain(deps, ctx);
     }
     if (script === "seed") {
       return await runSeed(deps);
@@ -336,7 +249,7 @@ export function createAppShellCommands(
 
   const wrangler = defineCommand("wrangler", async (args, ctx) => {
     if (args[0] === "deploy") {
-      return await runDeploy(deps, ctx);
+      return await commitAllAndPushMain(deps, ctx);
     }
     return fail(
       "wrangler: only `wrangler deploy` is supported (alias of pnpm run deploy).\n",
@@ -344,5 +257,9 @@ export function createAppShellCommands(
     );
   });
 
-  return [pnpm, wrangler];
+  const git = defineCommand("git", async (args, ctx) =>
+    runGitCommand(deps, args, ctx)
+  );
+
+  return [pnpm, wrangler, git];
 }
