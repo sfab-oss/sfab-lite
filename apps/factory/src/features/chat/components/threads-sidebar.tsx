@@ -1,6 +1,5 @@
 import { AgentSigil } from "@sfab-lite/ui/components/icons/agent-sigil";
 import { LogoDots } from "@sfab-lite/ui/components/icons/logo-dots";
-import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -10,6 +9,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -162,20 +162,17 @@ export function SessionThreadsSidebar({
         <SidebarSeparator />
 
         <SidebarGroup>
-          <div className="flex items-center gap-1 pr-1 group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel className="flex-1">Apps</SidebarGroupLabel>
+          <SidebarGroupLabel>Apps</SidebarGroupLabel>
+          <SidebarGroupAction
+            aria-label="New thread"
+            onClick={onNewThread}
+            title="New thread"
+          >
+            <Plus />
+            <span className="sr-only">New thread</span>
+          </SidebarGroupAction>
+          <div className="px-2 pb-1 group-data-[collapsible=icon]:hidden">
             <ThreadSearch onSearchChange={onSearchChange} search={search} />
-            <Button
-              aria-label="New thread"
-              className="size-6 shrink-0 text-muted-foreground"
-              onClick={onNewThread}
-              size="icon-xs"
-              title="New thread"
-              type="button"
-              variant="ghost"
-            >
-              <Plus className="size-3.5" />
-            </Button>
           </div>
 
           {appGroups.length === 0 ? (
