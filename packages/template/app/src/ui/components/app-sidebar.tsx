@@ -38,7 +38,7 @@ import {
 const WHITESPACE = /\s+/;
 
 const NAV = [
-  { to: "/", label: "Overview", icon: DashboardIcon },
+  { to: "/overview", label: "Overview", icon: DashboardIcon },
   { to: "/documents", label: "Documents", icon: FileTextIcon },
   { to: "/entities", label: "Parties", icon: PersonIcon },
   { to: "/catalog", label: "Catalog", icon: CubeIcon },
@@ -53,15 +53,8 @@ function initials(name: string | undefined, email: string | undefined): string {
   return source.slice(0, 2).toUpperCase();
 }
 
-/**
- * `/` would match every route under it, so the overview is compared exactly
- * while the rest match their subtree — `/documents/abc` still lights up
- * Documents.
- */
+/** Exact match for leaves; `/documents/abc` still lights Documents. */
 function isActivePath(pathname: string, to: string): boolean {
-  if (to === "/") {
-    return pathname === "/";
-  }
   return pathname === to || pathname.startsWith(`${to}/`);
 }
 
@@ -80,7 +73,7 @@ export function AppSidebar() {
   async function onSignOut() {
     await authClient.signOut();
     queryClient.clear();
-    await navigate({ to: "/sign-in" });
+    await navigate({ to: "/" });
   }
 
   return (
