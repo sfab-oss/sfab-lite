@@ -1,3 +1,17 @@
+import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@sfab-lite/ui/components/shadcn/tabs";
 import {
   ChevronLeft,
   FolderTree,
@@ -7,15 +21,6 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useChatData } from "../data/chat-data-context";
 import {
   type OpenTab,

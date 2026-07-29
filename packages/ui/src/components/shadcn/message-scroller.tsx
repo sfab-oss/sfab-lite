@@ -1,5 +1,7 @@
 // biome-ignore-all lint/style/noExportedImports: shadcn registry stock
 
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { cn } from "@sfab-lite/ui/lib/utils";
 import {
   MessageScroller as MessageScrollerPrimitive,
   useMessageScroller,
@@ -8,8 +10,6 @@ import {
 } from "@shadcn/react/message-scroller";
 import { ArrowDownIcon } from "lucide-react";
 import type * as React from "react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 function MessageScrollerProvider(
   props: React.ComponentProps<typeof MessageScrollerPrimitive.Provider>

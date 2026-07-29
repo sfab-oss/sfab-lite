@@ -1,8 +1,8 @@
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { Input } from "@sfab-lite/ui/components/shadcn/input";
+import { cn } from "@sfab-lite/ui/lib/utils";
 import { Search, X } from "lucide-react";
 import { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 
 /**
  * Collapsed search icon → expands in place to a field. No status/kind filters.

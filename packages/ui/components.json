@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-vega",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@sfab-lite/ui/components",
+    "utils": "@sfab-lite/ui/lib/utils",
+    "ui": "@sfab-lite/ui/components/shadcn",
+    "lib": "@sfab-lite/ui/lib",
+    "hooks": "@sfab-lite/ui/hooks"
+  },
+  "registries": {
+    "@ai-elements": "https://registry.ai-sdk.dev/{name}.json"
+  }
+}

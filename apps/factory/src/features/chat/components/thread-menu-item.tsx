@@ -1,19 +1,19 @@
-import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
 import {
   SidebarMenuAction,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+} from "@sfab-lite/ui/components/shadcn/sidebar";
+import { cn } from "@sfab-lite/ui/lib/utils";
+import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useThreadLifecycle } from "../hooks/use-thread-lifecycle";
 import { formatRelativeTime } from "../model/thread-list";
 import type { Thread } from "../model/types";

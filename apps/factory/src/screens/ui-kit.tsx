@@ -1,51 +1,61 @@
-import { AlertCircleIcon, ChevronDownIcon, PaperclipIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@sfab-lite/ui/components/shadcn/alert";
 import {
   Attachment,
   AttachmentContent,
   AttachmentDescription,
   AttachmentMedia,
   AttachmentTitle,
-} from "@/components/ui/attachment";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Bubble, BubbleContent, BubbleGroup } from "@/components/ui/bubble";
-import { Button } from "@/components/ui/button";
+} from "@sfab-lite/ui/components/shadcn/attachment";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@sfab-lite/ui/components/shadcn/avatar";
+import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
+import {
+  Bubble,
+  BubbleContent,
+  BubbleGroup,
+} from "@sfab-lite/ui/components/shadcn/bubble";
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@sfab-lite/ui/components/shadcn/card";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@sfab-lite/ui/components/shadcn/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
+import { Input } from "@sfab-lite/ui/components/shadcn/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
-import { Markdown } from "@/components/ui/markdown";
+} from "@sfab-lite/ui/components/shadcn/input-group";
+import { Label } from "@sfab-lite/ui/components/shadcn/label";
+import { Markdown } from "@sfab-lite/ui/components/shadcn/markdown";
 import {
   Message,
   MessageAvatar,
   MessageContent,
   MessageGroup,
   MessageHeader,
-} from "@/components/ui/message";
+} from "@sfab-lite/ui/components/shadcn/message";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -53,18 +63,18 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
-} from "@/components/ui/message-scroller";
+} from "@sfab-lite/ui/components/shadcn/message-scroller";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@sfab-lite/ui/components/shadcn/popover";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import { Separator } from "@/components/ui/separator";
+} from "@sfab-lite/ui/components/shadcn/resizable";
+import { Separator } from "@sfab-lite/ui/components/shadcn/separator";
 import {
   Sheet,
   SheetContent,
@@ -72,7 +82,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
+} from "@sfab-lite/ui/components/shadcn/sheet";
 import {
   Sidebar,
   SidebarContent,
@@ -86,16 +96,23 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+} from "@sfab-lite/ui/components/shadcn/sidebar";
+import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@sfab-lite/ui/components/shadcn/tabs";
+import { Textarea } from "@sfab-lite/ui/components/shadcn/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@sfab-lite/ui/components/shadcn/tooltip";
+import { AlertCircleIcon, ChevronDownIcon, PaperclipIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (

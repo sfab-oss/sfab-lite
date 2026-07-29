@@ -3,7 +3,7 @@
 ## Tokens (canonical)
 
 **Shadcn semantic tokens are canonical for all new factory UI** — primitives
-under `src/components/ui`, the auth rebuild, and the chat graft.
+in `@sfab-lite/ui`, the auth rebuild, and the chat graft.
 
 Use Tailwind utilities (`bg-muted`, `text-muted-foreground`, `bg-primary`,
 `text-primary`, `bg-accent`, `border-border`, …) or the matching CSS variables
@@ -24,7 +24,7 @@ Do **not** use `var(--muted)` for text or `var(--accent)` for brand colour.
 Do **not** reintroduce `--muted-bg` / `--accent-bg` collision shims.
 Do **not** reintroduce `--ink` / `--line` / `--surface` / `--bg` / `--danger`.
 
-Defined in [`src/styles.css`](src/styles.css).
+Defined in `@sfab-lite/ui/globals.css` (imported from [`src/styles.css`](src/styles.css)).
 
 ## Verification kit
 
@@ -41,6 +41,6 @@ pnpm --filter @sfab-lite/factory dev
 ## Imports
 
 ```ts
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { cn } from "@sfab-lite/ui/lib/utils";
 ```

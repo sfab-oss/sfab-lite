@@ -1,3 +1,6 @@
+import { Bubble, BubbleContent } from "@sfab-lite/ui/components/shadcn/bubble";
+import { Markdown } from "@sfab-lite/ui/components/shadcn/markdown";
+import { cn } from "@sfab-lite/ui/lib/utils";
 import {
   type DynamicToolUIPart,
   isToolUIPart,
@@ -8,9 +11,6 @@ import {
 } from "ai";
 import { useState } from "react";
 import { Thinking } from "@/components/brand/thinking";
-import { Bubble, BubbleContent } from "@/components/ui/bubble";
-import { Markdown } from "@/components/ui/markdown";
-import { cn } from "@/lib/utils";
 import { DefaultTool } from "./default-tool";
 import { useMessagePartGroupUi } from "./message-part-group";
 import {

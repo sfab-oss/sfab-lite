@@ -16,8 +16,7 @@ const config: KnipConfig = {
       ignoreBinaries: ["wrangler"],
     },
     "apps/factory": {
-      // Worker/Start entry + console under `src/`. Primitive barrel stays an
-      // entry so knip treats its re-exports as the library surface, not dead.
+      // Worker/Start entry + console under `src/`.
       entry: [
         "src/server.ts",
         "src/index.ts",
@@ -26,18 +25,19 @@ const config: KnipConfig = {
         "src/**/*.test.ts",
         "scripts/*.mjs",
         "vite.config.ts",
-        "src/components/ui/index.ts",
       ],
       project: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "vite.config.ts"],
       // `cloudflare:workers` is a workerd built-in, not an npm package.
-      // `tw-animate-css` is pulled only via `@import` in styles.css.
       // `@tanstack/router-plugin` is applied inside `@tanstack/react-start`'s
       // Vite plugin; keep it pinned for Start alignment even if unused directly.
-      ignoreDependencies: [
-        "cloudflare",
-        "tw-animate-css",
-        "@tanstack/router-plugin",
-      ],
+      ignoreDependencies: ["cloudflare", "@tanstack/router-plugin"],
+    },
+    "packages/ui": {
+      // Primitive barrel is the library surface; shadcn CLI config is not code.
+      entry: ["src/components/shadcn/index.ts"],
+      project: ["src/**/*.{ts,tsx}"],
+      // Pulled only via `@import` in globals.css / scanned by Tailwind.
+      ignoreDependencies: ["tailwindcss", "tw-animate-css"],
     },
     "apps/check": {
       project: ["src/**/*.ts"],

@@ -1,5 +1,5 @@
+import { cn } from "@sfab-lite/ui/lib/utils";
 import { type ReactNode, useCallback, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 
 /**
  * The object panel docks beside the transcript when there is room and floats

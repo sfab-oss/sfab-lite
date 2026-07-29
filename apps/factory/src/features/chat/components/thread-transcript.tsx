@@ -1,18 +1,16 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: streaming parts have no stable ids */
 
 import { useAgentChat } from "@cloudflare/think/react";
-import { useAgent } from "agents/react";
-import type { ChatStatus, FileUIPart, UIMessage } from "ai";
-import { FileIcon, PaperclipIcon } from "lucide-react";
-import { type RefObject, useEffect, useRef } from "react";
-import { ThinkingPending } from "@/components/brand/thinking";
 import {
   Attachment,
   AttachmentContent,
   AttachmentMedia,
   AttachmentTitle,
-} from "@/components/ui/attachment";
-import { Message, MessageContent } from "@/components/ui/message";
+} from "@sfab-lite/ui/components/shadcn/attachment";
+import {
+  Message,
+  MessageContent,
+} from "@sfab-lite/ui/components/shadcn/message";
 import {
   MessageScroller,
   MessageScrollerButton,
@@ -20,7 +18,12 @@ import {
   MessageScrollerItem,
   MessageScrollerProvider,
   MessageScrollerViewport,
-} from "@/components/ui/message-scroller";
+} from "@sfab-lite/ui/components/shadcn/message-scroller";
+import { useAgent } from "agents/react";
+import type { ChatStatus, FileUIPart, UIMessage } from "ai";
+import { FileIcon, PaperclipIcon } from "lucide-react";
+import { type RefObject, useEffect, useRef } from "react";
+import { ThinkingPending } from "@/components/brand/thinking";
 import { useChatData } from "../data/chat-data-context";
 import type { Thread } from "../model/types";
 import { MessageParts } from "./chat/message-parts";

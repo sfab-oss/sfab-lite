@@ -1,12 +1,12 @@
-import { ChevronDownIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
-import { AnimatedLogo } from "@/components/icons/animated-logo";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
+} from "@sfab-lite/ui/components/shadcn/collapsible";
+import { cn } from "@sfab-lite/ui/lib/utils";
+import { ChevronDownIcon } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { AnimatedLogo } from "@/components/icons/animated-logo";
 
 /**
  * Dedicated thinking chrome — not a message-part group. Title + optional body;

@@ -1,8 +1,8 @@
+import { cn } from "@sfab-lite/ui/lib/utils";
 import { GripVerticalIcon } from "lucide-react";
 import type * as React from "react";
 // biome-ignore lint/performance/noNamespaceImport: Ok
 import * as ResizablePrimitive from "react-resizable-panels";
-import { cn } from "@/lib/utils";
 
 function ResizablePanelGroup({
   className,
