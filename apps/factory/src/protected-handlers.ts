@@ -47,7 +47,7 @@ import {
   renameAppUnscoped,
   setCreateAttemptId,
 } from "./registry.js";
-import type { ProtectedCtx, AppCtx, OrgCtx } from "./routes.js";
+import type { AppCtx, OrgCtx, ProtectedCtx } from "./routes.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
 /** ctx.exports typing for WorkerEntrypoint classes isn't inferred by tsc alone. */
@@ -120,7 +120,10 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     await stub.bootstrap(TEMPLATE_SEED.migrations);
   } catch (e) {
     await markCreateFailed(db, appId);
-    return protectedError(e instanceof Error ? e.message : "bootstrap_failed", 500);
+    return protectedError(
+      e instanceof Error ? e.message : "bootstrap_failed",
+      500
+    );
   }
 
   const start = await stub.startAttempt("create", null);
@@ -230,7 +233,9 @@ export async function handleDeleteApp(
   };
 }
 
-export async function handleTouch(rc: AppCtx): Promise<ProtectedReply<unknown>> {
+export async function handleTouch(
+  rc: AppCtx
+): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const touch = await appStub(rc.env, appId).touch();
   return { status: 200, body: { ok: true as const, appId, touch } };
@@ -408,7 +413,9 @@ async function probePeerToken(
  * secret the factory presented. `adminToken.agree` answers it directly, and
  * answers it *before* anyone tries to commit.
  */
-export async function handleHealth(rc: ProtectedCtx): Promise<ProtectedReply<unknown>> {
+export async function handleHealth(
+  rc: ProtectedCtx
+): Promise<ProtectedReply<unknown>> {
   const token = rc.env.ADMIN_TOKEN;
   const [check, lint] = await Promise.all([
     probePeerToken(rc.env.CHECK, token),

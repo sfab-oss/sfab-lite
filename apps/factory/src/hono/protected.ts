@@ -17,7 +17,7 @@ import {
   handleTouch,
 } from "../protected-handlers.js";
 import { NOT_FOUND_BODY } from "../routes.js";
-import { protectedCtx, appCtx, orgCtx } from "./context.js";
+import { appCtx, orgCtx, protectedCtx } from "./context.js";
 import { requireActor, requireApp, requireOrganization } from "./middleware.js";
 import {
   checkBodySchema,

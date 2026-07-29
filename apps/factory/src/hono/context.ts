@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { ProtectedCtx, AppCtx, OrgCtx } from "../routes.js";
+import type { AppCtx, OrgCtx, ProtectedCtx } from "../routes.js";
 import type { AdminEnv } from "./types.js";
 
 function dummyMatch(path: string, ...groups: string[]): RegExpMatchArray {
