@@ -237,9 +237,53 @@ export function createR2CodeHost(env: Env): CodeHost {
       await copyTree(sourceFs, `${gitRoot}/objects`, bare, "/objects");
       await bare.mkdir("/refs/heads", { recursive: true });
       await bare.writeFile(`/refs/heads/${ref}`, `${workSha}\n`);
-      await bare.writeFile("/HEAD", `ref: refs/heads/${ref}\n`);
+      if (ref === "main") {
+        await bare.writeFile("/HEAD", "ref: refs/heads/main\n");
+      }
       const advancedMain = ref === "main" && prev !== workSha;
       return { advancedMain, sha: workSha };
+    },
+
+    async updateRef(
+      appId: string,
+      ref: string,
+      sha: string
+    ): Promise<{ previous: string | null }> {
+      await this.ensureRepo(appId);
+      const bare = bareFs(appId);
+      const previous = await readRef(bare, `/refs/heads/${ref}`);
+      await bare.mkdir("/refs/heads", { recursive: true });
+      await bare.writeFile(`/refs/heads/${ref}`, `${sha}\n`);
+      if (ref === "main") {
+        await bare.writeFile("/HEAD", "ref: refs/heads/main\n");
+      }
+      return { previous };
+    },
+
+    async isAncestor(
+      appId: string,
+      ancestorSha: string,
+      descendantSha: string
+    ): Promise<boolean> {
+      if (ancestorSha === descendantSha) {
+        return true;
+      }
+      await this.ensureRepo(appId);
+      const bare = bareFs(appId);
+      const work = new InMemoryFs() as unknown as GitWorkFs;
+      const git = createGit(asShellFs(work), "/");
+      await git.init({ defaultBranch: "main" });
+      await copyTree(bare, "/objects", work, "/.git/objects");
+      await copyTree(bare, "/refs", work, "/.git/refs");
+      if (await bare.exists("/HEAD")) {
+        await work.writeFile("/.git/HEAD", await bare.readFile("/HEAD"));
+      }
+      try {
+        const entries = await git.log({ ref: descendantSha, depth: 10_000 });
+        return entries.some((e) => e.oid === ancestorSha);
+      } catch {
+        return false;
+      }
     },
 
     async readTreeAt(

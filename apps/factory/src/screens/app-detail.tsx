@@ -112,7 +112,13 @@ function AppBody({
               }
               variant="outline"
             >
-              Open preview
+              Open console
+            </Button>
+            <Button
+              render={<Link params={{ appId: app.id }} to="/apps/$appId/prs" />}
+              variant="outline"
+            >
+              Pull requests
             </Button>
           </div>
         ) : null}

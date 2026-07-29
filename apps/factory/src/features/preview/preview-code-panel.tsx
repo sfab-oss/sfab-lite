@@ -5,8 +5,8 @@ import { useAppAgentWorkspace } from "./use-app-agent-workspace";
 function WorkspaceBanner() {
   return (
     <p className="shrink-0 border-b px-3 py-2 text-muted-foreground text-xs">
-      Workspace (WIP) — preview runs the live published version until you
-      deploy.
+      Workspace (WIP) — this console iframe serves the live build; PR previews
+      open from the PR detail page.
     </p>
   );
 }

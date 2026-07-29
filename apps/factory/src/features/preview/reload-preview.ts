@@ -5,8 +5,20 @@ export function appBasePath(appId: string): string {
   return `/a/${encodeURIComponent(appId)}`;
 }
 
-export function clampToApp(appId: string, input: string): string {
-  const base = appBasePath(appId);
+export function appPrPreviewBasePath(appId: string, prNumber: number): string {
+  return `/a/${encodeURIComponent(appId)}/preview/${prNumber}`;
+}
+
+export function clampToApp(
+  appId: string,
+  input: string,
+  mode: "live" | "preview" = "live",
+  prNumber?: number
+): string {
+  const base =
+    mode === "preview" && prNumber != null
+      ? appPrPreviewBasePath(appId, prNumber)
+      : appBasePath(appId);
   try {
     let rel = input.trim() || "/";
     if (ABSOLUTE_URL.test(rel) || rel.startsWith("//")) {
@@ -45,6 +57,6 @@ export function reloadPreviewFrame(
   try {
     frame.contentWindow?.location.reload();
   } catch {
-    frame.src = clampToApp(appId, relativePath);
+    frame.src = clampToApp(appId, relativePath, "live");
   }
 }

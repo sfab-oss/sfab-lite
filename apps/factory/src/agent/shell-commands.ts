@@ -15,13 +15,15 @@ import {
   serializeSnapshot,
   snapshotPathFor,
 } from "../schema-snapshots.js";
+import { createGhCommand } from "./gh-commands.js";
 import { commitAllAndPushMain, runGitCommand } from "./git-commands.js";
 import { renderCheckText, renderLintText } from "./render-diagnostics.js";
 import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
 const FROZEN_IMPORT_MAP_MSG = `This app runs on sfab-lite's frozen kernel import map — dependencies are pinned at the factory, not installed per app.
 pnpm add / install are not available in this shell.
-Use pnpm typecheck, pnpm lint, pnpm db:generate, pnpm seed, and pnpm run deploy (or wrangler deploy) instead.
+Use pnpm typecheck, pnpm lint, pnpm db:generate, and pnpm seed.
+Ship via a feature branch → gh pr create → checks → gh pr merge (main is merge-only; pnpm run deploy refuses).
 `;
 
 function ok(stdout: string): ExecResult {
@@ -145,7 +147,7 @@ async function runSeed(deps: ShellCommandDeps): Promise<ExecResult> {
   const liveSha = await getLiveSha(deps.env, deps.appId);
   if (!liveSha) {
     return fail(
-      "seed: app has no live build yet — push main (or pnpm run deploy) first\n",
+      "seed: app has no live build yet — merge a PR to main first (gh pr merge)\n",
       1
     );
   }
@@ -247,7 +249,7 @@ export function createAppShellCommands(
       return await commitAllAndPushMain(deps, ctx);
     }
     return fail(
-      "wrangler: only `wrangler deploy` is supported (alias of pnpm run deploy).\n",
+      "wrangler: only `wrangler deploy` is supported (refuses — main is merge-only).\n",
       1
     );
   });
@@ -256,5 +258,7 @@ export function createAppShellCommands(
     runGitCommand(deps, args, ctx)
   );
 
-  return [pnpm, wrangler, git];
+  const gh = createGhCommand(deps);
+
+  return [pnpm, wrangler, git, gh];
 }

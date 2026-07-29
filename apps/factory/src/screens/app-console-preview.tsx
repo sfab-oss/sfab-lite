@@ -141,7 +141,7 @@ export function AppConsolePreviewScreen({ appId }: { appId: string }) {
             <RotateCw className="size-4" />
           </Button>
           <Button
-            aria-label="Open live in new tab"
+            aria-label="Open preview in new tab"
             className="size-8"
             onClick={() =>
               window.open(rootSrc, "_blank", "noopener,noreferrer")

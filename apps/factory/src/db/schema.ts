@@ -272,10 +272,99 @@ export const app = sqliteTable(
   ]
 );
 
-export const appRelations = relations(app, ({ one }) => ({
+/** Branch PR into main — one repo per app. */
+export const pullRequest = sqliteTable(
+  "pull_request",
+  {
+    id: text("id").primaryKey(),
+    appId: text("app_id")
+      .notNull()
+      .references(() => app.id, { onDelete: "cascade" }),
+    number: integer("number").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    headBranch: text("head_branch").notNull(),
+    baseBranch: text("base_branch").notNull().default("main"),
+    headSha: text("head_sha").notNull(),
+    /** `open` | `merged` | `closed` */
+    status: text("status").notNull().default("open"),
+    previewSha: text("preview_sha"),
+    mergedSha: text("merged_sha"),
+    mergedAt: integer("merged_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("pull_request_app_number_uidx").on(table.appId, table.number),
+    index("pull_request_app_status_idx").on(table.appId, table.status),
+    index("pull_request_app_head_branch_idx").on(table.appId, table.headBranch),
+  ]
+);
+
+/** Platform-fixed CI/CD check run (not user workflows). */
+export const checkRun = sqliteTable(
+  "check_run",
+  {
+    id: text("id").primaryKey(),
+    appId: text("app_id")
+      .notNull()
+      .references(() => app.id, { onDelete: "cascade" }),
+    prId: text("pr_id").references(() => pullRequest.id, {
+      onDelete: "set null",
+    }),
+    sha: text("sha").notNull(),
+    name: text("name").notNull(),
+    /** `queued` | `in_progress` | `completed` */
+    status: text("status").notNull().default("queued"),
+    /** `success` | `failure` | `cancelled` when completed */
+    conclusion: text("conclusion"),
+    detail: text("detail"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  },
+  (table) => [
+    index("check_run_app_sha_idx").on(table.appId, table.sha),
+    index("check_run_pr_idx").on(table.prId),
+    index("check_run_app_created_idx").on(table.appId, table.createdAt),
+  ]
+);
+
+export const appRelations = relations(app, ({ one, many }) => ({
   organization: one(organization, {
     fields: [app.organizationId],
     references: [organization.id],
+  }),
+  pullRequests: many(pullRequest),
+  checkRuns: many(checkRun),
+}));
+
+export const pullRequestRelations = relations(pullRequest, ({ one, many }) => ({
+  app: one(app, {
+    fields: [pullRequest.appId],
+    references: [app.id],
+  }),
+  checkRuns: many(checkRun),
+}));
+
+export const checkRunRelations = relations(checkRun, ({ one }) => ({
+  app: one(app, {
+    fields: [checkRun.appId],
+    references: [app.id],
+  }),
+  pullRequest: one(pullRequest, {
+    fields: [checkRun.prId],
+    references: [pullRequest.id],
   }),
 }));
 
