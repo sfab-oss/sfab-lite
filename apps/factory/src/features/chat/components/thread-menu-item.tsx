@@ -9,10 +9,11 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@sfab-lite/ui/components/shadcn/sidebar";
 import { cn } from "@sfab-lite/ui/lib/utils";
-import { MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useThreadLifecycle } from "../hooks/use-thread-lifecycle";
 import { formatRelativeTime } from "../model/thread-list";
@@ -50,40 +51,19 @@ function statusPrefix(thread: Thread): string | null {
   return null;
 }
 
-function ThreadQuietGlyph({ thread }: { thread: Thread }) {
-  const live = thread.status === "running" || thread.status === "needs-you";
-
-  return (
-    <span className="relative flex size-4 shrink-0 items-center justify-center">
-      <MessageSquare aria-hidden className="size-4 text-sidebar-foreground" />
-      {live ? (
-        <span
-          aria-hidden
-          className={cn(
-            "absolute -top-0.5 -right-0.5 size-1.5 rounded-full",
-            thread.status === "needs-you"
-              ? "bg-foreground"
-              : "animate-pulse bg-foreground/70"
-          )}
-        />
-      ) : null}
-    </span>
-  );
-}
-
 export function ThreadMenuItem({
   thread,
   active,
   dense,
+  nested = false,
   onSelect,
   onDeleted,
-  quiet = false,
 }: {
   active: boolean;
   dense?: boolean;
+  nested?: boolean;
   onDeleted?: (thread: Thread) => void;
   onSelect: () => void;
-  quiet?: boolean;
   thread: Thread;
 }) {
   const statusLabel = statusPrefix(thread);
@@ -95,32 +75,101 @@ export function ThreadMenuItem({
       formatRelativeTime(thread.updatedAt)
     );
 
-  let statusHint: string | null = null;
-  if (thread.status === "needs-you") {
-    statusHint = "(needs you)";
-  } else if (thread.status === "running") {
-    statusHint = "(running)";
-  }
-
-  const tooltip = [thread.title, statusHint].filter(Boolean).join(" ");
   const { busy, error, renameThread, deleteThread, clearError } =
     useThreadLifecycle();
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const showActions = Boolean(onDeleted) && !quiet;
+  const showActions = Boolean(onDeleted);
 
-  if (quiet) {
+  const actions = showActions ? (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <SidebarMenuAction
+              aria-label={`Actions for ${thread.title}`}
+              showOnHover={!nested}
+            />
+          }
+        >
+          <MoreHorizontal />
+          <span className="sr-only">Thread actions</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" side="bottom">
+          <DropdownMenuItem
+            disabled={busy}
+            onClick={() => {
+              clearError();
+              setRenameOpen(true);
+            }}
+          >
+            <Pencil />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            disabled={busy}
+            onClick={() => {
+              clearError();
+              setDeleteOpen(true);
+            }}
+            variant="destructive"
+          >
+            <Trash2 />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <RenameThreadDialog
+        busy={busy}
+        error={renameOpen ? error : null}
+        onOpenChange={setRenameOpen}
+        onRename={(title) => renameThread(thread, title)}
+        open={renameOpen}
+        thread={thread}
+      />
+      <DeleteThreadDialog
+        busy={busy}
+        error={deleteOpen ? error : null}
+        onConfirm={async () => {
+          const ok = await deleteThread(thread);
+          if (ok) {
+            onDeleted?.(thread);
+          }
+          return ok;
+        }}
+        onOpenChange={setDeleteOpen}
+        open={deleteOpen}
+        thread={thread}
+      />
+    </>
+  ) : null;
+
+  if (nested) {
     return (
-      <SidebarMenuItem>
-        <SidebarMenuButton
+      <SidebarMenuSubItem>
+        <SidebarMenuSubButton
+          className={cn(showStatus && "h-auto items-start py-1.5")}
           isActive={active}
           onClick={onSelect}
-          tooltip={tooltip}
+          render={<button type="button" />}
         >
-          <ThreadQuietGlyph thread={thread} />
-          <span className="sr-only">{thread.title}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
+          {showStatus ? (
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5 pr-6">
+              <span className="truncate font-medium text-xs leading-tight">
+                {thread.title}
+              </span>
+              <span className="truncate text-[10px] text-muted-foreground leading-tight">
+                {statusLabel}
+              </span>
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1 truncate pr-6 text-xs">
+              {thread.title}
+            </span>
+          )}
+        </SidebarMenuSubButton>
+        {actions}
+      </SidebarMenuSubItem>
     );
   }
 
@@ -157,73 +206,7 @@ export function ThreadMenuItem({
       >
         {trailing}
       </SidebarMenuBadge>
-      {showActions ? (
-        <>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <SidebarMenuAction
-                  aria-label={`Actions for ${thread.title}`}
-                  showOnHover
-                />
-              }
-            >
-              <MoreHorizontal />
-              <span className="sr-only">Thread actions</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="bottom">
-              <DropdownMenuItem
-                disabled={busy}
-                onClick={() => {
-                  clearError();
-                  setRenameOpen(true);
-                }}
-              >
-                <Pencil />
-                Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                disabled={busy}
-                onClick={() => {
-                  clearError();
-                  setDeleteOpen(true);
-                }}
-                variant="destructive"
-              >
-                <Trash2 />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <RenameThreadDialog
-            busy={busy}
-            error={renameOpen ? error : null}
-            onOpenChange={setRenameOpen}
-            onRename={(title) => renameThread(thread, title)}
-            open={renameOpen}
-            thread={thread}
-          />
-          <DeleteThreadDialog
-            busy={busy}
-            error={deleteOpen ? error : null}
-            onConfirm={async () => {
-              const ok = await deleteThread(thread);
-              if (ok) {
-                onDeleted?.(thread);
-              }
-              return ok;
-            }}
-            onOpenChange={setDeleteOpen}
-            open={deleteOpen}
-            thread={thread}
-          />
-        </>
-      ) : null}
+      {actions}
     </SidebarMenuItem>
   );
-}
-
-export function useIconCollapsed() {
-  const { state, isMobile } = useSidebar();
-  return state === "collapsed" && !isMobile;
 }
