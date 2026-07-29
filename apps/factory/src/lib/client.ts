@@ -2,10 +2,10 @@ import { hc } from "hono/client";
 import type { AppType } from "../hono";
 
 /**
- * Typed `/admin` client inferred from `adminApp`. Credentials ride every
- * call so session cookies reach the actor middleware.
+ * Typed `/api` client inferred from the Hono `app`. Credentials ride every
+ * call so session cookies reach protected actor middleware.
  */
-export const client = hc<AppType>("/admin", {
+export const client = hc<AppType>("/api", {
   fetch: (input: RequestInfo | URL, init?: RequestInit) =>
     fetch(input, {
       ...init,

@@ -20,7 +20,7 @@ export interface RouteCtx extends RequestCtx {
   match: RegExpMatchArray;
 }
 
-/** A request that cleared the `/admin` credential gate. */
+/** A request that cleared the `/api/protected` credential gate. */
 export interface AdminCtx extends RouteCtx {
   actor: Actor;
 }
@@ -81,4 +81,4 @@ export function matchRoute<
 }
 
 export const NOT_FOUND_BODY =
-  "sfab-lite factory: /admin/health | /admin/apps | .../commit | .../check | .../revert | .../attempts\n";
+  "sfab-lite factory: /api/protected/health | /api/protected/apps | .../commit | .../check | .../revert | .../attempts\n";

@@ -128,7 +128,7 @@ function githubCredentials(
  * `githubCredentials` cannot answer, because a pair-or-null collapses
  * "neither set" and "exactly one set" into the same `null`.
  *
- * Exists only for `/admin/health`: half-configured is a deploy mistake, and
+ * Exists only for `/api/protected/health`: half-configured is a deploy mistake, and
  * telling it apart from "GitHub off on purpose" needs both bits. Booleans
  * only — a value must never leave the process.
  */

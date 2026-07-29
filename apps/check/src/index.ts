@@ -36,7 +36,7 @@ function unauthorized(env: Env, request: Request): Response | null {
  * It reports only two booleans about the *caller's* header — never the value,
  * and never a digest of it. `matchesCaller` is no more of an oracle than
  * `POST /check` already is, and it turns "do factory, check and lint agree?"
- * into one question the factory's `/admin/health` can ask directly, instead of
+ * into one question the factory's `/api/protected/health` can ask directly, instead of
  * a `lintHttp: 401` mid-commit that names the wrong component.
  */
 function healthResponse(env: Env, request: Request): Response {

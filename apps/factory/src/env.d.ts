@@ -86,7 +86,7 @@ declare global {
      *
      * Folded into `/api/config`'s `signUpAvailable` — not reported directly —
      * so the sign-in screen can hide the sign-up form rather than offer a
-     * button that cannot succeed. `/admin/health` still reports this one
+     * button that cannot succeed. `/api/protected/health` still reports this one
      * verbatim, where "open to anyone" is the question being asked.
      */
     SIGNUP_OPEN?: string;
@@ -101,11 +101,11 @@ declare global {
      */
     SIGNUP_ALLOWLIST?: string;
     /**
-     * Gates every `/admin/*` route, and **must be byte-identical in all three
+     * Gates every `/api/protected/*` route, and **must be byte-identical in all three
      * workers** — factory, check, and lint. The factory presents it over the
      * service bindings; check and lint compare it. A mismatch surfaces
      * mid-commit as `lint_failed` / `lintHttp: 401`, which names the wrong
-     * component entirely. `/admin/health` reports a fingerprint of the value
+     * component entirely. `/api/protected/health` reports a fingerprint of the value
      * from each worker so a mismatch is visible before it costs a debugging
      * session. See `docs/DEPLOY.md`.
      *
@@ -124,7 +124,7 @@ declare global {
      *
      * There is no separate on/off flag: a flag that only mirrors "did you set
      * the secrets" is a second source of truth that can disagree with the
-     * first. Half-configured shows up on `/admin/health`, which reports the
+     * first. Half-configured shows up on `/api/protected/health`, which reports the
      * two separately; nothing is logged.
      *
      * ⚠ We register a **GitHub App**, not an OAuth App. GitHub Apps ignore

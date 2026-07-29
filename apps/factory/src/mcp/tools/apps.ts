@@ -42,7 +42,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
         await adminFetch(
           ctx,
           "POST",
-          `/admin/apps${orgQuery(ctx)}`,
+          `/api/protected/apps${orgQuery(ctx)}`,
           name === undefined ? {} : { name }
         )
       )
@@ -55,7 +55,9 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
       inputSchema: {},
     },
     async () =>
-      passThrough(await adminFetch(ctx, "GET", `/admin/apps${orgQuery(ctx)}`))
+      passThrough(
+        await adminFetch(ctx, "GET", `/api/protected/apps${orgQuery(ctx)}`)
+      )
   );
 
   server.registerTool(
@@ -67,7 +69,11 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async ({ appId: id }) =>
       passThrough(
-        await adminFetch(ctx, "GET", `/admin/apps/${encodeURIComponent(id)}`)
+        await adminFetch(
+          ctx,
+          "GET",
+          `/api/protected/apps/${encodeURIComponent(id)}`
+        )
       )
   );
 
@@ -81,7 +87,11 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     },
     async ({ appId: id }) =>
       passThrough(
-        await adminFetch(ctx, "DELETE", `/admin/apps/${encodeURIComponent(id)}`)
+        await adminFetch(
+          ctx,
+          "DELETE",
+          `/api/protected/apps/${encodeURIComponent(id)}`
+        )
       )
   );
 
@@ -98,7 +108,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
         await adminFetch(
           ctx,
           "GET",
-          `/admin/apps/${encodeURIComponent(id)}/attempts`
+          `/api/protected/apps/${encodeURIComponent(id)}/attempts`
         )
       )
   );
@@ -116,7 +126,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
         await adminFetch(
           ctx,
           "GET",
-          `/admin/apps/${encodeURIComponent(id)}/live`
+          `/api/protected/apps/${encodeURIComponent(id)}/live`
         )
       )
   );

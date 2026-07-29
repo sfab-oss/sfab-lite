@@ -6,31 +6,25 @@
  * moment it exists. Only the waiting moved off the HTTP request, because a
  * commit costs 10–24s in production (measured).
  *
- * `POST .../commit` and `POST /admin/apps` return `202` with an `attemptId`;
- * poll `GET .../attempts/:attemptId`. Create also writes a D1 registry row
- * (`creating` → `ready`|`failed`) so apps are enumerable. Revert stays
- * synchronous — it restores an already-checked version, so there is nothing
- * to wait for.
+ * `POST .../commit` and `POST /api/protected/apps` return `202` with an
+ * `attemptId`; poll `GET .../attempts/:attemptId`. Create also writes a D1
+ * registry row (`creating` → `ready`|`failed`) so apps are enumerable. Revert
+ * stays synchronous — it restores an already-checked version, so there is
+ * nothing to wait for.
  *
- * Admin: every `/admin/*` request needs a credential — a matching
- * `X-Admin-Token` (root: must pass `organizationId` as a query param on
- * organization-scoped routes; app-scoped routes need none) or a signed-in
+ * Protected API: every `/api/protected/*` request needs a credential — a
+ * matching `X-Admin-Token` (root: must pass `organizationId` as a query param
+ * on organization-scoped routes; app-scoped routes need none) or a signed-in
  * session (scoped to its own organization). No credential is 401 whatever the
  * config says; a missing `ADMIN_TOKEN` no longer opens the surface. See
- * `tenancy.ts`. Admin handlers live in `admin.ts`; Hono routing in `hono/`;
- * commit orchestration in `commit.ts`; route primitives in `routes.ts`.
+ * `tenancy.ts`. Handlers live in `admin.ts`; Hono routing in `hono/`; commit
+ * orchestration in `commit.ts`; route primitives in `routes.ts`.
  */
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { dispatchAgents } from "./agent/dispatch.js";
-import {
-  createAuth,
-  githubAuthEnabled,
-  passwordAuthEnabled,
-  signUpAvailable,
-} from "./auth.js";
-import { adminApp } from "./hono/index.js";
+import { createAuth } from "./auth.js";
+import { apiApp } from "./hono/index.js";
 import { dispatchInternal } from "./internal.js";
-import { handleMcpConsent, handleMcpConsentContext } from "./mcp/consent.js";
 import { dispatchMcp } from "./mcp/index.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute } from "./routes.js";
@@ -47,46 +41,6 @@ export { ScopedSql } from "./scoped-sql.js";
 
 const RE_KERNEL = /^\/kernel\/(.+)$/;
 const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
-
-/**
- * Public factory config for the sign-in UI. Unauthenticated on purpose: the
- * screen has to render before anyone is signed in, and both flags describe
- * the server's own configuration, not any user's data.
- *
- * The UI must be *told* which methods exist rather than probing, because the
- * two fail differently and neither signal generalises (both observed against
- * better-auth 1.6.19): disabled email/password stays mounted and returns
- * **400** at handler entry, while an unregistered GitHub provider is a real
- * **404 PROVIDER_NOT_FOUND**. Inferring "off" from either status would be
- * wrong about the other method. Do not re-read env client-side.
- *
- * `no-store` is precautionary, not a fix for an observed bug: nothing caches
- * this today (measured — no `cf-cache-status` on the response), and the
- * staleness we chased was secret propagation after `wrangler secret put`,
- * which no header affects. It is here because the console reads this once at
- * mount, so anything that ever did cache it would pin the wrong auth config
- * for the life of the page.
- */
-function handleApiConfig(rc: RouteCtx): Response {
-  return Response.json(
-    {
-      passwordAuth: passwordAuthEnabled(rc.env),
-      githubAuth: githubAuthEnabled(rc.env),
-      // Whether the sign-up form should render at all. Same reasoning as the two
-      // above: closed sign-up does not 404, it fails at the end of a flow the
-      // user already committed to, so the screen has to be told rather than probe.
-      // Availability, not openness — an allowlisted factory renders the form and
-      // rejects the addresses that are not on the list.
-      signUpAvailable: signUpAvailable(rc.env),
-    },
-    { headers: { "Cache-Control": "no-store" } }
-  );
-}
-
-function handleAuth(rc: RouteCtx): Promise<Response> | Response {
-  const auth = createAuth(rc.env, rc.url.origin);
-  return auth.handler(rc.request);
-}
 
 /**
  * Where an MCP client looks to discover that this factory *is* an
@@ -130,10 +84,11 @@ function handleSubApp(rc: RouteCtx): Promise<Response> {
   return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, mode);
 }
 
-/** Everything reachable without a factory credential. */
+/**
+ * Everything reachable without a factory credential — except `/api/*`, which
+ * is the Hono tree (`auth`, public config/consent, `protected`).
+ */
 const PUBLIC_ROUTES: PublicRoute[] = [
-  { method: "GET", pattern: /^\/api\/config$/, handler: handleApiConfig },
-  { method: "*", pattern: /^\/api\/auth(?:\/.*)?$/, handler: handleAuth },
   // OAuth discovery. Public by definition — a client reads these *before* it
   // has any credential, which is the whole point of them.
   {
@@ -145,19 +100,6 @@ const PUBLIC_ROUTES: PublicRoute[] = [
     method: ["GET", "HEAD"],
     pattern: /^\/\.well-known\/oauth-protected-resource(?:\/mcp)?$/,
     handler: handleProtectedResourceMetadata,
-  },
-  // The consent screen's own endpoints. Public in the routing sense only —
-  // both establish the session themselves, and the POST also checks the
-  // request's origin. See `mcp/consent.ts`.
-  {
-    method: "GET",
-    pattern: /^\/api\/mcp\/consent$/,
-    handler: handleMcpConsentContext,
-  },
-  {
-    method: "POST",
-    pattern: /^\/api\/mcp\/consent$/,
-    handler: handleMcpConsent,
   },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
   // A generated app served to its own end users — see `tenancy.ts` on why
@@ -177,19 +119,15 @@ export async function dispatchFactoryRequest(
   const url = new URL(request.url);
   const rc: RequestCtx = { request, env, ctx, url };
 
+  // Segment-exact: a bare `startsWith("/api")` would also claim `/apiculture`.
+  // Hono `apiApp` mounts at `/api` so `c.req.raw` keeps full paths for auth.
+  if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
+    return await apiApp.fetch(request, env, ctx);
+  }
+
   const publicHit = matchRoute(PUBLIC_ROUTES, request.method, url.pathname);
   if (publicHit) {
     return await publicHit.route.handler({ ...rc, match: publicHit.match });
-  }
-
-  // Segment-exact: a bare `startsWith("/admin")` would also claim
-  // `/administrator`, handing a console route to the admin dispatcher (401)
-  // instead of the SPA. Strip the `/admin` prefix so `adminApp` routes stay
-  // at `/health`, `/apps`, … and `hc<AppType>("/admin")` lines up.
-  if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
-    const rewritten = new URL(request.url);
-    rewritten.pathname = url.pathname.slice("/admin".length) || "/";
-    return await adminApp.fetch(new Request(rewritten, request), env, ctx);
   }
 
   // Loopback only — the AppDO's alarm calling back in to run a create where

@@ -1,12 +1,14 @@
-/** Wire helpers for `/admin/*` and `/api/config` — shapes come from `hc`. */
+/** Wire helpers for `/api/protected/*` and `/api/config` — shapes from `hc`. */
 
 import type { InferResponseType } from "hono/client";
 import { client } from "./lib/client";
 
 type Ok<T> = Extract<T, { ok: true }>;
 
+const protectedApi = client.protected;
+
 export type AppRecord = Ok<
-  InferResponseType<(typeof client.apps)["$get"], 200>
+  InferResponseType<(typeof protectedApi.apps)["$get"], 200>
 >["apps"][number];
 
 export interface AuthConfig {
@@ -21,13 +23,13 @@ export interface AuthConfig {
 
 export type AttemptRecord = Ok<
   InferResponseType<
-    (typeof client.apps)[":appId"]["attempts"][":attemptId"]["$get"],
+    (typeof protectedApi.apps)[":appId"]["attempts"][":attemptId"]["$get"],
     200
   >
 >["attempt"];
 
 export type VersionSummary = InferResponseType<
-  (typeof client.apps)[":appId"]["versions"]["$get"],
+  (typeof protectedApi.apps)[":appId"]["versions"]["$get"],
   200
 >["versions"][number];
 
@@ -126,7 +128,7 @@ export async function listApps(): Promise<{
   organizationId: string;
   apps: AppRecord[];
 }> {
-  const res = await client.apps.$get();
+  const res = await protectedApi.apps.$get();
   throwIfUnauthorized(res);
   if (res.status !== 200) {
     throw new Error(
@@ -147,7 +149,7 @@ export async function createApp(name?: string): Promise<{
   attemptId: string;
   name: string;
 }> {
-  const res = await client.apps.$post({
+  const res = await protectedApi.apps.$post({
     json: name ? { name } : {},
   });
   throwIfUnauthorized(res);
@@ -172,7 +174,7 @@ export async function renameApp(
   appId: string,
   name: string
 ): Promise<AppRecord> {
-  const res = await client.apps[":appId"].$patch({
+  const res = await protectedApi.apps[":appId"].$patch({
     param: { appId },
     json: { name },
   });
@@ -185,7 +187,7 @@ export async function renameApp(
 }
 
 export async function getApp(appId: string): Promise<AppRecord> {
-  const res = await client.apps[":appId"].$get({
+  const res = await protectedApi.apps[":appId"].$get({
     param: { appId },
   });
   throwIfUnauthorized(res);
@@ -203,7 +205,7 @@ export async function getApp(appId: string): Promise<AppRecord> {
  * untouched and the same call works once it settles.
  */
 export async function deleteApp(appId: string): Promise<void> {
-  const res = await client.apps[":appId"].$delete({
+  const res = await protectedApi.apps[":appId"].$delete({
     param: { appId },
   });
   throwIfUnauthorized(res);
@@ -221,7 +223,7 @@ export async function listVersions(appId: string): Promise<{
   liveVersionId: string | null;
   versions: VersionSummary[];
 }> {
-  const res = await client.apps[":appId"].versions.$get({
+  const res = await protectedApi.apps[":appId"].versions.$get({
     param: { appId },
   });
   throwIfUnauthorized(res);
@@ -241,7 +243,7 @@ export async function getLiveSources(appId: string): Promise<{
   liveVersionId: string;
   sourceFiles: Record<string, string>;
 }> {
-  const res = await client.apps[":appId"].live.$get({
+  const res = await protectedApi.apps[":appId"].live.$get({
     param: { appId },
   });
   throwIfUnauthorized(res);
@@ -261,7 +263,7 @@ export async function getAttempt(
   appId: string,
   attemptId: string
 ): Promise<AttemptRecord> {
-  const res = await client.apps[":appId"].attempts[":attemptId"].$get({
+  const res = await protectedApi.apps[":appId"].attempts[":attemptId"].$get({
     param: { appId, attemptId },
   });
   throwIfUnauthorized(res);
