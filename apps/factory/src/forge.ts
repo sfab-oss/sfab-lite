@@ -3,7 +3,14 @@
  */
 import { and, desc, eq, max } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
-import { ensureLiveMatchesMain, getLiveSha, runCdForSha } from "./cd.js";
+import { prDataId } from "./app-data-ids.js";
+import { appDataStub } from "./app-stub.js";
+import {
+  applyPreviewSchemaMigrations,
+  ensureLiveMatchesMain,
+  getLiveSha,
+  runCdForSha,
+} from "./cd.js";
 import { createDb, type Db } from "./db/index.js";
 import { checkRun, pullRequest } from "./db/schema.js";
 import type {
@@ -270,9 +277,10 @@ async function insertCompletedCheckRun(
 }
 
 /**
- * Run platform CD for a sha (build without live / without AppDO migrate) and
- * record a completed check run. Checks are synchronous — create/push/rerun
- * return only after CD finishes.
+ * Run platform CD for a sha (build without live / without live AppDataDO
+ * migrate) and record a completed check run. On success for a PR, also
+ * migrates that PR's AppDataDO from the preview source. Checks are
+ * synchronous — create/push/rerun return only after CD finishes.
  */
 async function startCheckRun(
   env: Env,
@@ -310,10 +318,36 @@ async function startCheckRun(
 
   if (input.prId) {
     const db = createDb(env);
-    await db
-      .update(pullRequest)
-      .set({ previewSha: input.sha, updatedAt: new Date() })
-      .where(eq(pullRequest.id, input.prId));
+    const prRow = await db.query.pullRequest.findFirst({
+      where: eq(pullRequest.id, input.prId),
+      columns: { number: true, status: true },
+    });
+    // Closed/merged PRs must not resurrect a destroyed preview DO.
+    if (prRow?.status === "open" && prRow.number != null) {
+      const migrated = await applyPreviewSchemaMigrations(
+        env,
+        appId,
+        prRow.number,
+        sourceFiles
+      );
+      if (!migrated.ok) {
+        return insertCompletedCheckRun(env, {
+          appId,
+          prId: input.prId,
+          sha: input.sha,
+          name,
+          conclusion: "failure",
+          detail: {
+            error: "preview_schema_bootstrap_failed",
+            detail: migrated.error,
+          },
+        });
+      }
+      await db
+        .update(pullRequest)
+        .set({ previewSha: input.sha, updatedAt: new Date() })
+        .where(eq(pullRequest.id, input.prId));
+    }
   }
 
   return insertCompletedCheckRun(env, {
@@ -444,17 +478,63 @@ export async function mergePullRequest(
     .update(pullRequest)
     .set({
       status: "merged",
+      previewSha: null,
       mergedSha: liveSha,
       mergedAt: now,
       updatedAt: now,
     })
     .where(eq(pullRequest.id, pr.id));
 
+  await destroyPreviewData(env, appId, number);
+
   const merged = await getPullRequestByNumber(env, appId, number);
   if (!merged) {
     return { ok: false, error: "pr_not_found" };
   }
   return { ok: true, pr: merged, liveSha };
+}
+
+async function destroyPreviewData(
+  env: Env,
+  appId: string,
+  prNumber: number
+): Promise<void> {
+  await appDataStub(env, prDataId(appId, prNumber))
+    .destroy()
+    .catch(() => undefined);
+}
+
+export type ClosePrResult =
+  | { ok: true; pr: PrRecord }
+  | { ok: false; error: string };
+
+export async function closePullRequest(
+  env: Env,
+  appId: string,
+  number: number
+): Promise<ClosePrResult> {
+  const pr = await getPullRequestByNumber(env, appId, number);
+  if (!pr) {
+    return { ok: false, error: "pr_not_found" };
+  }
+  if (pr.status !== "open") {
+    return { ok: false, error: "pr_not_open" };
+  }
+
+  const db = createDb(env);
+  const now = new Date();
+  await db
+    .update(pullRequest)
+    .set({ status: "closed", previewSha: null, updatedAt: now })
+    .where(eq(pullRequest.id, pr.id));
+
+  await destroyPreviewData(env, appId, number);
+
+  const closed = await getPullRequestByNumber(env, appId, number);
+  if (!closed) {
+    return { ok: false, error: "pr_not_found" };
+  }
+  return { ok: true, pr: closed };
 }
 
 export async function readTreeAtRef(

@@ -1,4 +1,4 @@
-import { appStub } from "../../app-stub.js";
+import { appCreateStub } from "../../app-stub.js";
 import { getLiveSha } from "../../cd.js";
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import { createR2CodeHost } from "../../r2-code-host.js";
@@ -29,7 +29,7 @@ export async function handleGetLive(rc: AppCtx) {
 export async function handleGetAttempt(rc: AppCtx) {
   const { appId } = rc;
   const attemptId = rc.attemptId ?? decodeURIComponent(rc.match[2] ?? "");
-  const { job } = await appStub(rc.env, appId).getCreateJob(attemptId);
+  const { job } = await appCreateStub(rc.env, appId).getCreateJob(attemptId);
   if (!job) {
     return protectedError("attempt_not_found", 404);
   }

@@ -1,6 +1,6 @@
 /**
  * Host-side create reconcile: sweep stale `creating` rows, then publish org
- * events. Registry stays data-only; this module owns Env / AppDO / the bus.
+ * events. Registry stays data-only; this module owns Env / AppCreateDO / the bus.
  *
  * Does not publish `app_live_changed` — that topic is owned solely by
  * `runCdForSha` when the live pointer moves.

@@ -4,15 +4,20 @@
  *
  * Live pointer is D1 `live_sha` → immutable build in CODE_R2.
  * Preview is per-PR: pull_request.preview_sha → BuildStore by sha.
- * AppDO is runtime SQLite only (seed credentials + SQL).
+ * AppDataDO is runtime SQLite only (seed credentials + SQL), keyed by
+ * `${appId}:live` or `${appId}:pr:N`.
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
-import type { AppDO } from "./app-do.js";
+import type { AppDataDO } from "./app-data-do.js";
+import { liveDataId, prDataId } from "./app-data-ids.js";
+import { collectMigrations } from "./app-migrations.js";
+import { appDataStub } from "./app-stub.js";
 import type { AppBuild } from "./build-store.js";
 import { getLiveSha } from "./cd.js";
 import { getPullRequestByNumber } from "./forge.js";
 import { kernelModules } from "./kernel-modules.js";
 import { createR2BuildStore } from "./r2-build-store.js";
+import { createR2CodeHost } from "./r2-code-host.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
@@ -46,26 +51,57 @@ export interface ServePreviewOpts {
   prNumber: number;
 }
 
+function dataIdFor(
+  appId: string,
+  mode: ServeMode,
+  preview?: ServePreviewOpts
+): string {
+  if (mode === "preview" && preview?.prNumber != null) {
+    return prDataId(appId, preview.prNumber);
+  }
+  return liveDataId(appId);
+}
+
+type LoadBuildResult =
+  | { ok: true; build: AppBuild }
+  | {
+      ok: false;
+      error: "preview_not_open" | "no_preview_build" | "no_live_build";
+    };
+
 async function loadBuild(
   env: Env,
   appId: string,
   mode: ServeMode,
   preview?: ServePreviewOpts
-): Promise<AppBuild | null> {
-  let sha: string | null = null;
+): Promise<LoadBuildResult> {
   if (mode === "preview") {
     if (!preview?.prNumber) {
-      return null;
+      return { ok: false, error: "no_preview_build" };
     }
     const pr = await getPullRequestByNumber(env, appId, preview.prNumber);
-    sha = pr?.previewSha ?? null;
-  } else {
-    sha = await getLiveSha(env, appId);
+    if (pr?.status !== "open") {
+      return { ok: false, error: "preview_not_open" };
+    }
+    if (!pr.previewSha) {
+      return { ok: false, error: "no_preview_build" };
+    }
+    const build = await createR2BuildStore(env).getBuild(appId, pr.previewSha);
+    if (!build) {
+      return { ok: false, error: "no_preview_build" };
+    }
+    return { ok: true, build };
   }
+
+  const sha = await getLiveSha(env, appId);
   if (!sha) {
-    return null;
+    return { ok: false, error: "no_live_build" };
   }
-  return createR2BuildStore(env).getBuild(appId, sha);
+  const build = await createR2BuildStore(env).getBuild(appId, sha);
+  if (!build) {
+    return { ok: false, error: "no_live_build" };
+  }
+  return { ok: true, build };
 }
 
 function pathPrefixFor(
@@ -92,6 +128,28 @@ function buildPathContext(
   return { rest, publicBase: `${url.origin}${pathPrefix}` };
 }
 
+/**
+ * Ensure this serve target's AppDataDO has schema from the build's source.
+ * Idempotent; covers the case where CD used advanceLive: false and left the
+ * preview DO unmigrated until first serve.
+ */
+async function ensureDataMigrated(
+  env: Env,
+  appId: string,
+  dataId: string,
+  sha: string
+): Promise<void> {
+  const sourceFiles = await createR2CodeHost(env).readTreeAt(appId, sha);
+  if (!sourceFiles) {
+    return;
+  }
+  const migrations = collectMigrations(sourceFiles);
+  if (migrations.length === 0) {
+    return;
+  }
+  await appDataStub(env, dataId).bootstrap(migrations);
+}
+
 async function serveApiRoute(
   request: Request,
   env: Env,
@@ -101,7 +159,8 @@ async function serveApiRoute(
   rest: string,
   publicBase: string,
   mode: ServeMode,
-  stub: DurableObjectStub<AppDO>,
+  stub: DurableObjectStub<AppDataDO>,
+  dataId: string,
   preview?: ServePreviewOpts
 ): Promise<Response> {
   const secret = env.APP_BETTER_AUTH_SECRET;
@@ -126,7 +185,7 @@ async function serveApiRoute(
       "index.js": build.serverBundle,
     },
     env: {
-      DB: ex.ScopedSql({ props: { appId } satisfies ScopedSqlProps }),
+      DB: ex.ScopedSql({ props: { dataId } satisfies ScopedSqlProps }),
       BETTER_AUTH_SECRET: secret,
       BETTER_AUTH_URL: new URL(publicBase).origin,
       APP_BASE_PATH: pathPrefixFor(appId, mode, preview),
@@ -224,20 +283,23 @@ export async function serveSubApp(
     );
   }
 
-  const stub = env.APP_DO.get(env.APP_DO.idFromName(appId));
-  const build = await loadBuild(env, appId, mode, preview);
+  const dataId = dataIdFor(appId, mode, preview);
+  const stub = env.APP_DATA_DO.get(env.APP_DATA_DO.idFromName(dataId));
+  const loaded = await loadBuild(env, appId, mode, preview);
 
-  if (!build) {
+  if (!loaded.ok) {
     return Response.json(
       {
         ok: false,
-        error: mode === "preview" ? "no_preview_build" : "no_live_build",
+        error: loaded.error,
         appId,
         ...(preview?.prNumber == null ? {} : { prNumber: preview.prNumber }),
       },
       { status: 404 }
     );
   }
+
+  const { build } = loaded;
 
   if (
     build.serverSurfaceHash != null &&
@@ -254,6 +316,22 @@ export async function serveSubApp(
       },
       { status: 409 }
     );
+  }
+
+  if (mode === "preview") {
+    try {
+      await ensureDataMigrated(env, appId, dataId, build.sha);
+    } catch {
+      return Response.json(
+        {
+          ok: false,
+          error: "preview_schema_bootstrap_failed",
+          appId,
+          prNumber: preview?.prNumber,
+        },
+        { status: 500 }
+      );
+    }
   }
 
   const { rest, publicBase } = buildPathContext(
@@ -289,6 +367,7 @@ export async function serveSubApp(
       publicBase,
       mode,
       stub,
+      dataId,
       preview
     );
     return withShaHeader(res);

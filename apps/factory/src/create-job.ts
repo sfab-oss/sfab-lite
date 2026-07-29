@@ -2,7 +2,7 @@
  * Create-job helpers for the async app-create attempt surface.
  */
 
-import { appStub } from "./app-stub.js";
+import { appCreateStub } from "./app-stub.js";
 import type { AttemptResolver } from "./registry.js";
 
 export type CreateJobAcceptedBody = {
@@ -60,7 +60,7 @@ export function createConflict(
 
 export function attemptResolver(env: Env): AttemptResolver {
   return async (appId, jobId) => {
-    const { job } = await appStub(env, appId).getCreateJob(jobId);
+    const { job } = await appCreateStub(env, appId).getCreateJob(jobId);
     return job ? job.status : "missing";
   };
 }

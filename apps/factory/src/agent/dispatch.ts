@@ -6,10 +6,10 @@ import { requireAppAccess, resolveActor } from "../tenancy.js";
 /**
  * `/agents/app-agent/<appId>[/sub/app-thread/<threadId>][/…]` only.
  * Auth + tenancy run *before* `routeAgentRequest`: that helper enumerates
- * every DO binding with `idFromName` (including `APP_DO` → `app-do`), so an
- * ungated branch is a standing gateway to every namespace this Worker will
- * ever bind. Facet gating (`onBeforeSubAgent`) is a second check inside
- * AppAgent — not a replacement for this tenancy gate.
+ * every DO binding with `idFromName` (including `APP_DATA_DO` /
+ * `APP_CREATE_DO`), so an ungated branch is a standing gateway to every
+ * namespace this Worker will ever bind. Facet gating (`onBeforeSubAgent`) is a
+ * second check inside AppAgent — not a replacement for this tenancy gate.
  */
 const RE_APP_AGENT = /^\/agents\/app-agent\/([^/]+)(?:\/.*)?$/;
 

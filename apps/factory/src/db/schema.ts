@@ -1,7 +1,7 @@
 /**
  * Factory-level schema — the factory's own auth and tenancy.
  *
- * **Not app data.** Every generated app keeps its rows in its own AppDO's
+ * **Not app data.** Every generated app keeps its rows in its own AppDataDO's
  * SQLite; nothing here describes an app's contents. This database exists
  * because Durable Objects cannot be enumerated (see `env.d.ts`).
  *
@@ -236,7 +236,7 @@ export const accountRelations = relations(account, ({ one }) => ({
  * another's name. The display name lives in `name` and is free to change.
  *
  * `status` exists because creation is three writes with no transaction across
- * them — this row, the AppDO's seed version, and the AppAgent workspace.
+ * them — this row, the AppDataDO live SQLite, and the AppAgent workspace.
  * The row is written *first* so the UI has something to poll during the ~18-25s
  * seed commit; a crash leaves a visible `creating` row rather than an orphan
  * Durable Object that nothing can enumerate.
@@ -253,7 +253,7 @@ export const app = sqliteTable(
     status: text("status").notNull().default("creating"),
     /**
      * Opaque create-job id for polling while status is `creating`. Null once
-     * ready. No longer coupled to AppDO version attempts.
+     * ready. No longer coupled to AppDataDO / AppCreateDO attempts.
      */
     createAttemptId: text("create_attempt_id"),
     /** Tip sha serve reads; builds live in CODE_R2 keyed by appId+sha. */

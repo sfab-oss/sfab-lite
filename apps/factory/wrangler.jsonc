@@ -63,8 +63,12 @@
   "durable_objects": {
     "bindings": [
       {
-        "name": "APP_DO",
-        "class_name": "AppDO"
+        "name": "APP_DATA_DO",
+        "class_name": "AppDataDO"
+      },
+      {
+        "name": "APP_CREATE_DO",
+        "class_name": "AppCreateDO"
       },
       // Binding name = class name so routeAgentRequest maps
       // `/agents/app-agent/<appId>` → this namespace. AppThread is a facet
@@ -100,6 +104,13 @@
     {
       "tag": "v4",
       "new_sqlite_classes": ["OrgEvents"]
+    },
+    // Greenfield cutover: wipe AppDO, split into AppDataDO + AppCreateDO.
+    // Local: rm -rf apps/factory/.wrangler after deploy/pull.
+    {
+      "tag": "v5",
+      "deleted_classes": ["AppDO"],
+      "new_sqlite_classes": ["AppDataDO", "AppCreateDO"]
     }
   ],
   "services": [

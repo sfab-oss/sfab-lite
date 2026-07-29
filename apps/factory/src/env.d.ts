@@ -1,11 +1,15 @@
 import type { AppAgent } from "./agent/app-agent.js";
-import type { AppDO } from "./app-do.js";
+import type { AppCreateDO } from "./app-create-do.js";
+import type { AppDataDO } from "./app-data-do.js";
 import type { OrgEvents } from "./org-events-do.js";
 
 declare global {
   interface Env {
     LOADER: WorkerLoader;
-    APP_DO: DurableObjectNamespace<AppDO>;
+    /** Runtime SQLite per serve target (`${appId}:live` | `${appId}:pr:N`). */
+    APP_DATA_DO: DurableObjectNamespace<AppDataDO>;
+    /** Create jobs + alarms; instance name is bare `appId`. */
+    APP_CREATE_DO: DurableObjectNamespace<AppCreateDO>;
     /**
      * Per-app Think root. Instance name is `appId`. Owns the shared
      * workspace and thread registry; AppThread facets hang off it.
@@ -23,7 +27,7 @@ declare global {
      * It exists because **Durable Objects cannot be enumerated**:
      * `idFromName(appId)` is a hash, so the factory can address an app it can
      * name and cannot discover one it can't. Nothing here is app data — every
-     * app's own rows live in its AppDO.
+     * app's own rows live in its AppDataDO.
      */
     DB: D1Database;
     /**

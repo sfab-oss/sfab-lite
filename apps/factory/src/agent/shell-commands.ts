@@ -6,7 +6,7 @@ import {
   type ExecResult,
 } from "just-bash";
 import { nextMigrationPath } from "../app-migrations.js";
-import { appStub } from "../app-stub.js";
+import { liveAppDataStub } from "../app-stub.js";
 import { callCheck, callLint, checkPasses, getLiveSha } from "../cd.js";
 import { describeBlocking, diffSchema } from "../schema-ddl.js";
 import { probeSchema } from "../schema-probe.js";
@@ -152,7 +152,7 @@ async function runSeed(deps: ShellCommandDeps): Promise<ExecResult> {
     );
   }
 
-  const stub = appStub(deps.env, deps.appId);
+  const stub = liveAppDataStub(deps.env, deps.appId);
   const { token, password } = await stub.seedCredentials();
   const path = `/a/${encodeURIComponent(deps.appId)}/api/dev/seed`;
   const res = await deps.env.SELF.fetch(

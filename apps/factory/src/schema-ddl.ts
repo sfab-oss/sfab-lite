@@ -363,7 +363,7 @@ export function diffSchema(
  * a deploy diff a schema against itself and find changes that are not there.
  *
  * Takes an exec function rather than a `SqlStorage` so it is testable without
- * a live Durable Object; `AppDO.introspectSchema` supplies the real one.
+ * a live Durable Object; `AppDataDO` SQL introspection supplies the real one.
  */
 
 /** One row of a query result, as `SqlStorageCursor.toArray()` returns it. */

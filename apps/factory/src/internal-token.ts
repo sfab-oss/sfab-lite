@@ -1,7 +1,7 @@
 /**
  * Capability token for the internal attempt-run loopback.
  *
- * The AppDO drives create attempts from an alarm, and the work has to run in
+ * The AppCreateDO drives create attempts from an alarm, and the work has to run in
  * the host worker (D1 lives there, and a DO calling its own stub is a
  * self-call). That means a route reachable on the same front door as
  * everything else, so it needs a credential the DO can present.

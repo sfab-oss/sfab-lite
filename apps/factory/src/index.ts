@@ -10,6 +10,7 @@
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { dispatchAgents } from "./agent/dispatch.js";
 import { createAuth } from "./auth.js";
+import { createDb } from "./db/index.js";
 import { apiApp } from "./hono/index.js";
 import { dispatchInternal } from "./internal.js";
 import { dispatchMcp } from "./mcp/index.js";
@@ -17,13 +18,15 @@ import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
 import { matchRoute } from "./routes.js";
 import { serveSubApp } from "./serve.js";
 import { serveKernel } from "./serve-kernel.js";
+import { requireAppAccess, resolveActor } from "./tenancy.js";
 
 /** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
 export { CodemodeRuntime } from "@cloudflare/codemode";
 export { AppAgent } from "./agent/app-agent.js";
 /** Facet of AppAgent — exported so the runtime can construct it; no binding. */
 export { AppThread } from "./agent/app-thread.js";
-export { AppDO } from "./app-do.js";
+export { AppCreateDO } from "./app-create-do.js";
+export { AppDataDO } from "./app-data-do.js";
 export { OrgEvents } from "./org-events-do.js";
 export { ScopedSql } from "./scoped-sql.js";
 
@@ -62,7 +65,38 @@ async function handleKernel(rc: RouteCtx): Promise<Response> {
   return res ?? new Response("unknown kernel path\n", { status: 404 });
 }
 
-function handleSubApp(rc: RouteCtx): Promise<Response> {
+async function requirePreviewAccess(
+  rc: RouteCtx,
+  appId: string
+): Promise<Response | null> {
+  const db = createDb(rc.env);
+  const actor = await resolveActor(rc.env, db, rc.request, rc.url.origin);
+  if (actor instanceof Response) {
+    const accept = rc.request.headers.get("Accept") ?? "";
+    const htmlNav =
+      (rc.request.method === "GET" || rc.request.method === "HEAD") &&
+      accept.includes("text/html");
+    if (!htmlNav) {
+      return actor;
+    }
+    const next = encodeURIComponent(`${rc.url.pathname}${rc.url.search}`);
+    const signIn = new URL(`/signin?redirect=${next}`, rc.url.origin);
+    // Don't 302 factory chrome into an iframe (expired console embed).
+    if (rc.request.headers.get("Sec-Fetch-Dest") === "iframe") {
+      return new Response(
+        `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Sign in required</title></head><body><p>Sign in required to view this preview.</p><p><a href="${signIn.href}" target="_top" rel="noopener">Open sign-in</a></p></body></html>`,
+        {
+          status: 401,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }
+      );
+    }
+    return Response.redirect(signIn, 302);
+  }
+  return requireAppAccess(db, actor, appId);
+}
+
+async function handleSubApp(rc: RouteCtx): Promise<Response> {
   const appId = decodeURIComponent(rc.match[1] ?? "");
   const rest = rc.match[2] ?? "";
   if (rest === "preview" || rest.startsWith("preview/")) {
@@ -75,12 +109,14 @@ function handleSubApp(rc: RouteCtx): Promise<Response> {
       prNumber < 1 ||
       !RE_PREVIEW_PR.test(prToken)
     ) {
-      return Promise.resolve(
-        Response.json(
-          { ok: false, error: "preview_pr_required", appId },
-          { status: 404 }
-        )
+      return Response.json(
+        { ok: false, error: "preview_pr_required", appId },
+        { status: 404 }
       );
+    }
+    const denied = await requirePreviewAccess(rc, appId);
+    if (denied) {
+      return denied;
     }
     const inner = slash === -1 ? "" : after.slice(slash + 1);
     return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "preview", {
@@ -108,8 +144,8 @@ const PUBLIC_ROUTES: PublicRoute[] = [
     handler: handleProtectedResourceMetadata,
   },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
-  // A generated app served to its own end users — see `tenancy.ts` on why
-  // this one is addressed by app id alone.
+  // Live `/a/:appId/*` is public at the host; preview paths inside the
+  // handler require factory org session. See `tenancy.ts`.
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
 ];
 
@@ -136,9 +172,9 @@ export async function dispatchFactoryRequest(
     return await publicHit.route.handler({ ...rc, match: publicHit.match });
   }
 
-  // Loopback only — the AppDO's alarm calling back in to run a create where
-  // D1 lives. Authenticated by a derived capability token, never a session:
-  // a Durable Object has none. See `internal.ts`.
+  // Loopback only — the AppCreateDO's alarm calling back in to run a create
+  // where D1 lives. Authenticated by a derived capability token, never a
+  // session: a Durable Object has none. See `internal.ts`.
   if (url.pathname.startsWith("/internal/")) {
     return await dispatchInternal(rc);
   }

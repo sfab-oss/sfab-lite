@@ -14,7 +14,8 @@ export function AppDeploymentsScreen({ appId }: { appId: string }) {
   const prsQuery = usePrs(appId);
   const app = appQuery.data ?? null;
   const previews = (prsQuery.data ?? []).filter(
-    (pr): pr is PrRecord & { previewSha: string } => Boolean(pr.previewSha)
+    (pr): pr is PrRecord & { previewSha: string } =>
+      pr.status === "open" && Boolean(pr.previewSha)
   );
 
   return (

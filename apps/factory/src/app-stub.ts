@@ -1,5 +1,8 @@
-/** Explicit AppDO stub surface — DO Rpc generics erase method returns under tsc alone. */
-export interface AppStub {
+/** Explicit DO stub surfaces — DO Rpc generics erase method returns under tsc alone. */
+
+import { liveDataId } from "./app-data-ids.js";
+
+export interface AppDataStub {
   touch: () => Promise<{
     ok: true;
     appIdHint: string;
@@ -13,6 +16,10 @@ export interface AppStub {
     bootstrapMs: number;
   }>;
   seedCredentials: () => Promise<{ token: string; password: string }>;
+  destroy: () => Promise<{ ok: true; bytesFreed: number }>;
+}
+
+export interface AppCreateStub {
   scheduleCreateRun: (jobId: string) => Promise<void>;
   destroy: () => Promise<{ ok: true; bytesFreed: number }>;
   getCreateJob: (jobId: string) => Promise<{
@@ -40,6 +47,18 @@ export interface AppStub {
   >;
 }
 
-export function appStub(env: Env, appId: string): AppStub {
-  return env.APP_DO.get(env.APP_DO.idFromName(appId)) as unknown as AppStub;
+export function appDataStub(env: Env, dataId: string): AppDataStub {
+  return env.APP_DATA_DO.get(
+    env.APP_DATA_DO.idFromName(dataId)
+  ) as unknown as AppDataStub;
+}
+
+export function liveAppDataStub(env: Env, appId: string): AppDataStub {
+  return appDataStub(env, liveDataId(appId));
+}
+
+export function appCreateStub(env: Env, appId: string): AppCreateStub {
+  return env.APP_CREATE_DO.get(
+    env.APP_CREATE_DO.idFromName(appId)
+  ) as unknown as AppCreateStub;
 }

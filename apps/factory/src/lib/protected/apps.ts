@@ -1,9 +1,11 @@
 /**
- * Create an app: D1 row first (`creating`), then bootstrap + async seed via
- * code host (TEMPLATE_SEED → main → CD → live_sha).
+ * Create an app: D1 row first (`creating`), then bootstrap live AppDataDO +
+ * async seed via code host (TEMPLATE_SEED → main → CD → live_sha).
  */
+
+import { prDataId } from "../../app-data-ids.js";
 import { APP_NAME_MAX_LENGTH, pickAppName } from "../../app-names.js";
-import { appStub } from "../../app-stub.js";
+import { appCreateStub, appDataStub, liveAppDataStub } from "../../app-stub.js";
 import {
   attemptResolver,
   createAccepted,
@@ -11,6 +13,7 @@ import {
 } from "../../create-job.js";
 import { reconcileCreatingApps } from "../../create-reconcile.js";
 import { createDb } from "../../db/index.js";
+import { listPullRequests } from "../../forge.js";
 import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CreateAppBody, RenameAppBody } from "../../hono/schemas.js";
@@ -48,10 +51,11 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
 
   const created = await insertCreatingApp(db, { organizationId, name });
   const appId = created.id;
-  const stub = appStub(rc.env, appId);
+  const data = liveAppDataStub(rc.env, appId);
+  const create = appCreateStub(rc.env, appId);
 
   try {
-    await stub.bootstrap(TEMPLATE_SEED.migrations);
+    await data.bootstrap(TEMPLATE_SEED.migrations);
   } catch (e) {
     const failed = await markCreateFailed(db, appId);
     if (failed) {
@@ -66,7 +70,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     );
   }
 
-  const start = await stub.startCreateJob();
+  const start = await create.startCreateJob();
   if (!start.ok) {
     const failed = await markCreateFailed(db, appId);
     if (failed) {
@@ -79,7 +83,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   }
 
   await setCreateAttemptId(db, appId, start.jobId);
-  await stub.scheduleCreateRun(start.jobId);
+  await create.scheduleCreateRun(start.jobId);
 
   return createAccepted(appId, start.jobId, {
     organizationId,
@@ -141,7 +145,18 @@ export async function handleDeleteApp(
   const { appId } = rc;
   const db = createDb(rc.env);
   const organizationId = await getAppOrganizationId(db, appId);
-  const destroyed = await appStub(rc.env, appId).destroy();
+  const destroyed = await liveAppDataStub(rc.env, appId).destroy();
+  await appCreateStub(rc.env, appId)
+    .destroy()
+    .catch(() => undefined);
+  const prs = await listPullRequests(rc.env, appId);
+  await Promise.all(
+    prs.map((pr) =>
+      appDataStub(rc.env, prDataId(appId, pr.number))
+        .destroy()
+        .catch(() => undefined)
+    )
+  );
   const removed = await deleteAppUnscoped(db, appId);
   if (organizationId) {
     publishOrgEvent(
@@ -164,6 +179,6 @@ export async function handleTouch(
   rc: AppCtx
 ): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
-  const touch = await appStub(rc.env, appId).touch();
+  const touch = await liveAppDataStub(rc.env, appId).touch();
   return { status: 200, body: { ok: true as const, appId, touch } };
 }
