@@ -2,7 +2,7 @@
  * `/api/protected/*` handlers for the factory host worker.
  *
  * Business logic lives here; Hono routing, credential middleware, and
- * `AppType` live in `hono/`. Each handler still receives AdminCtx / OrgCtx /
+ * `AppType` live in `hono/`. Each handler still receives ProtectedCtx / OrgCtx /
  * AppCtx built by thin adapters, and returns `{ status, body }` so routes can
  * emit typed `c.json(...)`.
  */
@@ -26,7 +26,7 @@ import {
 } from "./commit.js";
 import { createDb } from "./db/index.js";
 import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
-import { type AdminReply, adminError } from "./hono/reply.js";
+import { type ProtectedReply, protectedError } from "./hono/reply.js";
 import type {
   CheckBody,
   CommitBody,
@@ -47,7 +47,7 @@ import {
   renameAppUnscoped,
   setCreateAttemptId,
 } from "./registry.js";
-import type { AdminCtx, AppCtx, OrgCtx } from "./routes.js";
+import type { ProtectedCtx, AppCtx, OrgCtx } from "./routes.js";
 import type { ScopedSqlProps } from "./scoped-sql.js";
 
 /** ctx.exports typing for WorkerEntrypoint classes isn't inferred by tsc alone. */
@@ -100,12 +100,12 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   const { organizationId } = rc;
   const requested = body.name?.trim();
   if (requested && requested.length > APP_NAME_MAX_LENGTH) {
-    return adminError("name_too_long");
+    return protectedError("name_too_long");
   }
 
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
-    return adminError("organization_not_found", 404);
+    return protectedError("organization_not_found", 404);
   }
 
   const name =
@@ -120,7 +120,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     await stub.bootstrap(TEMPLATE_SEED.migrations);
   } catch (e) {
     await markCreateFailed(db, appId);
-    return adminError(e instanceof Error ? e.message : "bootstrap_failed", 500);
+    return protectedError(e instanceof Error ? e.message : "bootstrap_failed", 500);
   }
 
   const start = await stub.startAttempt("create", null);
@@ -143,7 +143,7 @@ export async function handleListApps(rc: OrgCtx) {
   const { organizationId } = rc;
   const db = createDb(rc.env);
   if (!(await organizationExists(db, organizationId))) {
-    return adminError("organization_not_found", 404);
+    return protectedError("organization_not_found", 404);
   }
   const apps = await listAppsForOrganization(
     db,
@@ -174,7 +174,7 @@ export async function handleGetApp(rc: AppCtx) {
     attemptResolver(rc.env)
   );
   if (!record) {
-    return adminError("app_not_found", 404);
+    return protectedError("app_not_found", 404);
   }
   return {
     status: 200 as const,
@@ -190,7 +190,7 @@ export async function handleRenameApp(rc: AppCtx, body: RenameAppBody) {
   const name = body.name.trim();
   const record = await renameAppUnscoped(createDb(rc.env), rc.appId, name);
   if (!record) {
-    return adminError("app_not_found", 404);
+    return protectedError("app_not_found", 404);
   }
   return {
     status: 200 as const,
@@ -212,7 +212,7 @@ export async function handleRenameApp(rc: AppCtx, body: RenameAppBody) {
  */
 export async function handleDeleteApp(
   rc: AppCtx
-): Promise<AdminReply<unknown>> {
+): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const destroyed = await appStub(rc.env, appId).destroy();
   if (!destroyed.ok) {
@@ -230,7 +230,7 @@ export async function handleDeleteApp(
   };
 }
 
-export async function handleTouch(rc: AppCtx): Promise<AdminReply<unknown>> {
+export async function handleTouch(rc: AppCtx): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const touch = await appStub(rc.env, appId).touch();
   return { status: 200, body: { ok: true as const, appId, touch } };
@@ -239,7 +239,7 @@ export async function handleTouch(rc: AppCtx): Promise<AdminReply<unknown>> {
 export async function handleSql(
   rc: AppCtx,
   body: SqlBody
-): Promise<AdminReply<unknown>> {
+): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const db = scopedDb(rc.ctx, appId);
   const ping = await db.pingScope();
@@ -260,7 +260,7 @@ export async function handleGetLive(rc: AppCtx) {
   const { appId } = rc;
   const live = await appStub(rc.env, appId).getLive();
   if (!(live.version?.sourceFiles && live.liveVersionId)) {
-    return adminError("no_live_version", 404);
+    return protectedError("no_live_version", 404);
   }
   return {
     status: 200 as const,
@@ -278,7 +278,7 @@ export async function handleGetAttempt(rc: AppCtx) {
   const attemptId = rc.attemptId ?? decodeURIComponent(rc.match[2] ?? "");
   const { attempt } = await appStub(rc.env, appId).getAttempt(attemptId);
   if (!attempt) {
-    return adminError("attempt_not_found", 404);
+    return protectedError("attempt_not_found", 404);
   }
   return {
     status: 200 as const,
@@ -288,7 +288,7 @@ export async function handleGetAttempt(rc: AppCtx) {
 
 export async function handleListAttempts(
   rc: AppCtx
-): Promise<AdminReply<unknown>> {
+): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const raw = Number(rc.url.searchParams.get("limit"));
   const { attempts } = await appStub(rc.env, appId).listAttempts(
@@ -300,12 +300,12 @@ export async function handleListAttempts(
 export async function handleCheck(
   rc: AppCtx,
   body: CheckBody
-): Promise<AdminReply<unknown>> {
+): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const latest = await appStub(rc.env, appId).getLatest();
   const base = latest.version?.sourceFiles ?? {};
   if (!latest.version?.sourceFiles) {
-    return adminError("no_version_with_sources", 404);
+    return protectedError("no_version_with_sources", 404);
   }
   const files = mergeSources(base, body.files ?? {});
   const check = await callCheck(rc.env, appId, files, body.forceCold !== false);
@@ -326,12 +326,12 @@ export async function handleCheck(
 export async function handleCommit(
   rc: AppCtx,
   body: CommitBody
-): Promise<AdminReply<unknown>> {
+): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const stub = appStub(rc.env, appId);
   const live = await stub.getLive();
   if (!(live.version?.sourceFiles && live.liveVersionId)) {
-    return adminError("no_live_version", 404);
+    return protectedError("no_live_version", 404);
   }
   const files = mergeSources(live.version.sourceFiles, body.files);
   return enqueueCommit(
@@ -347,7 +347,7 @@ export async function handleCommit(
 export async function handleRevert(
   rc: AppCtx,
   body: RevertBody
-): Promise<AdminReply<unknown>> {
+): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
   const result = await appStub(rc.env, appId).revertTo(body.versionId);
   if (!result.ok) {
@@ -408,7 +408,7 @@ async function probePeerToken(
  * secret the factory presented. `adminToken.agree` answers it directly, and
  * answers it *before* anyone tries to commit.
  */
-export async function handleHealth(rc: AdminCtx): Promise<AdminReply<unknown>> {
+export async function handleHealth(rc: ProtectedCtx): Promise<ProtectedReply<unknown>> {
   const token = rc.env.ADMIN_TOKEN;
   const [check, lint] = await Promise.all([
     probePeerToken(rc.env.CHECK, token),

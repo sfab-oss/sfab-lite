@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { AdminCtx, AppCtx, OrgCtx } from "../routes.js";
+import type { ProtectedCtx, AppCtx, OrgCtx } from "../routes.js";
 import type { AdminEnv } from "./types.js";
 
 function dummyMatch(path: string, ...groups: string[]): RegExpMatchArray {
@@ -9,8 +9,8 @@ function dummyMatch(path: string, ...groups: string[]): RegExpMatchArray {
   return match;
 }
 
-function baseCtx(c: Context<AdminEnv>): Omit<AdminCtx, "actor"> & {
-  actor: AdminCtx["actor"];
+function baseCtx(c: Context<AdminEnv>): Omit<ProtectedCtx, "actor"> & {
+  actor: ProtectedCtx["actor"];
 } {
   const url = new URL(c.req.url);
   return {
@@ -23,7 +23,7 @@ function baseCtx(c: Context<AdminEnv>): Omit<AdminCtx, "actor"> & {
   };
 }
 
-export function adminCtx(c: Context<AdminEnv>): AdminCtx {
+export function protectedCtx(c: Context<AdminEnv>): ProtectedCtx {
   return baseCtx(c);
 }
 
