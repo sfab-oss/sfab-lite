@@ -151,9 +151,9 @@ export function resolveOrganization(
  * standing between two tenants.
  *
  * Uses `appBelongsToOrganization` rather than `getAppUnscoped` deliberately:
- * `getAppUnscoped` runs the stale-`creating` sweep, and this check sits on the
+ * `getAppUnscoped` is a full registry read, and this check sits on the
  * attempt-polling path the UI hits every couple of seconds. An ownership test
- * must be one indexed read, not a reconciliation pass.
+ * must be one indexed read, not a status fetch.
  */
 export async function requireAppAccess(
   db: Db,

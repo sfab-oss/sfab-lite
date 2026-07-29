@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { OrgEventsRouter } from "@/features/org-events/org-events-router";
 import { AppAgentRegistryProvider } from "./data/app-agent-bridge";
 import { ChatDataProvider } from "./data/chat-data-context";
 import {
@@ -70,6 +71,15 @@ export function ConsoleProviders({ children }: { children: ReactNode }) {
 
   const clearThreadSeed = consumeThreadSeed;
 
+  const refreshAttendedApp = useCallback(
+    (appId: string) => {
+      if (chatData.getAppId() === appId) {
+        chatData.refreshApp(appId).catch(() => undefined);
+      }
+    },
+    [chatData]
+  );
+
   const session = useMemo(
     () => ({
       scopeAppId,
@@ -97,6 +107,7 @@ export function ConsoleProviders({ children }: { children: ReactNode }) {
     <ChatDataProvider value={chatData}>
       <AppAgentRegistryProvider>
         <ConsoleSessionContext.Provider value={session}>
+          <OrgEventsRouter refreshAttendedApp={refreshAttendedApp} />
           {children}
         </ConsoleSessionContext.Provider>
       </AppAgentRegistryProvider>

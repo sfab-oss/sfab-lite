@@ -3,18 +3,18 @@ import { Input } from "@sfab-lite/ui/components/shadcn/input";
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { ExternalLink, Home, RotateCw } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { subscribeLiveVersion } from "@/features/preview/live-version-bus";
+import {
+  appBasePath,
+  clampToApp,
+  reloadPreviewFrame,
+} from "@/features/preview/reload-preview";
 import { useChatData } from "../data/chat-data-context";
 import { appQuickLinks } from "../lib/extract-app-routes";
 
 const ROUTER_FILE = "src/ui/router.tsx";
 const LOCATION_POLL_MS = 300;
 const IFRAME_SANDBOX = "allow-same-origin allow-scripts allow-forms";
-const ABSOLUTE_URL = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
-const LEADING_SLASH = /^\//;
-
-function appBasePath(appId: string): string {
-  return `/a/${encodeURIComponent(appId)}`;
-}
 
 function toAppRelative(pathname: string, appId: string): string | null {
   const base = appBasePath(appId);
@@ -26,35 +26,6 @@ function toAppRelative(pathname: string, appId: string): string | null {
     return rest.startsWith("/") ? rest : `/${rest}`;
   }
   return null;
-}
-
-function clampToApp(appId: string, input: string): string {
-  const base = appBasePath(appId);
-  try {
-    let rel = input.trim() || "/";
-    if (ABSOLUTE_URL.test(rel) || rel.startsWith("//")) {
-      return `${base}/`;
-    }
-    if (rel === base || rel === `${base}/` || rel.startsWith(`${base}/`)) {
-      rel = rel.slice(base.length) || "/";
-    }
-    if (!rel.startsWith("/")) {
-      rel = `/${rel}`;
-    }
-    const resolved = new URL(
-      rel.replace(LEADING_SLASH, ""),
-      `https://x.invalid${base}/`
-    );
-    if (
-      resolved.pathname !== base &&
-      !resolved.pathname.startsWith(`${base}/`)
-    ) {
-      return `${base}/`;
-    }
-    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
-  } catch {
-    return `${base}/`;
-  }
 }
 
 function readFrameRelative(
@@ -126,21 +97,30 @@ function BrowserFrame({
 
   pathRef.current = path;
 
+  // Prop path covers same-tab deploy (chat live tip updates before a bus round-trip).
   useEffect(() => {
     if (prevLiveRef.current === liveVersionId) {
       return;
     }
     prevLiveRef.current = liveVersionId;
-    const frame = iframeRef.current;
-    if (!frame) {
-      return;
-    }
-    try {
-      frame.contentWindow?.location.reload();
-    } catch {
-      frame.src = clampToApp(appId, pathRef.current);
-    }
+    reloadPreviewFrame(iframeRef.current, appId, pathRef.current);
   }, [appId, liveVersionId]);
+
+  // Bus path covers cross-tab / MCP deploys while chat live tip is still outside RQ.
+  useEffect(
+    () =>
+      subscribeLiveVersion((nextAppId, nextLiveVersionId) => {
+        if (nextAppId !== appId) {
+          return;
+        }
+        if (prevLiveRef.current === nextLiveVersionId) {
+          return;
+        }
+        prevLiveRef.current = nextLiveVersionId;
+        reloadPreviewFrame(iframeRef.current, appId, pathRef.current);
+      }),
+    [appId]
+  );
 
   useEffect(() => {
     if (!active) {
@@ -223,14 +203,7 @@ function BrowserFrame({
   };
 
   const reload = () => {
-    try {
-      iframeRef.current?.contentWindow?.location.reload();
-    } catch {
-      const frame = iframeRef.current;
-      if (frame) {
-        frame.src = clampToApp(appId, path);
-      }
-    }
+    reloadPreviewFrame(iframeRef.current, appId, path);
   };
 
   const openExternal = () => {

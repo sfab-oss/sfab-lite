@@ -22,7 +22,10 @@ import { collectMigrations } from "./app-migrations.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
+import { createDb } from "./db/index.js";
+import { publishOrgEvent } from "./org-events.js";
 import type { AttemptResolver } from "./registry.js";
+import { getAppOrganizationId } from "./registry.js";
 import { diffSchema } from "./schema-ddl.js";
 import { probeSchema } from "./schema-probe.js";
 import { latestSnapshot } from "./schema-snapshots.js";
@@ -518,7 +521,7 @@ export async function runCommitAttempt(
       0
     );
 
-    await stub.completeAttempt(
+    const put = await stub.completeAttempt(
       attemptId,
       {
         parentId,
@@ -557,6 +560,16 @@ export async function runCommitAttempt(
         warnings: compiled.compiled.warnings,
       }
     );
+    const organizationId = await getAppOrganizationId(createDb(env), appId);
+    if (organizationId) {
+      publishOrgEvent(
+        { env, organizationId },
+        {
+          topic: "app_live_version_changed",
+          payload: { appId, liveVersionId: put.liveVersionId },
+        }
+      );
+    }
     return "pass";
   } catch (e) {
     if (e instanceof DeployAbortedError || signal?.aborted) {

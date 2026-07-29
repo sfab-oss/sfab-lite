@@ -1,5 +1,6 @@
 import type { AppAgent } from "./agent/app-agent.js";
 import type { AppDO } from "./app-do.js";
+import type { OrgEvents } from "./org-events-do.js";
 
 declare global {
   interface Env {
@@ -11,6 +12,11 @@ declare global {
      * Binding name matches the class so `routeAgentRequest` can resolve it.
      */
     AppAgent: DurableObjectNamespace<AppAgent>;
+    /**
+     * Org-scoped factory hint bus. Instance name is `organizationId`.
+     * Hibernatable WebSockets + publish RPC; stores only `lastSeq`.
+     */
+    ORG_EVENTS: DurableObjectNamespace<OrgEvents>;
     /**
      * The factory's own D1 — auth, organizations, and the app registry.
      *

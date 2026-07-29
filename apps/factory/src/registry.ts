@@ -57,9 +57,9 @@ export async function organizationExists(
 /**
  * Ownership test for app-scoped admin routes — one indexed read, nothing else.
  *
- * Kept separate from `getAppUnscoped` on purpose: `getAppUnscoped` runs the
- * stale-`creating` sweep, which is right for a status read and wrong for an
- * authorization check that sits on the attempt-polling hot path.
+ * Kept separate from `getAppUnscoped` on purpose: `getAppUnscoped` is a full
+ * row read used after authorization, and wrong for an ownership check that
+ * sits on the attempt-polling hot path.
  */
 export async function appBelongsToOrganization(
   db: Db,
@@ -117,6 +117,8 @@ export async function setCreateAttemptId(
  * Only touches rows still in `creating` so a late/duplicate settle cannot
  * clobber `ready`/`failed`. `create_attempt_id` clears on ready (schema
  * contract); it stays on failed so the failure can still be polled.
+ *
+ * Data-only: callers that own `Env` publish org events after a non-null return.
  */
 export async function settleCreateApp(
   db: Db,
@@ -139,12 +141,32 @@ export async function settleCreateApp(
   return row ? toRecord(row) : null;
 }
 
-/** Mark failed without an attempt — bootstrap/start blew up before one existed. */
-export async function markCreateFailed(db: Db, appId: string): Promise<void> {
-  await db
+/** One-column ownership read for async publish (e.g. `runCommitAttempt`). */
+export async function getAppOrganizationId(
+  db: Db,
+  appId: string
+): Promise<string | null> {
+  const row = await db.query.app.findFirst({
+    where: eq(app.id, appId),
+    columns: { organizationId: true },
+  });
+  return row?.organizationId ?? null;
+}
+
+/**
+ * Mark failed without an attempt — bootstrap/start blew up before one existed.
+ * Returns the updated row when a `creating` row was flipped, else null.
+ */
+export async function markCreateFailed(
+  db: Db,
+  appId: string
+): Promise<AppRecord | null> {
+  const [row] = await db
     .update(app)
     .set({ status: "failed" })
-    .where(and(eq(app.id, appId), eq(app.status, "creating")));
+    .where(and(eq(app.id, appId), eq(app.status, "creating")))
+    .returning();
+  return row ? toRecord(row) : null;
 }
 
 /**
@@ -159,9 +181,22 @@ export type AttemptResolver = (
   attemptId: string
 ) => Promise<"pass" | "fail" | "error" | "pending" | "missing">;
 
+/** Outcome of a reconcile step — Env-owning callers map these to bus publishes. */
+export type CreateSweepAction =
+  | {
+      kind: "pass" | "fail";
+      appId: string;
+      organizationId: string;
+    }
+  | {
+      kind: "marked_failed";
+      appId: string;
+      organizationId: string;
+    };
+
 /**
  * Reconcile `creating` rows against the AppDO, which is the authority — D1
- * only mirrors it.
+ * only mirrors it. Data-only: returns what changed so host code can publish.
  *
  * **Age is not the trigger; a terminal attempt is.** An attempt that reads
  * `pass`, `fail` or `error` is finished whatever the clock says, so a row
@@ -179,20 +214,34 @@ export type AttemptResolver = (
  * registry would call it `failed` forever — worse than the stuck `creating`
  * row this exists to clear.
  */
-async function sweepStaleCreating(
+export async function sweepStaleCreating(
   db: Db,
   resolveAttempt: AttemptResolver
-): Promise<void> {
+): Promise<CreateSweepAction[]> {
   const cutoff = new Date(Date.now() - STALE_ATTEMPT_MS);
   const creating = await db.query.app.findMany({
     where: eq(app.status, "creating"),
-    columns: { id: true, createAttemptId: true, createdAt: true },
+    columns: {
+      id: true,
+      organizationId: true,
+      createAttemptId: true,
+      createdAt: true,
+    },
   });
+
+  const actions: CreateSweepAction[] = [];
 
   for (const row of creating) {
     if (!row.createAttemptId) {
       if (row.createdAt < cutoff) {
-        await markCreateFailed(db, row.id);
+        const marked = await markCreateFailed(db, row.id);
+        if (marked) {
+          actions.push({
+            kind: "marked_failed",
+            appId: marked.id,
+            organizationId: marked.organizationId,
+          });
+        }
       }
       continue;
     }
@@ -205,16 +254,24 @@ async function sweepStaleCreating(
     ) {
       continue;
     }
-    await settleCreateApp(db, row.id, status === "pass" ? "pass" : "fail");
+    const attemptStatus = status === "pass" ? "pass" : "fail";
+    const settled = await settleCreateApp(db, row.id, attemptStatus);
+    if (settled) {
+      actions.push({
+        kind: attemptStatus,
+        appId: settled.id,
+        organizationId: settled.organizationId,
+      });
+    }
   }
+
+  return actions;
 }
 
 export async function listAppsForOrganization(
   db: Db,
-  organizationId: string,
-  resolveAttempt: AttemptResolver
+  organizationId: string
 ): Promise<AppRecord[]> {
-  await sweepStaleCreating(db, resolveAttempt);
   const rows = await db.query.app.findMany({
     where: eq(app.organizationId, organizationId),
     orderBy: [desc(app.createdAt)],
@@ -224,8 +281,8 @@ export async function listAppsForOrganization(
 
 /**
  * Names alone, for choosing one that is not taken. Deliberately not
- * `listAppsForOrganization`: that runs the stale-`creating` sweep, and app
- * creation is not the place to pay for reconciling other apps' attempts.
+ * `listAppsForOrganization`: list callers also reconcile creating rows, and
+ * app creation is not the place to pay for reconciling other apps' attempts.
  */
 export async function listAppNamesForOrganization(
   db: Db,
@@ -244,14 +301,12 @@ export async function listAppNamesForOrganization(
  * Unscoped on purpose — the name is the warning. The caller must already have
  * authorized access to this `appId` (today: `requireAppAccess` in
  * `dispatchAdmin` gate). Calling this outside that gate is a silent cross-tenant
- * read. Also runs the stale-`creating` sweep so a status poll can reconcile.
+ * read. Stale-`creating` reconcile is the caller's job (`reconcileCreatingApps`).
  */
 export async function getAppUnscoped(
   db: Db,
-  appId: string,
-  resolveAttempt: AttemptResolver
+  appId: string
 ): Promise<AppRecord | null> {
-  await sweepStaleCreating(db, resolveAttempt);
   const row = await db.query.app.findFirst({
     where: eq(app.id, appId),
   });

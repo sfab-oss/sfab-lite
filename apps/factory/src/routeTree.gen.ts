@@ -22,6 +22,7 @@ import { Route as DevChatIndexRouteImport } from './routes/dev.chat.index'
 import { Route as ProtectedAppsIndexRouteImport } from './routes/_protected/apps.index'
 import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
 import { Route as ProtectedAppsAppIdIndexRouteImport } from './routes/_protected/apps.$appId.index'
+import { Route as ProtectedAppsAppIdPreviewRouteImport } from './routes/_protected/apps.$appId.preview'
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as DevChatAppsAppIdTThreadIdRouteImport } from './routes/dev.chat.apps.$appId.t.$threadId'
 
@@ -89,6 +90,12 @@ const ProtectedAppsAppIdIndexRoute = ProtectedAppsAppIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProtectedAppsAppIdRoute,
 } as any)
+const ProtectedAppsAppIdPreviewRoute =
+  ProtectedAppsAppIdPreviewRouteImport.update({
+    id: '/preview',
+    path: '/preview',
+    getParentRoute: () => ProtectedAppsAppIdRoute,
+  } as any)
 const ProtectedAppsAppIdTThreadIdRoute =
   ProtectedAppsAppIdTThreadIdRouteImport.update({
     id: '/t/$threadId',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/apps/': typeof ProtectedAppsIndexRoute
   '/dev/chat/': typeof DevChatIndexRoute
   '/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
+  '/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   '/apps': typeof ProtectedAppsIndexRoute
   '/dev/chat': typeof DevChatIndexRoute
   '/apps/$appId': typeof ProtectedAppsAppIdIndexRoute
+  '/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -146,6 +155,7 @@ export interface FileRoutesById {
   '/_protected/apps/': typeof ProtectedAppsIndexRoute
   '/dev/chat/': typeof DevChatIndexRoute
   '/_protected/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
+  '/_protected/apps/$appId/preview': typeof ProtectedAppsAppIdPreviewRoute
   '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/apps/'
     | '/dev/chat/'
     | '/apps/$appId/'
+    | '/apps/$appId/preview'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesByTo: FileRoutesByTo
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/apps'
     | '/dev/chat'
     | '/apps/$appId'
+    | '/apps/$appId/preview'
     | '/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   id:
@@ -194,6 +206,7 @@ export interface FileRouteTypes {
     | '/_protected/apps/'
     | '/dev/chat/'
     | '/_protected/apps/$appId/'
+    | '/_protected/apps/$appId/preview'
     | '/_protected/apps/$appId/t/$threadId'
     | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesById: FileRoutesById
@@ -301,6 +314,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdIndexRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
+    '/_protected/apps/$appId/preview': {
+      id: '/_protected/apps/$appId/preview'
+      path: '/preview'
+      fullPath: '/apps/$appId/preview'
+      preLoaderRoute: typeof ProtectedAppsAppIdPreviewRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
+    }
     '/_protected/apps/$appId/t/$threadId': {
       id: '/_protected/apps/$appId/t/$threadId'
       path: '/t/$threadId'
@@ -320,11 +340,13 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedAppsAppIdRouteChildren {
   ProtectedAppsAppIdIndexRoute: typeof ProtectedAppsAppIdIndexRoute
+  ProtectedAppsAppIdPreviewRoute: typeof ProtectedAppsAppIdPreviewRoute
   ProtectedAppsAppIdTThreadIdRoute: typeof ProtectedAppsAppIdTThreadIdRoute
 }
 
 const ProtectedAppsAppIdRouteChildren: ProtectedAppsAppIdRouteChildren = {
   ProtectedAppsAppIdIndexRoute: ProtectedAppsAppIdIndexRoute,
+  ProtectedAppsAppIdPreviewRoute: ProtectedAppsAppIdPreviewRoute,
   ProtectedAppsAppIdTThreadIdRoute: ProtectedAppsAppIdTThreadIdRoute,
 }
 

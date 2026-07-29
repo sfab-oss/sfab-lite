@@ -5,13 +5,16 @@ import {
   attemptConflict,
   attemptResolver,
 } from "../../commit.js";
+import { reconcileCreatingApps } from "../../create-reconcile.js";
 import { createDb } from "../../db/index.js";
 import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CreateAppBody, RenameAppBody } from "../../hono/schemas.js";
 import { wireApp } from "../../hono/wire.js";
+import { publishOrgEvent } from "../../org-events.js";
 import {
   deleteAppUnscoped,
+  getAppOrganizationId,
   getAppUnscoped,
   insertCreatingApp,
   listAppNamesForOrganization,
@@ -62,7 +65,13 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   try {
     await stub.bootstrap(TEMPLATE_SEED.migrations);
   } catch (e) {
-    await markCreateFailed(db, appId);
+    const failed = await markCreateFailed(db, appId);
+    if (failed) {
+      publishOrgEvent(
+        { env: rc.env, organizationId },
+        { topic: "app_list_changed", payload: { appId } }
+      );
+    }
     return protectedError(
       e instanceof Error ? e.message : "bootstrap_failed",
       500
@@ -71,7 +80,13 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
 
   const start = await stub.startAttempt("create", null);
   if (!start.ok) {
-    await markCreateFailed(db, appId);
+    const failed = await markCreateFailed(db, appId);
+    if (failed) {
+      publishOrgEvent(
+        { env: rc.env, organizationId },
+        { topic: "app_list_changed", payload: { appId } }
+      );
+    }
     return attemptConflict(appId, start.attemptId);
   }
 
@@ -91,11 +106,8 @@ export async function handleListApps(rc: OrgCtx) {
   if (!(await organizationExists(db, organizationId))) {
     return protectedError("organization_not_found", 404);
   }
-  const apps = await listAppsForOrganization(
-    db,
-    organizationId,
-    attemptResolver(rc.env)
-  );
+  await reconcileCreatingApps(rc.env, db, attemptResolver(rc.env));
+  const apps = await listAppsForOrganization(db, organizationId);
   return {
     status: 200 as const,
     body: {
@@ -114,11 +126,9 @@ export async function handleListApps(rc: OrgCtx) {
  * here because a status poll is when reconciling matters.
  */
 export async function handleGetApp(rc: AppCtx) {
-  const record = await getAppUnscoped(
-    createDb(rc.env),
-    rc.appId,
-    attemptResolver(rc.env)
-  );
+  const db = createDb(rc.env);
+  await reconcileCreatingApps(rc.env, db, attemptResolver(rc.env));
+  const record = await getAppUnscoped(db, rc.appId);
   if (!record) {
     return protectedError("app_not_found", 404);
   }
@@ -138,6 +148,10 @@ export async function handleRenameApp(rc: AppCtx, body: RenameAppBody) {
   if (!record) {
     return protectedError("app_not_found", 404);
   }
+  publishOrgEvent(
+    { env: rc.env, organizationId: record.organizationId },
+    { topic: "app_record_changed", payload: { appId: rc.appId } }
+  );
   return {
     status: 200 as const,
     body: { ok: true as const, app: wireApp(record) },
@@ -160,11 +174,19 @@ export async function handleDeleteApp(
   rc: AppCtx
 ): Promise<ProtectedReply<unknown>> {
   const { appId } = rc;
+  const db = createDb(rc.env);
+  const organizationId = await getAppOrganizationId(db, appId);
   const destroyed = await appStub(rc.env, appId).destroy();
   if (!destroyed.ok) {
     return { status: 409, body: { appId, ...destroyed } };
   }
-  const removed = await deleteAppUnscoped(createDb(rc.env), appId);
+  const removed = await deleteAppUnscoped(db, appId);
+  if (organizationId) {
+    publishOrgEvent(
+      { env: rc.env, organizationId },
+      { topic: "app_list_changed", payload: { appId } }
+    );
+  }
   return {
     status: 200,
     body: {

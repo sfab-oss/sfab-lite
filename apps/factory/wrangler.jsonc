@@ -66,6 +66,10 @@
       {
         "name": "AppAgent",
         "class_name": "AppAgent"
+      },
+      {
+        "name": "ORG_EVENTS",
+        "class_name": "OrgEvents"
       }
     ]
   },
@@ -85,6 +89,10 @@
     {
       "tag": "v3",
       "new_sqlite_classes": ["AppAgent"]
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": ["OrgEvents"]
     }
   ],
   "services": [
