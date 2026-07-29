@@ -5,8 +5,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "./sidebar";
 
 /**
  * The signed-in chrome, mounted once by the layout route rather than by each
- * page. `SidebarProvider` holds the collapsed state in React state, so a page
- * that rendered its own would reset the sidebar on every navigation.
+ * page. `SidebarProvider` keeps collapsed state in React state (and a cookie),
+ * so a page that rendered its own would reset the sidebar on every navigation.
  */
 export function AppLayout() {
   return (

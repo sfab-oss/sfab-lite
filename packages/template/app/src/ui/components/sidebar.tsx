@@ -1,3 +1,5 @@
+// biome-ignore-all lint/suspicious/noDocumentCookie: sidebar state cookie mirrors shadcn/factory
+
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { ViewVerticalIcon } from "@radix-ui/react-icons";
@@ -23,15 +25,41 @@ import {
 } from "./sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
+const SIDEBAR_COOKIE_NAME = "sidebar_state";
+const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
+function readSidebarCookie(): boolean | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  for (const part of document.cookie.split(";")) {
+    const [rawName, ...rawValueParts] = part.trim().split("=");
+    if (rawName?.trim() !== SIDEBAR_COOKIE_NAME) {
+      continue;
+    }
+
+    const value = rawValueParts.join("=").trim();
+    if (value === "true") {
+      return true;
+    }
+    if (value === "false") {
+      return false;
+    }
+    break;
+  }
+
+  return null;
+}
+
 interface SidebarContextValue {
   state: "expanded" | "collapsed";
   open: boolean;
-  setOpen: (open: boolean) => void;
+  setOpen: (open: boolean | ((value: boolean) => boolean)) => void;
   openMobile: boolean;
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
@@ -57,7 +85,20 @@ function SidebarProvider({
 }: React.ComponentProps<"div"> & { defaultOpen?: boolean }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = useState(false);
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpenState] = useState(
+    () => readSidebarCookie() ?? defaultOpen
+  );
+
+  const setOpen = useCallback(
+    (value: boolean | ((value: boolean) => boolean)) => {
+      setOpenState((current) => {
+        const openState = typeof value === "function" ? value(current) : value;
+        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        return openState;
+      });
+    },
+    []
+  );
 
   const toggleSidebar = useCallback(() => {
     if (isMobile) {
@@ -65,7 +106,7 @@ function SidebarProvider({
       return;
     }
     setOpen((value) => !value);
-  }, [isMobile]);
+  }, [isMobile, setOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -93,7 +134,7 @@ function SidebarProvider({
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, isMobile, openMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, toggleSidebar]
   );
 
   return (
