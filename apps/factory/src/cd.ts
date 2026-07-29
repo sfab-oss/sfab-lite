@@ -1,7 +1,7 @@
 /**
  * Minimal CD: lint → compile → check → schema → write build → set live_sha.
  *
- * Triggered on app create (initial main) and when main advances (git push).
+ * Triggered on app create (initial main) and when main advances (PR merge).
  */
 import {
   type CheckResponse,
@@ -189,7 +189,7 @@ async function compileAll(files: Record<string, string>) {
 }
 
 export type CdResult =
-  | { ok: true; sha: string; liveSha: string }
+  | { ok: true; sha: string; liveSha: string | null }
   | { ok: false; error: string; detail?: unknown };
 
 async function setLiveSha(env: Env, appId: string, sha: string): Promise<void> {
@@ -212,99 +212,156 @@ export async function getLiveSha(
   return row?.liveSha ?? null;
 }
 
+export async function getPreviewSha(
+  env: Env,
+  appId: string
+): Promise<string | null> {
+  const db = createDb(env);
+  const row = await db.query.app.findFirst({
+    where: eq(appTable.id, appId),
+    columns: { previewSha: true },
+  });
+  return row?.previewSha ?? null;
+}
+
+export async function setPreviewSha(
+  env: Env,
+  appId: string,
+  sha: string
+): Promise<void> {
+  const db = createDb(env);
+  await db
+    .update(appTable)
+    .set({ previewSha: sha, updatedAt: new Date() })
+    .where(eq(appTable.id, appId));
+}
+
+function aborted(signal?: AbortSignal): boolean {
+  return Boolean(signal?.aborted);
+}
+
+async function cdBuildArtifacts(
+  env: Env,
+  appId: string,
+  sourceFiles: Record<string, string>,
+  opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
+): Promise<
+  | { ok: true; compiled: Awaited<ReturnType<typeof compileAll>> }
+  | { ok: false; error: string; detail?: unknown }
+> {
+  const signal = opts?.signal;
+  if (aborted(signal)) {
+    return { ok: false, error: "cd_aborted" };
+  }
+
+  const lint = await callLint(env, appId, sourceFiles);
+  if (aborted(signal)) {
+    return { ok: false, error: "cd_aborted" };
+  }
+  if (lint.http >= 500 || lint.body?.ok === false || lint.body == null) {
+    return {
+      ok: false,
+      error: "lint_failed",
+      detail: { lintHttp: lint.http, lint: lint.body },
+    };
+  }
+  if (!lintPasses(lint.body)) {
+    return {
+      ok: false,
+      error: "lint_failed",
+      detail: { lint: lint.body },
+    };
+  }
+
+  let compiled: Awaited<ReturnType<typeof compileAll>>;
+  try {
+    compiled = await compileAll(sourceFiles);
+  } catch (e) {
+    return {
+      ok: false,
+      error: "compile_failed",
+      detail: {
+        message: e instanceof Error ? e.message : String(e),
+      },
+    };
+  }
+
+  if (aborted(signal)) {
+    return { ok: false, error: "cd_aborted" };
+  }
+
+  const check = await callCheck(
+    env,
+    appId,
+    sourceFiles,
+    opts?.forceColdCheck ?? false
+  );
+  if (!(check.http < 500 && checkPasses(check.body))) {
+    return {
+      ok: false,
+      error: "check_failed",
+      detail: {
+        checkHttp: check.http,
+        check: check.body,
+        checkAttempts: check.attempts,
+      },
+    };
+  }
+
+  if (aborted(signal)) {
+    return { ok: false, error: "cd_aborted" };
+  }
+
+  const schemaFailure = await gateSchema(env, appId, sourceFiles);
+  if (schemaFailure) {
+    return {
+      ok: false,
+      error: schemaFailure.error,
+      detail: schemaFailure,
+    };
+  }
+
+  return { ok: true, compiled };
+}
+
 /**
  * Run CD for a commit sha against the given source tree. On success writes an
- * immutable build to CODE_R2 and updates D1 `live_sha`.
+ * immutable build to CODE_R2. When `advanceLive` is true (default), also
+ * updates D1 `live_sha` and publishes `app_live_changed`.
  */
 export async function runCdForSha(
   env: Env,
   appId: string,
   sha: string,
   sourceFiles: Record<string, string>,
-  opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
+  opts?: {
+    forceColdCheck?: boolean;
+    signal?: AbortSignal;
+    advanceLive?: boolean;
+  }
 ): Promise<CdResult> {
   const signal = opts?.signal;
+  const advanceLive = opts?.advanceLive !== false;
 
   try {
-    if (signal?.aborted) {
-      return { ok: false, error: "cd_aborted" };
-    }
-
-    const lint = await callLint(env, appId, sourceFiles);
-    if (signal?.aborted) {
-      return { ok: false, error: "cd_aborted" };
-    }
-    if (lint.http >= 500 || lint.body?.ok === false || lint.body == null) {
-      return {
-        ok: false,
-        error: "lint_failed",
-        detail: { lintHttp: lint.http, lint: lint.body },
-      };
-    }
-    if (!lintPasses(lint.body)) {
-      return {
-        ok: false,
-        error: "lint_failed",
-        detail: { lint: lint.body },
-      };
-    }
-
-    let compiled: Awaited<ReturnType<typeof compileAll>>;
-    try {
-      compiled = await compileAll(sourceFiles);
-    } catch (e) {
-      return {
-        ok: false,
-        error: "compile_failed",
-        detail: {
-          message: e instanceof Error ? e.message : String(e),
-        },
-      };
-    }
-
-    if (signal?.aborted) {
-      return { ok: false, error: "cd_aborted" };
-    }
-
-    const check = await callCheck(
-      env,
-      appId,
-      sourceFiles,
-      opts?.forceColdCheck ?? false
-    );
-    if (!(check.http < 500 && checkPasses(check.body))) {
-      return {
-        ok: false,
-        error: "check_failed",
-        detail: {
-          checkHttp: check.http,
-          check: check.body,
-          checkAttempts: check.attempts,
-        },
-      };
-    }
-
-    if (signal?.aborted) {
-      return { ok: false, error: "cd_aborted" };
-    }
-
-    const schemaFailure = await gateSchema(env, appId, sourceFiles);
-    if (schemaFailure) {
-      return {
-        ok: false,
-        error: schemaFailure.error,
-        detail: schemaFailure,
-      };
+    const built = await cdBuildArtifacts(env, appId, sourceFiles, opts);
+    if (!built.ok) {
+      return { ok: false, error: built.error, detail: built.detail };
     }
 
     const builds = createR2BuildStore(env);
     await builds.putBuild(appId, {
       sha,
-      serverBundle: compiled.compiled.serverBundle,
-      assets: compiled.assets,
-      kernelVersion: compiled.compiled.kernelVersion,
-      serverSurfaceHash: compiled.compiled.serverSurfaceHash,
+      serverBundle: built.compiled.compiled.serverBundle,
+      assets: built.compiled.assets,
+      kernelVersion: built.compiled.compiled.kernelVersion,
+      serverSurfaceHash: built.compiled.compiled.serverSurfaceHash,
     });
+
+    if (!advanceLive) {
+      return { ok: true, sha, liveSha: null };
+    }
+
     await setLiveSha(env, appId, sha);
 
     const organizationId = await getAppOrganizationId(createDb(env), appId);
@@ -320,7 +377,7 @@ export async function runCdForSha(
 
     return { ok: true, sha, liveSha: sha };
   } catch (e) {
-    if (signal?.aborted) {
+    if (aborted(signal)) {
       return { ok: false, error: "cd_aborted" };
     }
     return {
@@ -373,5 +430,5 @@ export async function ensureLiveMatchesMain(
       detail: cd.detail,
     };
   }
-  return { status: "updated", tip, liveSha: cd.liveSha };
+  return { status: "updated", tip, liveSha: cd.liveSha ?? tip };
 }

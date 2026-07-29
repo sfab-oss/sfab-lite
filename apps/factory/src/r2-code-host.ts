@@ -237,9 +237,27 @@ export function createR2CodeHost(env: Env): CodeHost {
       await copyTree(sourceFs, `${gitRoot}/objects`, bare, "/objects");
       await bare.mkdir("/refs/heads", { recursive: true });
       await bare.writeFile(`/refs/heads/${ref}`, `${workSha}\n`);
-      await bare.writeFile("/HEAD", `ref: refs/heads/${ref}\n`);
+      if (ref === "main") {
+        await bare.writeFile("/HEAD", "ref: refs/heads/main\n");
+      }
       const advancedMain = ref === "main" && prev !== workSha;
       return { advancedMain, sha: workSha };
+    },
+
+    async updateRef(
+      appId: string,
+      ref: string,
+      sha: string
+    ): Promise<{ previous: string | null }> {
+      await this.ensureRepo(appId);
+      const bare = bareFs(appId);
+      const previous = await readRef(bare, `/refs/heads/${ref}`);
+      await bare.mkdir("/refs/heads", { recursive: true });
+      await bare.writeFile(`/refs/heads/${ref}`, `${sha}\n`);
+      if (ref === "main") {
+        await bare.writeFile("/HEAD", "ref: refs/heads/main\n");
+      }
+      return { previous };
     },
 
     async readTreeAt(

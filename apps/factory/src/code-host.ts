@@ -77,6 +77,12 @@ export interface CodeHost {
     sourceFs: GitWorkFs,
     opts?: { dir?: string; ref?: string }
   ) => Promise<{ advancedMain: boolean; sha: string | null }>;
+  /** Point a branch ref at an existing object sha (e.g. FF merge). */
+  updateRef: (
+    appId: string,
+    ref: string,
+    sha: string
+  ) => Promise<{ previous: string | null }>;
   /** Checkout / archive the tree at `sha` from the bare repo. */
   readTreeAt: (
     appId: string,
