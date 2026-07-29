@@ -13,6 +13,11 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  parseSidebarStateCookie,
+  SIDEBAR_COOKIE_MAX_AGE,
+  SIDEBAR_COOKIE_NAME,
+} from "../lib/sidebar-cookie";
 import { useIsMobile } from "../lib/use-mobile";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
@@ -25,35 +30,16 @@ import {
 } from "./sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
-const SIDEBAR_COOKIE_NAME = "sidebar_state";
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
-function readSidebarCookie(): boolean | null {
+function readSidebarCookie(): boolean | undefined {
   if (typeof document === "undefined") {
-    return null;
+    return;
   }
-
-  for (const part of document.cookie.split(";")) {
-    const [rawName, ...rawValueParts] = part.trim().split("=");
-    if (rawName?.trim() !== SIDEBAR_COOKIE_NAME) {
-      continue;
-    }
-
-    const value = rawValueParts.join("=").trim();
-    if (value === "true") {
-      return true;
-    }
-    if (value === "false") {
-      return false;
-    }
-    break;
-  }
-
-  return null;
+  return parseSidebarStateCookie(document.cookie);
 }
 
 interface SidebarContextValue {
