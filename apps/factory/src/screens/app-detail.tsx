@@ -1,8 +1,8 @@
+import { Link } from "@tanstack/react-router";
 import type { AppRecord, AttemptRecord, VersionSummary } from "../api";
 import { AppLayoutHeader } from "../components/brand/app-layout";
 import { Button } from "../components/ui/button";
 import { Skeleton } from "../components/ui/skeleton";
-import { Link } from "../console-router";
 import { useApp, useAppAttempt, useAppVersions } from "../hooks/use-apps";
 import { StatusBadge } from "./apps-list";
 
@@ -30,8 +30,8 @@ export function AppDetailScreen({ appId }: { appId: string }) {
       <AppLayoutHeader className="px-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Link
-            to={{ name: "apps" }}
             className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
+            to="/apps"
           >
             Apps
           </Link>

@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { AppWindow, Home, Plus } from "lucide-react";
 import { useMemo } from "react";
 import { LogoDots } from "@/components/icons/logo-dots";
@@ -16,7 +17,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { useRouter } from "@/console-router";
 import { cn } from "@/lib/utils";
 import { groupThreadsByApp, searchThreads } from "../model/thread-list";
 import type { Thread } from "../model/types";
@@ -62,7 +62,7 @@ export function SessionThreadsSidebar({
   showCollapseTrigger = true,
 }: SessionThreadsSidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar();
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
   const quietRows = useIconCollapsed();
 
   const visible = useMemo(
@@ -83,7 +83,7 @@ export function SessionThreadsSidebar({
   };
 
   const openApp = (appId: string) => {
-    navigate({ name: "app", appId });
+    navigate({ to: "/apps/$appId", params: { appId } });
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -97,7 +97,7 @@ export function SessionThreadsSidebar({
   };
 
   const goApps = () => {
-    navigate({ name: "apps" });
+    navigate({ to: "/apps" });
     if (isMobile) {
       setOpenMobile(false);
     }

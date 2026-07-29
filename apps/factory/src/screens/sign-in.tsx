@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { BoxesIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
@@ -18,7 +19,6 @@ import {
 import type { AuthConfig } from "../api";
 import { fetchAuthConfig } from "../api";
 import { authClient } from "../auth-client";
-import { useRouter } from "../console-router";
 
 type AuthMode = "signin" | "signup";
 
@@ -44,7 +44,7 @@ export function SignInScreen({
 }: {
   destination?: SignInDestination;
 }) {
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const [config, setConfig] = useState<AuthConfig | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export function SignInScreen({
 
   useEffect(() => {
     if (!(destination || sessionPending) && session?.user) {
-      navigate({ name: "chat" }, true);
+      navigate({ to: "/", replace: true });
     }
   }, [session, sessionPending, navigate, destination]);
 
@@ -119,7 +119,9 @@ export function SignInScreen({
             mode={mode}
             onSignedIn={
               destination?.onSignedIn ??
-              (() => navigate({ name: "chat" }, true))
+              (() => {
+                navigate({ to: "/", replace: true });
+              })
             }
             setMode={setMode}
           />
