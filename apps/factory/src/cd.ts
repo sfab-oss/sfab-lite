@@ -238,6 +238,55 @@ function aborted(signal?: AbortSignal): boolean {
   return Boolean(signal?.aborted);
 }
 
+async function publishLiveChanged(
+  env: Env,
+  appId: string,
+  liveSha: string
+): Promise<void> {
+  const organizationId = await getAppOrganizationId(createDb(env), appId);
+  if (!organizationId) {
+    return;
+  }
+  publishOrgEvent(
+    { env, organizationId },
+    {
+      topic: "app_live_changed",
+      payload: { appId, liveSha },
+    }
+  );
+}
+
+/**
+ * Point live at an existing build: AppDO migrations + D1 live_sha + event.
+ * Skips lint/compile/check — callers must only use this when BuildStore
+ * already has `sha` (e.g. green PR checks).
+ */
+async function promoteExistingBuild(
+  env: Env,
+  appId: string,
+  sha: string,
+  sourceFiles: Record<string, string>,
+  opts?: { signal?: AbortSignal }
+): Promise<CdResult> {
+  if (aborted(opts?.signal)) {
+    return { ok: false, error: "cd_aborted" };
+  }
+  const schemaFailure = await applySchemaMigrations(env, appId, sourceFiles);
+  if (schemaFailure) {
+    return {
+      ok: false,
+      error: schemaFailure.error,
+      detail: schemaFailure,
+    };
+  }
+  if (aborted(opts?.signal)) {
+    return { ok: false, error: "cd_aborted" };
+  }
+  await setLiveSha(env, appId, sha);
+  await publishLiveChanged(env, appId, sha);
+  return { ok: true, sha, liveSha: sha };
+}
+
 async function cdBuildArtifacts(
   env: Env,
   appId: string,
@@ -332,6 +381,10 @@ async function cdBuildArtifacts(
  * Run CD for a commit sha against the given source tree. On success writes an
  * immutable build to CODE_R2. When `advanceLive` is true (default), also
  * updates D1 `live_sha` and publishes `app_live_changed`.
+ *
+ * If advancing live and a build for `sha` already exists (and
+ * `forceColdCheck` is not set), skips lint/compile/check and only promotes —
+ * merge after green PR checks must not burn a second full CD.
  */
 export async function runCdForSha(
   env: Env,
@@ -348,6 +401,15 @@ export async function runCdForSha(
   const advanceLive = opts?.advanceLive !== false;
 
   try {
+    if (advanceLive && !opts?.forceColdCheck) {
+      const existing = await createR2BuildStore(env).getBuild(appId, sha);
+      if (existing) {
+        return await promoteExistingBuild(env, appId, sha, sourceFiles, {
+          signal,
+        });
+      }
+    }
+
     const built = await cdBuildArtifacts(env, appId, sourceFiles, {
       ...opts,
       applyMigrations: advanceLive,
@@ -370,18 +432,7 @@ export async function runCdForSha(
     }
 
     await setLiveSha(env, appId, sha);
-
-    const organizationId = await getAppOrganizationId(createDb(env), appId);
-    if (organizationId) {
-      publishOrgEvent(
-        { env, organizationId },
-        {
-          topic: "app_live_changed",
-          payload: { appId, liveSha: sha },
-        }
-      );
-    }
-
+    await publishLiveChanged(env, appId, sha);
     return { ok: true, sha, liveSha: sha };
   } catch (e) {
     if (aborted(signal)) {
@@ -401,9 +452,9 @@ export type EnsureLiveResult =
   | { status: "cd_failed"; tip: string; error: string; detail?: unknown };
 
 /**
- * Run CD when main tip exists and differs from D1 `live_sha` (retry path after
- * a failed CD that already advanced the remote tip). Compiles the tip tree from
- * the code host — not a possibly-dirty workspace.
+ * When main tip differs from D1 `live_sha`, promote tip to live. Reuses an
+ * existing BuildStore entry when present (merge after checks); otherwise runs
+ * full CD. Tree always comes from the code host tip — not a dirty workspace.
  */
 export async function ensureLiveMatchesMain(
   env: Env,
