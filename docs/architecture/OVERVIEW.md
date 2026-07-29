@@ -32,14 +32,17 @@ ADRs under [`../decisions/`](../decisions/).
                         publish gated on pass
 ```
 
-- **Host + AppDO** per app: files, versions, pointer, SQLite via ScopedSql.
-- **The seed is a snapshot, not a link.** `TEMPLATE_SEED.sourceFiles` is copied
-  into an app once, at creation; every later commit rebuilds from that app's
-  own stored `sourceFiles`. So a fix to `packages/template` reaches *new* apps
-  only — existing apps never pick it up, and republishing them does not help.
-  Changing behaviour for apps already out there needs a source migration or a
-  host-side workaround, and that cost belongs in the design, not the rollout.
-- **LOADER** child isolates for serve.
+- **Code host** holds each app's Git repo (R2 stand-in now; Cloudflare
+  Artifacts later). **CD** writes immutable **builds** keyed by sha; D1
+  `live_sha` is the thin pointer serve reads. **AppDO** is runtime SQLite
+  (+ create jobs) only — not code history.
+- **The seed is a snapshot, not a link.** `TEMPLATE_SEED.sourceFiles` becomes
+  the initial commit on `main` at create; later work is normal Git. A fix to
+  `packages/template` reaches *new* apps only — existing repos never pick it
+  up. Changing behaviour for apps already out there needs a source migration
+  or a host-side workaround, and that cost belongs in the design, not the
+  rollout.
+- **LOADER** child isolates for serve (live or PR preview builds).
 - **Plain async check worker** — putting the LanguageService in a Durable
   Object was measured and refuted (warmth lasts ~5s idle, not ~30s; full
   template checks never stay warm).
