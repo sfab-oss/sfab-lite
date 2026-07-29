@@ -3,7 +3,6 @@ import type { CommandContext, ExecResult } from "just-bash";
 import { bridgeBashFs } from "../bash-fs-bridge.js";
 import { ensureLiveMatchesMain } from "../cd.js";
 import { createR2CodeHost } from "../r2-code-host.js";
-import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
 const AUTHOR = { name: "sfab-agent", email: "agent@sfab.dev" };
 const TOKEN_RE = /token[=:]\S+/gi;
@@ -104,11 +103,9 @@ function parsePushArgs(rest: string[]): PushParse {
 
 async function afterMainPushCd(
   deps: GitCommandDeps,
-  ctx: CommandContext,
   signal?: AbortSignal
 ): Promise<ExecResult | null> {
-  const files = await collectWorkspaceSourceFiles(ctx);
-  const result = await ensureLiveMatchesMain(deps.env, deps.appId, files, {
+  const result = await ensureLiveMatchesMain(deps.env, deps.appId, {
     signal,
   });
   if (result.status === "cd_failed") {
@@ -253,7 +250,7 @@ async function gitPush(
     return ok(refLine);
   }
 
-  const cdFail = await afterMainPushCd(deps, ctx, ctx.signal ?? undefined);
+  const cdFail = await afterMainPushCd(deps, ctx.signal ?? undefined);
   if (cdFail) {
     return {
       stdout: refLine,
@@ -402,7 +399,7 @@ export async function commitAllAndPushMain(
     ? `deploy: main updated${pushed.sha ? ` (${pushed.sha.slice(0, 12)})` : ""}\n`
     : "deploy: main unchanged\n";
 
-  const cdFail = await afterMainPushCd(deps, ctx, ctx.signal ?? undefined);
+  const cdFail = await afterMainPushCd(deps, ctx.signal ?? undefined);
   if (cdFail) {
     return {
       stdout: refLine,

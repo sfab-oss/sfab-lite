@@ -1,8 +1,10 @@
 /**
  * Host-side create reconcile: sweep stale `creating` rows, then publish org
  * events. Registry stays data-only; this module owns Env / AppDO / the bus.
+ *
+ * Does not publish `app_live_changed` — that topic is owned solely by
+ * `runCdForSha` when the live pointer moves.
  */
-import { getLiveSha } from "./cd.js";
 import type { Db } from "./db/index.js";
 import { publishOrgEvent } from "./org-events.js";
 import { type AttemptResolver, sweepStaleCreating } from "./registry.js";
@@ -18,20 +20,6 @@ export async function reconcileCreatingApps(
     publishOrgEvent(
       { env, organizationId },
       { topic: "app_list_changed", payload: { appId } }
-    );
-    if (action.kind !== "pass") {
-      continue;
-    }
-    const liveSha = await getLiveSha(env, appId).catch(() => null);
-    if (!liveSha) {
-      continue;
-    }
-    publishOrgEvent(
-      { env, organizationId },
-      {
-        topic: "app_live_changed",
-        payload: { appId, liveSha },
-      }
     );
   }
 }

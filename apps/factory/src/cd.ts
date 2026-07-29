@@ -338,21 +338,31 @@ export type EnsureLiveResult =
 
 /**
  * Run CD when main tip exists and differs from D1 `live_sha` (retry path after
- * a failed CD that already advanced the remote tip).
+ * a failed CD that already advanced the remote tip). Compiles the tip tree from
+ * the code host — not a possibly-dirty workspace.
  */
 export async function ensureLiveMatchesMain(
   env: Env,
   appId: string,
-  sourceFiles: Record<string, string>,
   opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
 ): Promise<EnsureLiveResult> {
-  const tip = await createR2CodeHost(env).tipSha(appId, "main");
+  const host = createR2CodeHost(env);
+  const tip = await host.tipSha(appId, "main");
   if (!tip) {
     return { status: "in_sync", tip: null };
   }
   const live = await getLiveSha(env, appId);
   if (tip === live) {
     return { status: "in_sync", tip };
+  }
+  const sourceFiles = await host.readTreeAt(appId, tip);
+  if (!sourceFiles) {
+    return {
+      status: "cd_failed",
+      tip,
+      error: "tree_missing",
+      detail: { message: `no source tree at tip ${tip}` },
+    };
   }
   const cd = await runCdForSha(env, appId, tip, sourceFiles, opts);
   if (!cd.ok) {
