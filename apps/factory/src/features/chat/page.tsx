@@ -11,7 +11,7 @@ import {
   SheetTitle,
 } from "@sfab-lite/ui/components/shadcn/sheet";
 import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
-import { useMatch, useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +30,7 @@ import { ThreadComposer } from "./components/thread-composer";
 import { ThreadHeaderMenu } from "./components/thread-header-menu";
 import { ThreadSummaryPanel } from "./components/thread-summary-panel";
 import { ThreadTranscript } from "./components/thread-transcript";
-import { useConsoleSession } from "./console-shell";
+import { useConsoleSession } from "./console-session";
 import {
   createServerThread,
   useAppAgentRegistry,
@@ -38,6 +38,8 @@ import {
 import { useChatData } from "./data/chat-data-context";
 import { useWorkspaceTabsStore } from "./lib/workspace-tabs-store";
 import type { Thread } from "./model/types";
+import { useConsoleRoute } from "./use-console-route";
+import { useHandleThreadDeleted } from "./use-handle-thread-deleted";
 
 const TITLE_FIRST_LINE = /\n/;
 
@@ -86,24 +88,24 @@ export function ChatScreen() {
     seedByThread,
     setThreadSeed,
     consumeThreadSeed,
-    clearThreadSeed,
   } = useConsoleSession();
+  const route = useConsoleRoute();
+  const {
+    appId: routeAppId,
+    threadId: routeThreadId,
+    goChatHome,
+    goThread,
+  } = route;
   const threads = chatData.listThreads();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const params = useParams({ strict: false });
-  const routeAppId = typeof params.appId === "string" ? params.appId : null;
-  const routeThreadId =
-    typeof params.threadId === "string" ? params.threadId : null;
-  const isDevChat = Boolean(
-    useMatch({ from: "/dev/chat", shouldThrow: false })
-  );
 
   const appsQuery = useApps();
   const createApp = useCreateApp();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(
     routeThreadId
   );
+  const handleThreadDeleted = useHandleThreadDeleted(activeThreadId);
   const readyApps = useMemo(
     () => readyAppsFromList(appsQuery.data?.apps),
     [appsQuery.data?.apps]
@@ -130,31 +132,6 @@ export function ChatScreen() {
     }
     setActiveThreadId(null);
   }, [attend, readyApps, routeAppId, routeThreadId, setScope]);
-
-  const goChatHome = useCallback(() => {
-    if (import.meta.env.DEV && isDevChat) {
-      navigate({ to: "/dev/chat" });
-      return;
-    }
-    navigate({ to: "/" });
-  }, [isDevChat, navigate]);
-
-  const goThread = useCallback(
-    (appId: string, threadId: string) => {
-      if (import.meta.env.DEV && isDevChat) {
-        navigate({
-          to: "/dev/chat/apps/$appId/t/$threadId",
-          params: { appId, threadId },
-        });
-        return;
-      }
-      navigate({
-        to: "/apps/$appId/t/$threadId",
-        params: { appId, threadId },
-      });
-    },
-    [isDevChat, navigate]
-  );
 
   const activeThread = useMemo(
     () =>
@@ -227,24 +204,6 @@ export function ChatScreen() {
     createApp.reset();
     goChatHome();
   }, [clearAttention, clearScope, createApp, goChatHome, setWorkspaceOpen]);
-
-  const handleThreadDeleted = useCallback(
-    (thread: Thread) => {
-      clearThreadSeed(thread.id);
-      const appName =
-        thread.appName ??
-        readyApps.find((app) => app.appId === thread.appId)?.appName ??
-        null;
-      if (activeThreadId === thread.id || !activeThreadId) {
-        if (thread.appId) {
-          attendApp(thread.appId, appName ?? "App");
-        } else {
-          goHome();
-        }
-      }
-    },
-    [activeThreadId, attendApp, clearThreadSeed, goHome, readyApps]
-  );
 
   const createThreadFromBlank = useCallback(
     async (text: string) => {
