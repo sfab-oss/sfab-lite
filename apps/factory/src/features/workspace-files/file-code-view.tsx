@@ -5,16 +5,29 @@ const PIERRE_THEME = {
   light: "pierre-light" as const,
 };
 
+function contentFingerprint(content: string): string {
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    hash = (hash * 31 + content.charCodeAt(i)) % 2_147_483_647;
+  }
+  return `${content.length}:${hash}`;
+}
+
 export function FileCodeView({
   content,
   path,
+  revision,
 }: {
   content: string;
   path: string;
+  revision?: string;
 }) {
   const name = path.includes("/")
     ? path.slice(path.lastIndexOf("/") + 1)
     : path;
+  const cacheKey = revision
+    ? `${revision}:${path}`
+    : `${path}:${contentFingerprint(content)}`;
   return (
     <div className="h-full min-h-0 overflow-auto">
       <PierreFile
@@ -22,7 +35,7 @@ export function FileCodeView({
         file={{
           name,
           contents: content,
-          cacheKey: `${path}:${content.length}`,
+          cacheKey,
         }}
         options={{
           theme: PIERRE_THEME,

@@ -73,12 +73,14 @@ export function AppPrDetailScreen({
       {pr ? (
         <PrBody
           appId={appId}
+          baseSha={diffQuery.data?.baseSha ?? null}
           checks={checks}
           diffError={
             diffQuery.error instanceof Error ? diffQuery.error.message : null
           }
           diffFiles={diffQuery.data?.files ?? []}
           diffPending={diffQuery.isPending}
+          headSha={diffQuery.data?.headSha ?? pr.headSha}
           mergeError={mergeError}
           mergePending={mergePr.isPending}
           onMerge={onMerge}
@@ -103,6 +105,8 @@ function PrBody({
   diffFiles,
   diffPending,
   diffError,
+  baseSha,
+  headSha,
 }: {
   appId: string;
   pr: PrRecord;
@@ -115,6 +119,8 @@ function PrBody({
   diffFiles: PrDiffFile[];
   diffPending: boolean;
   diffError: string | null;
+  baseSha: string | null;
+  headSha: string;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -190,7 +196,12 @@ function PrBody({
         {diffFiles.length > 0 ? (
           <div className="flex flex-col gap-4">
             {diffFiles.map((file) => (
-              <PrFileDiff key={file.path} file={file} />
+              <PrFileDiff
+                baseSha={baseSha}
+                file={file}
+                headSha={headSha}
+                key={file.path}
+              />
             ))}
           </div>
         ) : null}
@@ -217,7 +228,15 @@ function PrBody({
   );
 }
 
-function PrFileDiff({ file }: { file: PrDiffFile }) {
+function PrFileDiff({
+  file,
+  baseSha,
+  headSha,
+}: {
+  file: PrDiffFile;
+  baseSha: string | null;
+  headSha: string;
+}) {
   const name = file.path.includes("/")
     ? file.path.slice(file.path.lastIndexOf("/") + 1)
     : file.path;
@@ -229,17 +248,18 @@ function PrFileDiff({ file }: { file: PrDiffFile }) {
         newFile={{
           name,
           contents: file.after ?? "",
-          cacheKey: `${file.path}:after:${(file.after ?? "").length}`,
+          cacheKey: `${headSha}:${file.path}:after`,
         }}
         oldFile={{
           name,
           contents: file.before ?? "",
-          cacheKey: `${file.path}:before:${(file.before ?? "").length}`,
+          cacheKey: `${baseSha ?? "none"}:${file.path}:before`,
         }}
         options={{
           theme: PIERRE_THEME,
           diffStyle: "unified",
           overflow: "scroll",
+          disableFileHeader: true,
         }}
       />
     </div>

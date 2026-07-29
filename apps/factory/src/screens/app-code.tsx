@@ -66,9 +66,14 @@ export function AppCodeScreen({ appId }: { appId: string }) {
         </p>
       ) : null}
 
-      {source ? (
+      {source && tree ? (
         <div className="min-h-0 flex-1">
-          <FileBrowser rootPath="" source={source} />
+          <FileBrowser
+            key={tree.sha}
+            revision={tree.sha}
+            rootPath=""
+            source={source}
+          />
         </div>
       ) : null}
     </div>
