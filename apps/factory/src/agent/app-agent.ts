@@ -1,9 +1,12 @@
 import { Workspace, type WorkspaceChangeEvent } from "@cloudflare/shell";
+import { createGit } from "@cloudflare/shell/git";
 import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
 import { remoteUrlFor } from "../code-host/code-host.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import { createDb } from "../db/index.js";
 import { getLiveSha } from "../forge/cd.js";
 import { collectMigrations } from "../registry/app-migrations.js";
 import {
@@ -11,6 +14,7 @@ import {
   putWorkspaceBuild,
   workspaceBuildSha,
 } from "../registry/workspace-build.js";
+import { getWorkspaceAppId } from "../registry/workspace-registry.js";
 import { AppThread } from "./app-thread.js";
 import { GatedWorkspace } from "./gated-workspace.js";
 import {
@@ -37,6 +41,15 @@ export interface WorkspaceBuildStatus {
   status: "idle" | "compiling" | "ready" | "error";
 }
 
+export interface WorkspaceBranchInfo {
+  branches: string[];
+  current: string | null;
+}
+
+export type CheckoutBranchResult =
+  | { ok: true; current: string }
+  | { ok: false; error: string };
+
 const SHELL_TIMEOUT_MS = 120_000;
 const SEED_CALLBACK = "seedWorkspaceClone" as const;
 const COMPILE_CALLBACK = "compileWorkspaceBuild" as const;
@@ -44,6 +57,7 @@ const WORKSPACE_COMPILE_DEBOUNCE_SEC = 1;
 const WORKSPACE_BUILD_GEN_KEY = "workspaceBuildGeneration";
 const WORKSPACE_BUILD_STATUS_KEY = "workspaceBuildStatus";
 const WORKSPACE_BUILD_ERROR_KEY = "workspaceBuildError";
+const INVALID_BRANCH_CHARS = /[\s\\]/;
 
 export interface ThreadSummary {
   createdAt: number;
@@ -60,9 +74,11 @@ interface ThreadMetaRow {
 }
 
 /**
- * Think root for one app-as-being-built. Owns the shared Workspace and
+ * Think root for one isolated workspace. Owns the shared Workspace and
  * thread registry; clients talk to AppThread facets, not this DO's chat.
  * Serving traffic stays on AppDataDO — this isolate is for agent work only.
+ * Durable Object name is `workspaceId` (`ws_…`); forge `appId` is resolved
+ * from D1 for code-host / live / shell operations.
  */
 export class AppAgent extends Think<Env> {
   workspace = new Workspace({
@@ -82,9 +98,33 @@ export class AppAgent extends Think<Env> {
 
   #workspaceClonePromise: Promise<void> | null = null;
   #workspaceCompilePromise: Promise<WorkspaceBuildStatus> | null = null;
+  #resolvedAppId: string | null = null;
 
   override getModel(): LanguageModel {
     throw new Error("AppAgent chat is dormant; connect to an AppThread facet");
+  }
+
+  async #appId(): Promise<string> {
+    if (this.#resolvedAppId) {
+      return this.#resolvedAppId;
+    }
+    const cached = await this.ctx.storage.get<string>("appId");
+    if (cached) {
+      this.#resolvedAppId = cached;
+      return cached;
+    }
+    const appId = await getWorkspaceAppId(createDb(this.env), this.name);
+    if (!appId) {
+      throw new Error(`AppAgent ${this.name}: workspace has no app`);
+    }
+    await this.ctx.storage.put("appId", appId);
+    this.#resolvedAppId = appId;
+    return appId;
+  }
+
+  /** Forge app id for this workspace — used by AppThread shell / prompts. */
+  forgeAppId(): Promise<string> {
+    return this.#appId();
   }
 
   /**
@@ -154,10 +194,11 @@ export class AppAgent extends Think<Env> {
     }
 
     try {
+      const appId = await this.#appId();
       const { sha } = await cloneWorkspaceFromCodeHost(
         this.env,
         this.workspace,
-        this.name
+        appId
       );
       await this.ctx.storage.put(WORKSPACE_CLONED_KEY, sha ?? "empty");
       await this.#scheduleWorkspaceCompile();
@@ -210,7 +251,7 @@ export class AppAgent extends Think<Env> {
   }
 
   /**
-   * Debounced compile of WIP workspace → R2 `builds/{appId}/workspace.json`.
+   * Debounced compile of WIP workspace → R2 `builds/{workspaceId}/workspace.json`.
    * Scheduled from writes and post-clone; not full CD (no lint/check).
    */
   compileWorkspaceBuild(
@@ -378,11 +419,11 @@ export class AppAgent extends Think<Env> {
   }
 
   liveSha(): Promise<string | null> {
-    return getLiveSha(this.env, this.name);
+    return this.#appId().then((appId) => getLiveSha(this.env, appId));
   }
 
-  remoteUrl(): string {
-    return remoteUrlFor(this.name);
+  async remoteUrl(): Promise<string> {
+    return remoteUrlFor(await this.#appId());
   }
 
   /**
@@ -390,19 +431,20 @@ export class AppAgent extends Think<Env> {
    * same `createAppShellCommands`, that a model turn drives.
    *
    * Deliberately **not** `@callable()`. That decorator is what publishes a
-   * method on `/agents/app-agent/<appId>`, which any org member with app
+   * method on `/agents/app-agent/<workspaceId>`, which any org member with app
    * access can reach from the browser; this is for server-side callers holding
    * the stub (the MCP surface, gated on `ADMIN_TOKEN`). `AppThread.harnessBash`
    * is the same capability behind an `AGENT_HARNESS` flag, for the same reason.
    */
   async runShell(script: string): Promise<ShellResult> {
     await this.#ensureWorkspaceReady();
+    const appId = await this.#appId();
     const { bash } = createWorkspaceTools(this.#fs, {
       bash: {
         timeout: SHELL_TIMEOUT_MS,
         customCommands: createAppShellCommands({
           env: this.env,
-          appId: this.name,
+          appId,
         }),
       },
     });
@@ -465,6 +507,62 @@ export class AppAgent extends Think<Env> {
   @callable()
   readDir(path: string, opts?: Parameters<Workspace["readDir"]>[1]) {
     return this.#fs.readDir(path, opts);
+  }
+
+  @callable()
+  async workspaceBranch(): Promise<WorkspaceBranchInfo> {
+    await this.#ensureWorkspaceReady();
+    const git = this.#workspaceGit();
+    const listed = await git.branch({ list: true });
+    const local =
+      "branches" in listed && Array.isArray(listed.branches)
+        ? listed.branches
+        : [];
+    const current =
+      "current" in listed && typeof listed.current === "string"
+        ? listed.current
+        : null;
+    const remote = await createR2CodeHost(this.env).listBranches(
+      await this.#appId()
+    );
+    const branches = [...new Set([...local, ...remote])].sort((a, b) =>
+      a.localeCompare(b)
+    );
+    return { current, branches };
+  }
+
+  @callable()
+  async checkoutBranch(name: string): Promise<CheckoutBranchResult> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return { ok: false, error: "Branch name required" };
+    }
+    if (trimmed.includes("..") || INVALID_BRANCH_CHARS.test(trimmed)) {
+      return { ok: false, error: "Invalid branch name" };
+    }
+    await this.#ensureWorkspaceReady();
+    try {
+      const git = this.#workspaceGit();
+      await git.checkout({ ref: trimmed });
+      this.broadcast(
+        JSON.stringify({
+          type: "workspace-change",
+          event: { type: "checkout", branch: trimmed },
+        })
+      );
+      await this.#scheduleWorkspaceCompile();
+      return { ok: true, current: trimmed };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, error: message || "Checkout failed" };
+    }
+  }
+
+  #workspaceGit() {
+    return createGit(
+      this.workspace as unknown as Parameters<typeof createGit>[0],
+      "/"
+    );
   }
 
   rm(path: string, opts?: Parameters<Workspace["rm"]>[1]) {

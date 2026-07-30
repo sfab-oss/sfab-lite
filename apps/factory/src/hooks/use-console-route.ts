@@ -3,22 +3,23 @@ import { useCallback, useMemo } from "react";
 
 export interface ConsoleRoute {
   appId: string | null;
+  workspaceId: string | null;
   threadId: string | null;
   appsRoute: boolean;
   appDashboardId: string | null;
-  goAgentHome: (appId: string) => void;
+  goWorkHome: (appId: string, workspaceId: string) => void;
   goChatHome: () => void;
-  goThread: (appId: string, threadId: string) => void;
+  goThread: (appId: string, workspaceId: string, threadId: string) => void;
 }
 
 export function useConsoleRoute(): ConsoleRoute {
   const navigate = useNavigate();
-  const agentThread = useMatch({
-    from: "/_protected/apps/$appId/agent/$threadId",
+  const workThread = useMatch({
+    from: "/_protected/apps/$appId/workspaces/$workspaceId/work/$threadId",
     shouldThrow: false,
   });
-  const agentLayout = useMatch({
-    from: "/_protected/apps/$appId/agent",
+  const workLayout = useMatch({
+    from: "/_protected/apps/$appId/workspaces/$workspaceId/work",
     shouldThrow: false,
   });
   const legacyThread = useMatch({
@@ -34,40 +35,53 @@ export function useConsoleRoute(): ConsoleRoute {
     shouldThrow: false,
   });
 
-  const threadMatch = agentThread ?? legacyThread;
+  const threadMatch = workThread ?? legacyThread;
   const threadId = threadMatch?.params.threadId ?? null;
-  const appId = threadMatch?.params.appId ?? agentLayout?.params.appId ?? null;
+  const workspaceId =
+    workThread?.params.workspaceId ?? workLayout?.params.workspaceId ?? null;
+  const appId = threadMatch?.params.appId ?? workLayout?.params.appId ?? null;
 
   const appsRoute = Boolean(appLayout) || Boolean(appsIndex);
   const appDashboardId = appLayout?.params.appId ?? null;
 
-  const goAgentHome = useCallback(
-    (nextAppId: string) => {
+  const goWorkHome = useCallback(
+    (nextAppId: string, nextWorkspaceId: string) => {
       navigate({
-        to: "/apps/$appId/agent",
-        params: { appId: nextAppId },
+        to: "/apps/$appId/workspaces/$workspaceId/work",
+        params: { appId: nextAppId, workspaceId: nextWorkspaceId },
       });
     },
     [navigate]
   );
 
   const goChatHome = useCallback(() => {
-    const scoped = appId ?? appLayout?.params.appId ?? null;
-    if (scoped) {
+    const scopedApp = appId ?? appLayout?.params.appId ?? null;
+    if (scopedApp && workspaceId) {
       navigate({
-        to: "/apps/$appId/agent",
-        params: { appId: scoped },
+        to: "/apps/$appId/workspaces/$workspaceId/work",
+        params: { appId: scopedApp, workspaceId },
+      });
+      return;
+    }
+    if (scopedApp) {
+      navigate({
+        to: "/apps/$appId/work",
+        params: { appId: scopedApp },
       });
       return;
     }
     navigate({ to: "/apps" });
-  }, [appId, appLayout?.params.appId, navigate]);
+  }, [appId, appLayout?.params.appId, navigate, workspaceId]);
 
   const goThread = useCallback(
-    (nextAppId: string, nextThreadId: string) => {
+    (nextAppId: string, nextWorkspaceId: string, nextThreadId: string) => {
       navigate({
-        to: "/apps/$appId/agent/$threadId",
-        params: { appId: nextAppId, threadId: nextThreadId },
+        to: "/apps/$appId/workspaces/$workspaceId/work/$threadId",
+        params: {
+          appId: nextAppId,
+          workspaceId: nextWorkspaceId,
+          threadId: nextThreadId,
+        },
       });
     },
     [navigate]
@@ -76,10 +90,11 @@ export function useConsoleRoute(): ConsoleRoute {
   return useMemo(
     () => ({
       appId,
+      workspaceId,
       threadId,
       appsRoute,
       appDashboardId,
-      goAgentHome,
+      goWorkHome,
       goChatHome,
       goThread,
     }),
@@ -87,10 +102,11 @@ export function useConsoleRoute(): ConsoleRoute {
       appDashboardId,
       appId,
       appsRoute,
-      goAgentHome,
+      goWorkHome,
       goChatHome,
       goThread,
       threadId,
+      workspaceId,
     ]
   );
 }

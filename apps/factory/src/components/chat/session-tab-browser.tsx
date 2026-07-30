@@ -1,8 +1,13 @@
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
 import { Input } from "@sfab-lite/ui/components/shadcn/input";
-import { cn } from "@sfab-lite/ui/lib/utils";
 import { useAgent } from "agents/react";
-import { ExternalLink, Home, RotateCw } from "lucide-react";
+import { Bookmark, ExternalLink, Home, RotateCw } from "lucide-react";
 import {
   type FormEvent,
   useCallback,
@@ -10,13 +15,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { useChatData } from "@/components/chat/chat-data-context";
+import { useConsoleRoute } from "@/hooks/use-console-route";
 import { appQuickLinks } from "@/lib/chat/extract-app-routes";
 import {
   appWorkspaceBasePath,
-  clampToApp,
+  clampToWorkspace,
   localhostDisplayPath,
-  reloadPreviewFrame,
+  reloadWorkspaceFrame,
   stripLocalhostDisplay,
 } from "@/lib/preview/reload-preview";
 
@@ -34,8 +39,11 @@ function fireAndForget(promise: Promise<unknown>): void {
   promise.catch(() => undefined);
 }
 
-function toWorkspaceRelative(pathname: string, appId: string): string | null {
-  const base = appWorkspaceBasePath(appId);
+function toWorkspaceRelative(
+  pathname: string,
+  workspaceId: string
+): string | null {
+  const base = appWorkspaceBasePath(workspaceId);
   if (pathname === base || pathname === `${base}/`) {
     return "/";
   }
@@ -48,14 +56,14 @@ function toWorkspaceRelative(pathname: string, appId: string): string | null {
 
 function readFrameRelative(
   frame: HTMLIFrameElement,
-  appId: string
+  workspaceId: string
 ): string | null {
   try {
     const pathname = frame.contentWindow?.location.pathname;
     if (typeof pathname !== "string") {
       return null;
     }
-    return toWorkspaceRelative(pathname, appId);
+    return toWorkspaceRelative(pathname, workspaceId);
   } catch {
     return null;
   }
@@ -192,24 +200,31 @@ async function readWipQuickLinks(agent: {
 }
 
 export function SessionTabBrowser({ active }: { active: boolean }) {
-  const data = useChatData();
-  const appId = data.getAppId();
+  const { workspaceId } = useConsoleRoute();
 
-  if (!appId) {
+  if (!workspaceId) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-        <p className="font-medium text-sm">No app selected</p>
+        <p className="font-medium text-sm">No workspace selected</p>
         <p className="max-w-xs text-muted-foreground text-sm">
-          Open a conversation for an app to preview its workspace.
+          Open a workspace to preview its WIP build.
         </p>
       </div>
     );
   }
 
-  return <BrowserFrame active={active} appId={appId} key={appId} />;
+  return (
+    <BrowserFrame active={active} key={workspaceId} workspaceId={workspaceId} />
+  );
 }
 
-function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
+function BrowserFrame({
+  active,
+  workspaceId,
+}: {
+  active: boolean;
+  workspaceId: string;
+}) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pathRef = useRef("/");
   const generationRef = useRef<number | null>(null);
@@ -218,19 +233,19 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
   const [editing, setEditing] = useState(false);
   const [buildHint, setBuildHint] = useState<string | null>("Preparing…");
   const [quickLinks, setQuickLinks] = useState<string[]>([]);
-  const rootSrc = `${appWorkspaceBasePath(appId)}/`;
+  const rootSrc = `${appWorkspaceBasePath(workspaceId)}/`;
 
   pathRef.current = path;
 
   const reloadFrame = useCallback(() => {
-    reloadPreviewFrame(iframeRef.current, appId, pathRef.current, "workspace");
-  }, [appId]);
+    reloadWorkspaceFrame(iframeRef.current, workspaceId, pathRef.current);
+  }, [workspaceId]);
 
   const refreshQuickLinksRef = useRef<() => void>(() => undefined);
 
   const agent = useAgent({
     agent: "AppAgent",
-    name: appId,
+    name: workspaceId,
     onMessage: (event) => {
       if (typeof event.data !== "string") {
         return;
@@ -307,7 +322,7 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
       if (!frame) {
         return;
       }
-      const next = readFrameRelative(frame, appId);
+      const next = readFrameRelative(frame, workspaceId);
       if (next != null) {
         setPath((current) => (current === next ? current : next));
       }
@@ -329,7 +344,7 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
       stop();
       document.removeEventListener("visibilitychange", sync);
     };
-  }, [active, appId, editing]);
+  }, [active, workspaceId, editing]);
 
   useEffect(() => {
     if (!editing) {
@@ -338,7 +353,7 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
   }, [editing, path]);
 
   const navigateTo = (relative: string) => {
-    const url = clampToApp(appId, relative, "workspace");
+    const url = clampToWorkspace(workspaceId, relative);
     const frame = iframeRef.current;
     try {
       if (frame?.contentWindow) {
@@ -352,7 +367,7 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
       }
     }
     const absolute = new URL(url, window.location.origin);
-    const next = toWorkspaceRelative(absolute.pathname, appId);
+    const next = toWorkspaceRelative(absolute.pathname, workspaceId);
     if (next != null) {
       setPath(next);
       setDraft(localhostDisplayPath(next));
@@ -389,7 +404,7 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
 
   const openExternal = () => {
     window.open(
-      clampToApp(appId, path, "workspace"),
+      clampToWorkspace(workspaceId, path),
       "_blank",
       "noopener,noreferrer"
     );
@@ -446,25 +461,37 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
               value={editing ? draft : localhostDisplayPath(path)}
             />
           </form>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  aria-label="Bookmarks"
+                  className="size-8 shrink-0"
+                  disabled={quickLinks.length === 0}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                />
+              }
+            >
+              <Bookmark className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44">
+              {quickLinks.map((link) => (
+                <DropdownMenuItem
+                  className="font-mono text-xs"
+                  key={link}
+                  onClick={() => navigateTo(link)}
+                >
+                  {linkLabel(link)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         {buildHint ? (
           <p className="px-1 text-[11px] text-muted-foreground">{buildHint}</p>
         ) : null}
-        <div className="flex flex-wrap items-center gap-1 px-1">
-          {quickLinks.map((link) => (
-            <button
-              className={cn(
-                "rounded-md px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-                path === link && "bg-muted text-foreground"
-              )}
-              key={link}
-              onClick={() => navigateTo(link)}
-              type="button"
-            >
-              {linkLabel(link)}
-            </button>
-          ))}
-        </div>
       </div>
       <iframe
         className="min-h-0 w-full flex-1 border-0 bg-background"

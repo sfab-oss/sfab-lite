@@ -15,6 +15,7 @@ import { dispatchInternal } from "./forge/internal.js";
 import { apiApp } from "./hono/index.js";
 import { requireAppAccess, resolveActor } from "./hono/tenancy.js";
 import { dispatchMcp } from "./mcp/index.js";
+import { getWorkspaceAppId } from "./registry/workspace-registry.js";
 import type { PublicRoute, RequestCtx, RouteCtx } from "./serve/routes.js";
 import { matchRoute } from "./serve/routes.js";
 import { serveSubApp } from "./serve/serve.js";
@@ -119,26 +120,48 @@ async function handlePreviewSubApp(
     return denied;
   }
   const inner = slash === -1 ? "" : after.slice(slash + 1);
-  return serveSubApp(rc.request, rc.env, appId, inner, "preview", {
-    prNumber,
-  });
+  return serveSubApp(
+    rc.request,
+    rc.env,
+    { mode: "preview", appId, prNumber },
+    inner
+  );
 }
 
 async function handleSubApp(rc: RouteCtx): Promise<Response> {
-  const appId = decodeURIComponent(rc.match[1] ?? "");
+  const id = decodeURIComponent(rc.match[1] ?? "");
   const rest = rc.match[2] ?? "";
   if (rest === "workspace" || rest.startsWith("workspace/")) {
+    if (!id.startsWith("ws_")) {
+      return Response.json(
+        { ok: false, error: "workspace_not_found", workspaceId: id },
+        { status: 404 }
+      );
+    }
+    const db = createDb(rc.env);
+    const appId = await getWorkspaceAppId(db, id);
+    if (!appId) {
+      return Response.json(
+        { ok: false, error: "workspace_not_found", workspaceId: id },
+        { status: 404 }
+      );
+    }
     const denied = await requirePreviewAccess(rc, appId);
     if (denied) {
       return denied;
     }
     const inner = rest === "workspace" ? "" : rest.slice("workspace/".length);
-    return serveSubApp(rc.request, rc.env, appId, inner, "workspace");
+    return serveSubApp(
+      rc.request,
+      rc.env,
+      { mode: "workspace", workspaceId: id },
+      inner
+    );
   }
   if (rest === "preview" || rest.startsWith("preview/")) {
-    return handlePreviewSubApp(rc, appId, rest);
+    return handlePreviewSubApp(rc, id, rest);
   }
-  return serveSubApp(rc.request, rc.env, appId, rest, "live");
+  return serveSubApp(rc.request, rc.env, { mode: "live", appId: id }, rest);
 }
 
 /**

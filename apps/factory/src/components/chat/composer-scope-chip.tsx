@@ -17,7 +17,7 @@ export interface ComposerScope {
   appId: string | null;
   appName: string | null;
   apps: Array<{ appId: string; appName: string }>;
-  onAttendApp: (appId: string, appName: string) => void;
+  onAttendApp: (appId: string, appName: string) => void | Promise<void>;
   onClearScope: () => void;
 }
 

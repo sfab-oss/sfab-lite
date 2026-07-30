@@ -41,15 +41,15 @@ export function useThreadLifecycle() {
       if (!trimmed || trimmed === thread.title) {
         return false;
       }
-      if (!thread.appId) {
-        setError("This conversation is not attached to an app yet.");
+      if (!thread.workspaceId) {
+        setError("This conversation is not attached to a workspace yet.");
         return false;
       }
       setBusy(true);
       setError(null);
       try {
         await withTimeout(
-          waitForHandle(thread.appId).then((handle) =>
+          waitForHandle(thread.workspaceId).then((handle) =>
             renameServerThread(handle, thread.id, trimmed)
           ),
           "Rename"
@@ -71,18 +71,19 @@ export function useThreadLifecycle() {
 
   const deleteThread = useCallback(
     async (thread: Thread): Promise<boolean> => {
-      if (!thread.appId) {
-        setError("This conversation is not attached to an app yet.");
+      if (!thread.workspaceId) {
+        setError("This conversation is not attached to a workspace yet.");
         return false;
       }
       setBusy(true);
       setError(null);
       try {
-        // waitForHandle resolves only once that app is attended, and at most
-        // one app is attended at a time — so it must be inside the timeout or
-        // deleting another app's thread from the sidebar waits forever.
+        // waitForHandle resolves only once that workspace is attended, and at
+        // most one workspace is attended at a time — so it must be inside the
+        // timeout or deleting another workspace's thread from the sidebar waits
+        // forever.
         await withTimeout(
-          waitForHandle(thread.appId).then((handle) =>
+          waitForHandle(thread.workspaceId).then((handle) =>
             deleteServerThread(handle, thread.id)
           ),
           "Delete"

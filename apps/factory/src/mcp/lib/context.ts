@@ -1,4 +1,6 @@
 import { getAgentByName } from "agents";
+import { createDb } from "../../db/index.js";
+import { getDefaultWorkspaceForApp } from "../../registry/workspace-registry.js";
 
 /** Where the loopback lands. Never leaves the Worker. */
 const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
@@ -49,6 +51,7 @@ export function orgQuery(ctx: McpContext): string {
 /**
  * An AppAgent stub whose `onStart` has already run.
  *
+ * MCP tools still take `appId` and resolve the app's default workspace.
  * `getAgentByName` rather than `idFromName`: a native RPC call does not pass
  * through `Server.fetch()`, which is where partyserver would otherwise
  * initialize the object. Reaching an uninitialized AppAgent gets an unseeded
@@ -57,6 +60,10 @@ export function orgQuery(ctx: McpContext): string {
  * for an undefined appId. The console never hit this because a websocket
  * connect goes through fetch.
  */
-export function appAgent(env: Env, appId: string) {
-  return getAgentByName(env.AppAgent, appId);
+export async function appAgent(env: Env, appId: string) {
+  const workspace = await getDefaultWorkspaceForApp(createDb(env), appId);
+  if (!workspace) {
+    throw new Error(`No default workspace for app ${appId}`);
+  }
+  return getAgentByName(env.AppAgent, workspace.id);
 }

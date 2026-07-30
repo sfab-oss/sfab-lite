@@ -273,6 +273,32 @@ export const app = sqliteTable(
   ]
 );
 
+/**
+ * Isolated agent computer for an app. AppAgent DO name is `id` (`ws_…`).
+ * Code host / live tip stay on `appId`; WIP checkout + threads live here.
+ */
+export const workspace = sqliteTable(
+  "workspace",
+  {
+    id: text("id").primaryKey(),
+    appId: text("app_id")
+      .notNull()
+      .references(() => app.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    isDefault: integer("is_default", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    createdAt: integer("created_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+      .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("workspace_appId_idx").on(table.appId)]
+);
+
 /** Branch PR into main — one repo per app. */
 export const pullRequest = sqliteTable(
   "pull_request",
@@ -348,6 +374,14 @@ export const appRelations = relations(app, ({ one, many }) => ({
   }),
   pullRequests: many(pullRequest),
   checkRuns: many(checkRun),
+  workspaces: many(workspace),
+}));
+
+export const workspaceRelations = relations(workspace, ({ one }) => ({
+  app: one(app, {
+    fields: [workspace.appId],
+    references: [app.id],
+  }),
 }));
 
 export const pullRequestRelations = relations(pullRequest, ({ one, many }) => ({

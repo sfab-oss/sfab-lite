@@ -43,10 +43,10 @@ export function ThreadTranscript({
   onInitialConsumed?: () => void;
   thread: Thread;
 }) {
-  if (!thread.appId?.startsWith("app_")) {
+  if (!thread.workspaceId?.startsWith("ws_")) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center px-4 text-muted-foreground text-sm">
-        This thread is not bound to a real app.
+        This thread is not bound to a workspace.
       </div>
     );
   }
@@ -54,7 +54,7 @@ export function ThreadTranscript({
   return (
     <BoundThreadTranscript
       initialMessage={initialMessage}
-      key={`${thread.appId}:${thread.id}`}
+      key={`${thread.workspaceId}:${thread.id}`}
       messagesRef={messagesRef}
       onInitialConsumed={onInitialConsumed}
       thread={thread}
@@ -76,7 +76,7 @@ function BoundThreadTranscript({
   const data = useChatData();
   const agent = useAgent({
     agent: "AppAgent",
-    name: thread.appId as string,
+    name: thread.workspaceId as string,
     sub: [{ agent: "AppThread", name: thread.id }],
   });
   // Without a throttle, dense tool-input-delta bursts exceed React's nested

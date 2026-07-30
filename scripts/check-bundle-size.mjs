@@ -1,16 +1,22 @@
 #!/usr/bin/env node
 /**
- * Guard the deployed Worker size against Cloudflare's plan ceiling.
+ * Guard aux Worker upload size against Cloudflare's plan ceiling.
  *
- * Every other gate in this repo checks *source*. Nothing checked the built
- * bundle until `apps/lint` was measured at 9.09 MiB gzip against a 10 MB
- * limit — a Biome bump could have made it undeployable with the first
- * signal being a failed production deploy.
+ * Originally added because `apps/lint` sat at ~9.09 MiB gzip against a 10 MB
+ * Worker limit — a Biome bump could make it undeployable with the first
+ * signal a failed production deploy.
+ *
+ * **Factory is ordinary host software** (console + API). It is *not* gated
+ * here the way the frozen template/kernel surface is: starter and platform
+ * do not fail CI on host bundle size either. Size pressure that matters for
+ * generated apps lives in kernel / template checks (`check:kernel`,
+ * making-it-fit), not this script's factory dry-run.
+ *
+ * Still measured for factory (warn only). **Hard-fail only** `check` and
+ * `lint` — the aux workers that must stay deployable for the app loop.
  *
  * The number comes from `wrangler deploy --dry-run`, which reports the same
- * gzip size Cloudflare enforces at upload. Parsing wrangler's own output is
- * deliberate: re-gzipping the outdir ourselves would measure a different
- * thing.
+ * gzip size Cloudflare enforces at upload.
  *
  * Cloudflare states the limit as "10 MB" without saying decimal or binary.
  * We take the conservative reading (10,000,000 bytes) so a pass here is a
@@ -27,6 +33,9 @@ const CEILING_BYTES = 10_000_000;
 /** Fail here, not at the ceiling — a deploy that only just fits is a trap. */
 const FAIL_RATIO = 0.97;
 const WARN_RATIO = 0.85;
+
+/** Host console — measure + warn, never fail this gate. */
+const WARN_ONLY = new Set(["factory"]);
 
 const apps = readdirSync(join(root, "apps"), { withFileTypes: true })
   .filter((e) => e.isDirectory())
@@ -72,12 +81,16 @@ for (const app of apps) {
   const ratio = bytes / CEILING_BYTES;
   const pct = (ratio * 100).toFixed(1);
   const mib = (bytes / 1024 / 1024).toFixed(2);
+  const warnOnly = WARN_ONLY.has(app);
 
   if (ratio > FAIL_RATIO) {
-    console.error(
-      `apps/${app}: ${mib} MiB gzip — ${pct}% of the 10 MB Worker limit. Too close to deploy safely.`
-    );
-    failed = true;
+    const line = `apps/${app}: ${mib} MiB gzip — ${pct}% of the 10 MB Worker limit. Too close to deploy safely.`;
+    if (warnOnly) {
+      console.warn(`${line} (factory: warn-only)`);
+    } else {
+      console.error(line);
+      failed = true;
+    }
   } else if (ratio > WARN_RATIO) {
     console.warn(
       `apps/${app}: ${mib} MiB gzip — ${pct}% of the 10 MB Worker limit.`

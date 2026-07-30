@@ -2,7 +2,7 @@ const ABSOLUTE_URL = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
 const LEADING_SLASH = /^\//;
 const LOCALHOST_PREFIX = /^https?:\/\/localhost(?::\d+)?/i;
 
-export type PreviewServeMode = "live" | "preview" | "workspace";
+export type PreviewServeMode = "live" | "preview";
 
 export function appBasePath(appId: string): string {
   return `/a/${encodeURIComponent(appId)}`;
@@ -12,8 +12,8 @@ export function appPrPreviewBasePath(appId: string, prNumber: number): string {
   return `/a/${encodeURIComponent(appId)}/preview/${prNumber}`;
 }
 
-export function appWorkspaceBasePath(appId: string): string {
-  return `/a/${encodeURIComponent(appId)}/workspace`;
+export function appWorkspaceBasePath(workspaceId: string): string {
+  return `/a/${encodeURIComponent(workspaceId)}/workspace`;
 }
 
 export function localhostDisplayPath(relativePath: string): string {
@@ -30,18 +30,7 @@ export function stripLocalhostDisplay(input: string): string {
   return trimmed;
 }
 
-export function clampToApp(
-  appId: string,
-  input: string,
-  mode: PreviewServeMode = "live",
-  prNumber?: number
-): string {
-  let base = appBasePath(appId);
-  if (mode === "workspace") {
-    base = appWorkspaceBasePath(appId);
-  } else if (mode === "preview" && prNumber != null) {
-    base = appPrPreviewBasePath(appId, prNumber);
-  }
+function clampToBase(base: string, input: string): string {
   try {
     let rel = stripLocalhostDisplay(input) || "/";
     if (ABSOLUTE_URL.test(rel) || rel.startsWith("//")) {
@@ -69,12 +58,27 @@ export function clampToApp(
   }
 }
 
-export function reloadPreviewFrame(
-  frame: HTMLIFrameElement | null,
+export function clampToApp(
   appId: string,
-  relativePath: string,
+  input: string,
   mode: PreviewServeMode = "live",
   prNumber?: number
+): string {
+  const base =
+    mode === "preview" && prNumber != null
+      ? appPrPreviewBasePath(appId, prNumber)
+      : appBasePath(appId);
+  return clampToBase(base, input);
+}
+
+export function clampToWorkspace(workspaceId: string, input: string): string {
+  return clampToBase(appWorkspaceBasePath(workspaceId), input);
+}
+
+export function reloadWorkspaceFrame(
+  frame: HTMLIFrameElement | null,
+  workspaceId: string,
+  relativePath: string
 ): void {
   if (!frame) {
     return;
@@ -82,6 +86,6 @@ export function reloadPreviewFrame(
   try {
     frame.contentWindow?.location.reload();
   } catch {
-    frame.src = clampToApp(appId, relativePath, mode, prNumber);
+    frame.src = clampToWorkspace(workspaceId, relativePath);
   }
 }
