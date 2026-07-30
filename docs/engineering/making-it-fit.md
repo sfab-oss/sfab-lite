@@ -24,7 +24,7 @@ already refuted with numbers, and re-deriving them is expensive.
 | Limit | Value | Where it bites |
 | --- | --- | --- |
 | Isolate memory | **128 MB**, every plan, no knob | The TypeScript check worker |
-| Worker upload | **10 MB gzip** | `apps/lint` at 9.09 MiB (95.4%) |
+| Worker upload | **10 MB gzip** | `apps/lint` / `apps/check` (CI hard-fail). Factory is warn-only — host console is ordinary software. |
 | `ctx.waitUntil` | killed at **~30s** | Async app-create attempts |
 | Isolate affinity | **none** | Any warm in-memory cache |
 | DO idle retention | **~30s** | Any DO-based warm cache |

@@ -125,11 +125,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm --filter @sfab-lite/factory build:ui
 
-      # The only gate that inspects the *built* bundle rather than source.
-      # apps/lint ships Biome's WASM at ~91% of Cloudflare's 10 MB Worker
-      # limit, so a dependency bump can break deployability with nothing
-      # else in this file noticing. Slower than the others (three esbuild
-      # dry-run builds), hence last.
+      # Built-bundle upload gate for aux workers (`check` / `lint`). Factory is
+      # measured warn-only — host console size is not a CI fail (kernel/template
+      # gates cover generated-app pressure). Lint still sits near Cloudflare's
+      # 10 MB Worker ceiling; a Biome bump must fail here, not at deploy.
       - name: bundle-size
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.ui-build.outcome == 'success' }}
         run: pnpm check:bundle-size
