@@ -30,6 +30,11 @@ function HeaderSidebarTrigger({ className }: { className?: string }) {
   );
 }
 
+/** Sidebar trigger for custom stacked headers (e.g. app tab shell). */
+export function AppLayoutSidebarTrigger({ className }: { className?: string }) {
+  return <HeaderSidebarTrigger className={className} />;
+}
+
 // --- 1. Global Shell (Layout Wrapper) ---
 
 export function AppLayout({
@@ -117,24 +122,6 @@ export function AppLayoutHeaderActions({
   return (
     <div
       className={cn("ml-auto flex items-center gap-2", className)}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
-
-export function AppLayoutSubheader({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<"div">) {
-  return (
-    <div
-      className={cn(
-        "flex h-9 shrink-0 items-center border-b bg-background px-4",
-        className
-      )}
       {...props}
     >
       {children}
