@@ -96,6 +96,14 @@ export interface CodeHost {
     appId: string,
     sha: string
   ) => Promise<Record<string, string> | null>;
+  /** Path index at `sha` (trees only; no blob bodies). For Code-tab browse. */
+  listPathsAt: (appId: string, sha: string) => Promise<string[] | null>;
+  /** One file body at `sha`/`path`. For Code-tab open-file. */
+  readFileAt: (
+    appId: string,
+    sha: string,
+    path: string
+  ) => Promise<string | null>;
 }
 
 export function remoteUrlFor(appId: string): string {

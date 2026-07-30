@@ -20,6 +20,29 @@ export async function fetchTreeAtRef(appId: string, ref = "main") {
     ref: body.ref,
     sha: body.sha,
     branches: body.branches,
-    sourceFiles: body.sourceFiles,
+    paths: body.paths,
+  };
+}
+
+export async function fetchTreeFileAtRef(
+  appId: string,
+  opts: { sha: string; path: string; ref?: string }
+) {
+  const res = await protectedApi.apps[":appId"].tree.file.$get({
+    param: { appId },
+    query: { sha: opts.sha, path: opts.path, ref: opts.ref },
+  });
+  throwIfUnauthorized(res);
+  if (res.status !== 200) {
+    throw new Error(
+      await errorMessage(res, `get tree file failed (${res.status})`)
+    );
+  }
+  const body = await res.json();
+  return {
+    ref: body.ref,
+    sha: body.sha,
+    path: body.path,
+    content: body.content,
   };
 }

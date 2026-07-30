@@ -48,6 +48,14 @@ export const treeQuerySchema = z
   })
   .strict();
 
+export const treeFileQuerySchema = z
+  .object({
+    sha: z.string().trim().min(1),
+    path: z.string().trim().min(1),
+    ref: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
 export const sqlBodySchema = z
   .object({
     query: z.string().min(1),

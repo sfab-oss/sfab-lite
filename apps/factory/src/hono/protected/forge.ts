@@ -4,6 +4,7 @@ import {
   handleGetPr,
   handleGetRun,
   handleGetTree,
+  handleGetTreeFile,
   handleListPrChecks,
   handleListPrs,
   handleListRuns,
@@ -16,6 +17,7 @@ import { requireApp } from "../middleware.js";
 import {
   createPrBodySchema,
   listRunsQuerySchema,
+  treeFileQuerySchema,
   treeQuerySchema,
 } from "../schemas.js";
 import type { AdminEnv } from "../types.js";
@@ -93,6 +95,19 @@ const forgeRoutes = new Hono<AdminEnv>()
     }
     return c.json(r.body, r.status);
   })
+  .get(
+    "/:appId/tree/file",
+    requireApp,
+    queryParams(treeFileQuerySchema),
+    async (c) => {
+      const q = c.req.valid("query");
+      const r = await handleGetTreeFile(appCtx(c), q.sha, q.path, q.ref);
+      if (r.status === 200) {
+        return c.json(r.body, 200);
+      }
+      return c.json(r.body, r.status);
+    }
+  )
   .get(
     "/:appId/runs",
     requireApp,

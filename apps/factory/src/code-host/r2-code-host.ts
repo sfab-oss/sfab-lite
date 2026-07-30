@@ -1,5 +1,6 @@
 import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
+import { listPathsInBare, readFileInBare } from "./bare-browse.js";
 import type {
   CodeHost,
   CodeHostCredentials,
@@ -11,6 +12,10 @@ import { R2GitFs } from "./r2-git-fs.js";
 
 const AUTHOR = { name: "sfab-lite", email: "forge@sfab.dev" };
 const TRAILING_SLASH = /\/$/;
+
+function treePathsKey(appId: string, sha: string): string {
+  return `tree-index/${appId}/${sha}.json`;
+}
 
 function repoPrefix(appId: string): string {
   return `repos/${appId}/`;
@@ -370,6 +375,39 @@ export function createR2CodeHost(env: Env): CodeHost {
     ): Promise<Record<string, string> | null> {
       await this.ensureRepo(appId);
       return await checkoutTreeFiles(bareFs(appId), sha);
+    },
+
+    async listPathsAt(appId: string, sha: string): Promise<string[] | null> {
+      await this.ensureRepo(appId);
+      const cacheKey = treePathsKey(appId, sha);
+      const cached = await bucket.get(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(await cached.text()) as unknown;
+          if (
+            Array.isArray(parsed) &&
+            parsed.every((p) => typeof p === "string")
+          ) {
+            return parsed;
+          }
+        } catch {
+          // fall through to walk
+        }
+      }
+      const paths = await listPathsInBare(bareFs(appId), sha);
+      if (paths) {
+        await bucket.put(cacheKey, JSON.stringify(paths));
+      }
+      return paths;
+    },
+
+    async readFileAt(
+      appId: string,
+      sha: string,
+      path: string
+    ): Promise<string | null> {
+      await this.ensureRepo(appId);
+      return await readFileInBare(bareFs(appId), sha, path);
     },
   };
 }

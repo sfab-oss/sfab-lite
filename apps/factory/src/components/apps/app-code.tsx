@@ -1,27 +1,30 @@
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { FileBrowser } from "@/components/workspace-files/file-browser";
 import { useTreeAtRef } from "@/hooks/query/use-code-tree";
-import { dirEntries, fileContent } from "@/lib/chat/source-files";
-import type { WorkspaceFilesSource } from "@/lib/workspace-files/types";
+import { useCodeTreeFilesSource } from "@/hooks/use-code-tree-files-source";
 
 const DEFAULT_REF = "main";
+
+function CodeTreeBrowser({
+  appId,
+  refName,
+  paths,
+  sha,
+}: {
+  appId: string;
+  refName: string;
+  paths: string[];
+  sha: string;
+}) {
+  const source = useCodeTreeFilesSource(appId, refName, paths, sha);
+  return <FileBrowser revision={sha} rootPath="" source={source} />;
+}
 
 export function AppCodePage({ appId }: { appId: string }) {
   const [ref, setRef] = useState(DEFAULT_REF);
   const treeQuery = useTreeAtRef(appId, ref);
   const tree = treeQuery.data ?? null;
-
-  const source = useMemo<WorkspaceFilesSource | null>(() => {
-    if (!tree) {
-      return null;
-    }
-    const files = tree.sourceFiles;
-    return {
-      getDir: (path) => dirEntries(files, path).entries,
-      getFile: (path) => fileContent(files, path),
-    };
-  }, [tree]);
 
   const branches = tree?.branches ?? [];
   let branchOptions = branches;
@@ -66,13 +69,14 @@ export function AppCodePage({ appId }: { appId: string }) {
         </p>
       ) : null}
 
-      {source && tree ? (
+      {tree ? (
         <div className="min-h-0 flex-1">
-          <FileBrowser
+          <CodeTreeBrowser
+            appId={appId}
             key={tree.sha}
-            revision={tree.sha}
-            rootPath=""
-            source={source}
+            paths={tree.paths}
+            refName={ref}
+            sha={tree.sha}
           />
         </div>
       ) : null}
