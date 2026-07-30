@@ -1,6 +1,6 @@
 import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
 import { cn } from "@sfab-lite/ui/lib/utils";
-import type { AppRecord } from "@/hooks/use-apps";
+import type { AppRecord } from "@/hooks/query/use-apps";
 
 export function StatusDot({ status }: { status: AppRecord["status"] }) {
   return (

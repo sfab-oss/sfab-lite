@@ -21,7 +21,7 @@ import {
   useApps,
   useCreateApp,
   useCreateReadyApp,
-} from "@/hooks/use-apps";
+} from "@/hooks/query/use-apps";
 import { useConsoleRoute } from "@/hooks/use-console-route";
 import { useHandleThreadDeleted } from "@/hooks/use-handle-thread-deleted";
 import {

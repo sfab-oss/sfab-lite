@@ -8,8 +8,8 @@ import {
   AppLayoutHeader,
   AppLayoutHeaderActions,
 } from "@/components/console/app-layout";
-import type { AppRecord } from "@/hooks/use-apps";
-import { useApps, useCreateApp } from "@/hooks/use-apps";
+import type { AppRecord } from "@/hooks/query/use-apps";
+import { useApps, useCreateApp } from "@/hooks/query/use-apps";
 import { appBasePath } from "@/lib/preview/reload-preview";
 import { StatusDot } from "./status-badge";
 

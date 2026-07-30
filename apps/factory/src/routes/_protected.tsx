@@ -7,7 +7,7 @@ import {
 } from "@/components/console/chat-shell";
 import { ConsoleShellSkeleton } from "@/components/console/console-shell-skeleton";
 import { SessionBoot } from "@/components/console/session-boot";
-import { fetchApps } from "@/hooks/use-apps";
+import { fetchApps } from "@/hooks/query/use-apps";
 import { AuthRequiredError } from "@/lib/api-errors";
 import { queryClient } from "@/lib/query-client";
 

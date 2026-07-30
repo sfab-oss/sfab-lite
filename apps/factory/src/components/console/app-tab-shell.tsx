@@ -3,7 +3,7 @@ import { Separator } from "@sfab-lite/ui/components/shadcn/separator";
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AppLayoutSidebarTrigger } from "@/components/console/app-layout";
-import { useApp } from "@/hooks/use-apps";
+import { useApp } from "@/hooks/query/use-apps";
 
 const TABS = [
   { id: "overview", label: "Overview", to: "/apps/$appId" as const },

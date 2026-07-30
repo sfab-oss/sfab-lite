@@ -2,8 +2,8 @@ import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import type { PrRecord } from "@/hooks/use-prs";
-import { useCreatePr, usePrs } from "@/hooks/use-prs";
+import type { PrRecord } from "@/hooks/query/use-prs";
+import { useCreatePr, usePrs } from "@/hooks/query/use-prs";
 
 export function AppPrsPage({ appId }: { appId: string }) {
   const navigate = useNavigate();

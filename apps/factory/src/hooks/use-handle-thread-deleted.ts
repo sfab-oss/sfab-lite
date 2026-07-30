@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useConsoleSession } from "@/components/console/console-session";
-import { readyAppsFromList, useApps } from "@/hooks/use-apps";
+import { readyAppsFromList, useApps } from "@/hooks/query/use-apps";
 import { useConsoleRoute } from "@/hooks/use-console-route";
 import { useAppAgentRegistry } from "@/lib/chat/app-agent-bridge";
 import type { Thread } from "@/lib/chat/types";

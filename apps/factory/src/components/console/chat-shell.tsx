@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useCallback, useMemo } from "react";
 import { AppLayout, AppLayoutPage } from "@/components/console/app-layout";
 import { ConsoleAppsSidebar } from "@/components/console/console-apps-sidebar";
-import { useApps, useCreateApp } from "@/hooks/use-apps";
+import { useApps, useCreateApp } from "@/hooks/query/use-apps";
 import { useConsoleRoute } from "@/hooks/use-console-route";
 
 export { ConsoleProviders } from "@/components/console/console-session";

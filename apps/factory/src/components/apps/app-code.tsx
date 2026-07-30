@@ -1,7 +1,7 @@
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { useMemo, useState } from "react";
 import { FileBrowser } from "@/components/workspace-files/file-browser";
-import { useTreeAtRef } from "@/hooks/use-code-tree";
+import { useTreeAtRef } from "@/hooks/query/use-code-tree";
 import { dirEntries, fileContent } from "@/lib/chat/source-files";
 import type { WorkspaceFilesSource } from "@/lib/workspace-files/types";
 
