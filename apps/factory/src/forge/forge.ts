@@ -547,7 +547,7 @@ export async function readTreeAtRef(
       ref: string;
       sha: string;
       branches: string[];
-      sourceFiles: Record<string, string>;
+      paths: string[];
     }
   | { ok: false; error: string }
 > {
@@ -557,11 +557,32 @@ export async function readTreeAtRef(
   if (!sha) {
     return { ok: false, error: "ref_not_found" };
   }
-  const sourceFiles = await host.readTreeAt(appId, sha);
-  if (!sourceFiles) {
+  const paths = await host.listPathsAt(appId, sha);
+  if (!paths) {
     return { ok: false, error: "tree_missing" };
   }
-  return { ok: true, ref, sha, branches, sourceFiles };
+  return { ok: true, ref, sha, branches, paths };
+}
+
+export async function readFileAtRef(
+  env: Env,
+  appId: string,
+  ref: string,
+  path: string
+): Promise<
+  | { ok: true; ref: string; sha: string; path: string; content: string }
+  | { ok: false; error: string }
+> {
+  const host = createR2CodeHost(env);
+  const sha = await host.tipSha(appId, ref);
+  if (!sha) {
+    return { ok: false, error: "ref_not_found" };
+  }
+  const content = await host.readFileAt(appId, sha, path);
+  if (content == null) {
+    return { ok: false, error: "file_not_found" };
+  }
+  return { ok: true, ref, sha, path, content };
 }
 
 export async function prDiffSummary(

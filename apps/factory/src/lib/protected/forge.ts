@@ -6,6 +6,7 @@ import {
   listPullRequests,
   mergePullRequest,
   prDiffSummary,
+  readFileAtRef,
   readTreeAtRef,
   rerunCheckRun,
   wireCheckRun,
@@ -166,7 +167,25 @@ export async function handleGetTree(rc: AppCtx, ref: string) {
       ref: tree.ref,
       sha: tree.sha,
       branches: tree.branches,
-      sourceFiles: tree.sourceFiles,
+      paths: tree.paths,
+    },
+  };
+}
+
+export async function handleGetTreeFile(rc: AppCtx, ref: string, path: string) {
+  const file = await readFileAtRef(rc.env, rc.appId, ref, path);
+  if (!file.ok) {
+    return protectedError(file.error, 404);
+  }
+  return {
+    status: 200 as const,
+    body: {
+      ok: true as const,
+      appId: rc.appId,
+      ref: file.ref,
+      sha: file.sha,
+      path: file.path,
+      content: file.content,
     },
   };
 }
