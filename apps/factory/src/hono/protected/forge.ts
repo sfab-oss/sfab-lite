@@ -101,7 +101,7 @@ const forgeRoutes = new Hono<AdminEnv>()
     queryParams(treeFileQuerySchema),
     async (c) => {
       const q = c.req.valid("query");
-      const r = await handleGetTreeFile(appCtx(c), q.ref ?? "main", q.path);
+      const r = await handleGetTreeFile(appCtx(c), q.sha, q.path, q.ref);
       if (r.status === 200) {
         return c.json(r.body, 200);
       }

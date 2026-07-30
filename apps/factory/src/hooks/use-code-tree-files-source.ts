@@ -24,7 +24,6 @@ export function useCodeTreeFilesSource(
   filesRef.current = files;
   const loadingFilesRef = useRef(loadingFiles);
   loadingFilesRef.current = loadingFiles;
-  const generationRef = useRef(0);
 
   const pathIndex = useMemo(
     () => Object.fromEntries(paths.map((p) => [p, ""])),
@@ -33,34 +32,24 @@ export function useCodeTreeFilesSource(
 
   const loadFile = useCallback(
     (uiPath: string) => {
-      if (!(sha && ref)) {
+      if (!sha) {
         return;
       }
       if (uiPath in filesRef.current || uiPath in loadingFilesRef.current) {
         return;
       }
-      const generation = generationRef.current;
       setLoadingFiles((prev) => ({ ...prev, [uiPath]: true }));
-      fetchTreeFileAtRef(appId, ref, uiPath)
+      fetchTreeFileAtRef(appId, { sha, path: uiPath, ref })
         .then((body) => {
-          if (generation !== generationRef.current) {
-            return;
-          }
           setFiles((prev) => ({
             ...prev,
             [uiPath]: fileContent({ [uiPath]: body.content }, uiPath),
           }));
         })
         .catch(() => {
-          if (generation !== generationRef.current) {
-            return;
-          }
           setFiles((prev) => ({ ...prev, [uiPath]: null }));
         })
         .finally(() => {
-          if (generation !== generationRef.current) {
-            return;
-          }
           setLoadingFiles((prev) => {
             const next = { ...prev };
             delete next[uiPath];

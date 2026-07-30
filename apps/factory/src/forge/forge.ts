@@ -564,25 +564,22 @@ export async function readTreeAtRef(
   return { ok: true, ref, sha, branches, paths };
 }
 
-export async function readFileAtRef(
+export async function readFileAtSha(
   env: Env,
   appId: string,
-  ref: string,
-  path: string
+  sha: string,
+  path: string,
+  ref?: string
 ): Promise<
   | { ok: true; ref: string; sha: string; path: string; content: string }
   | { ok: false; error: string }
 > {
   const host = createR2CodeHost(env);
-  const sha = await host.tipSha(appId, ref);
-  if (!sha) {
-    return { ok: false, error: "ref_not_found" };
-  }
   const content = await host.readFileAt(appId, sha, path);
   if (content == null) {
     return { ok: false, error: "file_not_found" };
   }
-  return { ok: true, ref, sha, path, content };
+  return { ok: true, ref: ref ?? sha, sha, path, content };
 }
 
 export async function prDiffSummary(

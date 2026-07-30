@@ -50,8 +50,9 @@ export const treeQuerySchema = z
 
 export const treeFileQuerySchema = z
   .object({
-    ref: z.string().trim().min(1).optional(),
+    sha: z.string().trim().min(1),
     path: z.string().trim().min(1),
+    ref: z.string().trim().min(1).optional(),
   })
   .strict();
 

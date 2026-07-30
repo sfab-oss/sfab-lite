@@ -26,12 +26,11 @@ export async function fetchTreeAtRef(appId: string, ref = "main") {
 
 export async function fetchTreeFileAtRef(
   appId: string,
-  ref: string,
-  path: string
+  opts: { sha: string; path: string; ref?: string }
 ) {
   const res = await protectedApi.apps[":appId"].tree.file.$get({
     param: { appId },
-    query: { ref, path },
+    query: { sha: opts.sha, path: opts.path, ref: opts.ref },
   });
   throwIfUnauthorized(res);
   if (res.status !== 200) {

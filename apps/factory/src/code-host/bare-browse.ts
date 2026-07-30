@@ -2,7 +2,6 @@ import { listFiles, readBlob } from "isomorphic-git";
 import type { GitWorkFs } from "./code-host.js";
 
 const BARE = { dir: "/", gitdir: "/" } as const;
-const PARENT_SEGMENT = /\/[^/]+$/;
 const LEADING_SLASHES = /^\/+/;
 
 class GitStat {
@@ -75,6 +74,21 @@ function fsError(path: string, cause?: unknown): Error & { code: string } {
   return err;
 }
 
+function readOnlyError(op: string): Error & { code: string } {
+  const err = new Error(
+    `EROFS: ${op} not supported on bare browse fs`
+  ) as Error & {
+    code: string;
+  };
+  err.code = "EROFS";
+  return err;
+}
+
+/**
+ * isomorphic-git's FileSystem binder requires write/unlink/mkdir/rmdir/symlink
+ * at construct time even for listFiles/readBlob. Stub those; keep the read
+ * surface the object walk actually uses.
+ */
 function createGitFs(fs: GitWorkFs) {
   return {
     promises: {
@@ -94,44 +108,24 @@ function createGitFs(fs: GitWorkFs) {
         }
       },
 
-      async writeFile(path: string, data: string | Uint8Array): Promise<void> {
-        const parent = path.replace(PARENT_SEGMENT, "");
-        if (parent && parent !== "/" && parent !== path) {
-          try {
-            await fs.mkdir(parent, { recursive: true });
-          } catch {
-            // already exists
-          }
-        }
-        if (typeof data === "string") {
-          await fs.writeFile(path, data);
-        } else {
-          await fs.writeFileBytes(path, data);
-        }
+      writeFile(): Promise<void> {
+        return Promise.reject(readOnlyError("writeFile"));
       },
 
-      async unlink(path: string): Promise<void> {
-        try {
-          await fs.rm(path);
-        } catch (err) {
-          throw fsError(path, err);
-        }
+      unlink(): Promise<void> {
+        return Promise.reject(readOnlyError("unlink"));
       },
 
       readdir(path: string): Promise<string[]> {
         return fs.readdir(path);
       },
 
-      async mkdir(
-        path: string,
-        mode?: number | { recursive?: boolean }
-      ): Promise<void> {
-        const recursive = typeof mode === "object" ? mode.recursive : false;
-        await fs.mkdir(path, { recursive });
+      mkdir(): Promise<void> {
+        return Promise.reject(readOnlyError("mkdir"));
       },
 
-      async rmdir(path: string): Promise<void> {
-        await fs.rm(path);
+      rmdir(): Promise<void> {
+        return Promise.reject(readOnlyError("rmdir"));
       },
 
       async stat(path: string): Promise<GitStat> {
@@ -158,12 +152,8 @@ function createGitFs(fs: GitWorkFs) {
         }
       },
 
-      async symlink(target: string, path: string): Promise<void> {
-        await fs.symlink(target, path);
-      },
-
-      async chmod(_path: string, _mode: number): Promise<void> {
-        // isomorphic-git requires chmod; bare browse is read-only.
+      symlink(): Promise<void> {
+        return Promise.reject(readOnlyError("symlink"));
       },
     },
   };
