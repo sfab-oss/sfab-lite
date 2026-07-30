@@ -18,7 +18,6 @@ import {
   PanelRight,
   Plus,
 } from "lucide-react";
-import { WorkBranchSelector } from "@/components/chat/work-branch-selector";
 import { AppLayoutSidebarTrigger } from "@/components/console/app-layout";
 import { useApp } from "@/hooks/query/use-apps";
 import { formatRelativeTime } from "@/lib/chat/thread-list";
@@ -130,7 +129,6 @@ export function WorkViewHeader({
         <ArrowLeft className="size-4" />
       </Button>
       <span className="min-w-0 truncate font-medium text-sm">{appName}</span>
-      <WorkBranchSelector appId={appId} />
       <ThreadHistoryPicker
         activeThread={activeThread}
         appThreads={appThreads}

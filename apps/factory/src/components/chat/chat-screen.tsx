@@ -18,6 +18,7 @@ import {
   useAppAgentRegistry,
 } from "@/components/chat/app-agent-bridge";
 import { useChatData } from "@/components/chat/chat-data-context";
+import { WorkViewFooter } from "@/components/chat/work-view-footer";
 import { WorkViewHeader } from "@/components/chat/work-view-header";
 import {
   useApps,
@@ -392,9 +393,23 @@ export function ChatScreen() {
   };
 
   if (isMobile) {
-    return <MobileLayout {...chatProps} />;
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <MobileLayout {...chatProps} />
+        </div>
+        {routeAppId ? <WorkViewFooter appId={routeAppId} /> : null}
+      </div>
+    );
   }
-  return <DesktopLayout {...chatProps} />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <DesktopLayout {...chatProps} />
+      </div>
+      {routeAppId ? <WorkViewFooter appId={routeAppId} /> : null}
+    </div>
+  );
 }
 
 interface ChatChromeProps {

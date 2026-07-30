@@ -104,7 +104,7 @@ export function WorkBranchSelector({ appId }: { appId: string }) {
           render={
             <Button
               aria-label={`Branch: ${label}`}
-              className="h-8 max-w-48 gap-1.5 px-2 font-mono text-xs"
+              className="h-7 max-w-48 gap-1.5 px-2 font-mono text-xs"
               disabled={busy}
               size="sm"
               type="button"
@@ -116,7 +116,7 @@ export function WorkBranchSelector({ appId }: { appId: string }) {
           <span className="min-w-0 truncate">{label}</span>
           <ChevronDown className="size-3.5 shrink-0 opacity-50" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-44">
+        <DropdownMenuContent align="start" className="min-w-44" side="top">
           {options.length === 0 ? (
             <div className="px-2 py-1.5 text-muted-foreground text-xs">
               No branches yet
