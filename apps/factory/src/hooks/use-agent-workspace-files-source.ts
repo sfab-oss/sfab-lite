@@ -1,5 +1,5 @@
 import { useAgent } from "agents/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { mimeFor } from "@/lib/workspace-files/mime";
 import type {
   WorkspaceFileContent,
@@ -11,6 +11,7 @@ const HIDDEN_ROOT_NAMES = new Set(["bin", "usr", "dev", "proc", "sys", "tmp"]);
 
 const TRIM_SLASHES = /^\/+|\/+$/g;
 const LEADING_SLASHES = /^\/+/;
+const WAKE_POLL_MS = 1500;
 
 interface AgentDirEntry {
   name: string;
@@ -18,6 +19,31 @@ interface AgentDirEntry {
   type: string;
   mimeType?: string;
   size?: number;
+}
+
+interface WakeStatus {
+  clone?: string;
+  error?: string | null;
+}
+
+function fireAndForget(promise: Promise<unknown>): void {
+  promise.catch(() => undefined);
+}
+
+async function resolveWakeStatus(agent: {
+  ready: Promise<unknown>;
+  call: (name: string, args: unknown[]) => Promise<unknown>;
+}): Promise<{ waking: boolean; error: string | null }> {
+  await agent.ready;
+  const status = (await agent.call("workspaceWakeStatus", [])) as WakeStatus;
+  if (status.clone === "ready") {
+    return { waking: false, error: null };
+  }
+  if (status.clone === "failed") {
+    return { waking: false, error: status.error ?? "Workspace wake failed" };
+  }
+  await agent.call("kickWorkspaceCompile", []);
+  return { waking: true, error: null };
 }
 
 function toAgentPath(uiPath: string): string {
@@ -74,6 +100,8 @@ function toFileContent(
 export function useAgentWorkspaceFilesSource(workspaceId: string): {
   revision: string;
   source: WorkspaceFilesSource;
+  waking: boolean;
+  wakeError: string | null;
 } {
   const [dirs, setDirs] = useState<Record<string, WorkspaceFileEntry[]>>({});
   const [files, setFiles] = useState<
@@ -82,6 +110,8 @@ export function useAgentWorkspaceFilesSource(workspaceId: string): {
   const [loadingDirs, setLoadingDirs] = useState<Record<string, true>>({});
   const [loadingFiles, setLoadingFiles] = useState<Record<string, true>>({});
   const [revision, setRevision] = useState(0);
+  const [waking, setWaking] = useState(true);
+  const [wakeError, setWakeError] = useState<string | null>(null);
 
   const dirsRef = useRef(dirs);
   dirsRef.current = dirs;
@@ -119,6 +149,44 @@ export function useAgentWorkspaceFilesSource(workspaceId: string): {
       }
     },
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: number | undefined;
+
+    const poll = () => {
+      fireAndForget(
+        resolveWakeStatus(agent)
+          .then((next) => {
+            if (cancelled) {
+              return;
+            }
+            setWaking(next.waking);
+            setWakeError(next.error);
+            if (next.waking) {
+              timer = window.setTimeout(poll, WAKE_POLL_MS);
+            }
+          })
+          .catch(() => {
+            if (cancelled) {
+              return;
+            }
+            setWaking(true);
+            timer = window.setTimeout(poll, WAKE_POLL_MS);
+          })
+      );
+    };
+
+    setWaking(true);
+    setWakeError(null);
+    poll();
+    return () => {
+      cancelled = true;
+      if (timer != null) {
+        window.clearTimeout(timer);
+      }
+    };
+  }, [agent]);
 
   const loadDir = useCallback(
     (uiPath: string) => {
@@ -225,5 +293,5 @@ export function useAgentWorkspaceFilesSource(workspaceId: string): {
     [dirs, files, loadDir, loadFile, loadingDirs, loadingFiles]
   );
 
-  return { source, revision: String(revision) };
+  return { source, revision: String(revision), waking, wakeError };
 }

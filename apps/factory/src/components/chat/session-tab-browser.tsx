@@ -73,6 +73,15 @@ function linkLabel(path: string): string {
   return path === "/" ? "Home" : path;
 }
 
+function rememberGeneration(
+  status: WorkspaceBuildRpcStatus,
+  generationRef: { current: number | null }
+): void {
+  if (typeof status.generation === "number") {
+    generationRef.current = status.generation;
+  }
+}
+
 function applyReadyGeneration(
   status: WorkspaceBuildRpcStatus,
   generationRef: { current: number | null }
@@ -80,15 +89,20 @@ function applyReadyGeneration(
   if (status.status !== "ready") {
     return false;
   }
-  if (typeof status.generation === "number") {
-    generationRef.current = status.generation;
-  }
+  rememberGeneration(status, generationRef);
   return true;
 }
 
-function hintForStatus(status: WorkspaceBuildRpcStatus): string | null {
+function compilingHint(generationRef: { current: number | null }): string {
+  return generationRef.current == null ? "Starting…" : "Updating…";
+}
+
+function hintForStatus(
+  status: WorkspaceBuildRpcStatus,
+  generationRef: { current: number | null }
+): string | null {
   if (status.status === "compiling") {
-    return "Compiling workspace…";
+    return compilingHint(generationRef);
   }
   if (status.status === "error") {
     return status.error ?? "Workspace compile failed";
@@ -114,30 +128,40 @@ async function ensureWorkspaceBuildReady(
   if (isCancelled()) {
     return;
   }
+  rememberGeneration(status, generationRef);
   if (applyReadyGeneration(status, generationRef)) {
     setBuildHint(null);
     return;
   }
-  const hint = hintForStatus(status);
+  const hint = hintForStatus(status, generationRef);
   if (hint) {
     setBuildHint(hint);
   }
-  if (status.status === "compiling") {
+  if (status.status === "compiling" || status.status === "error") {
+    return;
+  }
+  setBuildHint(compilingHint(generationRef));
+  await agent.call("kickWorkspaceCompile", []);
+  if (isCancelled()) {
     return;
   }
   const next = (await agent.call(
-    "compileWorkspaceNow",
+    "workspaceBuildStatus",
     []
   )) as WorkspaceBuildRpcStatus;
   if (isCancelled()) {
     return;
   }
+  rememberGeneration(next, generationRef);
   if (applyReadyGeneration(next, generationRef)) {
     setBuildHint(null);
     reloadFrame();
     return;
   }
-  setBuildHint(next.error ?? "Workspace compile failed");
+  const nextHint = hintForStatus(next, generationRef);
+  if (nextHint) {
+    setBuildHint(nextHint);
+  }
 }
 
 function handleWorkspaceAgentMessage(
@@ -177,7 +201,7 @@ function handleWorkspaceAgentMessage(
       return;
     }
     if (parsed.status === "compiling") {
-      setBuildHint("Compiling workspace…");
+      setBuildHint(compilingHint(generationRef));
       return;
     }
     if (parsed.status === "error") {
@@ -231,7 +255,7 @@ function BrowserFrame({
   const [path, setPath] = useState("/");
   const [draft, setDraft] = useState(localhostDisplayPath("/"));
   const [editing, setEditing] = useState(false);
-  const [buildHint, setBuildHint] = useState<string | null>("Preparing…");
+  const [buildHint, setBuildHint] = useState<string | null>("Starting…");
   const [quickLinks, setQuickLinks] = useState<string[]>([]);
   const rootSrc = `${appWorkspaceBasePath(workspaceId)}/`;
 
@@ -382,11 +406,12 @@ function BrowserFrame({
 
   const reload = () => {
     const run = async () => {
-      setBuildHint("Compiling workspace…");
+      setBuildHint(compilingHint(generationRef));
       try {
         await agent.ready;
+        await agent.call("kickWorkspaceCompile", []);
         const next = (await agent.call(
-          "compileWorkspaceNow",
+          "workspaceBuildStatus",
           []
         )) as WorkspaceBuildRpcStatus;
         if (applyReadyGeneration(next, generationRef)) {
@@ -394,7 +419,8 @@ function BrowserFrame({
           reloadFrame();
           return;
         }
-        setBuildHint(next.error ?? "Workspace compile failed");
+        const hint = hintForStatus(next, generationRef);
+        setBuildHint(hint ?? compilingHint(generationRef));
       } catch (e) {
         setBuildHint(e instanceof Error ? e.message : "Reload failed");
       }

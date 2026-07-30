@@ -80,9 +80,22 @@ type LoadBuildResult =
         | "no_preview_build"
         | "no_live_build"
         | "no_workspace_build"
-        | "workspace_compile_failed";
+        | "workspace_compile_failed"
+        | "workspace_starting";
       detail?: string;
     };
+
+const WORKSPACE_STARTING_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="2">
+<title>Starting…</title>
+</head>
+<body>
+<p>Starting…</p>
+</body>
+</html>`;
 
 async function loadBuild(
   env: Env,
@@ -124,36 +137,69 @@ async function loadWorkspaceBuild(
   env: Env,
   workspaceId: string
 ): Promise<LoadBuildResult> {
-  let record = await getWorkspaceBuild(env, workspaceId);
-  if (!record) {
-    try {
-      const agent = await getAgentByName(env.AppAgent, workspaceId);
-      const status = await agent.compileWorkspaceNow();
-      if (status.status === "error") {
-        return {
-          ok: false,
-          error: "workspace_compile_failed",
-          detail: status.error ?? undefined,
-        };
-      }
-      record = await getWorkspaceBuild(env, workspaceId);
-    } catch (e) {
+  const record = await getWorkspaceBuild(env, workspaceId);
+  if (record) {
+    return {
+      ok: true,
+      build: record.build,
+      generation: record.generation,
+      migrations: record.migrations,
+    };
+  }
+  try {
+    const agent = await getAgentByName(env.AppAgent, workspaceId);
+    const wake = await agent.workspaceWakeStatus();
+    if (wake.clone === "failed") {
       return {
         ok: false,
         error: "workspace_compile_failed",
-        detail: e instanceof Error ? e.message : String(e),
+        detail: wake.error ?? undefined,
       };
     }
+    const status = await agent.workspaceBuildStatus();
+    if (status.status === "error") {
+      return {
+        ok: false,
+        error: "workspace_compile_failed",
+        detail: status.error ?? undefined,
+      };
+    }
+    if (status.status !== "compiling") {
+      await agent.kickWorkspaceCompile();
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: "workspace_starting",
+      detail: e instanceof Error ? e.message : String(e),
+    };
   }
-  if (!record) {
-    return { ok: false, error: "no_workspace_build" };
+  return { ok: false, error: "workspace_starting" };
+}
+
+function wantsHtml(request: Request): boolean {
+  const accept = request.headers.get("Accept") ?? "";
+  return accept.includes("text/html");
+}
+
+function workspaceStartingResponse(
+  request: Request,
+  workspaceId: string
+): Response {
+  const headers: Record<string, string> = { "Retry-After": "2" };
+  if (wantsHtml(request)) {
+    return new Response(WORKSPACE_STARTING_HTML, {
+      status: 503,
+      headers: {
+        ...headers,
+        "content-type": "text/html; charset=utf-8",
+      },
+    });
   }
-  return {
-    ok: true,
-    build: record.build,
-    generation: record.generation,
-    migrations: record.migrations,
-  };
+  return Response.json(
+    { ok: false, error: "workspace_starting", workspaceId },
+    { status: 503, headers }
+  );
 }
 
 function pathPrefixFor(target: ServeTarget): string {
@@ -406,6 +452,9 @@ export async function serveSubApp(
   const loaded = await loadBuild(env, target);
 
   if (!loaded.ok) {
+    if (loaded.error === "workspace_starting" && target.mode === "workspace") {
+      return workspaceStartingResponse(request, target.workspaceId);
+    }
     const status =
       loaded.error === "workspace_compile_failed" ||
       loaded.error === "no_workspace_build"
