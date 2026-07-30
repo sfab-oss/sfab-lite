@@ -33,7 +33,7 @@ after(() => rmSync(SCRATCH, { force: true }));
 
 async function runProbe(): Promise<SchemaSnapshot> {
   mkdirSync(dirname(SCRATCH), { recursive: true });
-  writeFileSync(SCRATCH, probeEntrySource("src/db/schema.ts"));
+  writeFileSync(SCRATCH, probeEntrySource("src/db/schema/index.ts"));
   const mod = (await import(`${SCRATCH}?t=${seed.migrations.length}`)) as {
     default: { fetch: () => Response };
   };

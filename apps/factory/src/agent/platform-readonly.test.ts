@@ -46,6 +46,6 @@ describe("platform-readonly", () => {
         err.path === "vite.config.ts" &&
         READ_ONLY_MSG.test(err.message)
     );
-    assert.doesNotThrow(() => assertWritableWorkspacePath("/src/ui/main.tsx"));
+    assert.doesNotThrow(() => assertWritableWorkspacePath("/src/main.tsx"));
   });
 });

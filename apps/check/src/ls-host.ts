@@ -72,6 +72,7 @@ function compilerOptions(): CompilerOptions {
     allowJs: false,
     esModuleInterop: true,
     isolatedModules: true,
+    allowImportingTsExtensions: true,
   };
 }
 

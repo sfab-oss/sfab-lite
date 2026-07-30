@@ -25,10 +25,14 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `biome.json` | Injected at pack from `packages/core/app-biome.json` (not stored as `app/biome.json` — that would nest-root the monorepo Biome). Same rules the factory lint worker applies. |
 | `components.json` | shadcn orientation for the seed UI tree. |
 | `vite.config.ts` | Vite chrome (standalone package still uses the package-root Vite config with `root: "app"`). |
-| `src/db/` | Schema (`schema.ts`). |
+| `src/db/` | Schema under `schema/{auth,catalog,transactions}.ts`. |
 | `migrations/` | Applied SQL migrations (root of the app tree). |
-| `src/hono/` | API (Hono routes, middleware, validation). |
-| `src/ui/` | SPA pages, components, styles. |
+| `src/hono/` | API tiers: `public/` / `protected/` / `org-protected/`. |
+| `src/contract/` | Shared Zod schemas for Hono + hooks. |
+| `src/components/` | `ui/` (shadcn), `layout/`, `providers/`. |
+| `src/hooks/` | Data hooks (`use-entities`, `use-session`, …). |
+| `src/lib/` | Client, auth client, money helpers. |
+| `src/routes/` | SPA pages (code-based router in `src/router.tsx`). |
 
 `wrangler` config is **not** seeded this pass.
 

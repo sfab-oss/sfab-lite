@@ -5,12 +5,12 @@
     "exportName": "app"
   },
   "client": {
-    "entry": "src/ui/main.tsx",
-    "styles": "src/ui/styles.css"
+    "entry": "src/main.tsx",
+    "styles": "src/styles.css"
   },
   "safelist": "safelist.txt",
   "migrations": "migrations",
-  "schema": "src/db/schema.ts",
+  "schema": "src/db/schema/index.ts",
   "inject": {
     "biome.json": "../core/app-biome.json"
   },

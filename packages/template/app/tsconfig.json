@@ -11,7 +11,8 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
-    "types": []
+    "types": [],
+    "allowImportingTsExtensions": true
   },
   "include": ["src"]
 }

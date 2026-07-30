@@ -44,7 +44,7 @@ function latestMigrationId() {
 }
 
 async function probe() {
-  writeFileSync(scratch, probeEntrySource("src/db/schema.ts"));
+  writeFileSync(scratch, probeEntrySource("src/db/schema/index.ts"));
   try {
     const mod = await import(`${scratch}?t=${Date.now()}`);
     const body = await mod.default.fetch().json();
