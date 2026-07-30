@@ -46,6 +46,20 @@ export async function putWorkspaceBuild(
   });
 }
 
+function isWorkspaceBuildRecord(value: unknown): value is WorkspaceBuildRecord {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.generation === "number" &&
+    record.build != null &&
+    typeof record.build === "object" &&
+    Array.isArray(record.migrations) &&
+    typeof record.at === "number"
+  );
+}
+
 export async function getWorkspaceBuild(
   env: Env,
   appId: string
@@ -54,5 +68,9 @@ export async function getWorkspaceBuild(
   if (!obj) {
     return null;
   }
-  return (await obj.json()) as WorkspaceBuildRecord;
+  const parsed: unknown = await obj.json();
+  if (!isWorkspaceBuildRecord(parsed)) {
+    return null;
+  }
+  return parsed;
 }

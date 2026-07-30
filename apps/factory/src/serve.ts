@@ -157,7 +157,7 @@ async function loadWorkspaceBuild(
     ok: true,
     build: record.build,
     generation: record.generation,
-    migrations: record.migrations ?? [],
+    migrations: record.migrations,
   };
 }
 
@@ -367,8 +367,19 @@ async function bootstrapServeData(
   if (mode !== "workspace") {
     return null;
   }
+  if (!Array.isArray(migrations)) {
+    return Response.json(
+      {
+        ok: false,
+        error: "workspace_schema_bootstrap_failed",
+        appId,
+        detail: "migrations_missing_from_build",
+      },
+      { status: 500 }
+    );
+  }
   try {
-    await ensureWorkspaceDataMigrated(env, dataId, migrations ?? []);
+    await ensureWorkspaceDataMigrated(env, dataId, migrations);
   } catch {
     return Response.json(
       {
