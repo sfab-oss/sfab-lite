@@ -11,7 +11,7 @@
  */
 
 import { TYPES_VFS } from "@sfab-lite/kernel";
-import seed from "../../factory/src/generated/seed.json" with { type: "json" };
+import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
   createAppLsState,
   getLanguageService,

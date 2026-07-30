@@ -14,7 +14,7 @@
  *
  * Bundled by the companion .mjs runner (esbuild) so Node can load workspace TS.
  */
-import seed from "../../factory/src/generated/seed.json" with { type: "json" };
+import seed from "@sfab-lite/template/seed" with { type: "json" };
 import { type LsStore, runCheck } from "../src/run-check.ts";
 
 /** Distinct apps to check. Must exceed 2 — the bug needs a second app. */

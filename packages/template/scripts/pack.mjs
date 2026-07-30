@@ -19,7 +19,8 @@
  *
  * Usage:
  *   pnpm --filter @sfab-lite/template pack
- *   pnpm --filter @sfab-lite/template pack -- --out=seed.json
+ *   pnpm --filter @sfab-lite/template bake-seed
+ *   pnpm --filter @sfab-lite/template pack -- --out=<file>
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";

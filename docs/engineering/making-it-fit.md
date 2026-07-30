@@ -49,7 +49,7 @@ is why ADR-0001 records **CheckDO as rejected**.
 ### 1. Bundle constants instead of a filesystem
 
 Workers have no filesystem, so the template seed
-(`apps/factory/src/generated/seed.json`) and the entire TypeScript types
+(`packages/template/generated/seed.json`) and the entire TypeScript types
 universe (`packages/kernel/src/generated/types-vfs.js`) are baked into the
 bundle at build time.
 

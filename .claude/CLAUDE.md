@@ -32,11 +32,12 @@ freshly seeded app from lighting up on code its owner never touched.
 `packages/kernel/universe` install and fails if committed vendor /
 generated / `kernel.json` artifacts drift.
 
-`check:seed` is the same idea for `apps/factory/src/generated/seed.json`:
+`check:seed` is the same idea for `packages/template/generated/seed.json`:
 re-runs the template pack and fails if the committed seed no longer matches
-`packages/template/app/src`. The seed is a bundle constant because the host
-Worker has no filesystem, so editing the template without re-baking would
-leave every other gate green while the factory kept seeding the old source.
+`packages/template/app/src`. The seed lives in the template package; the factory
+imports it at build time because the host Worker has no filesystem. Editing the
+template without re-baking would leave every other gate green while the factory
+kept seeding the old source.
 
 `check:check-memory` runs the check worker over six distinct appIds in one
 process and fails if its LanguageService store holds more than one app or if

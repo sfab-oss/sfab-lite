@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { describe, it } from "node:test";
-import seed from "./generated/seed.json" with { type: "json" };
+import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
   diffSchema,
   type ExecRows,

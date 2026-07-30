@@ -1,3 +1,4 @@
+import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import {
   githubAuthEnabled,
   githubSecretsPresent,
@@ -5,7 +6,6 @@ import {
   signUpAllowlist,
   signUpOpen,
 } from "../../auth.js";
-import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };
 import type { ProtectedReply } from "../../hono/reply.js";
 import type { ProtectedCtx } from "../../routes.js";
 

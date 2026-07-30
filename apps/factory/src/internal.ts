@@ -5,10 +5,10 @@
  * orphaning a `creating` row. Auth is a derived capability token.
  */
 
+import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import { appCreateStub } from "./app-stub.js";
 import { runCdForSha } from "./cd.js";
 import { createDb } from "./db/index.js";
-import TEMPLATE_SEED from "./generated/seed.json" with { type: "json" };
 import { INTERNAL_TOKEN_HEADER, verifyAttemptRun } from "./internal-token.js";
 import { publishOrgEvent } from "./org-events.js";
 import { createR2CodeHost } from "./r2-code-host.js";

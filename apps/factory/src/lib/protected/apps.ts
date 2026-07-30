@@ -3,6 +3,7 @@
  * async seed via code host (TEMPLATE_SEED → main → CD → live_sha).
  */
 
+import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import { publishOrgEvent } from "@/org-events.js";
 import { prDataId } from "../../app-data-ids.js";
 import { APP_NAME_MAX_LENGTH, pickAppName } from "../../app-names.js";
@@ -15,7 +16,6 @@ import {
 import { reconcileCreatingApps } from "../../create-reconcile.js";
 import { createDb } from "../../db/index.js";
 import { listPullRequests } from "../../forge.js";
-import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CreateAppBody, RenameAppBody } from "../../hono/schemas.js";
 import { wireApp } from "../../hono/wire.js";

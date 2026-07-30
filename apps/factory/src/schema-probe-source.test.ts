@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { after, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
-import seed from "./generated/seed.json" with { type: "json" };
+import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
   canonicalizeSnapshot,
   diffSchema,

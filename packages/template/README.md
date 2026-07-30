@@ -4,11 +4,12 @@ The app every sfab-lite app starts as.
 
 This package wears two hats, and the directory split is the whole design:
 
-| Path       | What it is                                                                                   |
-| ---------- | -------------------------------------------------------------------------------------------- |
-| `app/`     | **the payload** — the source tree seeded into a new app. Also runs standalone from right here. |
-| `src/`     | the package the factory imports. Today: `TEMPLATE_MANIFEST`.                                    |
-| `scripts/` | `pack.mjs`, which bakes `app/` into the seed JSON the factory ships as a constant.               |
+| Path         | What it is                                                                                   |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| `app/`       | **the payload** — the source tree seeded into a new app. Also runs standalone from right here. |
+| `generated/` | `seed.json` — the baked pack output the factory imports as a bundle constant.                  |
+| `src/`       | the package the factory imports. Today: `TEMPLATE_MANIFEST`.                                    |
+| `scripts/`   | `pack.mjs` / `bake-seed`, which bake `app/` into `generated/seed.json`.                      |
 
 Everything outside `app/` is scaffolding for us. Everything inside `app/`
 is the ordinary single-project tree a new app starts as.
@@ -51,7 +52,8 @@ Useful:
 
 - `pnpm db:reset` — drop the local D1 and re-migrate.
 - `pnpm typecheck` — both configs (see below).
-- `pnpm pack` — print the seed payload; `pnpm pack -- --out=seed.json` to a file.
+- `pnpm pack` — print the seed payload to stdout.
+- `pnpm bake-seed` — write `generated/seed.json` (what `check:seed` verifies).
 
 ## Two TypeScript configs, on purpose
 
