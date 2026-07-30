@@ -11,10 +11,10 @@ architecture, decisions, and measured constraints — not operator manuals.
 
 | Path | Authority | Purpose |
 | --- | --- | --- |
-| [`DEPLOY.md`](DEPLOY.md) | Authoritative | Deploy prerequisites — secrets, the shared `ADMIN_TOKEN`, the health check that proves them |
 | [`architecture/`](architecture/) | Authoritative | Settled system shape (do not relitigate without an ADR) |
 | [`decisions/`](decisions/) | Authoritative | ADRs — costly, cross-cutting choices among real alternatives |
 | [`engineering/`](engineering/) | Authoritative | Living technique guides — how we work within the platform's limits |
+| [`engineering/DEPLOY.md`](engineering/DEPLOY.md) | Authoritative | Deploy prerequisites — secrets, the shared `ADMIN_TOKEN`, the health check that proves them |
 | [`notes/`](notes/) | Non-authoritative | In-flight working notes; graduate or delete |
 
 Start with

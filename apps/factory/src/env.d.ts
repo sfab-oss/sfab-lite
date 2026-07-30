@@ -123,7 +123,7 @@ declare global {
      * mid-commit as `lint_failed` / `lintHttp: 401`, which names the wrong
      * component entirely. `/api/protected/health` reports a fingerprint of the value
      * from each worker so a mismatch is visible before it costs a debugging
-     * session. See `docs/DEPLOY.md`.
+     * session. See `docs/engineering/DEPLOY.md`.
      *
      * Unset does **not** open the surface — `resolveActor` 401s a request
      * with no usable credential whatever the config says.
