@@ -5,7 +5,6 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
   DropdownMenu,
@@ -22,8 +21,8 @@ import {
 import { cn } from "@sfab-lite/ui/lib/utils";
 import {
   FolderTree,
+  GitBranch,
   Globe,
-  History,
   type LucideIcon,
   MessageSquare,
   MoreHorizontal,
@@ -33,8 +32,6 @@ import {
   X,
 } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { useChatData } from "@/components/chat/chat-data-context";
 import {
   type OpenTab,
   type PanelId,
@@ -44,15 +41,15 @@ import {
   VIEW_KINDS,
   type ViewKind,
 } from "@/lib/chat/workspace-tabs-store";
-import { subscribeLive } from "@/lib/preview/live-bus";
 import { SessionTabBrowser } from "./session-tab-browser";
 import { SessionTabFiles } from "./session-tab-files";
+import { SessionTabGit } from "./session-tab-git";
 
 const VIEW_DEFS: Record<ViewKind, { icon: LucideIcon; title: string }> = {
   chat: { icon: MessageSquare, title: "Chat" },
   browser: { icon: Globe, title: "Browser" },
   files: { icon: FolderTree, title: "Files" },
-  versions: { icon: History, title: "Live tip" },
+  git: { icon: GitBranch, title: "Git" },
 };
 
 function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
@@ -63,52 +60,6 @@ function tabLabel(tab: OpenTab, peers: OpenTab[]): string {
   }
   const index = same.findIndex((entry) => entry.id === tab.id);
   return `${base} ${index + 1}`;
-}
-
-function LiveTipBody() {
-  const data = useChatData();
-  const appId = data.getAppId();
-  const [liveSha, setLiveSha] = useState(() => data.getLiveSha());
-
-  useEffect(() => {
-    setLiveSha(data.getLiveSha());
-  }, [data]);
-
-  useEffect(() => {
-    if (!appId) {
-      return;
-    }
-    return subscribeLive((nextAppId, nextLiveSha) => {
-      if (nextAppId !== appId) {
-        return;
-      }
-      setLiveSha(nextLiveSha);
-      data.refreshApp(appId).catch((error: unknown) => {
-        console.error("[workspace] live tip refresh failed", error);
-      });
-    });
-  }, [appId, data]);
-
-  if (!liveSha) {
-    return (
-      <p className="p-3 text-muted-foreground text-sm">No live tip yet.</p>
-    );
-  }
-  return (
-    <div className="flex h-full flex-col gap-1 overflow-auto p-3">
-      <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-        <div className="min-w-0">
-          <p className="font-medium text-sm">live {liveSha.slice(0, 12)}</p>
-          <p className="truncate font-mono text-muted-foreground text-xs">
-            {liveSha}
-          </p>
-        </div>
-        <Badge className="shrink-0" variant="secondary">
-          Live
-        </Badge>
-      </div>
-    </div>
-  );
 }
 
 function TabBody({
@@ -129,7 +80,7 @@ function TabBody({
   if (tab.kind === "browser") {
     return <SessionTabBrowser active={active} />;
   }
-  return <LiveTipBody />;
+  return <SessionTabGit />;
 }
 
 function AddTabMenu({ onOpen }: { onOpen: (kind: ViewKind) => void }) {
@@ -221,7 +172,7 @@ function EmptyPanel({
       <div className="space-y-1">
         <p className="font-medium">Open a view</p>
         <p className="max-w-xs text-muted-foreground text-sm">
-          Chat, browser, files, or live tip.
+          Chat, browser, files, or git.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">

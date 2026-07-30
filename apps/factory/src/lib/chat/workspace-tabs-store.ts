@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export const VIEW_KINDS = ["chat", "files", "browser", "versions"] as const;
+export const VIEW_KINDS = ["chat", "files", "browser", "git"] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 export type PanelId = "primary" | "secondary";
 
@@ -51,7 +51,7 @@ interface WorkspaceTabsState {
   resetLocalState: () => void;
 }
 
-const LAB_WORKSPACE_STORAGE_KEY = "sfab.lab.devSessionTabs.v4";
+const LAB_WORKSPACE_STORAGE_KEY = "sfab.lab.devSessionTabs.v5";
 
 function emptyPanel(): PanelState {
   return { tabs: [], activeId: null };

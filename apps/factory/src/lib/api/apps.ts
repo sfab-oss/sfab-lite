@@ -52,23 +52,6 @@ export async function fetchAttempt(appId: string, attemptId: string) {
 
 export type AttemptRecord = Awaited<ReturnType<typeof fetchAttempt>>;
 
-export async function fetchLiveSources(appId: string) {
-  const res = await protectedApi.apps[":appId"].live.$get({
-    param: { appId },
-  });
-  throwIfUnauthorized(res);
-  if (res.status !== 200) {
-    throw new Error(
-      await errorMessage(res, `get live sources failed (${res.status})`)
-    );
-  }
-  const body = await res.json();
-  return {
-    liveSha: body.liveSha,
-    sourceFiles: body.sourceFiles,
-  };
-}
-
 export function readyAppsFromList(
   apps: AppRecord[] | undefined
 ): Array<{ appId: string; appName: string }> {

@@ -17,7 +17,7 @@ interface WorkspaceBranchInfo {
 
 type CheckoutBranchResult =
   | { ok: true; current: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: "dirty" };
 
 export function WorkBranchSelector({ workspaceId }: { workspaceId: string }) {
   const [current, setCurrent] = useState<string | null>(null);

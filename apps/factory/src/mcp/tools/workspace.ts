@@ -1,6 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { appAgent, type McpContext } from "@/mcp/lib/context.js";
+import {
+  appAgent,
+  type McpContext,
+  protectedFetch,
+} from "@/mcp/lib/context.js";
 import {
   isPlatformReadonlyPath,
   PlatformReadonlyError,
@@ -8,6 +12,10 @@ import {
 import { toolError, toolResult } from "../lib/tool-result.js";
 
 const appId = z.string().describe("App id the workspace belongs to");
+const workspaceId = z
+  .string()
+  .optional()
+  .describe("Workspace id (ws_…). Omit to use the app's default workspace.");
 const path = z
   .string()
   .describe("Absolute workspace path, e.g. /src/db/schema.ts");
@@ -26,17 +34,53 @@ export function registerWorkspaceTools(
   ctx: McpContext
 ): void {
   server.registerTool(
+    "workspaces_list",
+    {
+      description:
+        "List workspaces (computers) for an app: id, name, and which is default.",
+      inputSchema: { appId },
+    },
+    async ({ appId: id }) => {
+      const res = await protectedFetch(
+        ctx,
+        "GET",
+        `/api/protected/apps/${encodeURIComponent(id)}/workspaces`
+      );
+      if (res.status >= 400) {
+        const error =
+          (res.body as { error?: string } | null)?.error ??
+          `http_${res.status}`;
+        return toolError(error, { status: res.status });
+      }
+      const body = res.body as {
+        workspaces?: Array<{
+          id: string;
+          name: string;
+          isDefault: boolean;
+        }>;
+      } | null;
+      const workspaces = (body?.workspaces ?? []).map((w) => ({
+        id: w.id,
+        name: w.name,
+        isDefault: w.isDefault,
+      }));
+      return toolResult({ appId: id, workspaces });
+    }
+  );
+
+  server.registerTool(
     "workspace_ls",
     {
       description:
         "List a workspace directory. Start at / to see the app's tree.",
       inputSchema: {
         appId,
+        workspaceId,
         path: z.string().default("/").describe("Directory path. Defaults to /"),
       },
     },
-    async ({ appId: id, path: dir }) => {
-      const agent = await appAgent(ctx.env, id);
+    async ({ appId: id, workspaceId: wsId, path: dir }) => {
+      const agent = await appAgent(ctx.env, id, wsId);
       const entries = await agent.readDir(dir);
       return toolResult({ path: dir, entries });
     }
@@ -46,10 +90,10 @@ export function registerWorkspaceTools(
     "workspace_read",
     {
       description: "Read a workspace file. Returns null content if absent.",
-      inputSchema: { appId, path },
+      inputSchema: { appId, workspaceId, path },
     },
-    async ({ appId: id, path: file }) => {
-      const agent = await appAgent(ctx.env, id);
+    async ({ appId: id, workspaceId: wsId, path: file }) => {
+      const agent = await appAgent(ctx.env, id, wsId);
       const content = await agent.readFile(file);
       if (content === null) {
         return toolError("file_not_found", { path: file });
@@ -67,13 +111,13 @@ export function registerWorkspaceTools(
         "components.json, vite.config.ts) are refused. The change is visible " +
         "to app_typecheck and app_deploy immediately; it does not reach the " +
         "live app until app_deploy passes.",
-      inputSchema: { appId, path, content: z.string() },
+      inputSchema: { appId, workspaceId, path, content: z.string() },
     },
-    async ({ appId: id, path: file, content }) => {
+    async ({ appId: id, workspaceId: wsId, path: file, content }) => {
       if (isPlatformReadonlyPath(file)) {
         return toolError("read_only", { path: file });
       }
-      const agent = await appAgent(ctx.env, id);
+      const agent = await appAgent(ctx.env, id, wsId);
       try {
         await agent.writeFile(file, content);
       } catch (e) {
@@ -94,15 +138,16 @@ export function registerWorkspaceTools(
         "Platform-owned read-only roots are refused.",
       inputSchema: {
         appId,
+        workspaceId,
         path,
         recursive: z.boolean().default(false),
       },
     },
-    async ({ appId: id, path: target, recursive }) => {
+    async ({ appId: id, workspaceId: wsId, path: target, recursive }) => {
       if (isPlatformReadonlyPath(target)) {
         return toolError("read_only", { path: target });
       }
-      const agent = await appAgent(ctx.env, id);
+      const agent = await appAgent(ctx.env, id, wsId);
       try {
         await agent.rm(target, { recursive });
       } catch (e) {
@@ -123,11 +168,12 @@ export function registerWorkspaceTools(
         "than walking with workspace_ls.",
       inputSchema: {
         appId,
+        workspaceId,
         pattern: z.string().describe("Glob pattern, e.g. src/**/*.ts"),
       },
     },
-    async ({ appId: id, pattern }) => {
-      const agent = await appAgent(ctx.env, id);
+    async ({ appId: id, workspaceId: wsId, pattern }) => {
+      const agent = await appAgent(ctx.env, id, wsId);
       const paths = await agent.glob(pattern);
       return toolResult({ pattern, paths });
     }

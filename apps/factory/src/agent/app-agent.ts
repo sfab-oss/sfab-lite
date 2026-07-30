@@ -48,7 +48,7 @@ export interface WorkspaceBranchInfo {
 
 export type CheckoutBranchResult =
   | { ok: true; current: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: "dirty" };
 
 const SHELL_TIMEOUT_MS = 120_000;
 const SEED_CALLBACK = "seedWorkspaceClone" as const;
@@ -532,6 +532,15 @@ export class AppAgent extends Think<Env> {
   }
 
   @callable()
+  async workspaceGitStatus(): Promise<Array<{ path: string; status: string }>> {
+    await this.#ensureWorkspaceReady();
+    const entries = await this.#workspaceGit().status();
+    return entries
+      .filter((entry) => entry.status !== "unmodified")
+      .map((entry) => ({ path: entry.filepath, status: entry.status }));
+  }
+
+  @callable()
   async checkoutBranch(name: string): Promise<CheckoutBranchResult> {
     const trimmed = name.trim();
     if (!trimmed) {
@@ -543,6 +552,17 @@ export class AppAgent extends Think<Env> {
     await this.#ensureWorkspaceReady();
     try {
       const git = this.#workspaceGit();
+      const dirty = (await git.status()).filter(
+        (entry) => entry.status !== "unmodified"
+      );
+      if (dirty.length > 0) {
+        const n = dirty.length;
+        return {
+          ok: false,
+          code: "dirty",
+          error: `${n} pending change${n === 1 ? "" : "s"} — open the Git tab to review, then commit or discard via the agent.`,
+        };
+      }
       await git.checkout({ ref: trimmed });
       this.broadcast(
         JSON.stringify({
