@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { APP_NAME_MAX_LENGTH } from "../apps/app-names.js";
+import { APP_NAME_MAX_LENGTH } from "../registry/app-names.js";
 
 export const createAppBodySchema = z
   .object({

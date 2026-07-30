@@ -3,11 +3,11 @@
  */
 import { and, desc, eq, max } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
-import { prDataId } from "../apps/app-data-ids.js";
-import { appDataStub } from "../apps/app-stub.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { createDb, type Db } from "../db/index.js";
 import { checkRun, pullRequest } from "../db/schema.js";
-import { createR2CodeHost } from "../storage/r2-code-host.js";
+import { prDataId } from "../registry/app-data-ids.js";
+import { appDataStub } from "../registry/app-stub.js";
 import {
   applyPreviewSchemaMigrations,
   ensureLiveMatchesMain,

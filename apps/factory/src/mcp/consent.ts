@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createAuth } from "../auth/server.js";
 import { factoryTrustedOrigins } from "../lib/auth/policy.js";
-import type { RouteCtx } from "../server/routes.js";
+import type { RouteCtx } from "../serve/routes.js";
 import { consentOriginAllowed } from "./lib/consent-origin.js";
 import {
   isOrganizationMember,

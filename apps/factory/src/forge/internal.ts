@@ -6,18 +6,18 @@
  */
 
 import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
-import { appCreateStub } from "../apps/app-stub.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import { createDb } from "../db/index.js";
+import { publishOrgEvent } from "../org-events.js";
+import { settleCreateApp } from "../registry/app-registry.js";
+import { appCreateStub } from "../registry/app-stub.js";
 import {
   INTERNAL_TOKEN_HEADER,
   verifyAttemptRun,
-} from "../apps/internal-token.js";
-import { settleCreateApp } from "../apps/registry.js";
-import { createDb } from "../db/index.js";
-import { runCdForSha } from "../forge/cd.js";
-import { publishOrgEvent } from "../org-events.js";
-import { createR2CodeHost } from "../storage/r2-code-host.js";
-import type { RequestCtx } from "./routes.js";
-import { NOT_FOUND_BODY } from "./routes.js";
+} from "../registry/internal-token.js";
+import type { RequestCtx } from "../serve/routes.js";
+import { NOT_FOUND_BODY } from "../serve/routes.js";
+import { runCdForSha } from "./cd.js";
 
 const RE_RUN_CREATE =
   /^\/internal\/apps\/([^/]+)\/attempts\/([^/]+)\/run-create$/;

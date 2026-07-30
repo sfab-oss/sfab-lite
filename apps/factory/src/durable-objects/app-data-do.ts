@@ -13,7 +13,7 @@ import { DurableObject, RpcTarget } from "cloudflare:workers";
 import {
   applyPendingMigrations,
   SCHEMA_VERSION_DDL,
-} from "../apps/app-migrations.js";
+} from "../registry/app-migrations.js";
 
 export interface SqlMeta {
   duration: number;

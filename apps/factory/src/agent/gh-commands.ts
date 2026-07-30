@@ -5,6 +5,7 @@ import {
   defineCommand,
   type ExecResult,
 } from "just-bash";
+import { bridgeBashFs } from "../code-host/bash-fs-bridge.js";
 import {
   closePullRequest,
   createPullRequest,
@@ -16,7 +17,6 @@ import {
   prDiffSummary,
   rerunCheckRun,
 } from "../forge/forge.js";
-import { bridgeBashFs } from "../storage/bash-fs-bridge.js";
 import {
   formatCheckRuns,
   formatCheckRunView,

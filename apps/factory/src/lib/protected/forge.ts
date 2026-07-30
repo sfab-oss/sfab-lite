@@ -13,7 +13,7 @@ import {
 } from "../../forge/forge.js";
 import { protectedError } from "../../hono/reply.js";
 import type { CreatePrBody } from "../../hono/schemas.js";
-import type { AppCtx } from "../../server/routes.js";
+import type { AppCtx } from "../../serve/routes.js";
 
 export async function handleListPrs(rc: AppCtx) {
   const prs = await listPullRequests(rc.env, rc.appId);

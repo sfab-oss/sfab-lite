@@ -1,8 +1,8 @@
 import { createGit } from "@cloudflare/shell/git";
 import type { CommandContext, ExecResult } from "just-bash";
+import { bridgeBashFs } from "../code-host/bash-fs-bridge.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { onBranchPushed } from "../forge/forge.js";
-import { bridgeBashFs } from "../storage/bash-fs-bridge.js";
-import { createR2CodeHost } from "../storage/r2-code-host.js";
 import { parsePushArgs } from "./git-push-args.js";
 
 const AUTHOR = { name: "sfab-agent", email: "agent@sfab.dev" };

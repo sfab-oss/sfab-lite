@@ -4,21 +4,21 @@
  * Create returns `202` with a create-job id; poll `GET .../attempts/:id`.
  * Shipping code is PR merge onto `main` (CD writes an immutable build and sets
  * D1 `live_sha`). Protected API credentials: `X-Admin-Token` or session.
- * See `tenancy.ts`. Domain handlers in `lib/protected/`; Hono in
- * `hono/protected/`; CD in `cd.ts`; code host in `r2-code-host.ts`.
+ * See `hono/tenancy.ts`. Domain handlers in `lib/protected/`; Hono in
+ * `hono/protected/`; CD in `forge/cd.ts`; code host in `code-host/`.
  */
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { dispatchAgents } from "./agent/dispatch.js";
 import { createAuth } from "./auth/server.js";
 import { createDb } from "./db/index.js";
+import { dispatchInternal } from "./forge/internal.js";
 import { apiApp } from "./hono/index.js";
+import { requireAppAccess, resolveActor } from "./hono/tenancy.js";
 import { dispatchMcp } from "./mcp/index.js";
-import { dispatchInternal } from "./server/internal.js";
-import type { PublicRoute, RequestCtx, RouteCtx } from "./server/routes.js";
-import { matchRoute } from "./server/routes.js";
-import { serveSubApp } from "./server/serve.js";
-import { serveKernel } from "./server/serve-kernel.js";
-import { requireAppAccess, resolveActor } from "./server/tenancy.js";
+import type { PublicRoute, RequestCtx, RouteCtx } from "./serve/routes.js";
+import { matchRoute } from "./serve/routes.js";
+import { serveSubApp } from "./serve/serve.js";
+import { serveKernel } from "./serve/serve-kernel.js";
 
 /** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
 export { CodemodeRuntime } from "@cloudflare/codemode";

@@ -5,19 +5,13 @@
 
 import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import { publishOrgEvent } from "@/org-events.js";
-import { prDataId } from "../../apps/app-data-ids.js";
-import { APP_NAME_MAX_LENGTH, pickAppName } from "../../apps/app-names.js";
-import {
-  appCreateStub,
-  appDataStub,
-  liveAppDataStub,
-} from "../../apps/app-stub.js";
-import {
-  attemptResolver,
-  createAccepted,
-  createConflict,
-} from "../../apps/create-job.js";
-import { reconcileCreatingApps } from "../../apps/create-reconcile.js";
+import { createDb } from "../../db/index.js";
+import { listPullRequests } from "../../forge/forge.js";
+import { type ProtectedReply, protectedError } from "../../hono/reply.js";
+import type { CreateAppBody, RenameAppBody } from "../../hono/schemas.js";
+import { wireApp } from "../../hono/wire.js";
+import { prDataId } from "../../registry/app-data-ids.js";
+import { APP_NAME_MAX_LENGTH, pickAppName } from "../../registry/app-names.js";
 import {
   deleteAppUnscoped,
   getAppOrganizationId,
@@ -29,13 +23,19 @@ import {
   organizationExists,
   renameAppUnscoped,
   setCreateAttemptId,
-} from "../../apps/registry.js";
-import { createDb } from "../../db/index.js";
-import { listPullRequests } from "../../forge/forge.js";
-import { type ProtectedReply, protectedError } from "../../hono/reply.js";
-import type { CreateAppBody, RenameAppBody } from "../../hono/schemas.js";
-import { wireApp } from "../../hono/wire.js";
-import type { AppCtx, OrgCtx } from "../../server/routes.js";
+} from "../../registry/app-registry.js";
+import {
+  appCreateStub,
+  appDataStub,
+  liveAppDataStub,
+} from "../../registry/app-stub.js";
+import {
+  attemptResolver,
+  createAccepted,
+  createConflict,
+} from "../../registry/create-job.js";
+import { reconcileCreatingApps } from "../../registry/create-reconcile.js";
+import type { AppCtx, OrgCtx } from "../../serve/routes.js";
 
 export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   const { organizationId } = rc;

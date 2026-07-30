@@ -4,8 +4,8 @@
  * so serve bootstraps the same generation it serves.
  */
 
+import type { AppBuild } from "../code-host/build-store.js";
 import { compileAll } from "../compile/compile-all.js";
-import type { AppBuild } from "../storage/build-store.js";
 import type { AppMigration } from "./app-migrations.js";
 
 const WORKSPACE_BUILD_SHA_PREFIX = "ws:";

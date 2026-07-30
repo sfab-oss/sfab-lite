@@ -5,9 +5,9 @@ import {
   defineCommand,
   type ExecResult,
 } from "just-bash";
-import { nextMigrationPath } from "../apps/app-migrations.js";
-import { liveAppDataStub } from "../apps/app-stub.js";
 import { callCheck, callLint, checkPasses, getLiveSha } from "../forge/cd.js";
+import { nextMigrationPath } from "../registry/app-migrations.js";
+import { liveAppDataStub } from "../registry/app-stub.js";
 import { describeBlocking, diffSchema } from "../schema/schema-ddl.js";
 import { probeSchema } from "../schema/schema-probe.js";
 import {

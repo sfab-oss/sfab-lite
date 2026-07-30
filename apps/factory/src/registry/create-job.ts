@@ -2,8 +2,8 @@
  * Create-job helpers for the async app-create attempt surface.
  */
 
+import type { AttemptResolver } from "./app-registry.js";
 import { appCreateStub } from "./app-stub.js";
-import type { AttemptResolver } from "./registry.js";
 
 export type CreateJobAcceptedBody = {
   ok: true;

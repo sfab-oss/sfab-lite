@@ -2,7 +2,7 @@ import { createMcpHandler } from "agents/mcp";
 import { verifyJwsAccessToken } from "better-auth/oauth2";
 import type { JSONWebKeySet } from "jose";
 import { createAuth } from "../auth/server.js";
-import type { RequestCtx } from "../server/routes.js";
+import type { RequestCtx } from "../serve/routes.js";
 import { buildMcpServer } from "./lib/build-server.js";
 import { mcpError, readMcpCredential, wwwAuthenticate } from "./lib/gate.js";
 import { resolveMcpGrant } from "./lib/grant.js";

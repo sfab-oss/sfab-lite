@@ -1,7 +1,7 @@
-import { liveAppDataStub } from "../../apps/app-stub.js";
 import type { ProtectedReply } from "../../hono/reply.js";
 import type { SqlBody } from "../../hono/schemas.js";
-import type { AppCtx } from "../../server/routes.js";
+import { liveAppDataStub } from "../../registry/app-stub.js";
+import type { AppCtx } from "../../serve/routes.js";
 
 export async function handleSql(
   rc: AppCtx,

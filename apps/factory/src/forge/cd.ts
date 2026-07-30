@@ -11,23 +11,23 @@ import {
   lintPasses,
 } from "@sfab-lite/core";
 import { eq } from "drizzle-orm";
-import { prDataId } from "../apps/app-data-ids.js";
-import { collectMigrations } from "../apps/app-migrations.js";
-import {
-  type AppDataStub,
-  appDataStub,
-  liveAppDataStub,
-} from "../apps/app-stub.js";
-import { getAppOrganizationId } from "../apps/registry.js";
+import { createR2BuildStore } from "../code-host/r2-build-store.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { compileAll } from "../compile/compile-all.js";
 import { createDb } from "../db/index.js";
 import { app as appTable } from "../db/schema.js";
 import { publishOrgEvent } from "../org-events.js";
+import { prDataId } from "../registry/app-data-ids.js";
+import { collectMigrations } from "../registry/app-migrations.js";
+import { getAppOrganizationId } from "../registry/app-registry.js";
+import {
+  type AppDataStub,
+  appDataStub,
+  liveAppDataStub,
+} from "../registry/app-stub.js";
 import { diffSchema } from "../schema/schema-ddl.js";
 import { probeSchema } from "../schema/schema-probe.js";
 import { latestSnapshot } from "../schema/schema-snapshots.js";
-import { createR2BuildStore } from "../storage/r2-build-store.js";
-import { createR2CodeHost } from "../storage/r2-code-host.js";
 
 export function checkPasses(body: CheckResponse | null): body is CheckResult {
   if (!body?.ok) {

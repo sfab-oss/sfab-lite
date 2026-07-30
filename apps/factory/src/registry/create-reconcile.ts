@@ -7,7 +7,7 @@
  */
 import type { Db } from "../db/index.js";
 import { publishOrgEvent } from "../org-events.js";
-import { type AttemptResolver, sweepStaleCreating } from "./registry.js";
+import { type AttemptResolver, sweepStaleCreating } from "./app-registry.js";
 
 export async function reconcileCreatingApps(
   env: Env,

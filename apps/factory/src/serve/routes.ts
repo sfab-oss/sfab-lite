@@ -5,7 +5,7 @@
  * matchers / error helpers. Protected routing lives in `hono/protected/`;
  * domain handlers in `lib/protected/`.
  */
-import type { Actor } from "./tenancy.js";
+import type { Actor } from "../hono/tenancy.js";
 
 /** A request before any route has matched it. */
 export interface RequestCtx {

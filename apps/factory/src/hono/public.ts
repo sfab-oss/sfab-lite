@@ -7,7 +7,7 @@ import {
 } from "@/lib/auth/policy";
 import { createAuth } from "../auth/server.js";
 import { handleMcpConsent, handleMcpConsentContext } from "../mcp/consent.js";
-import type { RouteCtx } from "../server/routes.js";
+import type { RouteCtx } from "../serve/routes.js";
 import type { ApiEnv } from "./types.js";
 
 function routeCtx(c: Context<ApiEnv>): RouteCtx {

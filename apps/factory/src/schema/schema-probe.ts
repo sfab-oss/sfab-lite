@@ -22,7 +22,7 @@
  */
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import { bundleWithKernel } from "../compile/compile-server.js";
-import { kernelModules } from "../server/kernel-modules.js";
+import { kernelModules } from "../serve/kernel-modules.js";
 import {
   canonicalizeSnapshot,
   type SchemaSnapshot,

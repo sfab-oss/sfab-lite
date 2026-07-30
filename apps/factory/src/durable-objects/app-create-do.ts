@@ -6,7 +6,7 @@ import { monotonicFactory } from "ulid";
 import {
   INTERNAL_TOKEN_HEADER,
   signAttemptRun,
-} from "../apps/internal-token.js";
+} from "../registry/internal-token.js";
 
 const nextUlid = monotonicFactory();
 

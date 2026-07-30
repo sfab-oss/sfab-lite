@@ -10,19 +10,19 @@
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { getAgentByName } from "agents";
-import { liveDataId, prDataId, wsDataId } from "../apps/app-data-ids.js";
-import {
-  type AppMigration,
-  collectMigrations,
-} from "../apps/app-migrations.js";
-import { appDataStub } from "../apps/app-stub.js";
-import { getWorkspaceBuild } from "../apps/workspace-build.js";
+import type { AppBuild } from "../code-host/build-store.js";
+import { createR2BuildStore } from "../code-host/r2-build-store.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import type { AppDataDO } from "../durable-objects/app-data-do.js";
 import { getLiveSha } from "../forge/cd.js";
 import { getPullRequestByNumber } from "../forge/forge.js";
-import type { AppBuild } from "../storage/build-store.js";
-import { createR2BuildStore } from "../storage/r2-build-store.js";
-import { createR2CodeHost } from "../storage/r2-code-host.js";
+import { liveDataId, prDataId, wsDataId } from "../registry/app-data-ids.js";
+import {
+  type AppMigration,
+  collectMigrations,
+} from "../registry/app-migrations.js";
+import { appDataStub } from "../registry/app-stub.js";
+import { getWorkspaceBuild } from "../registry/workspace-build.js";
 import { kernelModules } from "./kernel-modules.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
