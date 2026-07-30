@@ -79,3 +79,10 @@ export async function getWorkspaceBuild(
   }
   return parsed;
 }
+
+export async function deleteWorkspaceBuild(
+  env: Env,
+  workspaceId: string
+): Promise<void> {
+  await env.CODE_R2.delete(workspaceBuildKey(workspaceId));
+}

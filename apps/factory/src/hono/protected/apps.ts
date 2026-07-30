@@ -8,13 +8,22 @@ import {
   handleTouch,
 } from "@/lib/protected/apps.js";
 import {
+  handleCreateWorkspace,
+  handleDeleteWorkspace,
   handleGetDefaultWorkspace,
   handleGetWorkspace,
   handleListWorkspaces,
+  handleRenameWorkspace,
+  handleSetDefaultWorkspace,
 } from "@/lib/protected/workspaces.js";
 import { appCtx, orgCtx } from "../context.js";
 import { requireApp, requireOrganization } from "../middleware.js";
-import { createAppBodySchema, renameAppBodySchema } from "../schemas.js";
+import {
+  createAppBodySchema,
+  createWorkspaceBodySchema,
+  renameAppBodySchema,
+  renameWorkspaceBodySchema,
+} from "../schemas.js";
 import type { AdminEnv } from "../types.js";
 import { jsonBody } from "../validate.js";
 
@@ -41,6 +50,15 @@ const appsRoutes = new Hono<AdminEnv>()
     const r = await handleListWorkspaces(appCtx(c));
     return c.json(r.body, r.status);
   })
+  .post(
+    "/:appId/workspaces",
+    requireApp,
+    jsonBody(createWorkspaceBodySchema),
+    async (c) => {
+      const r = await handleCreateWorkspace(appCtx(c), c.req.valid("json"));
+      return c.json(r.body, r.status);
+    }
+  )
   .get("/:appId/workspaces/default", requireApp, async (c) => {
     const r = await handleGetDefaultWorkspace(appCtx(c));
     return c.json(r.body, r.status);
@@ -48,6 +66,30 @@ const appsRoutes = new Hono<AdminEnv>()
   .get("/:appId/workspaces/:workspaceId", requireApp, async (c) => {
     const workspaceId = decodeURIComponent(c.req.param("workspaceId") ?? "");
     const r = await handleGetWorkspace(appCtx(c), workspaceId);
+    return c.json(r.body, r.status);
+  })
+  .patch(
+    "/:appId/workspaces/:workspaceId",
+    requireApp,
+    jsonBody(renameWorkspaceBodySchema),
+    async (c) => {
+      const workspaceId = decodeURIComponent(c.req.param("workspaceId") ?? "");
+      const r = await handleRenameWorkspace(
+        appCtx(c),
+        workspaceId,
+        c.req.valid("json")
+      );
+      return c.json(r.body, r.status);
+    }
+  )
+  .post("/:appId/workspaces/:workspaceId/default", requireApp, async (c) => {
+    const workspaceId = decodeURIComponent(c.req.param("workspaceId") ?? "");
+    const r = await handleSetDefaultWorkspace(appCtx(c), workspaceId);
+    return c.json(r.body, r.status);
+  })
+  .delete("/:appId/workspaces/:workspaceId", requireApp, async (c) => {
+    const workspaceId = decodeURIComponent(c.req.param("workspaceId") ?? "");
+    const r = await handleDeleteWorkspace(appCtx(c), workspaceId);
     return c.json(r.body, r.status);
   })
   .get("/:appId", requireApp, async (c) => {

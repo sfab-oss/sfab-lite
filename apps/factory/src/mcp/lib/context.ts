@@ -1,6 +1,10 @@
 import { getAgentByName } from "agents";
 import { createDb } from "../../db/index.js";
-import { getDefaultWorkspaceForApp } from "../../registry/workspace-registry.js";
+import {
+  getDefaultWorkspaceForApp,
+  getWorkspaceUnscoped,
+  workspaceBelongsToApp,
+} from "../../registry/workspace-registry.js";
 
 /** Where the loopback lands. Never leaves the Worker. */
 const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
@@ -51,7 +55,8 @@ export function orgQuery(ctx: McpContext): string {
 /**
  * An AppAgent stub whose `onStart` has already run.
  *
- * MCP tools still take `appId` and resolve the app's default workspace.
+ * MCP tools take `appId` and optional `workspaceId`. Omit workspaceId → the
+ * app's default workspace. Provide → that computer after a belonging check.
  * `getAgentByName` rather than `idFromName`: a native RPC call does not pass
  * through `Server.fetch()`, which is where partyserver would otherwise
  * initialize the object. Reaching an uninitialized AppAgent gets an unseeded
@@ -60,8 +65,22 @@ export function orgQuery(ctx: McpContext): string {
  * for an undefined appId. The console never hit this because a websocket
  * connect goes through fetch.
  */
-export async function appAgent(env: Env, appId: string) {
-  const workspace = await getDefaultWorkspaceForApp(createDb(env), appId);
+export async function appAgent(env: Env, appId: string, workspaceId?: string) {
+  const db = createDb(env);
+  if (workspaceId) {
+    const belongs = await workspaceBelongsToApp(db, appId, workspaceId);
+    if (!belongs) {
+      throw new Error(
+        `Workspace ${workspaceId} does not belong to app ${appId}`
+      );
+    }
+    const workspace = await getWorkspaceUnscoped(db, workspaceId);
+    if (!workspace) {
+      throw new Error(`Workspace ${workspaceId} not found`);
+    }
+    return getAgentByName(env.AppAgent, workspace.id);
+  }
+  const workspace = await getDefaultWorkspaceForApp(db, appId);
   if (!workspace) {
     throw new Error(`No default workspace for app ${appId}`);
   }

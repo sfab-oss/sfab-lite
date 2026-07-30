@@ -4,6 +4,10 @@ import { appAgent, type McpContext } from "@/mcp/lib/context.js";
 import { toolResult } from "../lib/tool-result.js";
 
 const appId = z.string().describe("App id to run against");
+const workspaceId = z
+  .string()
+  .optional()
+  .describe("Workspace id (ws_…). Omit to use the app's default workspace.");
 
 /**
  * The publish loop, as the agent runs it.
@@ -15,8 +19,8 @@ const appId = z.string().describe("App id to run against");
  * is driving it.
  */
 export function registerBuildTools(server: McpServer, ctx: McpContext): void {
-  const run = async (id: string, script: string) => {
-    const agent = await appAgent(ctx.env, id);
+  const run = async (id: string, script: string, wsId?: string) => {
+    const agent = await appAgent(ctx.env, id, wsId);
     const result = await agent.runShell(script);
     // Not `toolError` on a non-zero exit: a failing typecheck is the answer the
     // caller asked for, not a broken call.
@@ -29,9 +33,9 @@ export function registerBuildTools(server: McpServer, ctx: McpContext): void {
       description:
         "Typecheck the workspace via the check worker. tsc-style diagnostics " +
         "on stdout; exitCode 0 means clean.",
-      inputSchema: { appId },
+      inputSchema: { appId, workspaceId },
     },
-    ({ appId: id }) => run(id, "pnpm typecheck")
+    ({ appId: id, workspaceId: wsId }) => run(id, "pnpm typecheck", wsId)
   );
 
   server.registerTool(
@@ -40,9 +44,10 @@ export function registerBuildTools(server: McpServer, ctx: McpContext): void {
       description:
         "Lint the workspace via the lint worker. Set fix to also write " +
         "formatting fixes back into the workspace.",
-      inputSchema: { appId, fix: z.boolean().default(false) },
+      inputSchema: { appId, workspaceId, fix: z.boolean().default(false) },
     },
-    ({ appId: id, fix }) => run(id, fix ? "pnpm lint --fix" : "pnpm lint")
+    ({ appId: id, workspaceId: wsId, fix }) =>
+      run(id, fix ? "pnpm lint --fix" : "pnpm lint", wsId)
   );
 
   server.registerTool(
@@ -54,12 +59,14 @@ export function registerBuildTools(server: McpServer, ctx: McpContext): void {
         "change — deploy refuses a schema the database does not implement.",
       inputSchema: {
         appId,
+        workspaceId,
         name: z
           .string()
           .describe("Migration name, e.g. add_transactions (snake_case)"),
       },
     },
-    ({ appId: id, name }) => run(id, `pnpm db:generate ${name}`)
+    ({ appId: id, workspaceId: wsId, name }) =>
+      run(id, `pnpm db:generate ${name}`, wsId)
   );
 
   server.registerTool(
@@ -68,9 +75,9 @@ export function registerBuildTools(server: McpServer, ctx: McpContext): void {
       description:
         "Refused — main is merge-only. Push a feature branch, open a PR " +
         "(gh pr create), wait for checks, then gh pr merge.",
-      inputSchema: { appId },
+      inputSchema: { appId, workspaceId },
     },
-    ({ appId: id }) => run(id, "pnpm run deploy")
+    ({ appId: id, workspaceId: wsId }) => run(id, "pnpm run deploy", wsId)
   );
 
   server.registerTool(
@@ -80,8 +87,8 @@ export function registerBuildTools(server: McpServer, ctx: McpContext): void {
         "Create the demo organization and sample rows in the live app " +
         "(Northwind / WID-001), and print the demo login. Idempotent — " +
         "re-running returns the same credentials. Requires a live version.",
-      inputSchema: { appId },
+      inputSchema: { appId, workspaceId },
     },
-    ({ appId: id }) => run(id, "pnpm seed")
+    ({ appId: id, workspaceId: wsId }) => run(id, "pnpm seed", wsId)
   );
 }

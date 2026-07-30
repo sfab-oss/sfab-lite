@@ -1,27 +1,42 @@
-import { useMemo } from "react";
-import { useChatData } from "@/components/chat/chat-data-context";
 import { FileBrowser } from "@/components/workspace-files/file-browser";
-import type { WorkspaceFilesSource } from "@/lib/workspace-files/types";
-
-function PublishedBanner() {
-  return (
-    <p className="shrink-0 border-b px-3 py-2 text-muted-foreground text-xs">
-      Published live version — not the agent's in-thread scratch workspace.
-    </p>
-  );
-}
+import { useAgentWorkspaceFilesSource } from "@/hooks/use-agent-workspace-files-source";
+import { useConsoleRoute } from "@/hooks/use-console-route";
+import {
+  useWorkspaceSelectedPath,
+  useWorkspaceSelectedPathStore,
+} from "@/lib/chat/workspace-selected-path-store";
 
 export function SessionTabFiles() {
-  const data = useChatData();
-  const source = useMemo<WorkspaceFilesSource>(
-    () => ({
-      getDir: (path) => data.getWorkspaceDir(path).entries,
-      getFile: (path) => data.getWorkspaceFile(path),
-    }),
-    [data]
+  const { workspaceId } = useConsoleRoute();
+
+  if (!workspaceId) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+        <p className="font-medium text-sm">No workspace selected</p>
+        <p className="max-w-xs text-muted-foreground text-sm">
+          Open a workspace to browse its working tree.
+        </p>
+      </div>
+    );
+  }
+
+  return <FilesBrowserBody key={workspaceId} workspaceId={workspaceId} />;
+}
+
+function FilesBrowserBody({ workspaceId }: { workspaceId: string }) {
+  const { source, revision } = useAgentWorkspaceFilesSource(workspaceId);
+  const selectedPath = useWorkspaceSelectedPath(workspaceId);
+  const setSelectedPath = useWorkspaceSelectedPathStore(
+    (s) => s.setSelectedPath
   );
 
   return (
-    <FileBrowser banner={<PublishedBanner />} rootPath="" source={source} />
+    <FileBrowser
+      onSelectedPathChange={(path) => setSelectedPath(workspaceId, path)}
+      revision={revision}
+      rootPath=""
+      selectedPath={selectedPath}
+      source={source}
+    />
   );
 }

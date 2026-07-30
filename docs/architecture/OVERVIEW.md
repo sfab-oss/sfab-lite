@@ -74,9 +74,9 @@ Deployment stay general.
 | **Viewer** | iframe (+ chrome) of `deployment \| workspace` | Agent Browser first; any later surface |
 | **Board** | Zoom/pan layout of N Viewers | **Deferred product** — not scheduled |
 
-Cardinality for Milestone A: **one Default workspace per app** (more
-workspaces = Slice B). Multi-version compare = multiple **Deployments**
-(branches/PRs), not N WIP trees. Nested canvases are a non-goal. Naming:
+Cardinality: **N workspaces per app, exactly one default.** Multi-version
+compare = multiple **Deployments** (branches/PRs), not N WIP trees. Nested
+canvases are a non-goal. Naming:
 [`../engineering/terminology.md`](../engineering/terminology.md).
 
 ## What is in, what is not
@@ -86,7 +86,7 @@ workspaces = Slice B). Multi-version compare = multiple **Deployments**
 | Template, frozen kernel, host, check, lint | Tasks-lite |
 | Auth, organizations, app registry | Diffs, quotas, schema evolution, eject |
 | Factory console + in-console agent loop | Agent over the protected `/api` |
-| Isolated org-auth PR previews | Design board / multi-workspace |
+| Isolated org-auth PR previews | Design board |
 | Agent Browser workspace WIP serve | |
 
 ## Related

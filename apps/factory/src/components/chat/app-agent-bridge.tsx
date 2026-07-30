@@ -74,21 +74,6 @@ function AppAgentBridge({
   const agent = useAgent({
     agent: "AppAgent",
     name: workspaceId,
-    onMessage: (event) => {
-      if (typeof event.data !== "string") {
-        return;
-      }
-      try {
-        const parsed = JSON.parse(event.data) as { type?: string };
-        if (parsed.type === "workspace-change") {
-          chatData.refreshApp(appIdRef.current).catch((error: unknown) => {
-            console.error("[chat] workspace-change refresh failed", error);
-          });
-        }
-      } catch {
-        // Non-JSON frame — not a workspace-change signal.
-      }
-    },
   });
 
   useEffect(() => {

@@ -1,22 +1,13 @@
-import type {
-  Thread,
-  WorkspaceFileContent,
-  WorkspaceFileEntry,
-} from "@/lib/chat/types";
+import type { Thread } from "@/lib/chat/types";
 
 /**
  * Data seam for the chat console. Transport is not here: ThreadTranscript
  * connects with useAgent({ agent: "AppAgent", name, sub: [...] }) + useAgentChat.
  * Thread existence comes from AppAgent.listThreads / createThread.
+ * Workspace working-tree files are loaded by Files/Git tabs via AppAgent RPCs.
  */
 export interface ChatData {
   getAppId: () => string | null;
-  getLiveSha: () => string | null;
-  getWorkspaceDir: (path: string) => {
-    entries: WorkspaceFileEntry[];
-    path: string;
-  };
-  getWorkspaceFile: (path: string) => WorkspaceFileContent | null;
   /** Whether AppAgent.listThreads has answered for this workspace yet. */
   hasSyncedWorkspace: (workspaceId: string) => boolean;
   listThreads: () => Thread[];

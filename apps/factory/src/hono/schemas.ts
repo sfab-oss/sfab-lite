@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { APP_NAME_MAX_LENGTH } from "../registry/app-names.js";
+import { WORKSPACE_NAME_MAX_LENGTH } from "../registry/workspace-registry.js";
 
 export const createAppBodySchema = z
   .object({
@@ -10,6 +11,18 @@ export const createAppBodySchema = z
 export const renameAppBodySchema = z
   .object({
     name: z.string().trim().min(1).max(APP_NAME_MAX_LENGTH),
+  })
+  .strict();
+
+export const createWorkspaceBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(WORKSPACE_NAME_MAX_LENGTH),
+  })
+  .strict();
+
+export const renameWorkspaceBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(WORKSPACE_NAME_MAX_LENGTH),
   })
   .strict();
 
@@ -67,6 +80,8 @@ export const revertBodySchema = z
 
 export type CreateAppBody = z.infer<typeof createAppBodySchema>;
 export type RenameAppBody = z.infer<typeof renameAppBodySchema>;
+export type CreateWorkspaceBody = z.infer<typeof createWorkspaceBodySchema>;
+export type RenameWorkspaceBody = z.infer<typeof renameWorkspaceBodySchema>;
 export type CreatePrBody = z.infer<typeof createPrBodySchema>;
 export type SqlBody = z.infer<typeof sqlBodySchema>;
 export type CheckBody = z.infer<typeof checkBodySchema>;

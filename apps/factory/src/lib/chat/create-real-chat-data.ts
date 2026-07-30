@@ -1,7 +1,5 @@
-import { fetchLiveSources } from "@/lib/api/apps";
 import type { Thread } from "@/lib/chat/types";
 import type { ChatData } from "./chat-data";
-import { dirEntries, fileContent } from "./source-files";
 
 export interface RealChatData extends ChatData {
   getRevision: () => number;
@@ -10,8 +8,6 @@ export interface RealChatData extends ChatData {
 
 export function createRealChatData(): RealChatData {
   let appId: string | null = null;
-  let liveSha: string | null = null;
-  let sourceFiles: Record<string, string> = {};
   let threads: Thread[] = [];
   let revision = 0;
   const syncedWorkspaces = new Set<string>();
@@ -123,22 +119,13 @@ export function createRealChatData(): RealChatData {
       writeThreads(threads.filter((thread) => thread.id !== threadId));
     },
     getAppId: () => appId,
-    getLiveSha: () => liveSha,
-    getWorkspaceDir: (path) => dirEntries(sourceFiles, path),
-    getWorkspaceFile: (path) => fileContent(sourceFiles, path),
-    async refreshApp(nextAppId) {
-      if (!nextAppId) {
-        appId = null;
-        liveSha = null;
-        sourceFiles = {};
-        notify();
-        return;
+    refreshApp(nextAppId) {
+      if (appId === nextAppId) {
+        return Promise.resolve();
       }
-      const live = await fetchLiveSources(nextAppId).catch(() => null);
       appId = nextAppId;
-      liveSha = live?.liveSha ?? null;
-      sourceFiles = live?.sourceFiles ?? {};
       notify();
+      return Promise.resolve();
     },
   };
 }
