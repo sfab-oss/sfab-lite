@@ -25,9 +25,9 @@ const path = z
  *
  * These call the very methods the agent's own file tools bottom out in —
  * `SharedWorkspace` forwards a thread's reads and writes to this same object —
- * so an edit made here is an edit the next `app_typecheck` and `app_deploy`
- * see. The workspace is a working copy: nothing here touches the live app
- * until a deploy promotes it.
+ * so an edit made here is an edit the next `bash` (`pnpm typecheck`, …) sees.
+ * The workspace is a working copy: nothing here touches the live app until a
+ * PR merges.
  */
 export function registerWorkspaceTools(
   server: McpServer,
@@ -109,8 +109,8 @@ export function registerWorkspaceTools(
         "Write a workspace file, creating or replacing it. Parent directories " +
         "are created. Platform-owned read-only roots (tsconfig, biome, " +
         "components.json, vite.config.ts) are refused. The change is visible " +
-        "to app_typecheck and app_deploy immediately; it does not reach the " +
-        "live app until app_deploy passes.",
+        "to bash (e.g. pnpm typecheck) immediately; it does not reach the " +
+        "live app until a PR merges.",
       inputSchema: { appId, workspaceId, path, content: z.string() },
     },
     async ({ appId: id, workspaceId: wsId, path: file, content }) => {

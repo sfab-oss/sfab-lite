@@ -7,7 +7,7 @@ the two surfaces when diagnosing "the agent" or when improving tools.
 
 | | Shape |
 | --- | --- |
-| **MCP** (`/mcp`, `apps/factory/src/mcp/`) | Many **named** tools — apps lifecycle, workspace FS, typecheck/deploy helpers, … |
+| **MCP** (`/mcp`, `apps/factory/src/mcp/`) | Named tools — apps lifecycle, workspace FS, `bash`, … |
 | **In-app agent** (console thread) | **One** tool — code-mode `execute` (`@cloudflare/think`). It writes TypeScript that runs against a `state` backend / shell; it does not call the MCP tool names. |
 
 MCP exists so humans and outer agents can drive the factory at wire speed

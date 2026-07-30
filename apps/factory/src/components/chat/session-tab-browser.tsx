@@ -73,6 +73,15 @@ function linkLabel(path: string): string {
   return path === "/" ? "Home" : path;
 }
 
+function rememberGeneration(
+  status: WorkspaceBuildRpcStatus,
+  generationRef: { current: number | null }
+): void {
+  if (typeof status.generation === "number") {
+    generationRef.current = status.generation;
+  }
+}
+
 function applyReadyGeneration(
   status: WorkspaceBuildRpcStatus,
   generationRef: { current: number | null }
@@ -80,15 +89,20 @@ function applyReadyGeneration(
   if (status.status !== "ready") {
     return false;
   }
-  if (typeof status.generation === "number") {
-    generationRef.current = status.generation;
-  }
+  rememberGeneration(status, generationRef);
   return true;
 }
 
-function hintForStatus(status: WorkspaceBuildRpcStatus): string | null {
+function compilingHint(generationRef: { current: number | null }): string {
+  return generationRef.current == null ? "Starting…" : "Updating…";
+}
+
+function hintForStatus(
+  status: WorkspaceBuildRpcStatus,
+  generationRef: { current: number | null }
+): string | null {
   if (status.status === "compiling") {
-    return "Compiling workspace…";
+    return compilingHint(generationRef);
   }
   if (status.status === "error") {
     return status.error ?? "Workspace compile failed";
@@ -103,7 +117,7 @@ async function ensureWorkspaceBuildReady(
   },
   generationRef: { current: number | null },
   setBuildHint: (hint: string | null) => void,
-  reloadFrame: () => void,
+  onReady: () => void,
   isCancelled: () => boolean
 ): Promise<void> {
   await agent.ready;
@@ -114,37 +128,54 @@ async function ensureWorkspaceBuildReady(
   if (isCancelled()) {
     return;
   }
+  rememberGeneration(status, generationRef);
   if (applyReadyGeneration(status, generationRef)) {
     setBuildHint(null);
+    onReady();
     return;
   }
-  const hint = hintForStatus(status);
+  if (generationRef.current != null) {
+    onReady();
+  }
+  const hint = hintForStatus(status, generationRef);
   if (hint) {
     setBuildHint(hint);
   }
-  if (status.status === "compiling") {
+  if (status.status === "compiling" || status.status === "error") {
+    return;
+  }
+  setBuildHint(compilingHint(generationRef));
+  await agent.call("kickWorkspaceCompile", []);
+  if (isCancelled()) {
     return;
   }
   const next = (await agent.call(
-    "compileWorkspaceNow",
+    "workspaceBuildStatus",
     []
   )) as WorkspaceBuildRpcStatus;
   if (isCancelled()) {
     return;
   }
+  rememberGeneration(next, generationRef);
   if (applyReadyGeneration(next, generationRef)) {
     setBuildHint(null);
-    reloadFrame();
+    onReady();
     return;
   }
-  setBuildHint(next.error ?? "Workspace compile failed");
+  if (generationRef.current != null) {
+    onReady();
+  }
+  const nextHint = hintForStatus(next, generationRef);
+  if (nextHint) {
+    setBuildHint(nextHint);
+  }
 }
 
 function handleWorkspaceAgentMessage(
   data: string,
   generationRef: { current: number | null },
   setBuildHint: (hint: string | null) => void,
-  reloadFrame: () => void,
+  onReady: () => void,
   refreshQuickLinks: () => void
 ): void {
   try {
@@ -170,14 +201,14 @@ function handleWorkspaceAgentMessage(
       }
       setBuildHint(null);
       refreshQuickLinks();
-      reloadFrame();
+      onReady();
       return;
     }
     if (parsed.type !== "workspace-build-status") {
       return;
     }
     if (parsed.status === "compiling") {
-      setBuildHint("Compiling workspace…");
+      setBuildHint(compilingHint(generationRef));
       return;
     }
     if (parsed.status === "error") {
@@ -228,17 +259,24 @@ function BrowserFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pathRef = useRef("/");
   const generationRef = useRef<number | null>(null);
+  const frameMountedRef = useRef(false);
   const [path, setPath] = useState("/");
   const [draft, setDraft] = useState(localhostDisplayPath("/"));
   const [editing, setEditing] = useState(false);
-  const [buildHint, setBuildHint] = useState<string | null>("Preparing…");
+  const [buildHint, setBuildHint] = useState<string | null>("Starting…");
+  const [frameMounted, setFrameMounted] = useState(false);
   const [quickLinks, setQuickLinks] = useState<string[]>([]);
   const rootSrc = `${appWorkspaceBasePath(workspaceId)}/`;
 
   pathRef.current = path;
 
-  const reloadFrame = useCallback(() => {
-    reloadWorkspaceFrame(iframeRef.current, workspaceId, pathRef.current);
+  const onBuildReady = useCallback(() => {
+    if (frameMountedRef.current) {
+      reloadWorkspaceFrame(iframeRef.current, workspaceId, pathRef.current);
+      return;
+    }
+    frameMountedRef.current = true;
+    setFrameMounted(true);
   }, [workspaceId]);
 
   const refreshQuickLinksRef = useRef<() => void>(() => undefined);
@@ -254,7 +292,7 @@ function BrowserFrame({
         event.data,
         generationRef,
         setBuildHint,
-        reloadFrame,
+        onBuildReady,
         () => refreshQuickLinksRef.current()
       );
     },
@@ -285,7 +323,7 @@ function BrowserFrame({
         agent,
         generationRef,
         setBuildHint,
-        reloadFrame,
+        onBuildReady,
         () => cancelled
       ).catch((e) => {
         if (!cancelled) {
@@ -298,7 +336,7 @@ function BrowserFrame({
     return () => {
       cancelled = true;
     };
-  }, [agent, reloadFrame]);
+  }, [agent, onBuildReady]);
 
   useEffect(() => {
     if (!active) {
@@ -382,19 +420,21 @@ function BrowserFrame({
 
   const reload = () => {
     const run = async () => {
-      setBuildHint("Compiling workspace…");
+      setBuildHint(compilingHint(generationRef));
       try {
         await agent.ready;
+        await agent.call("kickWorkspaceCompile", []);
         const next = (await agent.call(
-          "compileWorkspaceNow",
+          "workspaceBuildStatus",
           []
         )) as WorkspaceBuildRpcStatus;
         if (applyReadyGeneration(next, generationRef)) {
           setBuildHint(null);
-          reloadFrame();
+          onBuildReady();
           return;
         }
-        setBuildHint(next.error ?? "Workspace compile failed");
+        const hint = hintForStatus(next, generationRef);
+        setBuildHint(hint ?? compilingHint(generationRef));
       } catch (e) {
         setBuildHint(e instanceof Error ? e.message : "Reload failed");
       }
@@ -493,13 +533,21 @@ function BrowserFrame({
           <p className="px-1 text-[11px] text-muted-foreground">{buildHint}</p>
         ) : null}
       </div>
-      <iframe
-        className="min-h-0 w-full flex-1 border-0 bg-background"
-        ref={iframeRef}
-        sandbox={IFRAME_SANDBOX}
-        src={rootSrc}
-        title="Workspace browser"
-      />
+      {frameMounted ? (
+        <iframe
+          className="min-h-0 w-full flex-1 border-0 bg-background"
+          ref={iframeRef}
+          sandbox={IFRAME_SANDBOX}
+          src={rootSrc}
+          title="Workspace browser"
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1 items-center justify-center bg-background">
+          <p className="text-muted-foreground text-sm">
+            {buildHint ?? "Starting…"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

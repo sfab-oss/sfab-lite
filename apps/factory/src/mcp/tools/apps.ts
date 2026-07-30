@@ -122,7 +122,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     {
       description:
         "The app's live version: id and source file list. This is what the " +
-        "workspace was seeded from, and what app_deploy replaces.",
+        "workspace was seeded from, and what a merged PR replaces.",
       inputSchema: { appId },
     },
     async ({ appId: id }) =>

@@ -24,11 +24,34 @@ export function SessionTabFiles() {
 }
 
 function FilesBrowserBody({ workspaceId }: { workspaceId: string }) {
-  const { source, revision } = useAgentWorkspaceFilesSource(workspaceId);
+  const { source, revision, waking, wakeError } =
+    useAgentWorkspaceFilesSource(workspaceId);
   const selectedPath = useWorkspaceSelectedPath(workspaceId);
   const setSelectedPath = useWorkspaceSelectedPathStore(
     (s) => s.setSelectedPath
   );
+
+  if (waking) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+        <p className="font-medium text-sm">Waking computer…</p>
+        <p className="max-w-xs text-muted-foreground text-sm">
+          Cloning the workspace so Files can open.
+        </p>
+      </div>
+    );
+  }
+
+  if (wakeError) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+        <p className="font-medium text-sm">Computer failed to wake</p>
+        <p className="max-w-xs text-destructive text-sm" title={wakeError}>
+          {wakeError}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <FileBrowser

@@ -270,6 +270,49 @@ export class AppAgent extends Think<Env> {
     return this.#runWorkspaceCompile();
   }
 
+  /**
+   * Schedule seed and/or WIP compile without awaiting them. Serve and Browser
+   * wake paths must use this — fire-and-forget promises are dropped on Workers.
+   */
+  @callable()
+  async kickWorkspaceCompile(): Promise<WorkspaceBuildStatus> {
+    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
+    if (workspaceCloneFailureReason(status)) {
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
+      await this.schedule(0, SEED_CALLBACK, {}, { idempotent: true });
+      return this.#readWorkspaceBuildStatus();
+    }
+    if (!isWorkspaceCloneReady(status)) {
+      if (!status) {
+        await this.ctx.storage.put(
+          WORKSPACE_CLONED_KEY,
+          WORKSPACE_CLONE_PENDING
+        );
+      }
+      await this.schedule(0, SEED_CALLBACK, {}, { idempotent: true });
+      return this.#readWorkspaceBuildStatus();
+    }
+    await this.#cancelCompileSchedules();
+    await this.schedule(0, COMPILE_CALLBACK, {});
+    return this.#readWorkspaceBuildStatus();
+  }
+
+  @callable()
+  async workspaceWakeStatus(): Promise<{
+    clone: "ready" | "pending" | "failed";
+    error: string | null;
+  }> {
+    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
+    const failure = workspaceCloneFailureReason(status);
+    if (failure) {
+      return { clone: "failed", error: failure };
+    }
+    if (isWorkspaceCloneReady(status)) {
+      return { clone: "ready", error: null };
+    }
+    return { clone: "pending", error: null };
+  }
+
   @callable()
   workspaceBuildStatus(): Promise<WorkspaceBuildStatus> {
     return this.#readWorkspaceBuildStatus();
