@@ -43,13 +43,17 @@ ADRs under [`../decisions/`](../decisions/).
   `/a/:appId/preview/:prNumber/*` requires factory session + membership in
   the app's org; preview SQLite is empty+migrations from preview source
   (never a live clone) and is destroyed when the PR leaves `open`.
+  **Workspace WIP** `/a/:appId/workspace/*` is the same org-auth posture;
+  data is `${appId}:ws:default` (empty+migrations); the Agent Browser Viewer
+  shows `http://localhost/…` chrome while fetching the workspace URL.
+  Debounced compile on workspace writes (not full CD per edit).
 - **The seed is a snapshot, not a link.** `TEMPLATE_SEED.sourceFiles` becomes
   the initial commit on `main` at create; later work is normal Git. A fix to
   `packages/template` reaches *new* apps only — existing repos never pick it
   up. Changing behaviour for apps already out there needs a source migration
   or a host-side workaround, and that cost belongs in the design, not the
   rollout.
-- **LOADER** child isolates for serve (live or PR preview builds).
+- **LOADER** child isolates for serve (live, PR preview, or workspace builds).
 - **Plain async check worker** — putting the LanguageService in a Durable
   Object was measured and refuted (warmth lasts ~5s idle, not ~30s; full
   template checks never stay warm).
@@ -64,7 +68,8 @@ Shared contracts live in `packages/core`.
 | Template, frozen kernel, host, check, lint | Tasks-lite |
 | Auth, organizations, app registry | Diffs, quotas, schema evolution, eject |
 | Factory console + in-console agent loop | Agent over the protected `/api` |
-| Isolated org-auth PR previews | Design board / workspace serve |
+| Isolated org-auth PR previews | Design board / multi-workspace |
+| Agent Browser workspace WIP serve | |
 
 ## Related
 

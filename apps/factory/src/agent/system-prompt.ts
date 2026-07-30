@@ -81,6 +81,7 @@ export function buildSystemPrompt(opts: {
     "The default branch is `main`, and main is merge-only — direct pushes to main are refused.",
     "Ship by committing on a feature branch, pushing it, opening a PR (create runs checks), then merging.",
     "Use the file tools (list, find, grep, read, write, edit, …) and the bash tool for shell-style workflows.",
+    "The Agent Browser tab shows your workspace WIP as a localhost-like preview (org-auth under the hood); it rebuilds when you write files. Live and PR deployments stay on the forge path.",
     "Git, checks, and forge are ordinary shell commands in bash:",
     "  git status|add|commit|push|pull|fetch|log|branch|checkout|diff|remote …",
     "  gh pr create|list|view|checks|diff|merge — pull requests (virtual gh)",

@@ -14,9 +14,7 @@ import { eq } from "drizzle-orm";
 import { prDataId } from "./app-data-ids.js";
 import { collectMigrations } from "./app-migrations.js";
 import { type AppDataStub, appDataStub, liveAppDataStub } from "./app-stub.js";
-import { buildIndexHtml, compileClient } from "./compile-client.js";
-import { compileCss } from "./compile-css.js";
-import { compileServer } from "./compile-server.js";
+import { compileAll } from "./compile-all.js";
 import { createDb } from "./db/index.js";
 import { app as appTable } from "./db/schema.js";
 import { publishOrgEvent } from "./org-events.js";
@@ -219,20 +217,6 @@ async function gateSchema(
     return null;
   }
   return applyLiveSchemaMigrations(env, appId, files);
-}
-
-async function compileAll(files: Record<string, string>) {
-  const compiled = await compileServer(files);
-  const client = await compileClient(files);
-  const css = await compileCss(files);
-  const assets: Record<string, string> = {
-    "index.html": buildIndexHtml({
-      kernelVersion: compiled.kernelVersion,
-    }),
-    "assets/app.js": client.js,
-    "assets/app.css": css.css,
-  };
-  return { compiled, client, css, assets };
 }
 
 export type CdResult =

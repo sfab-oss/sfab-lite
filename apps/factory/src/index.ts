@@ -96,32 +96,48 @@ async function requirePreviewAccess(
   return requireAppAccess(db, actor, appId);
 }
 
+async function handlePreviewSubApp(
+  rc: RouteCtx,
+  appId: string,
+  rest: string
+): Promise<Response> {
+  const after = rest === "preview" ? "" : rest.slice("preview/".length);
+  const slash = after.indexOf("/");
+  const prToken = slash === -1 ? after : after.slice(0, slash);
+  const prNumber = Number(prToken);
+  if (
+    !Number.isFinite(prNumber) ||
+    prNumber < 1 ||
+    !RE_PREVIEW_PR.test(prToken)
+  ) {
+    return Response.json(
+      { ok: false, error: "preview_pr_required", appId },
+      { status: 404 }
+    );
+  }
+  const denied = await requirePreviewAccess(rc, appId);
+  if (denied) {
+    return denied;
+  }
+  const inner = slash === -1 ? "" : after.slice(slash + 1);
+  return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "preview", {
+    prNumber,
+  });
+}
+
 async function handleSubApp(rc: RouteCtx): Promise<Response> {
   const appId = decodeURIComponent(rc.match[1] ?? "");
   const rest = rc.match[2] ?? "";
-  if (rest === "preview" || rest.startsWith("preview/")) {
-    const after = rest === "preview" ? "" : rest.slice("preview/".length);
-    const slash = after.indexOf("/");
-    const prToken = slash === -1 ? after : after.slice(0, slash);
-    const prNumber = Number(prToken);
-    if (
-      !Number.isFinite(prNumber) ||
-      prNumber < 1 ||
-      !RE_PREVIEW_PR.test(prToken)
-    ) {
-      return Response.json(
-        { ok: false, error: "preview_pr_required", appId },
-        { status: 404 }
-      );
-    }
+  if (rest === "workspace" || rest.startsWith("workspace/")) {
     const denied = await requirePreviewAccess(rc, appId);
     if (denied) {
       return denied;
     }
-    const inner = slash === -1 ? "" : after.slice(slash + 1);
-    return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "preview", {
-      prNumber,
-    });
+    const inner = rest === "workspace" ? "" : rest.slice("workspace/".length);
+    return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "workspace");
+  }
+  if (rest === "preview" || rest.startsWith("preview/")) {
+    return handlePreviewSubApp(rc, appId, rest);
   }
   return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, "live");
 }
@@ -144,8 +160,8 @@ const PUBLIC_ROUTES: PublicRoute[] = [
     handler: handleProtectedResourceMetadata,
   },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
-  // Live `/a/:appId/*` is public at the host; preview paths inside the
-  // handler require factory org session. See `tenancy.ts`.
+  // Live `/a/:appId/*` is public at the host; preview and workspace paths
+  // inside the handler require factory org session. See `tenancy.ts`.
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },
 ];
 

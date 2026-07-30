@@ -3,8 +3,14 @@ import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
+import { collectMigrations } from "../app-migrations.js";
 import { getLiveSha } from "../cd.js";
 import { remoteUrlFor } from "../code-host.js";
+import {
+  compileWorkspaceFiles,
+  putWorkspaceBuild,
+  workspaceBuildSha,
+} from "../workspace-build.js";
 import { AppThread } from "./app-thread.js";
 import { GatedWorkspace } from "./gated-workspace.js";
 import {
@@ -17,6 +23,7 @@ import {
   workspaceCloneFailureReason,
 } from "./seed-workspace.js";
 import { createAppShellCommands } from "./shell-commands.js";
+import { collectAgentWorkspaceFiles } from "./workspace-files.js";
 
 export interface ShellResult {
   stdout: string;
@@ -24,8 +31,19 @@ export interface ShellResult {
   exitCode: number;
 }
 
+export interface WorkspaceBuildStatus {
+  error: string | null;
+  generation: number | null;
+  status: "idle" | "compiling" | "ready" | "error";
+}
+
 const SHELL_TIMEOUT_MS = 120_000;
 const SEED_CALLBACK = "seedWorkspaceClone" as const;
+const COMPILE_CALLBACK = "compileWorkspaceBuild" as const;
+const WORKSPACE_COMPILE_DEBOUNCE_SEC = 1;
+const WORKSPACE_BUILD_GEN_KEY = "workspaceBuildGeneration";
+const WORKSPACE_BUILD_STATUS_KEY = "workspaceBuildStatus";
+const WORKSPACE_BUILD_ERROR_KEY = "workspaceBuildError";
 
 export interface ThreadSummary {
   createdAt: number;
@@ -63,6 +81,7 @@ export class AppAgent extends Think<Env> {
   );
 
   #workspaceClonePromise: Promise<void> | null = null;
+  #workspaceCompilePromise: Promise<WorkspaceBuildStatus> | null = null;
 
   override getModel(): LanguageModel {
     throw new Error("AppAgent chat is dormant; connect to an AppThread facet");
@@ -141,6 +160,7 @@ export class AppAgent extends Think<Env> {
         this.name
       );
       await this.ctx.storage.put(WORKSPACE_CLONED_KEY, sha ?? "empty");
+      await this.#scheduleWorkspaceCompile();
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e);
       await this.ctx.storage.put(
@@ -168,6 +188,131 @@ export class AppAgent extends Think<Env> {
 
   #broadcastWorkspaceChange(event: WorkspaceChangeEvent): void {
     this.broadcast(JSON.stringify({ type: "workspace-change", event }));
+    this.#scheduleWorkspaceCompile().catch(() => undefined);
+  }
+
+  async #cancelCompileSchedules(): Promise<void> {
+    const pending = await this.getSchedules();
+    for (const entry of pending) {
+      if (entry.callback === COMPILE_CALLBACK) {
+        await this.cancelSchedule(entry.id);
+      }
+    }
+  }
+
+  async #scheduleWorkspaceCompile(): Promise<void> {
+    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
+    if (!isWorkspaceCloneReady(status)) {
+      return;
+    }
+    await this.#cancelCompileSchedules();
+    await this.schedule(WORKSPACE_COMPILE_DEBOUNCE_SEC, COMPILE_CALLBACK, {});
+  }
+
+  /**
+   * Debounced compile of WIP workspace → R2 `builds/{appId}/workspace.json`.
+   * Scheduled from writes and post-clone; not full CD (no lint/check).
+   */
+  compileWorkspaceBuild(
+    _payload: Record<string, never> = {}
+  ): Promise<WorkspaceBuildStatus> {
+    return this.#runWorkspaceCompile();
+  }
+
+  /**
+   * Manual refresh — compiles immediately (cancels pending debounce).
+   * Browser-callable so Agent Browser Reload can force a rebuild.
+   */
+  @callable()
+  async compileWorkspaceNow(): Promise<WorkspaceBuildStatus> {
+    await this.#cancelCompileSchedules();
+    return this.#runWorkspaceCompile();
+  }
+
+  @callable()
+  workspaceBuildStatus(): Promise<WorkspaceBuildStatus> {
+    return this.#readWorkspaceBuildStatus();
+  }
+
+  async #readWorkspaceBuildStatus(): Promise<WorkspaceBuildStatus> {
+    const status =
+      (await this.ctx.storage.get<WorkspaceBuildStatus["status"]>(
+        WORKSPACE_BUILD_STATUS_KEY
+      )) ?? "idle";
+    const generation =
+      (await this.ctx.storage.get<number>(WORKSPACE_BUILD_GEN_KEY)) ?? null;
+    const error =
+      (await this.ctx.storage.get<string>(WORKSPACE_BUILD_ERROR_KEY)) ?? null;
+    return { status, generation, error };
+  }
+
+  #runWorkspaceCompile(): Promise<WorkspaceBuildStatus> {
+    if (this.#workspaceCompilePromise) {
+      return this.#workspaceCompilePromise;
+    }
+    this.#workspaceCompilePromise = this.#compileWorkspaceBuildInner().finally(
+      () => {
+        this.#workspaceCompilePromise = null;
+      }
+    );
+    return this.#workspaceCompilePromise;
+  }
+
+  async #compileWorkspaceBuildInner(): Promise<WorkspaceBuildStatus> {
+    await this.#ensureWorkspaceReady();
+    await this.ctx.storage.put(WORKSPACE_BUILD_STATUS_KEY, "compiling");
+    await this.ctx.storage.delete(WORKSPACE_BUILD_ERROR_KEY);
+    this.broadcast(
+      JSON.stringify({ type: "workspace-build-status", status: "compiling" })
+    );
+
+    try {
+      const files = await collectAgentWorkspaceFiles(this.#fs);
+      const compiled = await compileWorkspaceFiles(files);
+      const migrations = collectMigrations(files);
+      const prev =
+        (await this.ctx.storage.get<number>(WORKSPACE_BUILD_GEN_KEY)) ?? 0;
+      const generation = prev + 1;
+      const build = {
+        ...compiled,
+        sha: workspaceBuildSha(generation),
+      };
+      await putWorkspaceBuild(this.env, this.name, {
+        generation,
+        build,
+        migrations,
+        at: Date.now(),
+      });
+      await this.ctx.storage.put(WORKSPACE_BUILD_GEN_KEY, generation);
+      await this.ctx.storage.put(WORKSPACE_BUILD_STATUS_KEY, "ready");
+      const result: WorkspaceBuildStatus = {
+        status: "ready",
+        generation,
+        error: null,
+      };
+      this.broadcast(
+        JSON.stringify({
+          type: "workspace-build-ready",
+          generation,
+        })
+      );
+      return result;
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
+      await this.ctx.storage.put(WORKSPACE_BUILD_STATUS_KEY, "error");
+      await this.ctx.storage.put(WORKSPACE_BUILD_ERROR_KEY, reason);
+      this.broadcast(
+        JSON.stringify({
+          type: "workspace-build-status",
+          status: "error",
+          error: reason,
+        })
+      );
+      console.error(
+        `[AppAgent] ${this.name}: workspace compile failed: ${reason}`
+      );
+      return { status: "error", generation: null, error: reason };
+    }
   }
 
   @callable()
