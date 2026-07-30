@@ -21,10 +21,7 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const packScript = join(repoRoot, "packages/template/scripts/pack.mjs");
-const committedPath = join(
-  repoRoot,
-  "packages/template/generated/seed.json"
-);
+const committedPath = join(repoRoot, "packages/template/generated/seed.json");
 
 const packed = spawnSync(process.execPath, [packScript], {
   cwd: repoRoot,
