@@ -1,3 +1,10 @@
+import { useDroppable } from "@dnd-kit/core";
+import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
@@ -25,13 +32,14 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useChatData } from "@/components/chat/chat-data-context";
 import {
   type OpenTab,
   type PanelId,
   type PanelState,
+  panelDroppableId,
   useWorkspaceTabsStore,
   VIEW_KINDS,
   type ViewKind,
@@ -171,6 +179,7 @@ function TabOptionsMenu({
             aria-label="Tab options"
             className="absolute right-7 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
             onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
             title="Tab options"
             type="button"
           />
@@ -227,6 +236,103 @@ function EmptyPanel({ appId, panel }: { appId: string; panel: PanelId }) {
   );
 }
 
+function WorkTabChrome({
+  appId,
+  panel,
+  tab,
+  tabs,
+  dragHandleProps,
+  setNodeRef,
+  style,
+  isDragging,
+}: {
+  appId: string;
+  panel: PanelId;
+  tab: OpenTab;
+  tabs: OpenTab[];
+  dragHandleProps?: Record<string, unknown>;
+  setNodeRef?: (node: HTMLElement | null) => void;
+  style?: CSSProperties;
+  isDragging?: boolean;
+}) {
+  const closeTab = useWorkspaceTabsStore((s) => s.closeTab);
+  const label = tabLabel(tab, tabs);
+  const Icon = VIEW_DEFS[tab.kind].icon;
+
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center",
+        isDragging && "z-10 opacity-60"
+      )}
+      ref={setNodeRef}
+      style={style}
+    >
+      <TabsTrigger
+        className={cn(
+          "h-8 max-w-52 gap-1.5 pr-14 data-[state=active]:bg-muted",
+          dragHandleProps && "cursor-grab active:cursor-grabbing"
+        )}
+        value={tab.id}
+        {...dragHandleProps}
+      >
+        <Icon className="size-3.5 shrink-0" />
+        <span className="truncate">{label}</span>
+      </TabsTrigger>
+      <TabOptionsMenu appId={appId} panel={panel} tabId={tab.id} />
+      <button
+        aria-label={`Close ${label}`}
+        className="absolute right-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
+        onClick={(event) => {
+          event.stopPropagation();
+          closeTab(appId, panel, tab.id);
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+        type="button"
+      >
+        <X className="size-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function SortableWorkTab({
+  appId,
+  panel,
+  tab,
+  tabs,
+}: {
+  appId: string;
+  panel: PanelId;
+  tab: OpenTab;
+  tabs: OpenTab[];
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tab.id });
+
+  return (
+    <WorkTabChrome
+      appId={appId}
+      dragHandleProps={{ ...attributes, ...listeners }}
+      isDragging={isDragging}
+      panel={panel}
+      setNodeRef={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      tab={tab}
+      tabs={tabs}
+    />
+  );
+}
+
 export function WorkPanel({
   appId,
   panel,
@@ -234,6 +340,7 @@ export function WorkPanel({
   focused,
   chat,
   className,
+  sortable = false,
 }: {
   appId: string;
   panel: PanelId;
@@ -241,11 +348,47 @@ export function WorkPanel({
   focused: boolean;
   chat: ReactNode;
   className?: string;
+  sortable?: boolean;
 }) {
   const openTab = useWorkspaceTabsStore((s) => s.openTab);
-  const closeTab = useWorkspaceTabsStore((s) => s.closeTab);
   const focusTab = useWorkspaceTabsStore((s) => s.focusTab);
   const { tabs, activeId } = state;
+  const { setNodeRef, isOver } = useDroppable({
+    id: panelDroppableId(panel),
+    disabled: !sortable,
+  });
+
+  const tabItems = tabs.map((tab) =>
+    sortable ? (
+      <SortableWorkTab
+        appId={appId}
+        key={tab.id}
+        panel={panel}
+        tab={tab}
+        tabs={tabs}
+      />
+    ) : (
+      <WorkTabChrome
+        appId={appId}
+        key={tab.id}
+        panel={panel}
+        tab={tab}
+        tabs={tabs}
+      />
+    )
+  );
+
+  const tabStrip = (
+    <TabsList
+      className={cn(
+        "h-9 min-w-0 flex-1 justify-start gap-1 overflow-x-auto bg-transparent p-0",
+        sortable && isOver && "rounded-md ring-1 ring-ring/40"
+      )}
+      ref={sortable ? setNodeRef : undefined}
+    >
+      {tabItems}
+    </TabsList>
+  );
 
   return (
     <div
@@ -261,38 +404,16 @@ export function WorkPanel({
         value={activeId ?? ""}
       >
         <div className="flex h-10 shrink-0 items-center gap-1 border-b bg-background px-2">
-          <TabsList className="h-9 min-w-0 flex-1 justify-start gap-1 overflow-x-auto bg-transparent p-0">
-            {tabs.map((tab) => {
-              const label = tabLabel(tab, tabs);
-              const Icon = VIEW_DEFS[tab.kind].icon;
-              return (
-                <div
-                  className="relative flex shrink-0 items-center"
-                  key={tab.id}
-                >
-                  <TabsTrigger
-                    className="h-8 max-w-52 gap-1.5 pr-14 data-[state=active]:bg-muted"
-                    value={tab.id}
-                  >
-                    <Icon className="size-3.5 shrink-0" />
-                    <span className="truncate">{label}</span>
-                  </TabsTrigger>
-                  <TabOptionsMenu appId={appId} panel={panel} tabId={tab.id} />
-                  <button
-                    aria-label={`Close ${label}`}
-                    className="absolute right-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      closeTab(appId, panel, tab.id);
-                    }}
-                    type="button"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                </div>
-              );
-            })}
-          </TabsList>
+          {sortable ? (
+            <SortableContext
+              items={tabs.map((tab) => tab.id)}
+              strategy={horizontalListSortingStrategy}
+            >
+              {tabStrip}
+            </SortableContext>
+          ) : (
+            tabStrip
+          )}
           <AddTabMenu onOpen={(kind) => openTab(appId, kind, panel)} />
         </div>
 

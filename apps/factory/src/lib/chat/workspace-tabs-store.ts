@@ -30,8 +30,20 @@ interface WorkspaceTabsState {
   ensureApp: (appId: string) => void;
   focusPanel: (appId: string, panel: PanelId) => void;
   focusTab: (appId: string, panel: PanelId, id: string) => void;
-  moveTab: (appId: string, from: PanelId, tabId: string, to: PanelId) => void;
+  moveTab: (
+    appId: string,
+    from: PanelId,
+    tabId: string,
+    to: PanelId,
+    toIndex?: number
+  ) => void;
   openTab: (appId: string, kind: ViewKind, target?: PanelId | "side") => void;
+  reorderTab: (
+    appId: string,
+    panel: PanelId,
+    tabId: string,
+    toIndex: number
+  ) => void;
   resetLocalState: () => void;
 }
 
@@ -68,6 +80,33 @@ export function findTabPanel(
   return null;
 }
 
+export function findPanelForTabId(
+  layout: AppLayoutState,
+  tabId: string
+): PanelId | null {
+  if (layout.primary.tabs.some((tab) => tab.id === tabId)) {
+    return "primary";
+  }
+  if (layout.secondary?.tabs.some((tab) => tab.id === tabId)) {
+    return "secondary";
+  }
+  return null;
+}
+
+export function panelDroppableId(panel: PanelId): string {
+  return `panel:${panel}`;
+}
+
+export function parsePanelDroppableId(id: string): PanelId | null {
+  if (id === "panel:primary") {
+    return "primary";
+  }
+  if (id === "panel:secondary") {
+    return "secondary";
+  }
+  return null;
+}
+
 function makeTab(kind: ViewKind): OpenTab {
   return { id: crypto.randomUUID(), kind };
 }
@@ -83,8 +122,38 @@ function withActiveAfterClose(panel: PanelState, closedId: string): PanelState {
   return { tabs, activeId };
 }
 
-function addTabToPanel(panel: PanelState, tab: OpenTab): PanelState {
-  return { tabs: [...panel.tabs, tab], activeId: tab.id };
+function addTabToPanel(
+  panel: PanelState,
+  tab: OpenTab,
+  toIndex?: number
+): PanelState {
+  const tabs = [...panel.tabs];
+  const index =
+    toIndex == null ? tabs.length : Math.max(0, Math.min(toIndex, tabs.length));
+  tabs.splice(index, 0, tab);
+  return { tabs, activeId: tab.id };
+}
+
+function reorderTabsInPanel(
+  panel: PanelState,
+  tabId: string,
+  toIndex: number
+): PanelState | null {
+  const fromIndex = panel.tabs.findIndex((tab) => tab.id === tabId);
+  if (fromIndex < 0) {
+    return null;
+  }
+  const clamped = Math.max(0, Math.min(toIndex, panel.tabs.length - 1));
+  if (fromIndex === clamped) {
+    return null;
+  }
+  const tabs = [...panel.tabs];
+  const [tab] = tabs.splice(fromIndex, 1);
+  if (!tab) {
+    return null;
+  }
+  tabs.splice(clamped, 0, tab);
+  return { ...panel, tabs };
 }
 
 function resolveEmptyPanels(
@@ -329,7 +398,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           });
         }),
 
-      moveTab: (appId, from, tabId, to) =>
+      moveTab: (appId, from, tabId, to, toIndex) =>
         set((state) => {
           const layout = ensureLayout(state, appId);
           if (from === to) {
@@ -347,11 +416,11 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             from === "secondary" ? cleanedSource : layout.secondary;
 
           if (to === "primary") {
-            primary = addTabToPanel(primary, tab);
+            primary = addTabToPanel(primary, tab, toIndex);
           } else if (secondary === null) {
             secondary = { tabs: [tab], activeId: tab.id };
           } else {
-            secondary = addTabToPanel(secondary, tab);
+            secondary = addTabToPanel(secondary, tab, toIndex);
           }
 
           return setApp(
@@ -359,6 +428,24 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             appId,
             resolveEmptyPanels(primary, secondary, to)
           );
+        }),
+
+      reorderTab: (appId, panel, tabId, toIndex) =>
+        set((state) => {
+          const layout = ensureLayout(state, appId);
+          const current = getPanel(layout, panel);
+          if (!current) {
+            return {};
+          }
+          const next = reorderTabsInPanel(current, tabId, toIndex);
+          if (!next) {
+            return {};
+          }
+          return setApp(state, appId, {
+            ...layout,
+            focusedPanel: panel,
+            [panel]: next,
+          });
         }),
 
       resetLocalState: () => set({ byApp: {} }),

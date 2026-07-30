@@ -20,6 +20,10 @@ import {
 } from "@/components/chat/app-agent-bridge";
 import { useChatData } from "@/components/chat/chat-data-context";
 import { WorkPanel } from "@/components/chat/work-panel";
+import {
+  SecondaryCreateDropZone,
+  WorkViewDnd,
+} from "@/components/chat/work-view-dnd";
 import { WorkViewFooter } from "@/components/chat/work-view-footer";
 import { WorkViewHeader } from "@/components/chat/work-view-header";
 import {
@@ -444,42 +448,44 @@ function WorkViewShell({
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {header}
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <WorkPanel
-            appId={appId}
-            chat={chatPanel === "primary" ? chatBody : null}
-            focused={layout.focusedPanel === "primary"}
-            panel="primary"
-            state={layout.primary}
-          />
-        </div>
-        <Sheet
-          onOpenChange={(open) => {
-            if (!(appId && layout.secondary)) {
-              return;
-            }
-            focusPanel(appId, open ? "secondary" : "primary");
-          }}
-          open={secondarySheetOpen}
-        >
-          <SheetContent
-            className="flex h-svh flex-col gap-0 overflow-hidden p-0 data-[side=right]:w-[calc(100%-2.5rem)] data-[side=right]:max-w-none data-[side=right]:sm:max-w-none [&>button]:hidden"
-            side="right"
+        <WorkViewDnd appId={appId}>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <WorkPanel
+              appId={appId}
+              chat={chatPanel === "primary" ? chatBody : null}
+              focused={layout.focusedPanel === "primary"}
+              panel="primary"
+              state={layout.primary}
+            />
+          </div>
+          <Sheet
+            onOpenChange={(open) => {
+              if (!(appId && layout.secondary)) {
+                return;
+              }
+              focusPanel(appId, open ? "secondary" : "primary");
+            }}
+            open={secondarySheetOpen}
           >
-            <SheetHeader className="sr-only">
-              <SheetTitle>Side panel</SheetTitle>
-            </SheetHeader>
-            {layout.secondary ? (
-              <WorkPanel
-                appId={appId}
-                chat={chatPanel === "secondary" ? chatBody : null}
-                focused
-                panel="secondary"
-                state={layout.secondary}
-              />
-            ) : null}
-          </SheetContent>
-        </Sheet>
+            <SheetContent
+              className="flex h-svh flex-col gap-0 overflow-hidden p-0 data-[side=right]:w-[calc(100%-2.5rem)] data-[side=right]:max-w-none data-[side=right]:sm:max-w-none [&>button]:hidden"
+              side="right"
+            >
+              <SheetHeader className="sr-only">
+                <SheetTitle>Side panel</SheetTitle>
+              </SheetHeader>
+              {layout.secondary ? (
+                <WorkPanel
+                  appId={appId}
+                  chat={chatPanel === "secondary" ? chatBody : null}
+                  focused
+                  panel="secondary"
+                  state={layout.secondary}
+                />
+              ) : null}
+            </SheetContent>
+          </Sheet>
+        </WorkViewDnd>
         <WorkViewFooter appId={appId} />
       </div>
     );
@@ -488,45 +494,55 @@ function WorkViewShell({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {header}
-      <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
-        <ResizablePanel
-          className="flex min-h-0 flex-col"
-          defaultSize={secondaryOpen ? 55 : 100}
-          minSize={secondaryOpen ? 28 : 40}
-        >
-          <WorkPanel
-            appId={appId}
-            chat={chatPanel === "primary" ? chatBody : null}
-            className={
-              secondaryOpen
-                ? "overflow-hidden rounded-r-none"
-                : "overflow-hidden"
-            }
-            focused={layout.focusedPanel === "primary"}
-            panel="primary"
-            state={layout.primary}
-          />
-        </ResizablePanel>
-        {secondaryOpen && layout.secondary ? (
-          <>
-            <ResizableHandle className="bg-transparent" />
+      <WorkViewDnd appId={appId}>
+        <div className="flex min-h-0 flex-1">
+          <ResizablePanelGroup
+            className="min-h-0 flex-1"
+            direction="horizontal"
+          >
             <ResizablePanel
-              className="ml-px flex min-h-0 flex-col overflow-hidden rounded-l-xl border-border border-l bg-accent/5 shadow"
-              defaultSize={45}
-              maxSize={70}
-              minSize={22}
+              className="flex min-h-0 flex-col"
+              defaultSize={secondaryOpen ? 55 : 100}
+              minSize={secondaryOpen ? 28 : 40}
             >
               <WorkPanel
                 appId={appId}
-                chat={chatPanel === "secondary" ? chatBody : null}
-                focused={layout.focusedPanel === "secondary"}
-                panel="secondary"
-                state={layout.secondary}
+                chat={chatPanel === "primary" ? chatBody : null}
+                className={
+                  secondaryOpen
+                    ? "overflow-hidden rounded-r-none"
+                    : "overflow-hidden"
+                }
+                focused={layout.focusedPanel === "primary"}
+                panel="primary"
+                sortable
+                state={layout.primary}
               />
             </ResizablePanel>
-          </>
-        ) : null}
-      </ResizablePanelGroup>
+            {secondaryOpen && layout.secondary ? (
+              <>
+                <ResizableHandle className="bg-transparent" />
+                <ResizablePanel
+                  className="ml-px flex min-h-0 flex-col overflow-hidden rounded-l-xl border-border border-l bg-accent/5 shadow"
+                  defaultSize={45}
+                  maxSize={70}
+                  minSize={22}
+                >
+                  <WorkPanel
+                    appId={appId}
+                    chat={chatPanel === "secondary" ? chatBody : null}
+                    focused={layout.focusedPanel === "secondary"}
+                    panel="secondary"
+                    sortable
+                    state={layout.secondary}
+                  />
+                </ResizablePanel>
+              </>
+            ) : null}
+          </ResizablePanelGroup>
+          {secondaryOpen ? null : <SecondaryCreateDropZone />}
+        </div>
+      </WorkViewDnd>
       <WorkViewFooter appId={appId} />
     </div>
   );
