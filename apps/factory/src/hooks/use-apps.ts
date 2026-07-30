@@ -1,13 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  type AppRecord,
-  createApp,
-  deleteApp,
-  getApp,
-  getAttempt,
-  listApps,
-  renameApp,
-} from "@/api";
+import { type AppRecord, createApp, getApp, getAttempt, listApps } from "@/api";
 import { createReadyApp } from "@/lib/create-ready-app";
 
 const CREATING_POLL_MS = 2500;
@@ -66,29 +58,6 @@ export function useCreateReadyApp() {
   return useMutation({
     mutationFn: (name?: string) => createReadyApp(name),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: appsQueryKey }),
-  });
-}
-
-export function useRenameApp() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ appId, name }: { appId: string; name: string }) =>
-      renameApp(appId, name),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(appQueryKey(updated.id), updated);
-      return queryClient.invalidateQueries({ queryKey: appsQueryKey });
-    },
-  });
-}
-
-export function useDeleteApp() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (appId: string) => deleteApp(appId),
-    onSuccess: (_result, appId) => {
-      queryClient.removeQueries({ queryKey: appQueryKey(appId) });
-      return queryClient.invalidateQueries({ queryKey: appsQueryKey });
-    },
   });
 }
 

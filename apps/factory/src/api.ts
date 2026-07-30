@@ -162,22 +162,6 @@ export async function createApp(name?: string): Promise<{
   };
 }
 
-export async function renameApp(
-  appId: string,
-  name: string
-): Promise<AppRecord> {
-  const res = await protectedApi.apps[":appId"].$patch({
-    param: { appId },
-    json: { name },
-  });
-  throwIfUnauthorized(res);
-  if (res.status !== 200) {
-    throw new Error(await errorMessage(res, `rename failed (${res.status})`));
-  }
-  const body = await res.json();
-  return body.app;
-}
-
 export async function getApp(appId: string): Promise<AppRecord> {
   const res = await protectedApi.apps[":appId"].$get({
     param: { appId },
@@ -188,27 +172,6 @@ export async function getApp(appId: string): Promise<AppRecord> {
   }
   const body = await res.json();
   return body.app;
-}
-
-/**
- * Delete an app and everything it owns. Irreversible — there is no trash.
- *
- * A 409 means a commit or the initial seed is still running; the app is
- * untouched and the same call works once it settles.
- */
-export async function deleteApp(appId: string): Promise<void> {
-  const res = await protectedApi.apps[":appId"].$delete({
-    param: { appId },
-  });
-  throwIfUnauthorized(res);
-  if (!res.ok) {
-    const detail = await errorMessage(res, `delete failed (${res.status})`);
-    throw new Error(
-      detail === "attempt_in_flight"
-        ? "a commit is still running — try again in a moment"
-        : detail
-    );
-  }
 }
 
 export async function getLiveSources(appId: string): Promise<{

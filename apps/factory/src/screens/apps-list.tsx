@@ -1,20 +1,17 @@
+import { AgentSigil } from "@sfab-lite/ui/components/icons/agent-sigil";
 import { Badge } from "@sfab-lite/ui/components/shadcn/badge";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
-import { Input } from "@sfab-lite/ui/components/shadcn/input";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
+import { cn } from "@sfab-lite/ui/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import type { AppRecord } from "../api";
 import {
   AppLayoutHeader,
   AppLayoutHeaderActions,
 } from "../components/brand/app-layout";
-import {
-  useApps,
-  useCreateApp,
-  useDeleteApp,
-  useRenameApp,
-} from "../hooks/use-apps";
+import { appBasePath } from "../features/preview/reload-preview";
+import { useApps, useCreateApp } from "../hooks/use-apps";
 
 export function AppsListScreen() {
   const navigate = useNavigate();
@@ -47,17 +44,21 @@ export function AppsListScreen() {
     body = <p className="text-destructive">{listError}</p>;
   } else if (appsQuery.isPending) {
     body = (
-      <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0">
-        {[0, 1, 2].map((key) => (
-          <li className="flex items-center gap-4 px-3 py-3" key={key}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {[0, 1, 2, 3].map((key) => (
+          <div
+            className="flex gap-3 rounded-lg border border-border p-4"
+            key={key}
+          >
+            <Skeleton className="size-9 shrink-0 rounded-md" />
             <div className="flex flex-1 flex-col gap-2">
               <Skeleton className="h-4 w-36" />
               <Skeleton className="h-3 w-52" />
+              <Skeleton className="mt-2 h-3 w-40" />
             </div>
-            <Skeleton className="h-5 w-14" />
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     );
   } else if (apps && apps.length === 0) {
     body = (
@@ -66,28 +67,15 @@ export function AppsListScreen() {
       </p>
     );
   } else if (apps) {
+    const sorted = [...apps].sort((left, right) =>
+      left.name.localeCompare(right.name)
+    );
     body = (
-      <ul className="m-0 list-none divide-y divide-border rounded-md border border-border p-0">
-        {apps.map((app) => (
-          <li key={app.id} className="flex items-center hover:bg-muted">
-            <Link
-              className="flex flex-1 items-center justify-between gap-4 px-3 py-3 text-foreground no-underline hover:underline"
-              params={{ appId: app.id }}
-              to="/apps/$appId"
-            >
-              <span>
-                <span className="font-medium">{app.name}</span>
-                <span className="mt-0.5 block font-mono text-muted-foreground text-xs">
-                  {app.id}
-                </span>
-              </span>
-              <StatusBadge status={app.status} />
-            </Link>
-            <RenameAppButton app={app} />
-            <DeleteAppButton app={app} />
-          </li>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {sorted.map((app) => (
+          <AppCard app={app} key={app.id} />
         ))}
-      </ul>
+      </div>
     );
   } else {
     body = null;
@@ -123,139 +111,68 @@ export function AppsListScreen() {
   );
 }
 
-const APP_NAME_MAX_LENGTH = 64;
-
-function RenameAppButton({ app }: { app: AppRecord }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const renameApp = useRenameApp();
-
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    const name = draft?.trim();
-    if (!name || name === app.name) {
-      setDraft(null);
-      return;
-    }
-    try {
-      await renameApp.mutateAsync({ appId: app.id, name });
-      setDraft(null);
-    } catch {
-      // Error on mutation
-    }
-  }
-
-  if (draft === null) {
-    return (
-      <Button
-        aria-label={`Rename ${app.name}`}
-        className="text-muted-foreground"
-        onClick={() => {
-          renameApp.reset();
-          setDraft(app.name);
-        }}
-        size="xs"
-        type="button"
-        variant="ghost"
-      >
-        Rename
-      </Button>
-    );
-  }
-
-  const error =
-    renameApp.error instanceof Error ? renameApp.error.message : null;
+function AppCard({ app }: { app: AppRecord }) {
+  const livePath = `${appBasePath(app.id)}/`;
+  const shortSha = app.liveSha ? app.liveSha.slice(0, 12) : null;
 
   return (
-    <form className="flex items-center gap-2 px-2 py-2" onSubmit={onSubmit}>
-      <Input
-        autoFocus
-        aria-label={`New name for ${app.name}`}
-        className="h-7 w-40 text-xs"
-        disabled={renameApp.isPending}
-        maxLength={APP_NAME_MAX_LENGTH}
-        onChange={(event) => setDraft(event.target.value)}
-        value={draft}
-      />
-      <Button
-        disabled={renameApp.isPending}
-        size="xs"
-        type="submit"
-        variant="ghost"
-      >
-        {renameApp.isPending ? "Saving…" : "Save"}
-      </Button>
-      <Button
-        disabled={renameApp.isPending}
-        onClick={() => setDraft(null)}
-        size="xs"
-        type="button"
-        variant="ghost"
-      >
-        Cancel
-      </Button>
-      {error ? <span className="text-destructive text-xs">{error}</span> : null}
-    </form>
+    <Link
+      className={cn(
+        "flex gap-3 rounded-lg border border-border bg-background p-4",
+        "text-foreground no-underline transition-colors hover:bg-muted/30"
+      )}
+      params={{ appId: app.id }}
+      to="/apps/$appId"
+    >
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40">
+        <AgentSigil className="size-6" grid id={app.id} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="m-0 truncate font-medium text-sm">{app.name}</p>
+            <p className="m-0 mt-0.5 truncate font-mono text-muted-foreground text-xs">
+              {app.status === "ready" ? livePath : app.id}
+            </p>
+          </div>
+          <StatusDot status={app.status} />
+        </div>
+        <p className="m-0 mt-3 truncate text-muted-foreground text-sm">
+          {activityLabel(app, shortSha)}
+        </p>
+        <p className="m-0 mt-2 text-muted-foreground text-xs">
+          Updated {formatWhen(app.updatedAt)}
+        </p>
+      </div>
+    </Link>
   );
 }
 
-function DeleteAppButton({ app }: { app: AppRecord }) {
-  const [armed, setArmed] = useState(false);
-  const deleteApp = useDeleteApp();
-
-  async function onDelete() {
-    try {
-      await deleteApp.mutateAsync(app.id);
-    } catch {
-      setArmed(false);
-    }
+function activityLabel(app: AppRecord, shortSha: string | null): string {
+  if (app.status === "creating") {
+    return "Creating app…";
   }
-
-  const error =
-    deleteApp.error instanceof Error ? deleteApp.error.message : null;
-
-  if (error) {
-    return <span className="px-3 py-3 text-destructive text-xs">{error}</span>;
+  if (app.status === "failed") {
+    return "Create failed";
   }
-
-  if (!armed) {
-    return (
-      <Button
-        aria-label={`Delete ${app.name}`}
-        className="text-muted-foreground hover:text-destructive"
-        onClick={() => {
-          deleteApp.reset();
-          setArmed(true);
-        }}
-        size="xs"
-        type="button"
-        variant="ghost"
-      >
-        Delete
-      </Button>
-    );
+  if (shortSha) {
+    return `Production · ${shortSha}`;
   }
+  return "No live deployment yet";
+}
 
+function StatusDot({ status }: { status: AppRecord["status"] }) {
   return (
-    <span className="flex items-center gap-1 px-2 py-2 text-xs">
-      <Button
-        disabled={deleteApp.isPending}
-        onClick={onDelete}
-        size="xs"
-        type="button"
-        variant="destructive"
-      >
-        {deleteApp.isPending ? "Deleting…" : "Confirm"}
-      </Button>
-      <Button
-        disabled={deleteApp.isPending}
-        onClick={() => setArmed(false)}
-        size="xs"
-        type="button"
-        variant="ghost"
-      >
-        Cancel
-      </Button>
-    </span>
+    <span
+      aria-hidden
+      className={cn(
+        "mt-1.5 inline-block size-2 shrink-0 rounded-full",
+        status === "ready" && "bg-emerald-500",
+        status === "creating" && "bg-amber-500",
+        status === "failed" && "bg-destructive"
+      )}
+      title={status}
+    />
   );
 }
 
@@ -273,4 +190,16 @@ export function StatusBadge({ status }: { status: AppRecord["status"] }) {
       {status}
     </Badge>
   );
+}
+
+function formatWhen(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleDateString(undefined, {
+    month: "numeric",
+    day: "numeric",
+    year: "2-digit",
+  });
 }
