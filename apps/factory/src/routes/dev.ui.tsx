@@ -1,9 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
-import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
+import { ConsoleShellSkeleton } from "@/components/console/console-shell-skeleton";
 
-const UiKitScreen = lazy(() =>
-  import("@/screens/ui-kit").then((m) => ({ default: m.UiKitScreen }))
+const UiKitPage = lazy(() =>
+  import("@/components/dev/ui-kit").then((m) => ({ default: m.UiKitPage }))
 );
 
 export const Route = createFileRoute("/dev/ui")({
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/dev/ui")({
 function DevUiKit() {
   return (
     <Suspense fallback={<ConsoleShellSkeleton />}>
-      <UiKitScreen />
+      <UiKitPage />
     </Suspense>
   );
 }

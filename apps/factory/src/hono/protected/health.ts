@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { handleHealth } from "../../lib/protected/health.js";
+import { handleHealth } from "@/lib/protected/health.js";
 import { protectedCtx } from "../context.js";
 import type { AdminEnv } from "../types.js";
 

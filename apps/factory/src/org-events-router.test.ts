@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import {
   type OrgEventsRouterDeps,
   routeOrgEvent,
-} from "./features/org-events/org-events-router-core.ts";
+} from "./lib/org-events/org-events-router-core.ts";
 import type { OrgEventWire } from "./org-events.ts";
 
 function frame(

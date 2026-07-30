@@ -3,7 +3,7 @@ import {
   handleGetAttempt,
   handleGetLive,
   handleListAttempts,
-} from "../../lib/protected/live.js";
+} from "@/lib/protected/live.js";
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
 import type { AdminEnv } from "../types.js";

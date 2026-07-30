@@ -1,6 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { type McpContext, orgQuery, protectedFetch } from "../lib/context.js";
+import {
+  type McpContext,
+  orgQuery,
+  protectedFetch,
+} from "@/mcp/lib/context.js";
 import { toolError, toolResult } from "../lib/tool-result.js";
 
 const appId = z

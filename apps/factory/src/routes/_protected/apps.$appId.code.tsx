@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppCodeScreen } from "@/screens/app-code";
+import { AppCodePage } from "@/components/apps/app-code";
 
 export const Route = createFileRoute("/_protected/apps/$appId/code")({
   ssr: false,
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/_protected/apps/$appId/code")({
 
 function CodeRoute() {
   const { appId } = Route.useParams();
-  return <AppCodeScreen appId={appId} />;
+  return <AppCodePage appId={appId} />;
 }

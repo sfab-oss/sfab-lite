@@ -6,7 +6,7 @@ import {
   handleListApps,
   handleRenameApp,
   handleTouch,
-} from "../../lib/protected/apps.js";
+} from "@/lib/protected/apps.js";
 import { appCtx, orgCtx } from "../context.js";
 import { requireApp, requireOrganization } from "../middleware.js";
 import { createAppBodySchema, renameAppBodySchema } from "../schemas.js";

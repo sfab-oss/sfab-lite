@@ -1,9 +1,12 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { authClient, endUnusableSession } from "@/auth-client";
-import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
-import { SessionBoot } from "@/components/brand/session-boot";
-import { ConsoleProviders, ConsoleShell } from "@/features/chat/console-shell";
+import {
+  ConsoleProviders,
+  ConsoleShell,
+} from "@/components/console/chat-shell";
+import { ConsoleShellSkeleton } from "@/components/console/console-shell-skeleton";
+import { SessionBoot } from "@/components/console/session-boot";
 import { fetchApps } from "@/hooks/use-apps";
 import { AuthRequiredError } from "@/lib/api-errors";
 import { queryClient } from "@/lib/query-client";

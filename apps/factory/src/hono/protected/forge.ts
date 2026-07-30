@@ -10,7 +10,7 @@ import {
   handleMergePr,
   handlePrDiff,
   handleRerun,
-} from "../../lib/protected/forge.js";
+} from "@/lib/protected/forge.js";
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
 import {
