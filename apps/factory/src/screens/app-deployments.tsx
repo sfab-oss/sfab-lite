@@ -1,12 +1,12 @@
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
-import type { PrRecord } from "@/api";
 import {
   appBasePath,
   appPrPreviewBasePath,
 } from "@/features/preview/reload-preview";
 import { useApp } from "@/hooks/use-apps";
+import type { PrRecord } from "@/hooks/use-prs";
 import { usePrs } from "@/hooks/use-prs";
 
 export function AppDeploymentsScreen({ appId }: { appId: string }) {

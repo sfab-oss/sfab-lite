@@ -5,7 +5,7 @@ import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import type { AppRecord } from "../api";
+import type { AppRecord } from "@/hooks/use-apps";
 import {
   AppLayoutHeader,
   AppLayoutHeaderActions,

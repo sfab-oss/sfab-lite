@@ -1,10 +1,11 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { Suspense } from "react";
-import { AuthRequiredError, listApps } from "@/api";
 import { authClient, endUnusableSession } from "@/auth-client";
 import { ConsoleShellSkeleton } from "@/components/brand/console-shell-skeleton";
 import { SessionBoot } from "@/components/brand/session-boot";
 import { ConsoleProviders, ConsoleShell } from "@/features/chat/console-shell";
+import { fetchApps } from "@/hooks/use-apps";
+import { AuthRequiredError } from "@/lib/api-errors";
 import { queryClient } from "@/lib/query-client";
 
 export const Route = createFileRoute("/_protected")({
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/_protected")({
     try {
       await queryClient.ensureQueryData({
         queryKey: ["apps"],
-        queryFn: listApps,
+        queryFn: fetchApps,
       });
     } catch (error) {
       if (error instanceof AuthRequiredError) {

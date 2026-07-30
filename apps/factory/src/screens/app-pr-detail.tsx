@@ -3,7 +3,7 @@ import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import type { CheckRunRecord, PrDiffFile, PrRecord } from "../api";
+import type { CheckRunRecord, PrDiffFile, PrRecord } from "@/hooks/use-prs";
 import { appPrPreviewBasePath } from "../features/preview/reload-preview";
 import { useMergePr, usePr, usePrDiff, useRerun } from "../hooks/use-prs";
 

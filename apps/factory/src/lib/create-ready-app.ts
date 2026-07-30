@@ -1,4 +1,4 @@
-import { createApp } from "@/api";
+import { createApp } from "@/lib/create-app";
 import { waitForAppReady } from "@/lib/wait-for-app-ready";
 
 /** Create an app and wait until it is ready (Agent needs a live handle). */

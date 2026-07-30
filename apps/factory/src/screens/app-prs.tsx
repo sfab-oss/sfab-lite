@@ -2,7 +2,7 @@ import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import type { PrRecord } from "../api";
+import type { PrRecord } from "@/hooks/use-prs";
 import { useCreatePr, usePrs } from "../hooks/use-prs";
 
 export function AppPrsScreen({ appId }: { appId: string }) {

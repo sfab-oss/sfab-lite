@@ -1,4 +1,4 @@
-import { getLiveSources } from "@/api";
+import { fetchLiveSources } from "@/hooks/use-apps";
 import type { Thread } from "../model/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";
@@ -133,7 +133,7 @@ export function createRealChatData(): RealChatData {
         notify();
         return;
       }
-      const live = await getLiveSources(nextAppId).catch(() => null);
+      const live = await fetchLiveSources(nextAppId).catch(() => null);
       appId = nextAppId;
       liveSha = live?.liveSha ?? null;
       sourceFiles = live?.sourceFiles ?? {};

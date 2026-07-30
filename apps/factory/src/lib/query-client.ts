@@ -1,6 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
-import { AuthRequiredError } from "@/api";
 import { endUnusableSession } from "@/auth-client";
+import { AuthRequiredError } from "@/lib/api-errors";
 
 function onAuthRequired(error: unknown) {
   if (!(error instanceof AuthRequiredError)) {

@@ -13,9 +13,47 @@ import {
 import { BoxesIcon } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
-import type { McpConsentContext } from "../api";
-import { fetchMcpConsentContext, submitMcpConsent } from "../api";
+import { errorMessage } from "@/lib/api-errors";
+import { client } from "@/lib/client";
 import { SignInScreen } from "./sign-in";
+
+interface McpConsentContext {
+  user: { name: string; email: string };
+  organizations: { id: string; name: string; slug: string }[];
+}
+
+async function fetchMcpConsentContext(): Promise<McpConsentContext | null> {
+  const res = await client.mcp.consent.$get();
+  if (res.status === 401) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(await errorMessage(res, `consent failed (${res.status})`));
+  }
+  return (await res.json()) as McpConsentContext;
+}
+
+async function submitMcpConsent(input: {
+  oauthQuery: string;
+  organizationId: string;
+  accept: boolean;
+}): Promise<string> {
+  const res = await client.mcp.consent.$post({
+    json: {
+      oauth_query: input.oauthQuery,
+      organizationId: input.organizationId,
+      accept: input.accept,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(await errorMessage(res, `consent failed (${res.status})`));
+  }
+  const body = (await res.json()) as { url?: string };
+  if (!body.url) {
+    throw new Error("the authorization server returned no redirect");
+  }
+  return body.url;
+}
 
 /**
  * Grant an MCP client access to one organization in this factory.

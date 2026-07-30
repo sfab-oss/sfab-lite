@@ -16,9 +16,18 @@ import { useNavigate } from "@tanstack/react-router";
 import { BoxesIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { AuthCardSkeleton } from "@/components/brand/auth-card-skeleton";
-import type { AuthConfig } from "../api";
-import { fetchAuthConfig } from "../api";
+import { client } from "@/lib/client";
 import { authClient } from "../auth-client";
+
+async function fetchAuthConfig() {
+  const res = await client.config.$get();
+  if (!res.ok) {
+    throw new Error(`config failed (${res.status})`);
+  }
+  return res.json();
+}
+
+type AuthConfig = Awaited<ReturnType<typeof fetchAuthConfig>>;
 
 type AuthMode = "signin" | "signup";
 
