@@ -15,6 +15,8 @@ architecture, decisions, and measured constraints — not operator manuals.
 | [`decisions/`](decisions/) | Authoritative | ADRs — costly, cross-cutting choices among real alternatives |
 | [`engineering/`](engineering/) | Authoritative | Living technique guides — how we work within the platform's limits |
 | [`engineering/DEPLOY.md`](engineering/DEPLOY.md) | Authoritative | Deploy prerequisites — secrets, the shared `ADMIN_TOKEN`, the health check that proves them |
+| [`engineering/terminology.md`](engineering/terminology.md) | Authoritative | Two planes, reserved words, forge glossary |
+| [`engineering/agent-surfaces.md`](engineering/agent-surfaces.md) | Authoritative | MCP named tools vs in-app code-mode — what transfers |
 | [`notes/`](notes/) | Non-authoritative | In-flight working notes; graduate or delete |
 
 Start with

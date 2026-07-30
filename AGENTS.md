@@ -12,7 +12,9 @@ starter-lite template. Packages are `@sfab-lite/*`.
 
 **Lite** means the hosted template / frozen-kernel sub-apps — not skimpy
 factory tooling. Architecture:
-[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md).
+[`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md). Naming (factory
+vs app plane, reserved words):
+[`docs/engineering/terminology.md`](docs/engineering/terminology.md).
 
 ## Commands
 

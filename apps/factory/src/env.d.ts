@@ -55,9 +55,9 @@ declare global {
     /**
      * The **factory's** better-auth secret — its own sign-in, not any app's.
      *
-     * Per GLOSSARY.md, factory terms go unqualified and app-side ones take the
-     * `app` qualifier. The host now holds two better-auth secrets, so the two
-     * names must never be confused.
+     * Per docs/engineering/terminology.md, factory terms go unqualified and
+     * app-side ones take the `app` qualifier. The host now holds two
+     * better-auth secrets, so the two names must never be confused.
      */
     BETTER_AUTH_SECRET: string;
     /**
@@ -131,8 +131,8 @@ declare global {
     ADMIN_TOKEN?: string;
     /**
      * GitHub sign-in for the **factory** — the intended production front
-     * door. Unqualified per GLOSSARY.md: these are the factory's own
-     * credentials and are never injected into a generated app.
+     * door. Unqualified per docs/engineering/terminology.md: these are the
+     * factory's own credentials and are never injected into a generated app.
      *
      * The provider is registered only when **both** are non-blank after a
      * trim — a whitespace-only secret is treated as absent, since it is
