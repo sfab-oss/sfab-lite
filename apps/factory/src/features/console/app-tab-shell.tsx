@@ -1,6 +1,9 @@
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { AppLayoutHeader } from "@/components/brand/app-layout";
+import {
+  AppLayoutHeader,
+  AppLayoutSubheader,
+} from "@/components/brand/app-layout";
 import { useApp } from "@/hooks/use-apps";
 
 const TABS = [
@@ -50,42 +53,46 @@ export function AppTabShell({ appId }: { appId: string }) {
   const active = activeTabFromPath(pathname, appId);
 
   return (
-    <AppLayoutHeader className="gap-4 px-3">
-      <div className="flex min-w-0 shrink-0 items-center gap-2">
-        <Link
-          className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
-          to="/apps"
+    <>
+      <AppLayoutHeader className="px-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link
+            className="shrink-0 text-muted-foreground text-sm no-underline hover:underline"
+            to="/apps"
+          >
+            Apps
+          </Link>
+          <span className="text-muted-foreground text-sm">/</span>
+          <span className="truncate font-medium text-sm">
+            {appQuery.data?.name ?? "App"}
+          </span>
+        </div>
+      </AppLayoutHeader>
+      <AppLayoutSubheader className="px-3">
+        <nav
+          aria-label="App sections"
+          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
         >
-          Apps
-        </Link>
-        <span className="text-muted-foreground text-sm">/</span>
-        <span className="truncate font-medium text-sm">
-          {appQuery.data?.name ?? "App"}
-        </span>
-      </div>
-      <nav
-        aria-label="App sections"
-        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
-      >
-        {TABS.map((tab) => {
-          const isActive = active === tab.id;
-          return (
-            <Link
-              className={cn(
-                "shrink-0 rounded-md px-2.5 py-1 text-sm no-underline transition-colors",
-                isActive
-                  ? "bg-muted font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              key={tab.id}
-              params={{ appId }}
-              to={tab.to}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
-    </AppLayoutHeader>
+          {TABS.map((tab) => {
+            const isActive = active === tab.id;
+            return (
+              <Link
+                className={cn(
+                  "shrink-0 rounded-md px-2.5 py-1 text-sm no-underline transition-colors",
+                  isActive
+                    ? "bg-muted font-medium text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                key={tab.id}
+                params={{ appId }}
+                to={tab.to}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </nav>
+      </AppLayoutSubheader>
+    </>
   );
 }

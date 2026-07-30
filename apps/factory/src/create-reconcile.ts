@@ -19,7 +19,7 @@ export async function reconcileCreatingApps(
     const { appId, organizationId } = action;
     publishOrgEvent(
       { env, organizationId },
-      { topic: "app_list_changed", payload: { appId } }
+      { topic: "app_record_changed", payload: { appId } }
     );
   }
 }

@@ -61,7 +61,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     if (failed) {
       publishOrgEvent(
         { env: rc.env, organizationId },
-        { topic: "app_list_changed", payload: { appId } }
+        { topic: "app_record_changed", payload: { appId } }
       );
     }
     return protectedError(
@@ -76,7 +76,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     if (failed) {
       publishOrgEvent(
         { env: rc.env, organizationId },
-        { topic: "app_list_changed", payload: { appId } }
+        { topic: "app_record_changed", payload: { appId } }
       );
     }
     return createConflict(appId, start.jobId);

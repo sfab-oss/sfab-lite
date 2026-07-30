@@ -15,7 +15,12 @@ import { useNavigate } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { readyAppsFromList, useApps, useCreateApp } from "@/hooks/use-apps";
+import {
+  readyAppsFromList,
+  useApps,
+  useCreateApp,
+  useCreateReadyApp,
+} from "@/hooks/use-apps";
 import type { ComposerScope } from "./components/composer-scope-chip";
 import {
   ResponsiveSidePanel,
@@ -100,6 +105,7 @@ export function ChatScreen() {
 
   const appsQuery = useApps();
   const createApp = useCreateApp();
+  const createReadyApp = useCreateReadyApp();
   const [activeThreadId, setActiveThreadId] = useState<string | null>(
     routeThreadId
   );
@@ -114,10 +120,13 @@ export function ChatScreen() {
   const setWorkspaceOpen = useWorkspaceTabsStore((s) => s.setWorkspaceOpen);
   const { canDock, setContainerNode } = useSidePanelLayout();
 
-  const creating = createApp.isPending;
-  const createError =
-    shellError ??
-    (createApp.error instanceof Error ? createApp.error.message : null);
+  const creating = createApp.isPending || createReadyApp.isPending;
+  let createError = shellError;
+  if (!createError && createApp.error instanceof Error) {
+    createError = createApp.error.message;
+  } else if (!createError && createReadyApp.error instanceof Error) {
+    createError = createReadyApp.error.message;
+  }
 
   useEffect(() => {
     if (routeAppId && routeThreadId) {
@@ -195,9 +204,10 @@ export function ChatScreen() {
       setWorkspaceOpen(false);
       setShellError(null);
       createApp.reset();
+      createReadyApp.reset();
       goAgentHome(appId);
     },
-    [attend, createApp, goAgentHome, setScope, setWorkspaceOpen]
+    [attend, createApp, createReadyApp, goAgentHome, setScope, setWorkspaceOpen]
   );
 
   const goHome = useCallback(() => {
@@ -206,6 +216,7 @@ export function ChatScreen() {
     setWorkspaceOpen(false);
     setShellError(null);
     createApp.reset();
+    createReadyApp.reset();
     if (routeAppId) {
       goAgentHome(routeAppId);
       return;
@@ -217,6 +228,7 @@ export function ChatScreen() {
     clearAttention,
     clearScope,
     createApp,
+    createReadyApp,
     goAgentHome,
     goChatHome,
     routeAppId,
@@ -225,16 +237,17 @@ export function ChatScreen() {
 
   const createThreadFromBlank = useCallback(
     async (text: string) => {
-      if (createApp.isPending) {
+      if (createApp.isPending || createReadyApp.isPending) {
         return;
       }
       setShellError(null);
       createApp.reset();
+      createReadyApp.reset();
       try {
         let appId = scopedApp?.appId ?? null;
         let appName: string | null = scopedApp?.appName ?? null;
         if (!appId) {
-          const created = await createApp.mutateAsync(undefined);
+          const created = await createReadyApp.mutateAsync(undefined);
           appId = created.appId;
           appName = created.name;
         }
@@ -266,6 +279,7 @@ export function ChatScreen() {
       attend,
       chatData,
       createApp,
+      createReadyApp,
       goThread,
       scopedApp,
       setScope,
@@ -275,7 +289,7 @@ export function ChatScreen() {
   );
 
   const createEmptyApp = useCallback(async () => {
-    if (createApp.isPending) {
+    if (createApp.isPending || createReadyApp.isPending) {
       return;
     }
     setShellError(null);
@@ -288,7 +302,7 @@ export function ChatScreen() {
     } catch {
       // Error on createApp.error
     }
-  }, [createApp, navigate]);
+  }, [createApp, createReadyApp, navigate]);
 
   const composerScope = useMemo<ComposerScope | undefined>(() => {
     if (routeAppId) {

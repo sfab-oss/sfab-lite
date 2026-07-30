@@ -55,6 +55,7 @@ function ConsoleSidebar() {
       activeAppId={route.appDashboardId}
       apps={apps}
       appsActive={route.appsRoute}
+      creating={createApp.isPending}
       onNewApp={onNewApp}
       onSignOut={onSignOut}
     />

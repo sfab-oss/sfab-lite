@@ -54,7 +54,7 @@ async function handleRunCreate(
       if (record) {
         publishOrgEvent(
           { env: rc.env, organizationId: record.organizationId },
-          { topic: "app_list_changed", payload: { appId } }
+          { topic: "app_record_changed", payload: { appId } }
         );
       }
       return Response.json({
@@ -69,7 +69,7 @@ async function handleRunCreate(
     if (record) {
       publishOrgEvent(
         { env: rc.env, organizationId: record.organizationId },
-        { topic: "app_list_changed", payload: { appId } }
+        { topic: "app_record_changed", payload: { appId } }
       );
     }
     return Response.json({ ok: true, appId, attemptId: jobId, status: "pass" });
@@ -84,7 +84,7 @@ async function handleRunCreate(
     if (record) {
       publishOrgEvent(
         { env: rc.env, organizationId: record.organizationId },
-        { topic: "app_list_changed", payload: { appId } }
+        { topic: "app_record_changed", payload: { appId } }
       );
     }
     return Response.json({

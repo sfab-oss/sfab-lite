@@ -22,6 +22,7 @@ export interface ConsoleAppsSidebarProps {
   activeAppId?: string | null;
   apps: Array<{ appId: string; appName: string }>;
   appsActive?: boolean;
+  creating?: boolean;
   onNewApp: () => void;
   onSignOut?: () => void;
   railClassName?: string;
@@ -32,6 +33,7 @@ export interface ConsoleAppsSidebarProps {
 export function ConsoleAppsSidebar({
   apps,
   activeAppId = null,
+  creating = false,
   onNewApp,
   onSignOut,
   appsActive = false,
@@ -57,6 +59,9 @@ export function ConsoleAppsSidebar({
   };
 
   const createApp = () => {
+    if (creating) {
+      return;
+    }
     onNewApp();
     if (isMobile) {
       setOpenMobile(false);
@@ -105,12 +110,16 @@ export function ConsoleAppsSidebar({
         <SidebarGroup>
           <SidebarGroupLabel>Apps</SidebarGroupLabel>
           <SidebarGroupAction
-            aria-label="New app"
+            aria-busy={creating}
+            aria-label={creating ? "Creating app" : "New app"}
+            disabled={creating}
             onClick={createApp}
-            title="New app"
+            title={creating ? "Creating…" : "New app"}
           >
-            <Plus />
-            <span className="sr-only">New app</span>
+            <Plus className={creating ? "animate-pulse" : undefined} />
+            <span className="sr-only">
+              {creating ? "Creating app" : "New app"}
+            </span>
           </SidebarGroupAction>
 
           {apps.length === 0 ? (

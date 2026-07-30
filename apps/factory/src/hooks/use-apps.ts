@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type AppRecord,
+  createApp,
   deleteApp,
   getApp,
   getAttempt,
@@ -50,7 +51,17 @@ export function useAppAttempt(
   });
 }
 
+/** Console create: returns on 202 (`creating`) so the UI can navigate immediately. */
 export function useCreateApp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name?: string) => createApp(name),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: appsQueryKey }),
+  });
+}
+
+/** Agent create: waits until the app is ready to open a handle/thread. */
+export function useCreateReadyApp() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (name?: string) => createReadyApp(name),

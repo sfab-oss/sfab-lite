@@ -123,3 +123,21 @@ export function AppLayoutHeaderActions({
     </div>
   );
 }
+
+export function AppLayoutSubheader({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "flex h-9 shrink-0 items-center border-b bg-background px-4",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
