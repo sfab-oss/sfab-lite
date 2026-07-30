@@ -15,7 +15,7 @@ import {
   useSidebar,
 } from "@sfab-lite/ui/components/shadcn/sidebar";
 import { useNavigate } from "@tanstack/react-router";
-import { AppWindow, Plus } from "lucide-react";
+import { LayoutGrid, Plus } from "lucide-react";
 import { ConsoleAppsSidebarFooter } from "./console-apps-sidebar-footer";
 
 export interface ConsoleAppsSidebarProps {
@@ -97,11 +97,11 @@ export function ConsoleAppsSidebar({
               <SidebarMenuButton
                 isActive={appsActive && !activeAppId}
                 onClick={goApps}
-                tooltip="All apps"
+                tooltip="Apps"
                 type="button"
               >
-                <AppWindow className="size-4" />
-                <span>All apps</span>
+                <LayoutGrid className="size-4" />
+                <span>Apps</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

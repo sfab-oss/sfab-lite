@@ -1,15 +1,20 @@
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
+import { cn } from "@sfab-lite/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
+import { ExternalLink } from "lucide-react";
 import type {
   AppRecord,
   AttemptRecord,
   CheckRunRecord,
   PrRecord,
 } from "../api";
+import { appBasePath } from "../features/preview/reload-preview";
 import { useApp, useAppAttempt } from "../hooks/use-apps";
 import { usePrs, useRuns } from "../hooks/use-prs";
 import { StatusBadge } from "./apps-list";
+
+const IFRAME_SANDBOX = "allow-same-origin allow-scripts allow-forms";
 
 export function AppDetailScreen({ appId }: { appId: string }) {
   const appQuery = useApp(appId);
@@ -37,10 +42,17 @@ export function AppDetailScreen({ appId }: { appId: string }) {
       {error ? <p className="text-destructive">{error}</p> : null}
 
       {appQuery.isPending && !app ? (
-        <div className="flex flex-col gap-3">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64" />
-          <Skeleton className="h-24 w-full max-w-lg" />
+        <div className="flex max-w-5xl flex-col gap-6">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+            <Skeleton className="aspect-[16/10] w-full rounded-lg" />
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-7 w-48" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-64" />
+              <Skeleton className="mt-4 h-9 w-24" />
+            </div>
+          </div>
+          <Skeleton className="h-16 w-full" />
         </div>
       ) : null}
 
@@ -67,39 +79,121 @@ function OverviewBody({
   latestRun: CheckRunRecord | null;
   openPrs: PrRecord[];
 }) {
-  return (
-    <div className="flex max-w-2xl flex-col gap-8">
-      <section className="flex flex-wrap items-center gap-3">
-        <h1 className="m-0 font-semibold text-xl">{app.name}</h1>
-        <StatusBadge status={app.status} />
-      </section>
+  const liveHref = `${appBasePath(app.id)}/`;
+  const canVisit = app.status === "ready" && Boolean(app.liveSha);
+  const shortSha = app.liveSha ? app.liveSha.slice(0, 12) : null;
 
-      <section className="rounded-lg border border-border p-4">
-        <h2 className="m-0 mb-3 font-medium text-sm">Production</h2>
-        <p className="m-0 font-mono text-muted-foreground text-xs">
-          {app.liveSha ? app.liveSha.slice(0, 12) : "No live deployment yet"}
-        </p>
-        {app.status === "ready" && app.liveSha ? (
-          <div className="mt-3">
+  return (
+    <div className="mx-auto flex w-full max-w-5xl flex-col">
+      <section className="grid gap-6 border-border border-b pb-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-stretch">
+        <LivePreviewPane
+          appId={app.id}
+          canVisit={canVisit}
+          href={liveHref}
+          status={app.status}
+        />
+
+        <div className="flex min-w-0 flex-col gap-5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <StatusDot status={app.status} />
+            <h1 className="m-0 font-semibold text-xl tracking-tight">
+              {app.name}
+            </h1>
+            <StatusBadge status={app.status} />
+          </div>
+
+          {app.status === "creating" ? (
+            <p className="m-0 text-muted-foreground text-sm">
+              Initializing the repo and running the first deployment…
+            </p>
+          ) : null}
+
+          {app.status === "failed" ? (
+            <p className="m-0 text-destructive text-sm">
+              Create failed. See details below.
+            </p>
+          ) : null}
+
+          {canVisit ? (
+            <dl className="m-0 grid gap-3 text-sm">
+              <div>
+                <dt className="text-muted-foreground text-xs uppercase tracking-wide">
+                  Domains
+                </dt>
+                <dd className="m-0 mt-1">
+                  <a
+                    className="break-all font-mono text-foreground text-xs no-underline hover:underline"
+                    href={liveHref}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {liveHref}
+                  </a>
+                </dd>
+              </div>
+              {shortSha ? (
+                <div>
+                  <dt className="text-muted-foreground text-xs uppercase tracking-wide">
+                    Deployment
+                  </dt>
+                  <dd className="m-0 mt-1 font-mono text-xs">{shortSha}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
+
+          <div className="mt-auto flex flex-wrap gap-2 pt-2">
+            {canVisit ? (
+              <Button
+                render={<a href={liveHref} rel="noreferrer" target="_blank" />}
+              >
+                Visit
+                <ExternalLink className="size-3.5 opacity-70" />
+              </Button>
+            ) : null}
             <Button
               render={
-                <a
-                  href={`/a/${encodeURIComponent(app.id)}/`}
-                  rel="noreferrer"
-                  target="_blank"
+                <Link
+                  params={{ appId: app.id }}
+                  to="/apps/$appId/deployments"
                 />
               }
-              size="sm"
+              variant="outline"
             >
-              Open live
+              Deployments
             </Button>
           </div>
-        ) : null}
+        </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid grid-cols-2 gap-x-6 gap-y-4 border-border border-b py-5 md:grid-cols-4">
+        <MetaCell label="Commit">
+          {shortSha ? (
+            <Link
+              className="font-mono text-foreground text-xs no-underline hover:underline"
+              params={{ appId: app.id }}
+              to="/apps/$appId/code"
+            >
+              {shortSha}
+            </Link>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          )}
+        </MetaCell>
+        <MetaCell label="Branch">
+          <span className="font-mono text-xs">main</span>
+        </MetaCell>
+        <MetaCell label="Created">
+          <time dateTime={app.createdAt}>{formatWhen(app.createdAt)}</time>
+        </MetaCell>
+        <MetaCell label="Updated">
+          <time dateTime={app.updatedAt}>{formatWhen(app.updatedAt)}</time>
+        </MetaCell>
+      </section>
+
+      <section className="grid gap-3 border-border border-b py-6 sm:grid-cols-2">
         <Link
-          className="rounded-lg border border-border p-4 text-foreground no-underline transition-colors hover:bg-muted/40"
+          className="rounded-lg border border-border px-4 py-3 text-foreground no-underline transition-colors hover:bg-muted/40"
           params={{ appId: app.id }}
           to="/apps/$appId/prs"
         >
@@ -109,7 +203,7 @@ function OverviewBody({
           </p>
         </Link>
         <Link
-          className="rounded-lg border border-border p-4 text-foreground no-underline transition-colors hover:bg-muted/40"
+          className="rounded-lg border border-border px-4 py-3 text-foreground no-underline transition-colors hover:bg-muted/40"
           params={{ appId: app.id }}
           to="/apps/$appId/actions"
         >
@@ -120,30 +214,92 @@ function OverviewBody({
         </Link>
       </section>
 
-      {app.status === "ready" ? (
-        <div>
-          <Button
-            render={<Link params={{ appId: app.id }} to="/apps/$appId/agent" />}
-          >
-            Open Agent
-          </Button>
-        </div>
-      ) : null}
-
-      {app.status === "creating" ? (
-        <p className="m-0 text-muted-foreground text-sm">
-          Initializing the repo and running CD. Polling automatically.
-        </p>
-      ) : null}
-
       <AttemptSection app={app} attempt={attempt} />
 
       {app.status === "failed" && !app.createAttemptId ? (
-        <p className="text-destructive text-sm">
+        <p className="mt-6 text-destructive text-sm">
           Create failed during bootstrap (no job id).
         </p>
       ) : null}
     </div>
+  );
+}
+
+function LivePreviewPane({
+  appId,
+  canVisit,
+  href,
+  status,
+}: {
+  appId: string;
+  canVisit: boolean;
+  href: string;
+  status: AppRecord["status"];
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-border bg-muted/30">
+      <div className="aspect-[16/10] w-full">
+        {canVisit ? (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <iframe
+              className="absolute top-0 left-0 h-[200%] w-[200%] origin-top-left scale-50 border-0 bg-background"
+              sandbox={IFRAME_SANDBOX}
+              src={`${appBasePath(appId)}/`}
+              title={`${appId} live preview`}
+            />
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center px-6 text-center">
+            <p className="m-0 text-muted-foreground text-sm">
+              {status === "creating"
+                ? "Preview will appear when the first deployment is ready"
+                : "No live deployment yet"}
+            </p>
+          </div>
+        )}
+      </div>
+      {canVisit ? (
+        <a
+          className="absolute inset-0 z-10"
+          href={href}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <span className="sr-only">Open live deployment</span>
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
+function MetaCell({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="m-0 text-muted-foreground text-xs uppercase tracking-wide">
+        {label}
+      </p>
+      <div className="mt-1 truncate text-sm">{children}</div>
+    </div>
+  );
+}
+
+function StatusDot({ status }: { status: AppRecord["status"] }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "inline-block size-2 shrink-0 rounded-full",
+        status === "ready" && "bg-emerald-500",
+        status === "creating" && "bg-amber-500",
+        status === "failed" && "bg-destructive"
+      )}
+    />
   );
 }
 
@@ -158,8 +314,8 @@ function AttemptSection({
     return null;
   }
   return (
-    <section>
-      <h2 className="m-0 mb-2 font-semibold text-base">Create job</h2>
+    <section className="py-6">
+      <h2 className="m-0 mb-3 font-medium text-sm">Create job</h2>
       <dl className="m-0 grid gap-2 text-sm">
         <div className="flex gap-3">
           <dt className="w-28 text-muted-foreground">Id</dt>
@@ -208,4 +364,18 @@ function formatPayload(payload: unknown): string {
   } catch {
     return String(payload);
   }
+}
+
+function formatWhen(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
