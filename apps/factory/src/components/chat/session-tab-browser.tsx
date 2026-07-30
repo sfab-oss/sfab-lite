@@ -117,7 +117,7 @@ async function ensureWorkspaceBuildReady(
   },
   generationRef: { current: number | null },
   setBuildHint: (hint: string | null) => void,
-  onReady: () => void,
+  reloadFrame: () => void,
   isCancelled: () => boolean
 ): Promise<void> {
   await agent.ready;
@@ -131,11 +131,7 @@ async function ensureWorkspaceBuildReady(
   rememberGeneration(status, generationRef);
   if (applyReadyGeneration(status, generationRef)) {
     setBuildHint(null);
-    onReady();
     return;
-  }
-  if (generationRef.current != null) {
-    onReady();
   }
   const hint = hintForStatus(status, generationRef);
   if (hint) {
@@ -159,11 +155,8 @@ async function ensureWorkspaceBuildReady(
   rememberGeneration(next, generationRef);
   if (applyReadyGeneration(next, generationRef)) {
     setBuildHint(null);
-    onReady();
+    reloadFrame();
     return;
-  }
-  if (generationRef.current != null) {
-    onReady();
   }
   const nextHint = hintForStatus(next, generationRef);
   if (nextHint) {
@@ -175,7 +168,7 @@ function handleWorkspaceAgentMessage(
   data: string,
   generationRef: { current: number | null },
   setBuildHint: (hint: string | null) => void,
-  onReady: () => void,
+  reloadFrame: () => void,
   refreshQuickLinks: () => void
 ): void {
   try {
@@ -201,7 +194,7 @@ function handleWorkspaceAgentMessage(
       }
       setBuildHint(null);
       refreshQuickLinks();
-      onReady();
+      reloadFrame();
       return;
     }
     if (parsed.type !== "workspace-build-status") {
@@ -259,24 +252,17 @@ function BrowserFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pathRef = useRef("/");
   const generationRef = useRef<number | null>(null);
-  const frameMountedRef = useRef(false);
   const [path, setPath] = useState("/");
   const [draft, setDraft] = useState(localhostDisplayPath("/"));
   const [editing, setEditing] = useState(false);
   const [buildHint, setBuildHint] = useState<string | null>("Starting…");
-  const [frameMounted, setFrameMounted] = useState(false);
   const [quickLinks, setQuickLinks] = useState<string[]>([]);
   const rootSrc = `${appWorkspaceBasePath(workspaceId)}/`;
 
   pathRef.current = path;
 
-  const onBuildReady = useCallback(() => {
-    if (frameMountedRef.current) {
-      reloadWorkspaceFrame(iframeRef.current, workspaceId, pathRef.current);
-      return;
-    }
-    frameMountedRef.current = true;
-    setFrameMounted(true);
+  const reloadFrame = useCallback(() => {
+    reloadWorkspaceFrame(iframeRef.current, workspaceId, pathRef.current);
   }, [workspaceId]);
 
   const refreshQuickLinksRef = useRef<() => void>(() => undefined);
@@ -292,7 +278,7 @@ function BrowserFrame({
         event.data,
         generationRef,
         setBuildHint,
-        onBuildReady,
+        reloadFrame,
         () => refreshQuickLinksRef.current()
       );
     },
@@ -323,7 +309,7 @@ function BrowserFrame({
         agent,
         generationRef,
         setBuildHint,
-        onBuildReady,
+        reloadFrame,
         () => cancelled
       ).catch((e) => {
         if (!cancelled) {
@@ -336,7 +322,7 @@ function BrowserFrame({
     return () => {
       cancelled = true;
     };
-  }, [agent, onBuildReady]);
+  }, [agent, reloadFrame]);
 
   useEffect(() => {
     if (!active) {
@@ -430,7 +416,7 @@ function BrowserFrame({
         )) as WorkspaceBuildRpcStatus;
         if (applyReadyGeneration(next, generationRef)) {
           setBuildHint(null);
-          onBuildReady();
+          reloadFrame();
           return;
         }
         const hint = hintForStatus(next, generationRef);
@@ -533,21 +519,13 @@ function BrowserFrame({
           <p className="px-1 text-[11px] text-muted-foreground">{buildHint}</p>
         ) : null}
       </div>
-      {frameMounted ? (
-        <iframe
-          className="min-h-0 w-full flex-1 border-0 bg-background"
-          ref={iframeRef}
-          sandbox={IFRAME_SANDBOX}
-          src={rootSrc}
-          title="Workspace browser"
-        />
-      ) : (
-        <div className="flex min-h-0 flex-1 items-center justify-center bg-background">
-          <p className="text-muted-foreground text-sm">
-            {buildHint ?? "Starting…"}
-          </p>
-        </div>
-      )}
+      <iframe
+        className="min-h-0 w-full flex-1 border-0 bg-background"
+        ref={iframeRef}
+        sandbox={IFRAME_SANDBOX}
+        src={rootSrc}
+        title="Workspace browser"
+      />
     </div>
   );
 }

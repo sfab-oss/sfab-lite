@@ -148,6 +148,14 @@ async function loadWorkspaceBuild(
   }
   try {
     const agent = await getAgentByName(env.AppAgent, workspaceId);
+    const wake = await agent.workspaceWakeStatus();
+    if (wake.clone === "failed") {
+      return {
+        ok: false,
+        error: "workspace_compile_failed",
+        detail: wake.error ?? undefined,
+      };
+    }
     const status = await agent.workspaceBuildStatus();
     if (status.status === "error") {
       return {
@@ -156,7 +164,9 @@ async function loadWorkspaceBuild(
         detail: status.error ?? undefined,
       };
     }
-    await agent.kickWorkspaceCompile();
+    if (status.status !== "compiling") {
+      await agent.kickWorkspaceCompile();
+    }
   } catch (e) {
     return {
       ok: false,

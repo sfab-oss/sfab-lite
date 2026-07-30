@@ -140,20 +140,7 @@ export class AppAgent extends Think<Env> {
       updated_at INTEGER NOT NULL
     )`;
 
-    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
-    if (isWorkspaceCloneReady(status)) {
-      return;
-    }
-    if (workspaceCloneFailureReason(status)) {
-      console.warn(
-        `[AppAgent] ${this.name}: workspace clone previously failed: ${workspaceCloneFailureReason(status)}`
-      );
-      return;
-    }
-    if (!status) {
-      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
-    }
-    await this.schedule(0, SEED_CALLBACK, {}, { idempotent: true });
+    await this.#scheduleSeedIfNeeded({ retryFailed: false });
   }
 
   /**
@@ -261,40 +248,46 @@ export class AppAgent extends Think<Env> {
   }
 
   /**
-   * Manual refresh — compiles immediately (cancels pending debounce).
-   * Browser-callable so Agent Browser Reload can force a rebuild.
-   */
-  @callable()
-  async compileWorkspaceNow(): Promise<WorkspaceBuildStatus> {
-    await this.#cancelCompileSchedules();
-    return this.#runWorkspaceCompile();
-  }
-
-  /**
    * Schedule seed and/or WIP compile without awaiting them. Serve and Browser
    * wake paths must use this — fire-and-forget promises are dropped on Workers.
    */
   @callable()
   async kickWorkspaceCompile(): Promise<WorkspaceBuildStatus> {
-    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
-    if (workspaceCloneFailureReason(status)) {
-      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
-      await this.schedule(0, SEED_CALLBACK, {}, { idempotent: true });
-      return this.#readWorkspaceBuildStatus();
-    }
-    if (!isWorkspaceCloneReady(status)) {
-      if (!status) {
-        await this.ctx.storage.put(
-          WORKSPACE_CLONED_KEY,
-          WORKSPACE_CLONE_PENDING
-        );
-      }
-      await this.schedule(0, SEED_CALLBACK, {}, { idempotent: true });
+    if (await this.#scheduleSeedIfNeeded({ retryFailed: true })) {
       return this.#readWorkspaceBuildStatus();
     }
     await this.#cancelCompileSchedules();
     await this.schedule(0, COMPILE_CALLBACK, {});
     return this.#readWorkspaceBuildStatus();
+  }
+
+  /**
+   * Ensure a seed alarm is scheduled when the clone is not ready.
+   * @returns true when clone is not ready (seed scheduled, or durable failure left alone).
+   */
+  async #scheduleSeedIfNeeded({
+    retryFailed,
+  }: {
+    retryFailed: boolean;
+  }): Promise<boolean> {
+    const status = await this.ctx.storage.get<string>(WORKSPACE_CLONED_KEY);
+    if (isWorkspaceCloneReady(status)) {
+      return false;
+    }
+    const failure = workspaceCloneFailureReason(status);
+    if (failure) {
+      if (!retryFailed) {
+        console.warn(
+          `[AppAgent] ${this.name}: workspace clone previously failed: ${failure}`
+        );
+        return true;
+      }
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
+    } else if (!status) {
+      await this.ctx.storage.put(WORKSPACE_CLONED_KEY, WORKSPACE_CLONE_PENDING);
+    }
+    await this.schedule(0, SEED_CALLBACK, {}, { idempotent: true });
+    return true;
   }
 
   @callable()
