@@ -25,7 +25,7 @@ import { probeEntrySource } from "./schema-probe-source.ts";
  */
 const APP_SRC = join(
   dirname(fileURLToPath(import.meta.url)),
-  "../../../packages/template/app/src"
+  "../../../../packages/template/app/src"
 );
 const SCRATCH = join(APP_SRC, "__sfab_probe_check.ts");
 

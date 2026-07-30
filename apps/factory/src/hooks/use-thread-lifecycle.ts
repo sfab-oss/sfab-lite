@@ -3,8 +3,8 @@ import {
   deleteServerThread,
   renameServerThread,
   useAppAgentRegistry,
-} from "@/lib/chat/app-agent-bridge";
-import { useChatData } from "@/lib/chat/chat-data-context";
+} from "@/components/chat/app-agent-bridge";
+import { useChatData } from "@/components/chat/chat-data-context";
 import type { Thread } from "@/lib/chat/types";
 
 const RPC_TIMEOUT_MS = 12_000;

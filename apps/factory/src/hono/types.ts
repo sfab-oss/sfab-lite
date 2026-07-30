@@ -1,5 +1,5 @@
 import type { Db } from "../db/index.js";
-import type { Actor } from "../tenancy.js";
+import type { Actor } from "../server/tenancy.js";
 
 export interface ApiEnv {
   Bindings: Env;

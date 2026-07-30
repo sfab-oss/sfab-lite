@@ -3,12 +3,8 @@ import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import type {
-  CheckRunRecord,
-  PrDiffFile,
-  PrRecord,
-} from "@/hooks/query/use-prs";
 import { useMergePr, usePr, usePrDiff, useRerun } from "@/hooks/query/use-prs";
+import type { CheckRunRecord, PrDiffFile, PrRecord } from "@/lib/api/prs";
 import { appPrPreviewBasePath } from "@/lib/preview/reload-preview";
 
 const PIERRE_THEME = {

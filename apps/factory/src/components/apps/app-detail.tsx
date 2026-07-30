@@ -3,10 +3,10 @@ import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
-import type { AppRecord, AttemptRecord } from "@/hooks/query/use-apps";
 import { useApp, useAppAttempt } from "@/hooks/query/use-apps";
-import type { CheckRunRecord, PrRecord } from "@/hooks/query/use-prs";
 import { usePrs, useRuns } from "@/hooks/query/use-prs";
+import type { AppRecord, AttemptRecord } from "@/lib/api/apps";
+import type { CheckRunRecord, PrRecord } from "@/lib/api/prs";
 import { appBasePath } from "@/lib/preview/reload-preview";
 import { StatusBadge } from "./status-badge";
 

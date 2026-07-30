@@ -10,7 +10,7 @@ import { createContext, type ReactNode, useContext, useState } from "react";
 import {
   describeMessagePartGroup,
   type IndexedMessagePart,
-} from "./message-part-group-policy";
+} from "@/lib/chat/message-part-group-policy";
 
 const MessagePartGroupUiContext = createContext<{ open: boolean } | null>(null);
 

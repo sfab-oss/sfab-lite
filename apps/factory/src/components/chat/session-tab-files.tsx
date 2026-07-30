@@ -1,6 +1,6 @@
 import { useMemo } from "react";
+import { useChatData } from "@/components/chat/chat-data-context";
 import { FileBrowser } from "@/components/workspace-files/file-browser";
-import { useChatData } from "@/lib/chat/chat-data-context";
 import type { WorkspaceFilesSource } from "@/lib/workspace-files/types";
 
 function PublishedBanner() {

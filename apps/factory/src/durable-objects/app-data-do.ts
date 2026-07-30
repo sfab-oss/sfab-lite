@@ -6,7 +6,7 @@ import { DurableObject } from "cloudflare:workers";
 import {
   applyPendingMigrations,
   SCHEMA_VERSION_DDL,
-} from "./app-migrations.js";
+} from "../apps/app-migrations.js";
 
 export interface SqlMeta {
   duration: number;

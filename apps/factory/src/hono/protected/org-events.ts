@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { factoryTrustedOrigins } from "../../auth.js";
+import { factoryTrustedOrigins } from "@/lib/auth/policy";
 import { consentOriginAllowed } from "../../mcp/lib/consent-origin.js";
 import type { AdminEnv } from "../types.js";
 

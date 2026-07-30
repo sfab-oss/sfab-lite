@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { OrgEventWire } from "../../org-events.ts";
 import {
   type OrgEventsRouterDeps,
   routeOrgEvent,
-} from "./lib/org-events/org-events-router-core.ts";
-import type { OrgEventWire } from "./org-events.ts";
+} from "./org-events-router-core.ts";
 
 function frame(
   topic: string,

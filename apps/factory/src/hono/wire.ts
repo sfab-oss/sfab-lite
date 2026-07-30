@@ -1,4 +1,4 @@
-import type { AppRecord } from "../registry.js";
+import type { AppRecord } from "../apps/registry.js";
 
 export interface WireApp {
   id: string;

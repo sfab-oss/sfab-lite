@@ -18,7 +18,7 @@ import {
 import { ChevronsUpDown, LogOut, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback } from "react";
-import { authClient } from "@/auth-client";
+import { authClient } from "@/auth/client";
 
 export function ConsoleAppsSidebarFooter({
   onSignOut,

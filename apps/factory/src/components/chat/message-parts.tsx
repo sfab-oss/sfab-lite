@@ -2,13 +2,13 @@
 
 import type { UIDataTypes, UIMessagePart, UITools } from "ai";
 import { useMemo } from "react";
-import { MessagePart } from "./message-part";
-import { MessagePartGroup } from "./message-part-group";
 import {
   groupMessageParts,
   type MessagePartGroupPolicyInput,
   resolveMessagePartGroupPolicy,
-} from "./message-part-group-policy";
+} from "@/lib/chat/message-part-group-policy";
+import { MessagePart } from "./message-part";
+import { MessagePartGroup } from "./message-part-group";
 
 export function MessageParts({
   parts,

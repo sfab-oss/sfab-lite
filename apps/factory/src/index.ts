@@ -9,26 +9,26 @@
  */
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { dispatchAgents } from "./agent/dispatch.js";
-import { createAuth } from "./auth.js";
+import { createAuth } from "./auth/server.js";
 import { createDb } from "./db/index.js";
 import { apiApp } from "./hono/index.js";
-import { dispatchInternal } from "./internal.js";
 import { dispatchMcp } from "./mcp/index.js";
-import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
-import { matchRoute } from "./routes.js";
-import { serveSubApp } from "./serve.js";
-import { serveKernel } from "./serve-kernel.js";
-import { requireAppAccess, resolveActor } from "./tenancy.js";
+import { dispatchInternal } from "./server/internal.js";
+import type { PublicRoute, RequestCtx, RouteCtx } from "./server/routes.js";
+import { matchRoute } from "./server/routes.js";
+import { serveSubApp } from "./server/serve.js";
+import { serveKernel } from "./server/serve-kernel.js";
+import { requireAppAccess, resolveActor } from "./server/tenancy.js";
 
 /** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
 export { CodemodeRuntime } from "@cloudflare/codemode";
 export { AppAgent } from "./agent/app-agent.js";
 /** Facet of AppAgent — exported so the runtime can construct it; no binding. */
 export { AppThread } from "./agent/app-thread.js";
-export { AppCreateDO } from "./app-create-do.js";
-export { AppDataDO } from "./app-data-do.js";
-export { OrgEvents } from "./org-events-do.js";
-export { ScopedSql } from "./scoped-sql.js";
+export { AppCreateDO } from "./durable-objects/app-create-do.js";
+export { AppDataDO } from "./durable-objects/app-data-do.js";
+export { OrgEvents } from "./durable-objects/org-events-do.js";
+export { ScopedSql } from "./durable-objects/scoped-sql.js";
 
 const RE_KERNEL = /^\/kernel\/(.+)$/;
 const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;

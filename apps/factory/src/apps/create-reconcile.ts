@@ -5,8 +5,8 @@
  * Does not publish `app_live_changed` — that topic is owned solely by
  * `runCdForSha` when the live pointer moves.
  */
-import type { Db } from "./db/index.js";
-import { publishOrgEvent } from "./org-events.js";
+import type { Db } from "../db/index.js";
+import { publishOrgEvent } from "../org-events.js";
 import { type AttemptResolver, sweepStaleCreating } from "./registry.js";
 
 export async function reconcileCreatingApps(

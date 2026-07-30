@@ -1,7 +1,7 @@
-import { callCheck, checkPasses } from "../../cd.js";
+import { callCheck, checkPasses } from "../../forge/cd.js";
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CheckBody, CommitBody, RevertBody } from "../../hono/schemas.js";
-import type { AppCtx } from "../../routes.js";
+import type { AppCtx } from "../../server/routes.js";
 
 /**
  * Typecheck posted source overlays. Commit/revert version APIs are removed —

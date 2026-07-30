@@ -1,8 +1,8 @@
-import { appCreateStub } from "../../app-stub.js";
-import { getLiveSha } from "../../cd.js";
+import { appCreateStub } from "../../apps/app-stub.js";
+import { getLiveSha } from "../../forge/cd.js";
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
-import { createR2CodeHost } from "../../r2-code-host.js";
-import type { AppCtx } from "../../routes.js";
+import type { AppCtx } from "../../server/routes.js";
+import { createR2CodeHost } from "../../storage/r2-code-host.js";
 
 /** Live tip + source tree from the code host at `live_sha`. */
 export async function handleGetLive(rc: AppCtx) {

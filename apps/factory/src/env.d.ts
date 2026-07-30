@@ -1,7 +1,7 @@
 import type { AppAgent } from "./agent/app-agent.js";
-import type { AppCreateDO } from "./app-create-do.js";
-import type { AppDataDO } from "./app-data-do.js";
-import type { OrgEvents } from "./org-events-do.js";
+import type { AppCreateDO } from "./durable-objects/app-create-do.js";
+import type { AppDataDO } from "./durable-objects/app-data-do.js";
+import type { OrgEvents } from "./durable-objects/org-events-do.js";
 
 declare global {
   interface Env {

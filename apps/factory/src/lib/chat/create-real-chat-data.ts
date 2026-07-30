@@ -1,4 +1,4 @@
-import { fetchLiveSources } from "@/hooks/query/use-apps";
+import { fetchLiveSources } from "@/lib/api/apps";
 import type { Thread } from "@/lib/chat/types";
 import type { ChatData } from "./chat-data";
 import { dirEntries, fileContent } from "./source-files";

@@ -15,20 +15,20 @@ import { useNavigate } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
 import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useConsoleSession } from "@/components/console/console-session";
 import {
-  readyAppsFromList,
+  createServerThread,
+  useAppAgentRegistry,
+} from "@/components/chat/app-agent-bridge";
+import { useChatData } from "@/components/chat/chat-data-context";
+import {
   useApps,
   useCreateApp,
   useCreateReadyApp,
 } from "@/hooks/query/use-apps";
 import { useConsoleRoute } from "@/hooks/use-console-route";
+import { useConsoleSession } from "@/hooks/use-console-session";
 import { useHandleThreadDeleted } from "@/hooks/use-handle-thread-deleted";
-import {
-  createServerThread,
-  useAppAgentRegistry,
-} from "@/lib/chat/app-agent-bridge";
-import { useChatData } from "@/lib/chat/chat-data-context";
+import { readyAppsFromList } from "@/lib/api/apps";
 import { formatRelativeTime } from "@/lib/chat/thread-list";
 import type { Thread } from "@/lib/chat/types";
 import { useWorkspaceTabsStore } from "@/lib/chat/workspace-tabs-store";

@@ -5,7 +5,7 @@
  * validation, no topic branching, no event log / replay.
  */
 import { DurableObject } from "cloudflare:workers";
-import { newOrgEventId, packOrgEventFrame } from "./org-events.js";
+import { newOrgEventId, packOrgEventFrame } from "../org-events.js";
 
 const LAST_SEQ_KEY = "lastSeq";
 const MAX_BUFFERED_AMOUNT = 1024 * 1024;

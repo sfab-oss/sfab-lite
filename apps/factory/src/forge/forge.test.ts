@@ -5,15 +5,15 @@ import {
   formatPrList,
   formatPrView,
   parseGhArgs,
-} from "./agent/gh-cli-text.ts";
-import { parsePushArgs } from "./agent/git-push-args.ts";
-import { isFastForwardTip } from "./forge-ff.ts";
+} from "../agent/gh-cli-text.ts";
+import { parsePushArgs } from "../agent/git-push-args.ts";
+import { isFastForwardTip } from "./ff.ts";
 import {
   type CheckRunRecord,
   type PrRecord,
   wireCheckRun,
   wirePr,
-} from "./forge-wire.ts";
+} from "./wire.ts";
 
 const NOW = new Date("2026-07-29T12:00:00.000Z");
 

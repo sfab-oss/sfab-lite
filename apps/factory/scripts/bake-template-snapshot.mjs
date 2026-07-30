@@ -20,9 +20,9 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { canonicalizeSnapshot } from "../src/schema-ddl.ts";
-import { probeEntrySource } from "../src/schema-probe-source.ts";
-import { serializeSnapshot } from "../src/schema-snapshots.ts";
+import { canonicalizeSnapshot } from "../src/schema/schema-ddl.ts";
+import { probeEntrySource } from "../src/schema/schema-probe-source.ts";
+import { serializeSnapshot } from "../src/schema/schema-snapshots.ts";
 
 const factoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appRoot = join(factoryRoot, "../../packages/template/app");

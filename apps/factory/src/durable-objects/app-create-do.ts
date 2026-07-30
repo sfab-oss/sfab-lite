@@ -3,7 +3,10 @@
  */
 import { DurableObject } from "cloudflare:workers";
 import { monotonicFactory } from "ulid";
-import { INTERNAL_TOKEN_HEADER, signAttemptRun } from "./internal-token.js";
+import {
+  INTERNAL_TOKEN_HEADER,
+  signAttemptRun,
+} from "../apps/internal-token.js";
 
 const nextUlid = monotonicFactory();
 

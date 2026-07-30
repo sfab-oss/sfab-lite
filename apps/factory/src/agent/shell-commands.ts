@@ -5,16 +5,16 @@ import {
   defineCommand,
   type ExecResult,
 } from "just-bash";
-import { nextMigrationPath } from "../app-migrations.js";
-import { liveAppDataStub } from "../app-stub.js";
-import { callCheck, callLint, checkPasses, getLiveSha } from "../cd.js";
-import { describeBlocking, diffSchema } from "../schema-ddl.js";
-import { probeSchema } from "../schema-probe.js";
+import { nextMigrationPath } from "../apps/app-migrations.js";
+import { liveAppDataStub } from "../apps/app-stub.js";
+import { callCheck, callLint, checkPasses, getLiveSha } from "../forge/cd.js";
+import { describeBlocking, diffSchema } from "../schema/schema-ddl.js";
+import { probeSchema } from "../schema/schema-probe.js";
 import {
   latestSnapshot,
   serializeSnapshot,
   snapshotPathFor,
-} from "../schema-snapshots.js";
+} from "../schema/schema-snapshots.js";
 import { createGhCommand } from "./gh-commands.js";
 import { commitAllAndPushMain, runGitCommand } from "./git-commands.js";
 import { isPlatformReadonlyPath } from "./platform-readonly.js";

@@ -1,75 +1,15 @@
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { type ReactNode, useCallback, useState } from "react";
+import { AppAgentRegistryProvider } from "@/components/chat/app-agent-bridge";
+import { ChatDataProvider } from "@/components/chat/chat-data-context";
 import { OrgEventsRouter } from "@/components/org-events/org-events-router";
-import { AppAgentRegistryProvider } from "@/lib/chat/app-agent-bridge";
-import { ChatDataProvider } from "@/lib/chat/chat-data-context";
+import { ConsoleSessionProvider } from "@/hooks/use-console-session";
 import {
   createRealChatData,
   type RealChatData,
 } from "@/lib/chat/create-real-chat-data";
 
-interface ConsoleSessionValue {
-  scopeAppId: string | null;
-  scopeAppName: string | null;
-  setScope: (appId: string | null, appName: string | null) => void;
-  clearScope: () => void;
-  seedByThread: Record<string, string>;
-  setThreadSeed: (threadId: string, text: string) => void;
-  consumeThreadSeed: (threadId: string) => void;
-  clearThreadSeed: (threadId: string) => void;
-}
-
-const ConsoleSessionContext = createContext<ConsoleSessionValue | null>(null);
-
-export function useConsoleSession(): ConsoleSessionValue {
-  const value = useContext(ConsoleSessionContext);
-  if (!value) {
-    throw new Error("useConsoleSession requires ConsoleProviders");
-  }
-  return value;
-}
-
 export function ConsoleProviders({ children }: { children: ReactNode }) {
   const [chatData] = useState<RealChatData>(() => createRealChatData());
-  const [scopeAppId, setScopeAppId] = useState<string | null>(null);
-  const [scopeAppName, setScopeAppName] = useState<string | null>(null);
-  const [seedByThread, setSeedByThread] = useState<Record<string, string>>({});
-
-  const setScope = useCallback(
-    (appId: string | null, appName: string | null) => {
-      setScopeAppId(appId);
-      setScopeAppName(appName);
-    },
-    []
-  );
-
-  const clearScope = useCallback(() => {
-    setScopeAppId(null);
-    setScopeAppName(null);
-  }, []);
-
-  const setThreadSeed = useCallback((threadId: string, text: string) => {
-    setSeedByThread((current) => ({ ...current, [threadId]: text }));
-  }, []);
-
-  const consumeThreadSeed = useCallback((threadId: string) => {
-    setSeedByThread((current) => {
-      if (!(threadId in current)) {
-        return current;
-      }
-      const next = { ...current };
-      delete next[threadId];
-      return next;
-    });
-  }, []);
-
-  const clearThreadSeed = consumeThreadSeed;
 
   const refreshAttendedApp = useCallback(
     (appId: string) => {
@@ -80,36 +20,13 @@ export function ConsoleProviders({ children }: { children: ReactNode }) {
     [chatData]
   );
 
-  const session = useMemo(
-    () => ({
-      scopeAppId,
-      scopeAppName,
-      setScope,
-      clearScope,
-      seedByThread,
-      setThreadSeed,
-      consumeThreadSeed,
-      clearThreadSeed,
-    }),
-    [
-      clearScope,
-      clearThreadSeed,
-      consumeThreadSeed,
-      scopeAppId,
-      scopeAppName,
-      seedByThread,
-      setScope,
-      setThreadSeed,
-    ]
-  );
-
   return (
     <ChatDataProvider value={chatData}>
       <AppAgentRegistryProvider>
-        <ConsoleSessionContext.Provider value={session}>
+        <ConsoleSessionProvider>
           <OrgEventsRouter refreshAttendedApp={refreshAttendedApp} />
           {children}
-        </ConsoleSessionContext.Provider>
+        </ConsoleSessionProvider>
       </AppAgentRegistryProvider>
     </ChatDataProvider>
   );

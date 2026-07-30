@@ -2,8 +2,8 @@ import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { useState } from "react";
-import type { CheckRunRecord } from "@/hooks/query/use-prs";
 import { useRerun, useRun, useRuns } from "@/hooks/query/use-prs";
+import type { CheckRunRecord } from "@/lib/api/prs";
 
 export function AppActionsPage({ appId }: { appId: string }) {
   const runsQuery = useRuns(appId);

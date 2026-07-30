@@ -2,8 +2,8 @@ import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { Link } from "@tanstack/react-router";
 import { useApp } from "@/hooks/query/use-apps";
-import type { PrRecord } from "@/hooks/query/use-prs";
 import { usePrs } from "@/hooks/query/use-prs";
+import type { PrRecord } from "@/lib/api/prs";
 import {
   appBasePath,
   appPrPreviewBasePath,

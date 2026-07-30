@@ -9,9 +9,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { useChatData } from "@/components/chat/chat-data-context";
+import type { RealChatData } from "@/lib/chat/create-real-chat-data";
 import type { Thread } from "@/lib/chat/types";
-import { useChatData } from "./chat-data-context";
-import type { RealChatData } from "./create-real-chat-data";
 
 interface ThreadSummary {
   createdAt: number;

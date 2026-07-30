@@ -5,9 +5,9 @@ import {
   passwordAuthEnabled,
   signUpAllowlist,
   signUpOpen,
-} from "../../auth.js";
+} from "@/lib/auth/policy";
 import type { ProtectedReply } from "../../hono/reply.js";
-import type { ProtectedCtx } from "../../routes.js";
+import type { ProtectedCtx } from "../../server/routes.js";
 
 /**
  * Ask a bound worker whether it holds the same `ADMIN_TOKEN` we do.

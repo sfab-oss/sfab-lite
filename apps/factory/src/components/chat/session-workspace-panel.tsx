@@ -21,7 +21,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { useChatData } from "@/lib/chat/chat-data-context";
+import { useChatData } from "@/components/chat/chat-data-context";
 import {
   type OpenTab,
   useThreadTabs,

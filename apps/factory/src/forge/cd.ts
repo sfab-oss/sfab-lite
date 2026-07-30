@@ -11,19 +11,23 @@ import {
   lintPasses,
 } from "@sfab-lite/core";
 import { eq } from "drizzle-orm";
-import { prDataId } from "./app-data-ids.js";
-import { collectMigrations } from "./app-migrations.js";
-import { type AppDataStub, appDataStub, liveAppDataStub } from "./app-stub.js";
-import { compileAll } from "./compile-all.js";
-import { createDb } from "./db/index.js";
-import { app as appTable } from "./db/schema.js";
-import { publishOrgEvent } from "./org-events.js";
-import { createR2BuildStore } from "./r2-build-store.js";
-import { createR2CodeHost } from "./r2-code-host.js";
-import { getAppOrganizationId } from "./registry.js";
-import { diffSchema } from "./schema-ddl.js";
-import { probeSchema } from "./schema-probe.js";
-import { latestSnapshot } from "./schema-snapshots.js";
+import { prDataId } from "../apps/app-data-ids.js";
+import { collectMigrations } from "../apps/app-migrations.js";
+import {
+  type AppDataStub,
+  appDataStub,
+  liveAppDataStub,
+} from "../apps/app-stub.js";
+import { getAppOrganizationId } from "../apps/registry.js";
+import { compileAll } from "../compile/compile-all.js";
+import { createDb } from "../db/index.js";
+import { app as appTable } from "../db/schema.js";
+import { publishOrgEvent } from "../org-events.js";
+import { diffSchema } from "../schema/schema-ddl.js";
+import { probeSchema } from "../schema/schema-probe.js";
+import { latestSnapshot } from "../schema/schema-snapshots.js";
+import { createR2BuildStore } from "../storage/r2-build-store.js";
+import { createR2CodeHost } from "../storage/r2-code-host.js";
 
 export function checkPasses(body: CheckResponse | null): body is CheckResult {
   if (!body?.ok) {

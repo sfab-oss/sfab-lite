@@ -6,8 +6,8 @@ import {
   type UIMessagePart,
   type UITools,
 } from "ai";
+import { getToolName } from "@/components/chat/tool-registry";
 import { idToReadableText } from "@/lib/chat/id-to-readable-text";
-import { getToolName } from "./tool-registry";
 
 type MessagePartClass = "nest" | "break";
 

@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useChatData } from "@/lib/chat/chat-data-context";
+import { useChatData } from "@/components/chat/chat-data-context";
 import { appQuickLinks } from "@/lib/chat/extract-app-routes";
 import {
   appWorkspaceBasePath,

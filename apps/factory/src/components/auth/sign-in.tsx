@@ -15,7 +15,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { BoxesIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
-import { authClient } from "@/auth-client";
+import { authClient } from "@/auth/client";
 import { AuthCardSkeleton } from "@/components/auth/auth-card-skeleton";
 import { client } from "@/lib/client";
 

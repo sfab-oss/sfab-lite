@@ -23,9 +23,9 @@ import { useAgent } from "agents/react";
 import type { ChatStatus, FileUIPart, UIMessage } from "ai";
 import { FileIcon, PaperclipIcon } from "lucide-react";
 import { type RefObject, useEffect, useRef } from "react";
+import { useChatData } from "@/components/chat/chat-data-context";
 import { MessageParts } from "@/components/chat/message-parts";
 import { ThinkingPending } from "@/components/chat/thinking";
-import { useChatData } from "@/lib/chat/chat-data-context";
 import type { Thread } from "@/lib/chat/types";
 import { ThreadComposer } from "./thread-composer";
 

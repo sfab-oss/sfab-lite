@@ -8,9 +8,9 @@
  */
 import { and, desc, eq } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
-import { STALE_ATTEMPT_MS } from "./app-create-do.js";
-import type { Db } from "./db/index.js";
-import { app, organization } from "./db/schema.js";
+import type { Db } from "../db/index.js";
+import { app, organization } from "../db/schema.js";
+import { STALE_ATTEMPT_MS } from "../durable-objects/app-create-do.js";
 
 const nextUlid = monotonicFactory();
 

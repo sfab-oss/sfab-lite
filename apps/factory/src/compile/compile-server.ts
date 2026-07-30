@@ -5,7 +5,7 @@
 import { createWorker } from "@cloudflare/worker-bundler";
 import { KERNEL_VERSION, SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
-import { KERNEL_PATHS } from "./kernel-modules.js";
+import { KERNEL_PATHS } from "../server/kernel-modules.js";
 
 const KERNEL_EXTERNALS = Object.values(KERNEL_PATHS);
 

@@ -3,9 +3,10 @@
  * key (not sha-immutable CD builds). Migrations are snapshotted with the build
  * so serve bootstraps the same generation it serves.
  */
+
+import { compileAll } from "../compile/compile-all.js";
+import type { AppBuild } from "../storage/build-store.js";
 import type { AppMigration } from "./app-migrations.js";
-import type { AppBuild } from "./build-store.js";
-import { compileAll } from "./compile-all.js";
 
 const WORKSPACE_BUILD_SHA_PREFIX = "ws:";
 

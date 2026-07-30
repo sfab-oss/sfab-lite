@@ -4,8 +4,8 @@ import {
   useContext,
   useSyncExternalStore,
 } from "react";
-import type { ChatData } from "./chat-data";
-import type { RealChatData } from "./create-real-chat-data";
+import type { ChatData } from "@/lib/chat/chat-data";
+import type { RealChatData } from "@/lib/chat/create-real-chat-data";
 
 const ChatDataContext = createContext<ChatData | null>(null);
 

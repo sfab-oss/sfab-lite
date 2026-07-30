@@ -10,18 +10,21 @@
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { getAgentByName } from "agents";
-import type { AppDataDO } from "./app-data-do.js";
-import { liveDataId, prDataId, wsDataId } from "./app-data-ids.js";
-import { type AppMigration, collectMigrations } from "./app-migrations.js";
-import { appDataStub } from "./app-stub.js";
-import type { AppBuild } from "./build-store.js";
-import { getLiveSha } from "./cd.js";
-import { getPullRequestByNumber } from "./forge.js";
+import { liveDataId, prDataId, wsDataId } from "../apps/app-data-ids.js";
+import {
+  type AppMigration,
+  collectMigrations,
+} from "../apps/app-migrations.js";
+import { appDataStub } from "../apps/app-stub.js";
+import { getWorkspaceBuild } from "../apps/workspace-build.js";
+import type { AppDataDO } from "../durable-objects/app-data-do.js";
+import type { ScopedSqlProps } from "../durable-objects/scoped-sql.js";
+import { getLiveSha } from "../forge/cd.js";
+import { getPullRequestByNumber } from "../forge/forge.js";
+import type { AppBuild } from "../storage/build-store.js";
+import { createR2BuildStore } from "../storage/r2-build-store.js";
+import { createR2CodeHost } from "../storage/r2-code-host.js";
 import { kernelModules } from "./kernel-modules.js";
-import { createR2BuildStore } from "./r2-build-store.js";
-import { createR2CodeHost } from "./r2-code-host.js";
-import type { ScopedSqlProps } from "./scoped-sql.js";
-import { getWorkspaceBuild } from "./workspace-build.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
 

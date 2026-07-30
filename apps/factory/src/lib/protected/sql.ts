@@ -1,8 +1,8 @@
-import { liveDataId } from "../../app-data-ids.js";
+import { liveDataId } from "../../apps/app-data-ids.js";
+import type { ScopedSqlProps } from "../../durable-objects/scoped-sql.js";
 import type { ProtectedReply } from "../../hono/reply.js";
 import type { SqlBody } from "../../hono/schemas.js";
-import type { AppCtx } from "../../routes.js";
-import type { ScopedSqlProps } from "../../scoped-sql.js";
+import type { AppCtx } from "../../server/routes.js";
 
 /** ctx.exports typing for WorkerEntrypoint classes isn't inferred by tsc alone. */
 interface HostExports {

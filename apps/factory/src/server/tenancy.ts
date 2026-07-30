@@ -33,10 +33,10 @@
  * before serve.
  */
 import { and, eq } from "drizzle-orm";
-import { createAuth } from "./auth.js";
-import type { Db } from "./db/index.js";
-import { member } from "./db/schema.js";
-import { appBelongsToOrganization } from "./registry.js";
+import { appBelongsToOrganization } from "../apps/registry.js";
+import { createAuth } from "../auth/server.js";
+import type { Db } from "../db/index.js";
+import { member } from "../db/schema.js";
 
 export type Actor =
   | { kind: "token" }
