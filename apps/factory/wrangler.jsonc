@@ -123,9 +123,9 @@
       "service": "sfab-lite-lint"
     },
     // Loopback, so the agent's shell can reach a served app through the same
-    // path a browser takes. Serving an app needs `ctx.exports.ScopedSql`,
-    // which only exists on a real fetch — a Durable Object cannot build the
-    // loader worker itself.
+    // path a browser takes. Serving an app needs Worker Loader + an AppDataDO
+    // stub as `env.DB`, which only exists on a real fetch — a Durable Object
+    // cannot build the loader worker itself.
     {
       "binding": "SELF",
       "service": "sfab-lite-factory"

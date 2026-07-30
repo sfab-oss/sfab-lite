@@ -1,5 +1,5 @@
 /**
- * @sfab-lite/core — shared contracts: app/version types, ScopedSql,
+ * @sfab-lite/core — shared contracts: app/version types, D1 ambient surface,
  * check/lint results, tasks-lite model.
  *
  * Filled in stage by stage. Today it holds the two pieces the template port

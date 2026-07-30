@@ -107,7 +107,7 @@ function authErrorStatus(statusCode: number): 400 | 403 | 409 | 422 | 500 {
 }
 
 /**
- * Sequential inserts — drizzle `db.batch` cannot cross LOADER→ScopedSql RPC
+ * Sequential inserts — drizzle `db.batch` cannot cross LOADER→AppDataDO RPC
  * (`prepare().bind()` returns RpcPromise; DataCloneError). Org slug is the
  * completion marker, so callers must delete this org on mid-graph failure
  * or retry answers "already seeded" for a half-written graph.
@@ -252,7 +252,7 @@ export const devRoutes = new Hono<AppEnv>().post(
       // enforcement is a connection pragma, and a leftover session row is a
       // credential that outlives the account it belonged to.
       //
-      // Sequential awaits — drizzle `db.batch` cannot cross LOADER→ScopedSql
+      // Sequential awaits — drizzle `db.batch` cannot cross LOADER→AppDataDO
       // RPC (`prepare().bind()` returns RpcPromise; DataCloneError).
       await db.delete(session).where(eq(session.userId, existingUser.id));
       await db.delete(account).where(eq(account.userId, existingUser.id));

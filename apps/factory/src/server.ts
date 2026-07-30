@@ -13,7 +13,6 @@ export { AppThread } from "./agent/app-thread.js";
 export { AppCreateDO } from "./durable-objects/app-create-do.js";
 export { AppDataDO } from "./durable-objects/app-data-do.js";
 export { OrgEvents } from "./durable-objects/org-events-do.js";
-export { ScopedSql } from "./durable-objects/scoped-sql.js";
 
 export default {
   async fetch(

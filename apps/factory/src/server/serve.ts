@@ -18,7 +18,6 @@ import {
 import { appDataStub } from "../apps/app-stub.js";
 import { getWorkspaceBuild } from "../apps/workspace-build.js";
 import type { AppDataDO } from "../durable-objects/app-data-do.js";
-import type { ScopedSqlProps } from "../durable-objects/scoped-sql.js";
 import { getLiveSha } from "../forge/cd.js";
 import { getPullRequestByNumber } from "../forge/forge.js";
 import type { AppBuild } from "../storage/build-store.js";
@@ -45,10 +44,6 @@ function contentType(path: string): string {
     return "application/json";
   }
   return "application/octet-stream";
-}
-
-interface HostExports {
-  ScopedSql: (opts: { props: ScopedSqlProps }) => unknown;
 }
 
 export type ServeMode = "live" | "preview" | "workspace";
@@ -227,14 +222,12 @@ async function ensureWorkspaceDataMigrated(
 async function serveApiRoute(
   request: Request,
   env: Env,
-  ctx: ExecutionContext,
   appId: string,
   build: AppBuild,
   rest: string,
   publicBase: string,
   mode: ServeMode,
   stub: DurableObjectStub<AppDataDO>,
-  dataId: string,
   preview?: ServePreviewOpts,
   generation?: number
 ): Promise<Response> {
@@ -253,7 +246,6 @@ async function serveApiRoute(
       ? `app:${appId}:workspace:default:${generation ?? build.sha}`
       : `app:${appId}:${mode}:${preview?.prNumber ?? "live"}:${build.sha}`;
 
-  const ex = ctx.exports as unknown as HostExports;
   const worker = env.LOADER.get(workerKey, async () => ({
     compatibilityDate: "2026-07-23",
     compatibilityFlags: ["nodejs_compat"],
@@ -263,7 +255,7 @@ async function serveApiRoute(
       "index.js": build.serverBundle,
     },
     env: {
-      DB: ex.ScopedSql({ props: { dataId } satisfies ScopedSqlProps }),
+      DB: stub,
       BETTER_AUTH_SECRET: secret,
       BETTER_AUTH_URL: new URL(publicBase).origin,
       APP_BASE_PATH: pathPrefixFor(appId, mode, preview),
@@ -399,7 +391,6 @@ async function bootstrapServeData(
 export async function serveSubApp(
   request: Request,
   env: Env,
-  ctx: ExecutionContext,
   appId: string,
   restPath: string,
   mode: ServeMode = "live",
@@ -498,14 +489,12 @@ export async function serveSubApp(
     const res = await serveApiRoute(
       request,
       env,
-      ctx,
       appId,
       build,
       rest,
       publicBase,
       mode,
       stub,
-      dataId,
       preview,
       generation
     );

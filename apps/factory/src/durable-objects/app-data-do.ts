@@ -1,8 +1,15 @@
 /**
  * AppDataDO — runtime SQLite per serve target
  * (`${appId}:live` | `${appId}:pr:N` | later `${appId}:ws:…`).
+ *
+ * Also exposes a D1-shaped surface (`prepare` / `batch` / `exec`) so LOADER
+ * child workers can take this stub as `env.DB`. Caveats vs real D1:
+ * - `batch()` is transactionSync sequential emulation
+ * - D1 `meta` is approximated from rowsRead/rowsWritten + last_insert_rowid()
+ * - drizzle `db.batch` across LOADER→DO RPC must await statements individually
+ *   (`prepare().bind()` is async over RPC)
  */
-import { DurableObject } from "cloudflare:workers";
+import { DurableObject, RpcTarget } from "cloudflare:workers";
 import {
   applyPendingMigrations,
   SCHEMA_VERSION_DDL,
@@ -45,6 +52,61 @@ function randomSecret(): string {
 const META_DDL = `
 ${SCHEMA_VERSION_DDL}
 `.trim();
+
+/** RPC-passable prepared-statement wrapper (D1PreparedStatement shape). */
+class SqlStmtStub extends RpcTarget {
+  readonly #do: AppDataDO;
+  readonly #query: string;
+  readonly #binds: unknown[];
+
+  constructor(owner: AppDataDO, query: string, binds: unknown[] = []) {
+    super();
+    this.#do = owner;
+    this.#query = query;
+    this.#binds = binds;
+  }
+
+  /** Unwrap for `batch()` — stays on the DO side of the RPC boundary. */
+  get _batchItem(): { query: string; binds: unknown[] } {
+    return { query: this.#query, binds: this.#binds };
+  }
+
+  bind(...values: unknown[]) {
+    return new SqlStmtStub(this.#do, this.#query, [...this.#binds, ...values]);
+  }
+
+  first<T = unknown>(colName?: string): Promise<T | null> {
+    return Promise.resolve(
+      this.#do.execFirst(this.#query, this.#binds, colName) as T | null
+    );
+  }
+
+  run<T = Record<string, unknown>>() {
+    return Promise.resolve(
+      this.#do.execRun(this.#query, this.#binds) as {
+        success: true;
+        meta: unknown;
+        results?: T[];
+      }
+    );
+  }
+
+  all<T = Record<string, unknown>>() {
+    return Promise.resolve(
+      this.#do.execAll(this.#query, this.#binds) as {
+        success: true;
+        results: T[];
+        meta: unknown;
+      }
+    );
+  }
+
+  raw<T = unknown[]>(options?: { columnNames?: boolean }) {
+    return Promise.resolve(
+      this.#do.execRaw(this.#query, this.#binds, options) as T[]
+    );
+  }
+}
 
 export class AppDataDO extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
@@ -252,5 +314,35 @@ export class AppDataDO extends DurableObject<Env> {
     const cursor = this.ctx.storage.sql.exec(query);
     cursor.toArray();
     return { count: cursor.rowsWritten, duration: performance.now() - t0 };
+  }
+
+  prepare(query: string) {
+    return new SqlStmtStub(this, query, []);
+  }
+
+  batch<T = unknown>(statements: SqlStmtStub[]) {
+    const items = statements.map((s) => {
+      if (s && typeof s === "object" && "_batchItem" in s) {
+        return (s as SqlStmtStub)._batchItem;
+      }
+      throw new Error("AppDataDO.batch: expected SqlStmtStub from prepare()");
+    });
+    return this.execBatch(items) as T[];
+  }
+
+  exec(query: string) {
+    return this.execScript(query);
+  }
+
+  pingScope(): {
+    dataId: string;
+    ok: true;
+    backend: "do-sqlite";
+  } {
+    return {
+      dataId: this.ctx.id.name ?? this.ctx.id.toString(),
+      ok: true,
+      backend: "do-sqlite",
+    };
   }
 }

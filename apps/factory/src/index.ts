@@ -28,7 +28,6 @@ export { AppThread } from "./agent/app-thread.js";
 export { AppCreateDO } from "./durable-objects/app-create-do.js";
 export { AppDataDO } from "./durable-objects/app-data-do.js";
 export { OrgEvents } from "./durable-objects/org-events-do.js";
-export { ScopedSql } from "./durable-objects/scoped-sql.js";
 
 const RE_KERNEL = /^\/kernel\/(.+)$/;
 const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
@@ -120,7 +119,7 @@ async function handlePreviewSubApp(
     return denied;
   }
   const inner = slash === -1 ? "" : after.slice(slash + 1);
-  return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "preview", {
+  return serveSubApp(rc.request, rc.env, appId, inner, "preview", {
     prNumber,
   });
 }
@@ -134,12 +133,12 @@ async function handleSubApp(rc: RouteCtx): Promise<Response> {
       return denied;
     }
     const inner = rest === "workspace" ? "" : rest.slice("workspace/".length);
-    return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "workspace");
+    return serveSubApp(rc.request, rc.env, appId, inner, "workspace");
   }
   if (rest === "preview" || rest.startsWith("preview/")) {
     return handlePreviewSubApp(rc, appId, rest);
   }
-  return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, "live");
+  return serveSubApp(rc.request, rc.env, appId, rest, "live");
 }
 
 /**
