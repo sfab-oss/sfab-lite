@@ -1,8 +1,13 @@
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@sfab-lite/ui/components/shadcn/dropdown-menu";
 import { Input } from "@sfab-lite/ui/components/shadcn/input";
-import { cn } from "@sfab-lite/ui/lib/utils";
 import { useAgent } from "agents/react";
-import { ExternalLink, Home, RotateCw } from "lucide-react";
+import { Bookmark, ExternalLink, Home, RotateCw } from "lucide-react";
 import {
   type FormEvent,
   useCallback,
@@ -446,25 +451,37 @@ function BrowserFrame({ active, appId }: { active: boolean; appId: string }) {
               value={editing ? draft : localhostDisplayPath(path)}
             />
           </form>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  aria-label="Bookmarks"
+                  className="size-8 shrink-0"
+                  disabled={quickLinks.length === 0}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                />
+              }
+            >
+              <Bookmark className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44">
+              {quickLinks.map((link) => (
+                <DropdownMenuItem
+                  className="font-mono text-xs"
+                  key={link}
+                  onClick={() => navigateTo(link)}
+                >
+                  {linkLabel(link)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         {buildHint ? (
           <p className="px-1 text-[11px] text-muted-foreground">{buildHint}</p>
         ) : null}
-        <div className="flex flex-wrap items-center gap-1 px-1">
-          {quickLinks.map((link) => (
-            <button
-              className={cn(
-                "rounded-md px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-                path === link && "bg-muted text-foreground"
-              )}
-              key={link}
-              onClick={() => navigateTo(link)}
-              type="button"
-            >
-              {linkLabel(link)}
-            </button>
-          ))}
-        </div>
       </div>
       <iframe
         className="min-h-0 w-full flex-1 border-0 bg-background"

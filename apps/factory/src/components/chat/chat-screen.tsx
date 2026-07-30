@@ -12,12 +12,14 @@ import {
 import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
 import { useNavigate } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
+import type { MutableRefObject, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createServerThread,
   useAppAgentRegistry,
 } from "@/components/chat/app-agent-bridge";
 import { useChatData } from "@/components/chat/chat-data-context";
+import { WorkPanel } from "@/components/chat/work-panel";
 import { WorkViewFooter } from "@/components/chat/work-view-footer";
 import { WorkViewHeader } from "@/components/chat/work-view-header";
 import {
@@ -30,13 +32,17 @@ import { useConsoleSession } from "@/hooks/use-console-session";
 import { useHandleThreadDeleted } from "@/hooks/use-handle-thread-deleted";
 import { readyAppsFromList } from "@/lib/api/apps";
 import type { Thread } from "@/lib/chat/types";
-import { useWorkspaceTabsStore } from "@/lib/chat/workspace-tabs-store";
+import {
+  type AppLayoutState,
+  findTabPanel,
+  useAppLayout,
+  useWorkspaceTabsStore,
+} from "@/lib/chat/workspace-tabs-store";
 import type { ComposerScope } from "./composer-scope-chip";
 import {
   ResponsiveSidePanel,
   useSidePanelLayout,
 } from "./responsive-side-panel";
-import { SessionWorkspacePanel } from "./session-workspace-panel";
 import { ThreadComposer } from "./thread-composer";
 import { ThreadSummaryPanel } from "./thread-summary-panel";
 import { ThreadTranscript } from "./thread-transcript";
@@ -114,14 +120,8 @@ export function ChatScreen() {
   );
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [shellError, setShellError] = useState<string | null>(null);
-  const workspaceOpen = useWorkspaceTabsStore((s) => s.workspaceOpen);
-  const setWorkspaceOpen = useWorkspaceTabsStore((s) => s.setWorkspaceOpen);
-  const chatHidden = useWorkspaceTabsStore((s) => s.chatHidden);
-  const setChatHidden = useWorkspaceTabsStore((s) => s.setChatHidden);
-  const openTab = useWorkspaceTabsStore((s) => s.openTab);
-  const routeAppTabs = useWorkspaceTabsStore((s) =>
-    routeAppId ? s.byApp[routeAppId] : undefined
-  );
+  const ensureApp = useWorkspaceTabsStore((s) => s.ensureApp);
+  const layout = useAppLayout(routeAppId ?? "");
   const { canDock, setContainerNode } = useSidePanelLayout();
 
   const creating = createApp.isPending || createReadyApp.isPending;
@@ -156,11 +156,8 @@ export function ChatScreen() {
     if (!routeAppId) {
       return;
     }
-    if (routeAppTabs && routeAppTabs.tabs.length > 0) {
-      return;
-    }
-    openTab(routeAppId, "browser");
-  }, [openTab, routeAppId, routeAppTabs]);
+    ensureApp(routeAppId);
+  }, [ensureApp, routeAppId]);
 
   const activeThread = useMemo(
     () =>
@@ -215,19 +212,17 @@ export function ChatScreen() {
       attend(appId, appName);
       setActiveThreadId(null);
       setSummaryOpen(false);
-      setWorkspaceOpen(false);
       setShellError(null);
       createApp.reset();
       createReadyApp.reset();
       goWorkHome(appId);
     },
-    [attend, createApp, createReadyApp, goWorkHome, setScope, setWorkspaceOpen]
+    [attend, createApp, createReadyApp, goWorkHome, setScope]
   );
 
   const goHome = useCallback(() => {
     setActiveThreadId(null);
     setSummaryOpen(false);
-    setChatHidden(false);
     setShellError(null);
     createApp.reset();
     createReadyApp.reset();
@@ -246,7 +241,6 @@ export function ChatScreen() {
     goWorkHome,
     goChatHome,
     routeAppId,
-    setChatHidden,
   ]);
 
   const createThreadFromBlank = useCallback(
@@ -348,287 +342,287 @@ export function ChatScreen() {
       .sort((left, right) => right.updatedAt - left.updatedAt);
   }, [routeAppId, threads]);
 
-  const onSetWorkspaceOpen = (
-    value: boolean | ((open: boolean) => boolean)
-  ) => {
-    setWorkspaceOpen(
-      typeof value === "function" ? value(workspaceOpen) : value
-    );
-  };
-
   const displayThread =
     activeThread && activeThread.title === "Loading…"
       ? (threads.find((thread) => thread.id === activeThread.id) ??
         activeThread)
       : activeThread;
 
-  const chatProps: ChatChromeProps = {
+  const chatBodyProps: ChatBodyProps = {
     activeThread: displayThread,
-    appThreads,
     canDock,
-    chatHidden,
     createError,
     creating,
     onBlankSubmit: createThreadFromBlank,
     onCloseRail: () => setSummaryOpen(false),
     onCreateEmptyApp:
       routeAppId || scopeAppId || activeThreadId ? undefined : createEmptyApp,
-    onNewThread: goHome,
-    onSelectThread: (threadId) => {
-      if (!routeAppId) {
-        return;
-      }
-      goThread(routeAppId, threadId);
-    },
     onSeedConsumed: consumeThreadSeed,
     onSetContainerNode: setContainerNode,
-    onSetSummaryOpen: setSummaryOpen,
-    onSetWorkspaceOpen,
-    onThreadDeleted: handleThreadDeleted,
-    routeAppId,
     scope: composerScope,
     seedMessage: activeThreadId ? (seedByThread[activeThreadId] ?? null) : null,
     summaryOpen,
-    workspaceOpen,
   };
+
+  const messagesRef = useRef<UIMessage[]>([]);
+  const chatBody = <ChatBody {...chatBodyProps} messagesRef={messagesRef} />;
+
+  if (!routeAppId) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <ChatBody {...chatBodyProps} messagesRef={messagesRef} />
+      </div>
+    );
+  }
+
+  return (
+    <WorkViewShell
+      appId={routeAppId}
+      appThreads={appThreads}
+      chatBody={chatBody}
+      isMobile={isMobile}
+      layout={layout}
+      messagesRef={messagesRef}
+      onNewThread={goHome}
+      onSelectThread={(threadId) => goThread(routeAppId, threadId)}
+      onSetSummaryOpen={setSummaryOpen}
+      onThreadDeleted={handleThreadDeleted}
+      summaryOpen={summaryOpen}
+      thread={displayThread}
+    />
+  );
+}
+
+function WorkViewShell({
+  appId,
+  appThreads,
+  chatBody,
+  isMobile,
+  layout,
+  messagesRef,
+  onNewThread,
+  onSelectThread,
+  onSetSummaryOpen,
+  onThreadDeleted,
+  summaryOpen,
+  thread,
+}: {
+  appId: string;
+  appThreads: Thread[];
+  chatBody: ReactNode;
+  isMobile: boolean;
+  layout: AppLayoutState;
+  messagesRef: MutableRefObject<UIMessage[]>;
+  onNewThread: () => void;
+  onSelectThread: (threadId: string) => void;
+  onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
+  onThreadDeleted: (thread: Thread) => void;
+  summaryOpen: boolean;
+  thread: Thread | null;
+}) {
+  const focusPanel = useWorkspaceTabsStore((s) => s.focusPanel);
+  const chatPanel = findTabPanel(layout, "chat");
+  const secondaryOpen = layout.secondary !== null;
+  const secondarySheetOpen =
+    secondaryOpen && layout.focusedPanel === "secondary";
+
+  const header = (
+    <WorkViewHeader
+      activeThread={thread}
+      appId={appId}
+      appThreads={appThreads}
+      onNewThread={onNewThread}
+      onSelectThread={onSelectThread}
+      onSetSummaryOpen={onSetSummaryOpen}
+      onThreadDeleted={onThreadDeleted}
+      readMessages={() => messagesRef.current}
+      summaryOpen={summaryOpen}
+    />
+  );
 
   if (isMobile) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col">
-          <MobileLayout {...chatProps} />
+        {header}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <WorkPanel
+            appId={appId}
+            chat={chatPanel === "primary" ? chatBody : null}
+            focused={layout.focusedPanel === "primary"}
+            panel="primary"
+            state={layout.primary}
+          />
         </div>
-        {routeAppId ? <WorkViewFooter appId={routeAppId} /> : null}
+        <Sheet
+          onOpenChange={(open) => {
+            if (!(appId && layout.secondary)) {
+              return;
+            }
+            focusPanel(appId, open ? "secondary" : "primary");
+          }}
+          open={secondarySheetOpen}
+        >
+          <SheetContent
+            className="flex h-svh flex-col gap-0 overflow-hidden p-0 data-[side=right]:w-[calc(100%-2.5rem)] data-[side=right]:max-w-none data-[side=right]:sm:max-w-none [&>button]:hidden"
+            side="right"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>Side panel</SheetTitle>
+            </SheetHeader>
+            {layout.secondary ? (
+              <WorkPanel
+                appId={appId}
+                chat={chatPanel === "secondary" ? chatBody : null}
+                focused
+                panel="secondary"
+                state={layout.secondary}
+              />
+            ) : null}
+          </SheetContent>
+        </Sheet>
+        <WorkViewFooter appId={appId} />
       </div>
     );
   }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col">
-        <DesktopLayout {...chatProps} />
-      </div>
-      {routeAppId ? <WorkViewFooter appId={routeAppId} /> : null}
+      {header}
+      <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
+        <ResizablePanel
+          className="flex min-h-0 flex-col"
+          defaultSize={secondaryOpen ? 55 : 100}
+          minSize={secondaryOpen ? 28 : 40}
+        >
+          <WorkPanel
+            appId={appId}
+            chat={chatPanel === "primary" ? chatBody : null}
+            className={
+              secondaryOpen
+                ? "overflow-hidden rounded-r-none"
+                : "overflow-hidden"
+            }
+            focused={layout.focusedPanel === "primary"}
+            panel="primary"
+            state={layout.primary}
+          />
+        </ResizablePanel>
+        {secondaryOpen && layout.secondary ? (
+          <>
+            <ResizableHandle className="bg-transparent" />
+            <ResizablePanel
+              className="ml-px flex min-h-0 flex-col overflow-hidden rounded-l-xl border-border border-l bg-accent/5 shadow"
+              defaultSize={45}
+              maxSize={70}
+              minSize={22}
+            >
+              <WorkPanel
+                appId={appId}
+                chat={chatPanel === "secondary" ? chatBody : null}
+                focused={layout.focusedPanel === "secondary"}
+                panel="secondary"
+                state={layout.secondary}
+              />
+            </ResizablePanel>
+          </>
+        ) : null}
+      </ResizablePanelGroup>
+      <WorkViewFooter appId={appId} />
     </div>
   );
 }
 
-interface ChatChromeProps {
+interface ChatBodyProps {
   activeThread: Thread | null;
-  appThreads: Thread[];
   canDock: boolean;
-  chatHidden: boolean;
   createError: string | null;
   creating: boolean;
   onBlankSubmit: (text: string) => void;
   onCloseRail: () => void;
   onCreateEmptyApp?: () => void;
-  onNewThread: () => void;
-  onSelectThread: (threadId: string) => void;
   onSeedConsumed: (threadId: string) => void;
   onSetContainerNode: (node: HTMLElement | null) => void;
-  onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
-  onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
-  onThreadDeleted: (thread: Thread) => void;
-  routeAppId: string | null;
   scope?: ComposerScope;
   seedMessage: string | null;
   summaryOpen: boolean;
-  workspaceOpen: boolean;
 }
 
-function MobileLayout(props: ChatChromeProps) {
-  const { chatHidden, routeAppId, workspaceOpen } = props;
-  const setChatHidden = useWorkspaceTabsStore((s) => s.setChatHidden);
-
-  if (chatHidden) {
-    if (!routeAppId) {
-      return null;
-    }
-    return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-accent/5">
-        <SessionWorkspacePanel
-          appId={routeAppId}
-          onDismiss={() => setChatHidden(false)}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="flex min-h-0 flex-1 flex-col">
-        <ChatColumn {...props} />
-      </div>
-      <Sheet onOpenChange={props.onSetWorkspaceOpen} open={workspaceOpen}>
-        <SheetContent
-          className="flex h-svh flex-col gap-0 overflow-hidden p-0 data-[side=right]:w-[calc(100%-2.5rem)] data-[side=right]:max-w-none data-[side=right]:sm:max-w-none [&>button]:hidden"
-          side="right"
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Workspace</SheetTitle>
-          </SheetHeader>
-          {workspaceOpen && routeAppId ? (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-accent/5">
-              <SessionWorkspacePanel
-                appId={routeAppId}
-                onDismiss={() => props.onSetWorkspaceOpen(false)}
-              />
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
-    </>
-  );
-}
-
-function DesktopLayout(props: ChatChromeProps) {
-  const { chatHidden, routeAppId, workspaceOpen } = props;
-  const setChatHidden = useWorkspaceTabsStore((s) => s.setChatHidden);
-
-  if (chatHidden) {
-    if (!routeAppId) {
-      return null;
-    }
-    return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-accent/5">
-        <SessionWorkspacePanel
-          appId={routeAppId}
-          onDismiss={() => setChatHidden(false)}
-        />
-      </div>
-    );
-  }
-
-  const showWorkspace = workspaceOpen && Boolean(routeAppId);
-
-  return (
-    <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
-      <ResizablePanel
-        className="flex min-h-0 flex-col"
-        defaultSize={showWorkspace ? 65 : 100}
-        minSize={showWorkspace ? 28 : 40}
-      >
-        <ChatColumn {...props} />
-      </ResizablePanel>
-      {showWorkspace && routeAppId ? (
-        <>
-          <ResizableHandle className="bg-transparent" />
-          <ResizablePanel
-            className="ml-px flex min-h-0 flex-col overflow-hidden rounded-l-xl border-border border-l bg-accent/5 shadow"
-            defaultSize={35}
-            maxSize={60}
-            minSize={22}
-          >
-            <SessionWorkspacePanel appId={routeAppId} />
-          </ResizablePanel>
-        </>
-      ) : null}
-    </ResizablePanelGroup>
-  );
-}
-
-function ChatColumn({
+function ChatBody({
   activeThread,
-  appThreads,
   canDock,
   createError,
   creating,
   onBlankSubmit,
   onCloseRail,
   onCreateEmptyApp,
-  onNewThread,
-  onSelectThread,
   onSeedConsumed,
   onSetContainerNode,
-  onSetSummaryOpen,
-  onSetWorkspaceOpen,
-  onThreadDeleted,
-  routeAppId,
   scope,
   seedMessage,
   summaryOpen,
-  workspaceOpen,
-}: ChatChromeProps) {
-  const messagesRef = useRef<UIMessage[]>([]);
-
+  messagesRef,
+}: ChatBodyProps & {
+  messagesRef: MutableRefObject<UIMessage[]>;
+}) {
   return (
-    <>
-      {routeAppId ? (
-        <WorkViewHeader
-          activeThread={activeThread}
-          appId={routeAppId}
-          appThreads={appThreads}
-          onNewThread={onNewThread}
-          onSelectThread={onSelectThread}
-          onSetSummaryOpen={onSetSummaryOpen}
-          onSetWorkspaceOpen={onSetWorkspaceOpen}
-          onThreadDeleted={onThreadDeleted}
-          readMessages={() => messagesRef.current}
-          summaryOpen={summaryOpen}
-          workspaceOpen={workspaceOpen}
-        />
-      ) : null}
-      <div
-        className="flex min-h-0 flex-1 flex-col transition-[justify-content] duration-300 ease-out"
-        ref={onSetContainerNode}
-      >
-        {activeThread ? (
-          <ResponsiveSidePanel
-            canDock={canDock}
-            onClose={onCloseRail}
-            open={summaryOpen}
-            panel={<ThreadSummaryPanel thread={activeThread} />}
-          >
-            <ThreadTranscript
-              initialMessage={seedMessage ?? undefined}
-              key={activeThread.id}
-              messagesRef={messagesRef}
-              onInitialConsumed={() => onSeedConsumed(activeThread.id)}
-              thread={activeThread}
-            />
-          </ResponsiveSidePanel>
-        ) : (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 transition-all duration-300 ease-out">
-            <div className="mb-6 max-w-md text-center">
-              <p className="font-medium text-lg">What should we build?</p>
-              <p className="mt-1 text-muted-foreground text-sm">
-                Start a new conversation, or open history from the header.
-              </p>
-            </div>
-            <div className="w-full max-w-3xl">
-              <ThreadComposer
-                onStop={() => undefined}
-                onSubmit={onBlankSubmit}
-                placeholder={
-                  creating
-                    ? "Creating app…"
-                    : "Describe what you want to change…"
-                }
-                running={creating}
-                scope={scope}
-              />
-              {onCreateEmptyApp ? (
-                <p className="mt-3 text-center text-muted-foreground text-sm">
-                  or{" "}
-                  <button
-                    className="text-foreground underline-offset-4 hover:underline disabled:opacity-50"
-                    disabled={creating}
-                    onClick={onCreateEmptyApp}
-                    type="button"
-                  >
-                    {creating ? "creating…" : "create an empty app"}
-                  </button>
-                </p>
-              ) : null}
-              {createError ? (
-                <p className="mt-2 text-center text-destructive text-sm">
-                  {createError}
-                </p>
-              ) : null}
-            </div>
+    <div
+      className="flex h-full min-h-0 flex-1 flex-col transition-[justify-content] duration-300 ease-out"
+      ref={onSetContainerNode}
+    >
+      {activeThread ? (
+        <ResponsiveSidePanel
+          canDock={canDock}
+          onClose={onCloseRail}
+          open={summaryOpen}
+          panel={<ThreadSummaryPanel thread={activeThread} />}
+        >
+          <ThreadTranscript
+            initialMessage={seedMessage ?? undefined}
+            key={activeThread.id}
+            messagesRef={messagesRef}
+            onInitialConsumed={() => onSeedConsumed(activeThread.id)}
+            thread={activeThread}
+          />
+        </ResponsiveSidePanel>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 transition-all duration-300 ease-out">
+          <div className="mb-6 max-w-md text-center">
+            <p className="font-medium text-lg">What should we build?</p>
+            <p className="mt-1 text-muted-foreground text-sm">
+              Start a new conversation, or open history from the header.
+            </p>
           </div>
-        )}
-      </div>
-    </>
+          <div className="w-full max-w-3xl">
+            <ThreadComposer
+              onStop={() => undefined}
+              onSubmit={onBlankSubmit}
+              placeholder={
+                creating ? "Creating app…" : "Describe what you want to change…"
+              }
+              running={creating}
+              scope={scope}
+            />
+            {onCreateEmptyApp ? (
+              <p className="mt-3 text-center text-muted-foreground text-sm">
+                or{" "}
+                <button
+                  className="text-foreground underline-offset-4 hover:underline disabled:opacity-50"
+                  disabled={creating}
+                  onClick={onCreateEmptyApp}
+                  type="button"
+                >
+                  {creating ? "creating…" : "create an empty app"}
+                </button>
+              </p>
+            ) : null}
+            {createError ? (
+              <p className="mt-2 text-center text-destructive text-sm">
+                {createError}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

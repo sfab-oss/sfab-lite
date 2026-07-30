@@ -9,20 +9,11 @@ import {
 import { Separator } from "@sfab-lite/ui/components/shadcn/separator";
 import { Link } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
-import {
-  ArrowLeft,
-  History,
-  ListTree,
-  MessageSquare,
-  MessageSquareOff,
-  PanelRight,
-  Plus,
-} from "lucide-react";
+import { ArrowLeft, History, ListTree, Plus } from "lucide-react";
 import { AppLayoutSidebarTrigger } from "@/components/console/app-layout";
 import { useApp } from "@/hooks/query/use-apps";
 import { formatRelativeTime } from "@/lib/chat/thread-list";
 import type { Thread } from "@/lib/chat/types";
-import { useWorkspaceTabsStore } from "@/lib/chat/workspace-tabs-store";
 import { ThreadHeaderMenu } from "./thread-header-menu";
 
 function ThreadHistoryPicker({
@@ -92,11 +83,9 @@ export function WorkViewHeader({
   onNewThread,
   onSelectThread,
   onSetSummaryOpen,
-  onSetWorkspaceOpen,
   onThreadDeleted,
   readMessages,
   summaryOpen,
-  workspaceOpen,
 }: {
   appId: string;
   activeThread: Thread | null;
@@ -104,16 +93,12 @@ export function WorkViewHeader({
   onNewThread: () => void;
   onSelectThread: (threadId: string) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
-  onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onThreadDeleted: (thread: Thread) => void;
   readMessages: () => UIMessage[];
   summaryOpen: boolean;
-  workspaceOpen: boolean;
 }) {
   const appQuery = useApp(appId);
   const appName = appQuery.data?.name ?? "App";
-  const chatHidden = useWorkspaceTabsStore((s) => s.chatHidden);
-  const setChatHidden = useWorkspaceTabsStore((s) => s.setChatHidden);
 
   return (
     <header className="flex h-10 shrink-0 items-center gap-2 border-b bg-background px-3">
@@ -147,8 +132,8 @@ export function WorkViewHeader({
           />
         </>
       ) : null}
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        {activeThread ? (
+      {activeThread ? (
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <Button
             aria-label={
               summaryOpen ? "Hide summary panel" : "Show summary panel"
@@ -161,34 +146,8 @@ export function WorkViewHeader({
           >
             <ListTree className="size-4" />
           </Button>
-        ) : null}
-        <Button
-          aria-label={
-            workspaceOpen ? "Hide workspace panel" : "Show workspace panel"
-          }
-          aria-pressed={workspaceOpen}
-          onClick={() => onSetWorkspaceOpen((open) => !open)}
-          size="icon-sm"
-          type="button"
-          variant={workspaceOpen ? "secondary" : "ghost"}
-        >
-          <PanelRight className="size-4" />
-        </Button>
-        <Button
-          aria-label={chatHidden ? "Show chat" : "Hide chat"}
-          aria-pressed={chatHidden}
-          onClick={() => setChatHidden(!chatHidden)}
-          size="icon-sm"
-          type="button"
-          variant={chatHidden ? "secondary" : "ghost"}
-        >
-          {chatHidden ? (
-            <MessageSquare className="size-4" />
-          ) : (
-            <MessageSquareOff className="size-4" />
-          )}
-        </Button>
-      </div>
+        </div>
+      ) : null}
     </header>
   );
 }
