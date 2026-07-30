@@ -38,10 +38,10 @@ function resolveDrop(
 }
 
 export function WorkViewDnd({
-  appId,
+  workspaceId,
   children,
 }: {
-  appId: string;
+  workspaceId: string;
   children: ReactNode;
 }) {
   const moveTab = useWorkspaceTabsStore((s) => s.moveTab);
@@ -63,7 +63,7 @@ export function WorkViewDnd({
       return;
     }
 
-    const layout = useWorkspaceTabsStore.getState().byApp[appId];
+    const layout = useWorkspaceTabsStore.getState().byWorkspace[workspaceId];
     if (!layout) {
       return;
     }
@@ -82,12 +82,12 @@ export function WorkViewDnd({
       if (drop.index == null) {
         return;
       }
-      reorderTab(appId, from, activeId, drop.index);
+      reorderTab(workspaceId, from, activeId, drop.index);
       return;
     }
 
     moveTab(
-      appId,
+      workspaceId,
       from,
       activeId,
       drop.panel,

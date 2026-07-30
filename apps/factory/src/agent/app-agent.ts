@@ -6,6 +6,7 @@ import { callable } from "agents";
 import type { LanguageModel } from "ai";
 import { remoteUrlFor } from "../code-host/code-host.js";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import { createDb } from "../db/index.js";
 import { getLiveSha } from "../forge/cd.js";
 import { collectMigrations } from "../registry/app-migrations.js";
 import {
@@ -13,6 +14,7 @@ import {
   putWorkspaceBuild,
   workspaceBuildSha,
 } from "../registry/workspace-build.js";
+import { getWorkspaceAppId } from "../registry/workspace-registry.js";
 import { AppThread } from "./app-thread.js";
 import { GatedWorkspace } from "./gated-workspace.js";
 import {
@@ -72,9 +74,11 @@ interface ThreadMetaRow {
 }
 
 /**
- * Think root for one app-as-being-built. Owns the shared Workspace and
+ * Think root for one isolated workspace. Owns the shared Workspace and
  * thread registry; clients talk to AppThread facets, not this DO's chat.
  * Serving traffic stays on AppDataDO — this isolate is for agent work only.
+ * Durable Object name is `workspaceId` (`ws_…`); forge `appId` is resolved
+ * from D1 for code-host / live / shell operations.
  */
 export class AppAgent extends Think<Env> {
   workspace = new Workspace({
@@ -94,9 +98,33 @@ export class AppAgent extends Think<Env> {
 
   #workspaceClonePromise: Promise<void> | null = null;
   #workspaceCompilePromise: Promise<WorkspaceBuildStatus> | null = null;
+  #resolvedAppId: string | null = null;
 
   override getModel(): LanguageModel {
     throw new Error("AppAgent chat is dormant; connect to an AppThread facet");
+  }
+
+  async #appId(): Promise<string> {
+    if (this.#resolvedAppId) {
+      return this.#resolvedAppId;
+    }
+    const cached = await this.ctx.storage.get<string>("appId");
+    if (cached) {
+      this.#resolvedAppId = cached;
+      return cached;
+    }
+    const appId = await getWorkspaceAppId(createDb(this.env), this.name);
+    if (!appId) {
+      throw new Error(`AppAgent ${this.name}: workspace has no app`);
+    }
+    await this.ctx.storage.put("appId", appId);
+    this.#resolvedAppId = appId;
+    return appId;
+  }
+
+  /** Forge app id for this workspace — used by AppThread shell / prompts. */
+  forgeAppId(): Promise<string> {
+    return this.#appId();
   }
 
   /**
@@ -166,10 +194,11 @@ export class AppAgent extends Think<Env> {
     }
 
     try {
+      const appId = await this.#appId();
       const { sha } = await cloneWorkspaceFromCodeHost(
         this.env,
         this.workspace,
-        this.name
+        appId
       );
       await this.ctx.storage.put(WORKSPACE_CLONED_KEY, sha ?? "empty");
       await this.#scheduleWorkspaceCompile();
@@ -222,7 +251,7 @@ export class AppAgent extends Think<Env> {
   }
 
   /**
-   * Debounced compile of WIP workspace → R2 `builds/{appId}/workspace.json`.
+   * Debounced compile of WIP workspace → R2 `builds/{workspaceId}/workspace.json`.
    * Scheduled from writes and post-clone; not full CD (no lint/check).
    */
   compileWorkspaceBuild(
@@ -390,11 +419,11 @@ export class AppAgent extends Think<Env> {
   }
 
   liveSha(): Promise<string | null> {
-    return getLiveSha(this.env, this.name);
+    return this.#appId().then((appId) => getLiveSha(this.env, appId));
   }
 
-  remoteUrl(): string {
-    return remoteUrlFor(this.name);
+  async remoteUrl(): Promise<string> {
+    return remoteUrlFor(await this.#appId());
   }
 
   /**
@@ -402,19 +431,20 @@ export class AppAgent extends Think<Env> {
    * same `createAppShellCommands`, that a model turn drives.
    *
    * Deliberately **not** `@callable()`. That decorator is what publishes a
-   * method on `/agents/app-agent/<appId>`, which any org member with app
+   * method on `/agents/app-agent/<workspaceId>`, which any org member with app
    * access can reach from the browser; this is for server-side callers holding
    * the stub (the MCP surface, gated on `ADMIN_TOKEN`). `AppThread.harnessBash`
    * is the same capability behind an `AGENT_HARNESS` flag, for the same reason.
    */
   async runShell(script: string): Promise<ShellResult> {
     await this.#ensureWorkspaceReady();
+    const appId = await this.#appId();
     const { bash } = createWorkspaceTools(this.#fs, {
       bash: {
         timeout: SHELL_TIMEOUT_MS,
         customCommands: createAppShellCommands({
           env: this.env,
-          appId: this.name,
+          appId,
         }),
       },
     });
@@ -492,7 +522,9 @@ export class AppAgent extends Think<Env> {
       "current" in listed && typeof listed.current === "string"
         ? listed.current
         : null;
-    const remote = await createR2CodeHost(this.env).listBranches(this.name);
+    const remote = await createR2CodeHost(this.env).listBranches(
+      await this.#appId()
+    );
     const branches = [...new Set([...local, ...remote])].sort((a, b) =>
       a.localeCompare(b)
     );

@@ -3,12 +3,13 @@ import { test } from "node:test";
 import {
   appWorkspaceBasePath,
   clampToApp,
+  clampToWorkspace,
   localhostDisplayPath,
   stripLocalhostDisplay,
 } from "./reload-preview.ts";
 
-test("appWorkspaceBasePath encodes the app id", () => {
-  assert.equal(appWorkspaceBasePath("app_1"), "/a/app_1/workspace");
+test("appWorkspaceBasePath encodes the workspace id", () => {
+  assert.equal(appWorkspaceBasePath("ws_1"), "/a/ws_1/workspace");
   assert.equal(
     appWorkspaceBasePath("a/b"),
     `/a/${encodeURIComponent("a/b")}/workspace`
@@ -27,23 +28,27 @@ test("stripLocalhostDisplay accepts cosmetic localhost URLs", () => {
   assert.equal(stripLocalhostDisplay("/login"), "/login");
 });
 
-test("clampToApp workspace mode stays under /workspace", () => {
-  const appId = "app_x";
-  assert.equal(clampToApp(appId, "/", "workspace"), "/a/app_x/workspace/");
+test("clampToWorkspace stays under /workspace", () => {
+  const workspaceId = "ws_x";
+  assert.equal(clampToWorkspace(workspaceId, "/"), "/a/ws_x/workspace/");
   assert.equal(
-    clampToApp(appId, "/login", "workspace"),
-    "/a/app_x/workspace/login"
+    clampToWorkspace(workspaceId, "/login"),
+    "/a/ws_x/workspace/login"
   );
   assert.equal(
-    clampToApp(appId, "http://localhost/login", "workspace"),
-    "/a/app_x/workspace/login"
+    clampToWorkspace(workspaceId, "http://localhost/login"),
+    "/a/ws_x/workspace/login"
   );
   assert.equal(
-    clampToApp(appId, "https://evil.example/x", "workspace"),
-    "/a/app_x/workspace/"
+    clampToWorkspace(workspaceId, "https://evil.example/x"),
+    "/a/ws_x/workspace/"
   );
   assert.equal(
-    clampToApp(appId, "/a/app_x/workspace/login", "workspace"),
-    "/a/app_x/workspace/login"
+    clampToWorkspace(workspaceId, "/a/ws_x/workspace/login"),
+    "/a/ws_x/workspace/login"
   );
+});
+
+test("clampToApp live stays under /a/:appId", () => {
+  assert.equal(clampToApp("app_1", "/login"), "/a/app_1/login");
 });

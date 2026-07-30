@@ -9,6 +9,11 @@ const TABS = [
   { id: "overview", label: "Overview", to: "/apps/$appId" as const },
   { id: "code", label: "Code", to: "/apps/$appId/code" as const },
   {
+    id: "workspaces",
+    label: "Workspaces",
+    to: "/apps/$appId/workspaces" as const,
+  },
+  {
     id: "deployments",
     label: "Deployments",
     to: "/apps/$appId/deployments" as const,
@@ -26,6 +31,9 @@ function activeTabFromPath(pathname: string, appId: string): TabId | null {
   }
   if (pathname.startsWith(`${base}/code`)) {
     return "code";
+  }
+  if (pathname.startsWith(`${base}/workspaces`)) {
+    return "workspaces";
   }
   if (pathname.startsWith(`${base}/deployments`)) {
     return "deployments";

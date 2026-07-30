@@ -38,12 +38,13 @@ data.
 | **Repo** | Per-app Git repository via the **code host**. Code source of truth. |
 | **Code host** | Port over Cloudflare Artifacts (R2 stand-in today). |
 | **Forge** | PR + checks + merge layer (architecture name; UI may say PRs / Checks). |
-| **Workspace** | Agent checkout / Think file workspace for one app (shared by that app's threads). |
+| **Workspace** | Isolated agent computer for one app (AppAgent DO `ws_…`, checkout + threads + WIP). Console **Workspaces** tab lists them; WIP serve is `/a/:workspaceId/workspace`. |
+| **Think workspace** / **checkout** | The mutable file tree inside a Workspace (Think / MCP FS). Not a console screen name. |
 | **Build** | Immutable compile output for a commit, keyed by sha — not "artifact". |
 | **Live** / **live deployment** | Thin pointer (`live_sha` on D1); serve loads that build. |
 | **Preview** / **preview deployment** | Serve a PR head (`/a/:appId/preview/:prNumber`). |
 | **Checks** / **runs** | Platform CI on commits / PRs. |
-| **Thread** | A chat against one app. **The unit of work** — lite has no tasks. |
+| **Thread** | A chat against one workspace. **The unit of work** — lite has no tasks. |
 | **Session** | An *auth* session. Nothing else. |
 | **Kernel** | Frozen dependency universe apps build and run against. |
 | **AppDataDO** | Runtime SQLite Durable Object — not a code store. |
@@ -52,7 +53,7 @@ data.
 
 | Word | Reserved for | Never use for |
 | --- | --- | --- |
-| **workspace** | Agent / Think file workspace | A screen name ("app workspace" UI label is wrong). |
+| **workspace** | Product Workspace (isolated agent computer) | Unrelated UI chrome; use **Think workspace** / **checkout** for the FS alone. |
 | **session** | Auth sessions | A chat — that's a **Thread**. Think's internal "session" → **think session** if it must be named. |
 | **organization** | Factory tenancy | An app's orgs — those are **app organizations**. |
 | **project** | *nothing in lite* | Anything. Platform SFAB meaning; importing it here blurs both. |

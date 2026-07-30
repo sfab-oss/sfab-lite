@@ -1,7 +1,7 @@
 /**
  * AppDataDO idFromName keys — one data DO class, many serve targets.
  *
- * `${appId}:ws:…` is workspace WIP serve (Package M may add more slots later).
+ * Workspace WIP serve is keyed by workspaceId (`ws_…:ws`).
  */
 
 export function liveDataId(appId: string): string {
@@ -12,6 +12,6 @@ export function prDataId(appId: string, prNumber: number): string {
   return `${appId}:pr:${prNumber}`;
 }
 
-export function wsDataId(appId: string, slot = "default"): string {
-  return `${appId}:ws:${slot}`;
+export function wsDataId(workspaceId: string): string {
+  return `${workspaceId}:ws`;
 }

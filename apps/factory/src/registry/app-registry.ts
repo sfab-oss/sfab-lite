@@ -9,10 +9,12 @@
 import { and, desc, eq } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
 import type { Db } from "../db/index.js";
-import { app, organization } from "../db/schema.js";
+import { app, organization, workspace } from "../db/schema.js";
 import { STALE_ATTEMPT_MS } from "../durable-objects/app-create-do.js";
+import type { WorkspaceRecord } from "./workspace-registry.js";
 
 const nextUlid = monotonicFactory();
+const nextWorkspaceUlid = monotonicFactory();
 
 type AppStatus = "creating" | "ready" | "failed";
 
@@ -31,6 +33,10 @@ function newAppId(): string {
   return `app_${nextUlid()}`;
 }
 
+function newWorkspaceId(): string {
+  return `ws_${nextWorkspaceUlid()}`;
+}
+
 function toRecord(row: typeof app.$inferSelect): AppRecord {
   return {
     id: row.id,
@@ -39,6 +45,19 @@ function toRecord(row: typeof app.$inferSelect): AppRecord {
     status: row.status as AppStatus,
     createAttemptId: row.createAttemptId,
     liveSha: row.liveSha ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function toWorkspaceRecord(
+  row: typeof workspace.$inferSelect
+): WorkspaceRecord {
+  return {
+    id: row.id,
+    appId: row.appId,
+    name: row.name,
+    isDefault: row.isDefault,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -76,30 +95,52 @@ export async function appBelongsToOrganization(
 }
 
 /**
- * Insert the registry row *before* any AppDataDO / AppCreateDO work. Status starts at
- * `creating` so a UI can poll during the ~18–25s seed commit.
+ * App row + Default workspace in one D1 batch — every app must have a default.
+ * Insert the registry rows *before* any AppDataDO / AppCreateDO work. Status
+ * starts at `creating` so a UI can poll during the ~18–25s seed commit.
  */
-export async function insertCreatingApp(
+export async function insertCreatingAppWithDefaultWorkspace(
   db: Db,
   input: { organizationId: string; name: string }
-): Promise<AppRecord> {
-  const id = newAppId();
+): Promise<{ app: AppRecord; workspace: WorkspaceRecord }> {
+  const appId = newAppId();
+  const workspaceId = newWorkspaceId();
   const now = new Date();
-  const [row] = await db
-    .insert(app)
-    .values({
-      id,
-      organizationId: input.organizationId,
-      name: input.name,
-      status: "creating",
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
-  if (!row) {
-    throw new Error("insertCreatingApp: insert returned no row");
+  const [appRows, workspaceRows] = await db.batch([
+    db
+      .insert(app)
+      .values({
+        id: appId,
+        organizationId: input.organizationId,
+        name: input.name,
+        status: "creating",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning(),
+    db
+      .insert(workspace)
+      .values({
+        id: workspaceId,
+        appId,
+        name: "Default",
+        isDefault: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning(),
+  ]);
+  const appRow = appRows[0];
+  const workspaceRow = workspaceRows[0];
+  if (!(appRow && workspaceRow)) {
+    throw new Error(
+      "insertCreatingAppWithDefaultWorkspace: insert returned no row"
+    );
   }
-  return toRecord(row);
+  return {
+    app: toRecord(appRow),
+    workspace: toWorkspaceRecord(workspaceRow),
+  };
 }
 
 export async function setCreateAttemptId(

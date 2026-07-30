@@ -35,6 +35,7 @@ import { useConsoleRoute } from "@/hooks/use-console-route";
 import { useConsoleSession } from "@/hooks/use-console-session";
 import { useHandleThreadDeleted } from "@/hooks/use-handle-thread-deleted";
 import { readyAppsFromList } from "@/lib/api/apps";
+import { fetchDefaultWorkspace } from "@/lib/api/workspaces";
 import type { Thread } from "@/lib/chat/types";
 import {
   type AppLayoutState,
@@ -62,6 +63,7 @@ function resolveActiveThread(
   activeThreadId: string | null,
   threads: Thread[],
   routeAppId: string | null,
+  routeWorkspaceId: string | null,
   scopeAppName: string | null
 ): Thread | null {
   if (!activeThreadId) {
@@ -71,12 +73,13 @@ function resolveActiveThread(
   if (found) {
     return found;
   }
-  if (!routeAppId) {
+  if (!(routeAppId && routeWorkspaceId)) {
     return null;
   }
   return {
     id: activeThreadId,
     appId: routeAppId,
+    workspaceId: routeWorkspaceId,
     appName: scopeAppName,
     readOnly: false,
     status: "idle",
@@ -102,6 +105,7 @@ export function ChatScreen() {
   const route = useConsoleRoute();
   const {
     appId: routeAppId,
+    workspaceId: routeWorkspaceId,
     threadId: routeThreadId,
     goWorkHome,
     goChatHome,
@@ -124,8 +128,8 @@ export function ChatScreen() {
   );
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [shellError, setShellError] = useState<string | null>(null);
-  const ensureApp = useWorkspaceTabsStore((s) => s.ensureApp);
-  const layout = useAppLayout(routeAppId ?? "");
+  const ensureWorkspace = useWorkspaceTabsStore((s) => s.ensureWorkspace);
+  const layout = useAppLayout(routeWorkspaceId ?? "");
   const { canDock, setContainerNode } = useSidePanelLayout();
 
   const creating = createApp.isPending || createReadyApp.isPending;
@@ -137,36 +141,49 @@ export function ChatScreen() {
   }
 
   useEffect(() => {
-    if (routeAppId && routeThreadId) {
+    if (routeAppId && routeWorkspaceId && routeThreadId) {
       setActiveThreadId(routeThreadId);
       const known = readyApps.find((app) => app.appId === routeAppId);
       const appName = known?.appName ?? null;
       setScope(routeAppId, appName);
-      attend(routeAppId, appName);
+      attend(routeWorkspaceId, routeAppId, appName);
       return;
     }
-    if (routeAppId) {
+    if (routeAppId && routeWorkspaceId) {
       const known = readyApps.find((app) => app.appId === routeAppId);
       const appName = known?.appName ?? null;
       setScope(routeAppId, appName);
-      attend(routeAppId, appName);
+      attend(routeWorkspaceId, routeAppId, appName);
       setActiveThreadId(null);
       return;
     }
     setActiveThreadId(null);
-  }, [attend, readyApps, routeAppId, routeThreadId, setScope]);
+  }, [
+    attend,
+    readyApps,
+    routeAppId,
+    routeThreadId,
+    routeWorkspaceId,
+    setScope,
+  ]);
 
   useEffect(() => {
-    if (!routeAppId) {
+    if (!routeWorkspaceId) {
       return;
     }
-    ensureApp(routeAppId);
-  }, [ensureApp, routeAppId]);
+    ensureWorkspace(routeWorkspaceId);
+  }, [ensureWorkspace, routeWorkspaceId]);
 
   const activeThread = useMemo(
     () =>
-      resolveActiveThread(activeThreadId, threads, routeAppId, scopeAppName),
-    [activeThreadId, routeAppId, scopeAppName, threads]
+      resolveActiveThread(
+        activeThreadId,
+        threads,
+        routeAppId,
+        routeWorkspaceId,
+        scopeAppName
+      ),
+    [activeThreadId, routeAppId, routeWorkspaceId, scopeAppName, threads]
   );
 
   const attendedAppId = activeThread?.appId ?? scopeAppId;
@@ -178,10 +195,10 @@ export function ChatScreen() {
   }, [attendedAppId, chatData]);
 
   useEffect(() => {
-    if (!(activeThreadId && routeAppId)) {
+    if (!(activeThreadId && routeWorkspaceId)) {
       return;
     }
-    if (!chatData.hasSyncedApp(routeAppId)) {
+    if (!chatData.hasSyncedWorkspace(routeWorkspaceId)) {
       return;
     }
     if (threads.some((thread) => thread.id === activeThreadId)) {
@@ -190,7 +207,7 @@ export function ChatScreen() {
     setActiveThreadId(null);
     goChatHome();
     setShellError("That conversation no longer exists.");
-  }, [activeThreadId, chatData, goChatHome, routeAppId, threads]);
+  }, [activeThreadId, chatData, goChatHome, routeWorkspaceId, threads]);
 
   const scopedApp = useMemo(() => {
     if (activeThread?.appId) {
@@ -211,15 +228,20 @@ export function ChatScreen() {
   }, [activeThread, readyApps, scopeAppId, scopeAppName, threads]);
 
   const attendApp = useCallback(
-    (appId: string, appName: string) => {
+    async (appId: string, appName: string) => {
       setScope(appId, appName);
-      attend(appId, appName);
       setActiveThreadId(null);
       setSummaryOpen(false);
       setShellError(null);
       createApp.reset();
       createReadyApp.reset();
-      goWorkHome(appId);
+      try {
+        const workspace = await fetchDefaultWorkspace(appId);
+        attend(workspace.id, appId, appName);
+        goWorkHome(appId, workspace.id);
+      } catch (error: unknown) {
+        setShellError(error instanceof Error ? error.message : String(error));
+      }
     },
     [attend, createApp, createReadyApp, goWorkHome, setScope]
   );
@@ -230,8 +252,8 @@ export function ChatScreen() {
     setShellError(null);
     createApp.reset();
     createReadyApp.reset();
-    if (routeAppId) {
-      goWorkHome(routeAppId);
+    if (routeAppId && routeWorkspaceId) {
+      goWorkHome(routeAppId, routeWorkspaceId);
       return;
     }
     clearScope();
@@ -245,6 +267,7 @@ export function ChatScreen() {
     goWorkHome,
     goChatHome,
     routeAppId,
+    routeWorkspaceId,
   ]);
 
   const createThreadFromBlank = useCallback(
@@ -263,15 +286,20 @@ export function ChatScreen() {
           appId = created.appId;
           appName = created.name;
         }
+        const workspace =
+          routeWorkspaceId && routeAppId === appId
+            ? { id: routeWorkspaceId }
+            : await fetchDefaultWorkspace(appId);
         setScope(appId, appName);
-        attend(appId, appName);
-        const handle = await waitForHandle(appId);
+        attend(workspace.id, appId, appName);
+        const handle = await waitForHandle(workspace.id);
         const summary = await createServerThread(handle, {
           title: titleFromText(text),
         });
         const thread: Thread = {
           id: summary.id,
           appId,
+          workspaceId: workspace.id,
           appName,
           readOnly: false,
           status: "idle",
@@ -282,7 +310,7 @@ export function ChatScreen() {
         chatData.upsertThread(thread);
         setThreadSeed(summary.id, text);
         setActiveThreadId(summary.id);
-        goThread(appId, summary.id);
+        goThread(appId, workspace.id, summary.id);
       } catch (error: unknown) {
         setShellError(error instanceof Error ? error.message : String(error));
       }
@@ -293,6 +321,8 @@ export function ChatScreen() {
       createApp,
       createReadyApp,
       goThread,
+      routeAppId,
+      routeWorkspaceId,
       scopedApp,
       setScope,
       setThreadSeed,
@@ -338,13 +368,13 @@ export function ChatScreen() {
   ]);
 
   const appThreads = useMemo(() => {
-    if (!routeAppId) {
+    if (!routeWorkspaceId) {
       return [];
     }
     return threads
-      .filter((thread) => thread.appId === routeAppId)
+      .filter((thread) => thread.workspaceId === routeWorkspaceId)
       .sort((left, right) => right.updatedAt - left.updatedAt);
-  }, [routeAppId, threads]);
+  }, [routeWorkspaceId, threads]);
 
   const displayThread =
     activeThread && activeThread.title === "Loading…"
@@ -371,7 +401,7 @@ export function ChatScreen() {
   const messagesRef = useRef<UIMessage[]>([]);
   const chatBody = <ChatBody {...chatBodyProps} messagesRef={messagesRef} />;
 
-  if (!routeAppId) {
+  if (!(routeAppId && routeWorkspaceId)) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         <ChatBody {...chatBodyProps} messagesRef={messagesRef} />
@@ -388,17 +418,21 @@ export function ChatScreen() {
       layout={layout}
       messagesRef={messagesRef}
       onNewThread={goHome}
-      onSelectThread={(threadId) => goThread(routeAppId, threadId)}
+      onSelectThread={(threadId) =>
+        goThread(routeAppId, routeWorkspaceId, threadId)
+      }
       onSetSummaryOpen={setSummaryOpen}
       onThreadDeleted={handleThreadDeleted}
       summaryOpen={summaryOpen}
       thread={displayThread}
+      workspaceId={routeWorkspaceId}
     />
   );
 }
 
 function WorkViewShell({
   appId,
+  workspaceId,
   appThreads,
   chatBody,
   isMobile,
@@ -412,6 +446,7 @@ function WorkViewShell({
   thread,
 }: {
   appId: string;
+  workspaceId: string;
   appThreads: Thread[];
   chatBody: ReactNode;
   isMobile: boolean;
@@ -448,10 +483,10 @@ function WorkViewShell({
     return (
       <div className="flex min-h-0 flex-1 flex-col">
         {header}
-        <WorkViewDnd appId={appId}>
+        <WorkViewDnd workspaceId={workspaceId}>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <WorkPanel
-              appId={appId}
+              workspaceId={workspaceId}
               chat={chatPanel === "primary" ? chatBody : null}
               focused={layout.focusedPanel === "primary"}
               panel="primary"
@@ -460,10 +495,10 @@ function WorkViewShell({
           </div>
           <Sheet
             onOpenChange={(open) => {
-              if (!(appId && layout.secondary)) {
+              if (!(workspaceId && layout.secondary)) {
                 return;
               }
-              focusPanel(appId, open ? "secondary" : "primary");
+              focusPanel(workspaceId, open ? "secondary" : "primary");
             }}
             open={secondarySheetOpen}
           >
@@ -476,7 +511,7 @@ function WorkViewShell({
               </SheetHeader>
               {layout.secondary ? (
                 <WorkPanel
-                  appId={appId}
+                  workspaceId={workspaceId}
                   chat={chatPanel === "secondary" ? chatBody : null}
                   focused
                   panel="secondary"
@@ -486,7 +521,7 @@ function WorkViewShell({
             </SheetContent>
           </Sheet>
         </WorkViewDnd>
-        <WorkViewFooter appId={appId} />
+        <WorkViewFooter workspaceId={workspaceId} />
       </div>
     );
   }
@@ -494,7 +529,7 @@ function WorkViewShell({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {header}
-      <WorkViewDnd appId={appId}>
+      <WorkViewDnd workspaceId={workspaceId}>
         <div className="flex min-h-0 flex-1">
           <ResizablePanelGroup
             className="min-h-0 flex-1"
@@ -506,7 +541,7 @@ function WorkViewShell({
               minSize={secondaryOpen ? 28 : 40}
             >
               <WorkPanel
-                appId={appId}
+                workspaceId={workspaceId}
                 chat={chatPanel === "primary" ? chatBody : null}
                 className={
                   secondaryOpen
@@ -529,7 +564,7 @@ function WorkViewShell({
                   minSize={22}
                 >
                   <WorkPanel
-                    appId={appId}
+                    workspaceId={workspaceId}
                     chat={chatPanel === "secondary" ? chatBody : null}
                     focused={layout.focusedPanel === "secondary"}
                     panel="secondary"
@@ -543,7 +578,7 @@ function WorkViewShell({
           {secondaryOpen ? null : <SecondaryCreateDropZone />}
         </div>
       </WorkViewDnd>
-      <WorkViewFooter appId={appId} />
+      <WorkViewFooter workspaceId={workspaceId} />
     </div>
   );
 }

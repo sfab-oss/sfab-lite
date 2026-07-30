@@ -1,12 +1,12 @@
 /**
  * Serve a sub-app at /a/:appId/* (live), /a/:appId/preview/:prNumber/*
- * (PR preview_sha), or /a/:appId/workspace/* (AppAgent WIP compile).
+ * (PR preview_sha), or /a/:workspaceId/workspace/* (AppAgent WIP compile).
  *
  * Live pointer is D1 `live_sha` → immutable build in CODE_R2.
  * Preview is per-PR: pull_request.preview_sha → BuildStore by sha.
- * Workspace is ephemeral R2 `builds/{appId}/workspace.json` from AppAgent.
+ * Workspace is ephemeral R2 `builds/{workspaceId}/workspace.json` from AppAgent.
  * AppDataDO is runtime SQLite only (seed credentials + SQL), keyed by
- * `${appId}:live`, `${appId}:pr:N`, or `${appId}:ws:default`.
+ * `${appId}:live`, `${appId}:pr:N`, or `${workspaceId}:ws`.
  */
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { getAgentByName } from "agents";
@@ -46,24 +46,24 @@ function contentType(path: string): string {
   return "application/octet-stream";
 }
 
-export type ServeMode = "live" | "preview" | "workspace";
+/** Discriminated serve identity — never overload appId as workspaceId. */
+export type ServeTarget =
+  | { mode: "live"; appId: string }
+  | { mode: "preview"; appId: string; prNumber: number }
+  | { mode: "workspace"; workspaceId: string };
 
-export interface ServePreviewOpts {
-  prNumber: number;
+function serveId(target: ServeTarget): string {
+  return target.mode === "workspace" ? target.workspaceId : target.appId;
 }
 
-function dataIdFor(
-  appId: string,
-  mode: ServeMode,
-  preview?: ServePreviewOpts
-): string {
-  if (mode === "workspace") {
-    return wsDataId(appId);
+function dataIdFor(target: ServeTarget): string {
+  if (target.mode === "workspace") {
+    return wsDataId(target.workspaceId);
   }
-  if (mode === "preview" && preview?.prNumber != null) {
-    return prDataId(appId, preview.prNumber);
+  if (target.mode === "preview") {
+    return prDataId(target.appId, target.prNumber);
   }
-  return liveDataId(appId);
+  return liveDataId(target.appId);
 }
 
 type LoadBuildResult =
@@ -86,19 +86,15 @@ type LoadBuildResult =
 
 async function loadBuild(
   env: Env,
-  appId: string,
-  mode: ServeMode,
-  preview?: ServePreviewOpts
+  target: ServeTarget
 ): Promise<LoadBuildResult> {
-  if (mode === "workspace") {
-    return loadWorkspaceBuild(env, appId);
+  if (target.mode === "workspace") {
+    return loadWorkspaceBuild(env, target.workspaceId);
   }
 
-  if (mode === "preview") {
-    if (!preview?.prNumber) {
-      return { ok: false, error: "no_preview_build" };
-    }
-    const pr = await getPullRequestByNumber(env, appId, preview.prNumber);
+  if (target.mode === "preview") {
+    const { appId, prNumber } = target;
+    const pr = await getPullRequestByNumber(env, appId, prNumber);
     if (pr?.status !== "open") {
       return { ok: false, error: "preview_not_open" };
     }
@@ -112,6 +108,7 @@ async function loadBuild(
     return { ok: true, build };
   }
 
+  const { appId } = target;
   const sha = await getLiveSha(env, appId);
   if (!sha) {
     return { ok: false, error: "no_live_build" };
@@ -125,12 +122,12 @@ async function loadBuild(
 
 async function loadWorkspaceBuild(
   env: Env,
-  appId: string
+  workspaceId: string
 ): Promise<LoadBuildResult> {
-  let record = await getWorkspaceBuild(env, appId);
+  let record = await getWorkspaceBuild(env, workspaceId);
   if (!record) {
     try {
-      const agent = await getAgentByName(env.AppAgent, appId);
+      const agent = await getAgentByName(env.AppAgent, workspaceId);
       const status = await agent.compileWorkspaceNow();
       if (status.status === "error") {
         return {
@@ -139,7 +136,7 @@ async function loadWorkspaceBuild(
           detail: status.error ?? undefined,
         };
       }
-      record = await getWorkspaceBuild(env, appId);
+      record = await getWorkspaceBuild(env, workspaceId);
     } catch (e) {
       return {
         ok: false,
@@ -159,30 +156,24 @@ async function loadWorkspaceBuild(
   };
 }
 
-function pathPrefixFor(
-  appId: string,
-  mode: ServeMode,
-  preview?: ServePreviewOpts
-): string {
-  if (mode === "workspace") {
-    return `/a/${encodeURIComponent(appId)}/workspace`;
+function pathPrefixFor(target: ServeTarget): string {
+  if (target.mode === "workspace") {
+    return `/a/${encodeURIComponent(target.workspaceId)}/workspace`;
   }
-  if (mode === "preview" && preview?.prNumber != null) {
-    return `/a/${encodeURIComponent(appId)}/preview/${preview.prNumber}`;
+  if (target.mode === "preview") {
+    return `/a/${encodeURIComponent(target.appId)}/preview/${target.prNumber}`;
   }
-  return `/a/${encodeURIComponent(appId)}`;
+  return `/a/${encodeURIComponent(target.appId)}`;
 }
 
 function buildPathContext(
   request: Request,
-  appId: string,
-  restPath: string,
-  mode: ServeMode,
-  preview?: ServePreviewOpts
+  target: ServeTarget,
+  restPath: string
 ): { rest: string; publicBase: string } {
   const url = new URL(request.url);
   const rest = restPath.replace(LEADING_SLASHES_RE, "");
-  const pathPrefix = pathPrefixFor(appId, mode, preview);
+  const pathPrefix = pathPrefixFor(target);
   return { rest, publicBase: `${url.origin}${pathPrefix}` };
 }
 
@@ -222,13 +213,11 @@ async function ensureWorkspaceDataMigrated(
 async function serveApiRoute(
   request: Request,
   env: Env,
-  appId: string,
+  target: ServeTarget,
   build: AppBuild,
   rest: string,
   publicBase: string,
-  mode: ServeMode,
   stub: DurableObjectStub<AppDataDO>,
-  preview?: ServePreviewOpts,
   generation?: number
 ): Promise<Response> {
   const secret = env.APP_BETTER_AUTH_SECRET;
@@ -241,10 +230,11 @@ async function serveApiRoute(
 
   const url = new URL(request.url);
   const innerUrl = new URL(`/${rest}${url.search}`, url.origin);
+  const id = serveId(target);
   const workerKey =
-    mode === "workspace"
-      ? `app:${appId}:workspace:default:${generation ?? build.sha}`
-      : `app:${appId}:${mode}:${preview?.prNumber ?? "live"}:${build.sha}`;
+    target.mode === "workspace"
+      ? `ws:${id}:workspace:${generation ?? build.sha}`
+      : `app:${id}:${target.mode}:${target.mode === "preview" ? target.prNumber : "live"}:${build.sha}`;
 
   const worker = env.LOADER.get(workerKey, async () => ({
     compatibilityDate: "2026-07-23",
@@ -258,7 +248,7 @@ async function serveApiRoute(
       DB: stub,
       BETTER_AUTH_SECRET: secret,
       BETTER_AUTH_URL: new URL(publicBase).origin,
-      APP_BASE_PATH: pathPrefixFor(appId, mode, preview),
+      APP_BASE_PATH: pathPrefixFor(target),
       SEED_TOKEN: (await stub.seedCredentials()).token,
     },
     globalOutbound: null,
@@ -334,32 +324,42 @@ function serveStaticAsset(
   });
 }
 
+function serveErrorFields(
+  target: ServeTarget
+): Record<string, string | number> {
+  if (target.mode === "workspace") {
+    return { workspaceId: target.workspaceId };
+  }
+  if (target.mode === "preview") {
+    return { appId: target.appId, prNumber: target.prNumber };
+  }
+  return { appId: target.appId };
+}
+
 async function bootstrapServeData(
   env: Env,
-  appId: string,
+  target: ServeTarget,
   dataId: string,
-  mode: ServeMode,
   build: AppBuild,
-  preview?: ServePreviewOpts,
   migrations?: AppMigration[]
 ): Promise<Response | null> {
-  if (mode === "preview") {
+  if (target.mode === "preview") {
     try {
-      await ensureDataMigrated(env, appId, dataId, build.sha);
+      await ensureDataMigrated(env, target.appId, dataId, build.sha);
     } catch {
       return Response.json(
         {
           ok: false,
           error: "preview_schema_bootstrap_failed",
-          appId,
-          prNumber: preview?.prNumber,
+          appId: target.appId,
+          prNumber: target.prNumber,
         },
         { status: 500 }
       );
     }
     return null;
   }
-  if (mode !== "workspace") {
+  if (target.mode !== "workspace") {
     return null;
   }
   if (!Array.isArray(migrations)) {
@@ -367,7 +367,7 @@ async function bootstrapServeData(
       {
         ok: false,
         error: "workspace_schema_bootstrap_failed",
-        appId,
+        workspaceId: target.workspaceId,
         detail: "migrations_missing_from_build",
       },
       { status: 500 }
@@ -380,7 +380,7 @@ async function bootstrapServeData(
       {
         ok: false,
         error: "workspace_schema_bootstrap_failed",
-        appId,
+        workspaceId: target.workspaceId,
       },
       { status: 500 }
     );
@@ -391,24 +391,19 @@ async function bootstrapServeData(
 export async function serveSubApp(
   request: Request,
   env: Env,
-  appId: string,
-  restPath: string,
-  mode: ServeMode = "live",
-  preview?: ServePreviewOpts
+  target: ServeTarget,
+  restPath: string
 ): Promise<Response> {
-  if (
-    mode === "preview" &&
-    (preview?.prNumber == null || preview.prNumber < 1)
-  ) {
+  if (target.mode === "preview" && target.prNumber < 1) {
     return Response.json(
-      { ok: false, error: "preview_pr_required", appId },
+      { ok: false, error: "preview_pr_required", appId: target.appId },
       { status: 404 }
     );
   }
 
-  const dataId = dataIdFor(appId, mode, preview);
+  const dataId = dataIdFor(target);
   const stub = env.APP_DATA_DO.get(env.APP_DATA_DO.idFromName(dataId));
-  const loaded = await loadBuild(env, appId, mode, preview);
+  const loaded = await loadBuild(env, target);
 
   if (!loaded.ok) {
     const status =
@@ -420,8 +415,7 @@ export async function serveSubApp(
       {
         ok: false,
         error: loaded.error,
-        appId,
-        ...(preview?.prNumber == null ? {} : { prNumber: preview.prNumber }),
+        ...serveErrorFields(target),
         ...(loaded.detail == null ? {} : { detail: loaded.detail }),
       },
       { status }
@@ -438,7 +432,7 @@ export async function serveSubApp(
       {
         ok: false,
         error: "server_surface_mismatch",
-        appId,
+        ...serveErrorFields(target),
         sha: build.sha,
         buildServerSurface: build.serverSurfaceHash,
         hostServerSurface: SERVER_SURFACE_HASH,
@@ -449,31 +443,23 @@ export async function serveSubApp(
 
   const bootstrapError = await bootstrapServeData(
     env,
-    appId,
+    target,
     dataId,
-    mode,
     build,
-    preview,
     migrations
   );
   if (bootstrapError) {
     return bootstrapError;
   }
 
-  const { rest, publicBase } = buildPathContext(
-    request,
-    appId,
-    restPath,
-    mode,
-    preview
-  );
+  const { rest, publicBase } = buildPathContext(request, target, restPath);
 
   const withShaHeader = (res: Response): Response => {
     const headers = new Headers(res.headers);
     headers.set("X-Sfab-Live-Sha", build.sha);
-    headers.set("X-Sfab-Serve", mode);
-    if (preview?.prNumber != null) {
-      headers.set("X-Sfab-Preview-Pr", String(preview.prNumber));
+    headers.set("X-Sfab-Serve", target.mode);
+    if (target.mode === "preview") {
+      headers.set("X-Sfab-Preview-Pr", String(target.prNumber));
     }
     if (generation != null) {
       headers.set("X-Sfab-Workspace-Generation", String(generation));
@@ -489,13 +475,11 @@ export async function serveSubApp(
     const res = await serveApiRoute(
       request,
       env,
-      appId,
+      target,
       build,
       rest,
       publicBase,
-      mode,
       stub,
-      preview,
       generation
     );
     return withShaHeader(res);

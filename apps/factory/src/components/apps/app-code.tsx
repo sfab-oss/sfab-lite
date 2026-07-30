@@ -1,6 +1,4 @@
-import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
-import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { FileBrowser } from "@/components/workspace-files/file-browser";
 import { useTreeAtRef } from "@/hooks/query/use-code-tree";
@@ -53,15 +51,6 @@ export function AppCodePage({ appId }: { appId: string }) {
             {tree.sha.slice(0, 12)}
           </span>
         ) : null}
-        <div className="ml-auto">
-          <Button
-            render={<Link params={{ appId }} to="/apps/$appId/work" />}
-            size="sm"
-            variant="outline"
-          >
-            Open workspace
-          </Button>
-        </div>
       </div>
 
       {treeQuery.isPending && !tree ? (

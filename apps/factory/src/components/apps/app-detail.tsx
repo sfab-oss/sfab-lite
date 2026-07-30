@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 import { useApp, useAppAttempt } from "@/hooks/query/use-apps";
 import { usePrs, useRuns } from "@/hooks/query/use-prs";
+import { useDefaultWorkspace } from "@/hooks/query/use-workspaces";
 import type { AppRecord, AttemptRecord } from "@/lib/api/apps";
 import type { CheckRunRecord, PrRecord } from "@/lib/api/prs";
 import { appBasePath } from "@/lib/preview/reload-preview";
@@ -147,14 +148,7 @@ function OverviewBody({
                 <ExternalLink className="size-3.5 opacity-70" />
               </Button>
             ) : null}
-            <Button
-              render={
-                <Link params={{ appId: app.id }} to="/apps/$appId/work" />
-              }
-              variant="outline"
-            >
-              Open workspace
-            </Button>
+            <OpenWorkspaceButton appId={app.id} />
             <Button
               render={
                 <Link
@@ -226,6 +220,31 @@ function OverviewBody({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function OpenWorkspaceButton({ appId }: { appId: string }) {
+  const defaultQuery = useDefaultWorkspace(appId);
+  const workspaceId = defaultQuery.data?.id;
+  if (!workspaceId) {
+    return (
+      <Button disabled variant="outline">
+        Open workspace
+      </Button>
+    );
+  }
+  return (
+    <Button
+      render={
+        <Link
+          params={{ appId, workspaceId }}
+          to="/apps/$appId/workspaces/$workspaceId/work"
+        />
+      }
+      variant="outline"
+    >
+      Open workspace
+    </Button>
   );
 }
 

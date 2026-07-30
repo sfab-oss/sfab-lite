@@ -19,7 +19,7 @@ type CheckoutBranchResult =
   | { ok: true; current: string }
   | { ok: false; error: string };
 
-export function WorkBranchSelector({ appId }: { appId: string }) {
+export function WorkBranchSelector({ workspaceId }: { workspaceId: string }) {
   const [current, setCurrent] = useState<string | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -27,7 +27,7 @@ export function WorkBranchSelector({ appId }: { appId: string }) {
 
   const agent = useAgent({
     agent: "AppAgent",
-    name: appId,
+    name: workspaceId,
   });
 
   const refresh = useCallback(async () => {

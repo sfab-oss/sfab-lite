@@ -26,9 +26,9 @@ export interface AppAgentHandle {
 }
 
 interface AppAgentRegistryValue {
-  attend: (appId: string, appName: string | null) => void;
+  attend: (workspaceId: string, appId: string, appName: string | null) => void;
   clearAttention: () => void;
-  waitForHandle: (appId: string) => Promise<AppAgentHandle>;
+  waitForHandle: (workspaceId: string) => Promise<AppAgentHandle>;
 }
 
 const AppAgentRegistryContext = createContext<AppAgentRegistryValue | null>(
@@ -37,6 +37,7 @@ const AppAgentRegistryContext = createContext<AppAgentRegistryValue | null>(
 
 function toThread(
   summary: ThreadSummary,
+  workspaceId: string,
   appId: string,
   appName: string | null
 ): Thread {
@@ -44,6 +45,7 @@ function toThread(
     id: summary.id,
     title: summary.title,
     appId,
+    workspaceId,
     appName,
     readOnly: false,
     status: "idle",
@@ -53,21 +55,25 @@ function toThread(
 }
 
 function AppAgentBridge({
+  workspaceId,
   appId,
   appName,
   onHandle,
 }: {
+  workspaceId: string;
   appId: string;
   appName: string | null;
-  onHandle: (appId: string, handle: AppAgentHandle | null) => void;
+  onHandle: (workspaceId: string, handle: AppAgentHandle | null) => void;
 }) {
   const chatData = useChatData() as RealChatData;
   const appNameRef = useRef(appName);
   appNameRef.current = appName;
+  const appIdRef = useRef(appId);
+  appIdRef.current = appId;
 
   const agent = useAgent({
     agent: "AppAgent",
-    name: appId,
+    name: workspaceId,
     onMessage: (event) => {
       if (typeof event.data !== "string") {
         return;
@@ -75,7 +81,7 @@ function AppAgentBridge({
       try {
         const parsed = JSON.parse(event.data) as { type?: string };
         if (parsed.type === "workspace-change") {
-          chatData.refreshApp(appId).catch((error: unknown) => {
+          chatData.refreshApp(appIdRef.current).catch((error: unknown) => {
             console.error("[chat] workspace-change refresh failed", error);
           });
         }
@@ -90,9 +96,9 @@ function AppAgentBridge({
       call: (method, args) => agent.call(method, args ?? []),
       ready: agent.ready,
     };
-    onHandle(appId, handle);
-    return () => onHandle(appId, null);
-  }, [agent, appId, onHandle]);
+    onHandle(workspaceId, handle);
+    return () => onHandle(workspaceId, null);
+  }, [agent, onHandle, workspaceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,25 +108,27 @@ function AppAgentBridge({
         if (cancelled || !Array.isArray(list)) {
           return;
         }
-        chatData.syncAppThreads(
-          appId,
-          list.map((row) => toThread(row, appId, appNameRef.current))
+        chatData.syncWorkspaceThreads(
+          workspaceId,
+          list.map((row) =>
+            toThread(row, workspaceId, appIdRef.current, appNameRef.current)
+          )
         );
       })
       .catch((error: unknown) => {
-        console.error("[chat] listThreads failed", appId, error);
+        console.error("[chat] listThreads failed", workspaceId, error);
       });
     return () => {
       cancelled = true;
     };
-  }, [agent, appId, chatData]);
+  }, [agent, chatData, workspaceId]);
 
   return null;
 }
 
 /**
- * Holds at most one live AppAgent WebSocket — the app the child declares via
- * attend(). Mount with no props; the child drives attention through context.
+ * Holds at most one live AppAgent WebSocket — the workspace the child declares
+ * via attend(). Mount with no props; the child drives attention through context.
  */
 export function AppAgentRegistryProvider({
   children,
@@ -128,6 +136,7 @@ export function AppAgentRegistryProvider({
   children: ReactNode;
 }) {
   const [attended, setAttended] = useState<{
+    workspaceId: string;
     appId: string;
     appName: string | null;
   } | null>(null);
@@ -137,45 +146,52 @@ export function AppAgentRegistryProvider({
   );
 
   const onHandle = useCallback(
-    (appId: string, handle: AppAgentHandle | null) => {
+    (workspaceId: string, handle: AppAgentHandle | null) => {
       if (handle) {
-        handlesRef.current.set(appId, handle);
-        const waiters = waitersRef.current.get(appId);
+        handlesRef.current.set(workspaceId, handle);
+        const waiters = waitersRef.current.get(workspaceId);
         if (waiters) {
-          waitersRef.current.delete(appId);
+          waitersRef.current.delete(workspaceId);
           for (const resolve of waiters) {
             resolve(handle);
           }
         }
         return;
       }
-      handlesRef.current.delete(appId);
+      handlesRef.current.delete(workspaceId);
     },
     []
   );
 
-  const attend = useCallback((appId: string, appName: string | null) => {
-    setAttended((current) => {
-      if (current?.appId === appId && current.appName === appName) {
-        return current;
-      }
-      return { appId, appName };
-    });
-  }, []);
+  const attend = useCallback(
+    (workspaceId: string, appId: string, appName: string | null) => {
+      setAttended((current) => {
+        if (
+          current?.workspaceId === workspaceId &&
+          current.appId === appId &&
+          current.appName === appName
+        ) {
+          return current;
+        }
+        return { workspaceId, appId, appName };
+      });
+    },
+    []
+  );
 
   const clearAttention = useCallback(() => {
     setAttended(null);
   }, []);
 
-  const waitForHandle = useCallback((appId: string) => {
-    const existing = handlesRef.current.get(appId);
+  const waitForHandle = useCallback((workspaceId: string) => {
+    const existing = handlesRef.current.get(workspaceId);
     if (existing) {
       return Promise.resolve(existing);
     }
     return new Promise<AppAgentHandle>((resolve) => {
-      const list = waitersRef.current.get(appId) ?? [];
+      const list = waitersRef.current.get(workspaceId) ?? [];
       list.push(resolve);
-      waitersRef.current.set(appId, list);
+      waitersRef.current.set(workspaceId, list);
     });
   }, []);
 
@@ -190,8 +206,9 @@ export function AppAgentRegistryProvider({
         <AppAgentBridge
           appId={attended.appId}
           appName={attended.appName}
-          key={attended.appId}
+          key={attended.workspaceId}
           onHandle={onHandle}
+          workspaceId={attended.workspaceId}
         />
       ) : null}
       {children}

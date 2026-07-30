@@ -159,11 +159,11 @@ function AddTabMenu({ onOpen }: { onOpen: (kind: ViewKind) => void }) {
 }
 
 function TabOptionsMenu({
-  appId,
+  workspaceId,
   panel,
   tabId,
 }: {
-  appId: string;
+  workspaceId: string;
   panel: PanelId;
   tabId: string;
 }) {
@@ -188,7 +188,9 @@ function TabOptionsMenu({
         <MoreHorizontal className="size-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-40">
-        <DropdownMenuItem onClick={() => moveTab(appId, panel, tabId, other)}>
+        <DropdownMenuItem
+          onClick={() => moveTab(workspaceId, panel, tabId, other)}
+        >
           {toRight ? (
             <>
               <PanelRight className="size-4" />
@@ -206,7 +208,13 @@ function TabOptionsMenu({
   );
 }
 
-function EmptyPanel({ appId, panel }: { appId: string; panel: PanelId }) {
+function EmptyPanel({
+  workspaceId,
+  panel,
+}: {
+  workspaceId: string;
+  panel: PanelId;
+}) {
   const openTab = useWorkspaceTabsStore((s) => s.openTab);
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
@@ -222,7 +230,7 @@ function EmptyPanel({ appId, panel }: { appId: string; panel: PanelId }) {
           return (
             <Button
               key={kind}
-              onClick={() => openTab(appId, kind, panel)}
+              onClick={() => openTab(workspaceId, kind, panel)}
               size="sm"
               variant="outline"
             >
@@ -237,7 +245,7 @@ function EmptyPanel({ appId, panel }: { appId: string; panel: PanelId }) {
 }
 
 function WorkTabChrome({
-  appId,
+  workspaceId,
   panel,
   tab,
   tabs,
@@ -246,7 +254,7 @@ function WorkTabChrome({
   style,
   isDragging,
 }: {
-  appId: string;
+  workspaceId: string;
   panel: PanelId;
   tab: OpenTab;
   tabs: OpenTab[];
@@ -279,13 +287,13 @@ function WorkTabChrome({
         <Icon className="size-3.5 shrink-0" />
         <span className="truncate">{label}</span>
       </TabsTrigger>
-      <TabOptionsMenu appId={appId} panel={panel} tabId={tab.id} />
+      <TabOptionsMenu workspaceId={workspaceId} panel={panel} tabId={tab.id} />
       <button
         aria-label={`Close ${label}`}
         className="absolute right-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
         onClick={(event) => {
           event.stopPropagation();
-          closeTab(appId, panel, tab.id);
+          closeTab(workspaceId, panel, tab.id);
         }}
         onPointerDown={(event) => event.stopPropagation()}
         type="button"
@@ -297,12 +305,12 @@ function WorkTabChrome({
 }
 
 function SortableWorkTab({
-  appId,
+  workspaceId,
   panel,
   tab,
   tabs,
 }: {
-  appId: string;
+  workspaceId: string;
   panel: PanelId;
   tab: OpenTab;
   tabs: OpenTab[];
@@ -318,7 +326,7 @@ function SortableWorkTab({
 
   return (
     <WorkTabChrome
-      appId={appId}
+      workspaceId={workspaceId}
       dragHandleProps={{ ...attributes, ...listeners }}
       isDragging={isDragging}
       panel={panel}
@@ -334,7 +342,7 @@ function SortableWorkTab({
 }
 
 export function WorkPanel({
-  appId,
+  workspaceId,
   panel,
   state,
   focused,
@@ -342,7 +350,7 @@ export function WorkPanel({
   className,
   sortable = false,
 }: {
-  appId: string;
+  workspaceId: string;
   panel: PanelId;
   state: PanelState;
   focused: boolean;
@@ -361,7 +369,7 @@ export function WorkPanel({
   const tabItems = tabs.map((tab) =>
     sortable ? (
       <SortableWorkTab
-        appId={appId}
+        workspaceId={workspaceId}
         key={tab.id}
         panel={panel}
         tab={tab}
@@ -369,7 +377,7 @@ export function WorkPanel({
       />
     ) : (
       <WorkTabChrome
-        appId={appId}
+        workspaceId={workspaceId}
         key={tab.id}
         panel={panel}
         tab={tab}
@@ -400,7 +408,7 @@ export function WorkPanel({
     >
       <Tabs
         className="flex h-full min-h-0 flex-col gap-0"
-        onValueChange={(id) => focusTab(appId, panel, id)}
+        onValueChange={(id) => focusTab(workspaceId, panel, id)}
         value={activeId ?? ""}
       >
         <div className="flex h-10 shrink-0 items-center gap-1 border-b bg-background px-2">
@@ -414,12 +422,12 @@ export function WorkPanel({
           ) : (
             tabStrip
           )}
-          <AddTabMenu onOpen={(kind) => openTab(appId, kind, panel)} />
+          <AddTabMenu onOpen={(kind) => openTab(workspaceId, kind, panel)} />
         </div>
 
         <div className="min-h-0 flex-1 overflow-hidden">
           {tabs.length === 0 ? (
-            <EmptyPanel appId={appId} panel={panel} />
+            <EmptyPanel workspaceId={workspaceId} panel={panel} />
           ) : (
             tabs.map((tab) => (
               <TabsContent

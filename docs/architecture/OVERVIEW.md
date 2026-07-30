@@ -36,16 +36,16 @@ ADRs under [`../decisions/`](../decisions/).
   Artifacts later). **CD** writes immutable **builds** keyed by sha; D1
   `live_sha` is the thin pointer serve reads. **AppDataDO** is runtime
   SQLite only — one class, many ids (`${appId}:live`, `${appId}:pr:N`,
-  later `${appId}:ws:…`). **AppCreateDO** (`idFromName(appId)`) owns create
+  `${workspaceId}:ws`). **AppCreateDO** (`idFromName(appId)`) owns create
   jobs + alarms. There is no forever bare-`appId` live special case.
 - **Live** `/a/:appId/*` is public at the host layer (the app's own
   better-auth still applies inside). **PR preview**
   `/a/:appId/preview/:prNumber/*` requires factory session + membership in
   the app's org; preview SQLite is empty+migrations from preview source
   (never a live clone) and is destroyed when the PR leaves `open`.
-  **Workspace WIP** `/a/:appId/workspace/*` is the same org-auth posture;
-  data is `${appId}:ws:default` (empty+migrations); the Agent Browser Viewer
-  shows `http://localhost/…` chrome while fetching the workspace URL.
+  **Workspace WIP** `/a/:workspaceId/workspace/*` is the same org-auth
+  posture; data is `${workspaceId}:ws` (empty+migrations); the Agent Browser
+  Viewer shows `http://localhost/…` chrome while fetching the workspace URL.
   Debounced compile on workspace writes (not full CD per edit).
 - **The seed is a snapshot, not a link.** `TEMPLATE_SEED.sourceFiles` becomes
   the initial commit on `main` at create; later work is normal Git. A fix to
@@ -69,14 +69,15 @@ Deployment stay general.
 
 | Primitive | Job | Who uses it |
 | --- | --- | --- |
-| **Workspace** | Mutable checkout; id shared by agent + MCP | Agent, MCP |
+| **Workspace** | Isolated agent computer (checkout + threads + WIP); id = AppAgent name | Agent, MCP, Workspaces tab |
 | **Deployment** | Immutable build serve (`live` / PR `preview`) | Serve, Deployments, Viewer |
 | **Viewer** | iframe (+ chrome) of `deployment \| workspace` | Agent Browser first; any later surface |
 | **Board** | Zoom/pan layout of N Viewers | **Deferred product** — not scheduled |
 
-Cardinality for now: **one workspace per app**. Multi-version compare =
-multiple **Deployments** (branches/PRs), not N WIP trees. Nested canvases are
-a non-goal. Naming: [`../engineering/terminology.md`](../engineering/terminology.md).
+Cardinality for Milestone A: **one Default workspace per app** (more
+workspaces = Slice B). Multi-version compare = multiple **Deployments**
+(branches/PRs), not N WIP trees. Nested canvases are a non-goal. Naming:
+[`../engineering/terminology.md`](../engineering/terminology.md).
 
 ## What is in, what is not
 

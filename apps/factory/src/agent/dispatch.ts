@@ -1,10 +1,11 @@
 import { routeAgentRequest } from "agents";
 import { createDb } from "../db/index.js";
 import { requireAppAccess, resolveActor } from "../hono/tenancy.js";
+import { getWorkspaceAppId } from "../registry/workspace-registry.js";
 import type { RequestCtx } from "../serve/routes.js";
 
 /**
- * `/agents/app-agent/<appId>[/sub/app-thread/<threadId>][/…]` only.
+ * `/agents/app-agent/<workspaceId>[/sub/app-thread/<threadId>][/…]` only.
  * Auth + tenancy run *before* `routeAgentRequest`: that helper enumerates
  * every DO binding with `idFromName` (including `APP_DATA_DO` /
  * `APP_CREATE_DO`), so an ungated branch is a standing gateway to every
@@ -32,8 +33,13 @@ export async function dispatchAgents(rc: RequestCtx): Promise<Response> {
   // The raw segment, undecoded: routePartykitRequest passes it to
   // idFromName verbatim, so decoding here would authorize one identity and
   // instantiate another.
-  const appId = match[1];
-  if (!appId.startsWith("app_")) {
+  const workspaceId = match[1];
+  if (!workspaceId.startsWith("ws_")) {
+    return jsonError("agent_not_found", 404);
+  }
+
+  const appId = await getWorkspaceAppId(db, workspaceId);
+  if (!appId) {
     return jsonError("agent_not_found", 404);
   }
 

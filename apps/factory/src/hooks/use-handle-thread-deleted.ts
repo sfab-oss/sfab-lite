@@ -36,9 +36,9 @@ export function useHandleThreadDeleted(activeThreadId: string | null) {
         readyApps.find((app) => app.appId === thread.appId)?.appName ??
         null;
 
-      if (thread.appId) {
+      if (thread.appId && thread.workspaceId) {
         setScope(thread.appId, appName);
-        attend(thread.appId, appName);
+        attend(thread.workspaceId, thread.appId, appName);
         goChatHome();
         return;
       }

@@ -20,19 +20,25 @@ import { Route as ProtectedAppsRouteImport } from './routes/_protected/apps'
 import { Route as ProtectedAppsIndexRouteImport } from './routes/_protected/apps.index'
 import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
 import { Route as ProtectedAppsAppIdIndexRouteImport } from './routes/_protected/apps.$appId.index'
+import { Route as ProtectedAppsAppIdWorkspacesRouteImport } from './routes/_protected/apps.$appId.workspaces'
 import { Route as ProtectedAppsAppIdWorkRouteImport } from './routes/_protected/apps.$appId.work'
 import { Route as ProtectedAppsAppIdPrsRouteImport } from './routes/_protected/apps.$appId.prs'
 import { Route as ProtectedAppsAppIdDeploymentsRouteImport } from './routes/_protected/apps.$appId.deployments'
 import { Route as ProtectedAppsAppIdCodeRouteImport } from './routes/_protected/apps.$appId.code'
 import { Route as ProtectedAppsAppIdAgentRouteImport } from './routes/_protected/apps.$appId.agent'
 import { Route as ProtectedAppsAppIdActionsRouteImport } from './routes/_protected/apps.$appId.actions'
+import { Route as ProtectedAppsAppIdWorkspacesIndexRouteImport } from './routes/_protected/apps.$appId.workspaces.index'
 import { Route as ProtectedAppsAppIdWorkIndexRouteImport } from './routes/_protected/apps.$appId.work.index'
 import { Route as ProtectedAppsAppIdPrsIndexRouteImport } from './routes/_protected/apps.$appId.prs.index'
 import { Route as ProtectedAppsAppIdAgentIndexRouteImport } from './routes/_protected/apps.$appId.agent.index'
+import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId'
 import { Route as ProtectedAppsAppIdWorkThreadIdRouteImport } from './routes/_protected/apps.$appId.work.$threadId'
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as ProtectedAppsAppIdPrsPrNumberRouteImport } from './routes/_protected/apps.$appId.prs.$prNumber'
 import { Route as ProtectedAppsAppIdAgentThreadIdRouteImport } from './routes/_protected/apps.$appId.agent.$threadId'
+import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId.work'
+import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId.work.index'
+import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId.work.$threadId'
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
@@ -88,6 +94,12 @@ const ProtectedAppsAppIdIndexRoute = ProtectedAppsAppIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProtectedAppsAppIdRoute,
 } as any)
+const ProtectedAppsAppIdWorkspacesRoute =
+  ProtectedAppsAppIdWorkspacesRouteImport.update({
+    id: '/workspaces',
+    path: '/workspaces',
+    getParentRoute: () => ProtectedAppsAppIdRoute,
+  } as any)
 const ProtectedAppsAppIdWorkRoute = ProtectedAppsAppIdWorkRouteImport.update({
   id: '/work',
   path: '/work',
@@ -120,6 +132,12 @@ const ProtectedAppsAppIdActionsRoute =
     path: '/actions',
     getParentRoute: () => ProtectedAppsAppIdRoute,
   } as any)
+const ProtectedAppsAppIdWorkspacesIndexRoute =
+  ProtectedAppsAppIdWorkspacesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ProtectedAppsAppIdWorkspacesRoute,
+  } as any)
 const ProtectedAppsAppIdWorkIndexRoute =
   ProtectedAppsAppIdWorkIndexRouteImport.update({
     id: '/',
@@ -137,6 +155,12 @@ const ProtectedAppsAppIdAgentIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => ProtectedAppsAppIdAgentRoute,
+  } as any)
+const ProtectedAppsAppIdWorkspacesWorkspaceIdRoute =
+  ProtectedAppsAppIdWorkspacesWorkspaceIdRouteImport.update({
+    id: '/$workspaceId',
+    path: '/$workspaceId',
+    getParentRoute: () => ProtectedAppsAppIdWorkspacesRoute,
   } as any)
 const ProtectedAppsAppIdWorkThreadIdRoute =
   ProtectedAppsAppIdWorkThreadIdRouteImport.update({
@@ -162,6 +186,24 @@ const ProtectedAppsAppIdAgentThreadIdRoute =
     path: '/$threadId',
     getParentRoute: () => ProtectedAppsAppIdAgentRoute,
   } as any)
+const ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute =
+  ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteImport.update({
+    id: '/work',
+    path: '/work',
+    getParentRoute: () => ProtectedAppsAppIdWorkspacesWorkspaceIdRoute,
+  } as any)
+const ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute =
+  ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute,
+  } as any)
+const ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute =
+  ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ProtectedIndexRoute
@@ -179,14 +221,20 @@ export interface FileRoutesByFullPath {
   '/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
   '/apps/$appId/work': typeof ProtectedAppsAppIdWorkRouteWithChildren
+  '/apps/$appId/workspaces': typeof ProtectedAppsAppIdWorkspacesRouteWithChildren
   '/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
   '/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/apps/$appId/work/$threadId': typeof ProtectedAppsAppIdWorkThreadIdRoute
+  '/apps/$appId/workspaces/$workspaceId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren
   '/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
   '/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
   '/apps/$appId/work/': typeof ProtectedAppsAppIdWorkIndexRoute
+  '/apps/$appId/workspaces/': typeof ProtectedAppsAppIdWorkspacesIndexRoute
+  '/apps/$appId/workspaces/$workspaceId/work': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteWithChildren
+  '/apps/$appId/workspaces/$workspaceId/work/$threadId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute
+  '/apps/$appId/workspaces/$workspaceId/work/': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute
 }
 export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
@@ -204,9 +252,13 @@ export interface FileRoutesByTo {
   '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/apps/$appId/work/$threadId': typeof ProtectedAppsAppIdWorkThreadIdRoute
+  '/apps/$appId/workspaces/$workspaceId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren
   '/apps/$appId/agent': typeof ProtectedAppsAppIdAgentIndexRoute
   '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsIndexRoute
   '/apps/$appId/work': typeof ProtectedAppsAppIdWorkIndexRoute
+  '/apps/$appId/workspaces': typeof ProtectedAppsAppIdWorkspacesIndexRoute
+  '/apps/$appId/workspaces/$workspaceId/work/$threadId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute
+  '/apps/$appId/workspaces/$workspaceId/work': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -226,14 +278,20 @@ export interface FileRoutesById {
   '/_protected/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/_protected/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
   '/_protected/apps/$appId/work': typeof ProtectedAppsAppIdWorkRouteWithChildren
+  '/_protected/apps/$appId/workspaces': typeof ProtectedAppsAppIdWorkspacesRouteWithChildren
   '/_protected/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
   '/_protected/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/_protected/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
   '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/_protected/apps/$appId/work/$threadId': typeof ProtectedAppsAppIdWorkThreadIdRoute
+  '/_protected/apps/$appId/workspaces/$workspaceId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren
   '/_protected/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
   '/_protected/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
   '/_protected/apps/$appId/work/': typeof ProtectedAppsAppIdWorkIndexRoute
+  '/_protected/apps/$appId/workspaces/': typeof ProtectedAppsAppIdWorkspacesIndexRoute
+  '/_protected/apps/$appId/workspaces/$workspaceId/work': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteWithChildren
+  '/_protected/apps/$appId/workspaces/$workspaceId/work/$threadId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute
+  '/_protected/apps/$appId/workspaces/$workspaceId/work/': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -253,14 +311,20 @@ export interface FileRouteTypes {
     | '/apps/$appId/deployments'
     | '/apps/$appId/prs'
     | '/apps/$appId/work'
+    | '/apps/$appId/workspaces'
     | '/apps/$appId/'
     | '/apps/$appId/agent/$threadId'
     | '/apps/$appId/prs/$prNumber'
     | '/apps/$appId/t/$threadId'
     | '/apps/$appId/work/$threadId'
+    | '/apps/$appId/workspaces/$workspaceId'
     | '/apps/$appId/agent/'
     | '/apps/$appId/prs/'
     | '/apps/$appId/work/'
+    | '/apps/$appId/workspaces/'
+    | '/apps/$appId/workspaces/$workspaceId/work'
+    | '/apps/$appId/workspaces/$workspaceId/work/$threadId'
+    | '/apps/$appId/workspaces/$workspaceId/work/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/chat'
@@ -278,9 +342,13 @@ export interface FileRouteTypes {
     | '/apps/$appId/prs/$prNumber'
     | '/apps/$appId/t/$threadId'
     | '/apps/$appId/work/$threadId'
+    | '/apps/$appId/workspaces/$workspaceId'
     | '/apps/$appId/agent'
     | '/apps/$appId/prs'
     | '/apps/$appId/work'
+    | '/apps/$appId/workspaces'
+    | '/apps/$appId/workspaces/$workspaceId/work/$threadId'
+    | '/apps/$appId/workspaces/$workspaceId/work'
   id:
     | '__root__'
     | '/_protected'
@@ -299,14 +367,20 @@ export interface FileRouteTypes {
     | '/_protected/apps/$appId/deployments'
     | '/_protected/apps/$appId/prs'
     | '/_protected/apps/$appId/work'
+    | '/_protected/apps/$appId/workspaces'
     | '/_protected/apps/$appId/'
     | '/_protected/apps/$appId/agent/$threadId'
     | '/_protected/apps/$appId/prs/$prNumber'
     | '/_protected/apps/$appId/t/$threadId'
     | '/_protected/apps/$appId/work/$threadId'
+    | '/_protected/apps/$appId/workspaces/$workspaceId'
     | '/_protected/apps/$appId/agent/'
     | '/_protected/apps/$appId/prs/'
     | '/_protected/apps/$appId/work/'
+    | '/_protected/apps/$appId/workspaces/'
+    | '/_protected/apps/$appId/workspaces/$workspaceId/work'
+    | '/_protected/apps/$appId/workspaces/$workspaceId/work/$threadId'
+    | '/_protected/apps/$appId/workspaces/$workspaceId/work/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -397,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdIndexRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
+    '/_protected/apps/$appId/workspaces': {
+      id: '/_protected/apps/$appId/workspaces'
+      path: '/workspaces'
+      fullPath: '/apps/$appId/workspaces'
+      preLoaderRoute: typeof ProtectedAppsAppIdWorkspacesRouteImport
+      parentRoute: typeof ProtectedAppsAppIdRoute
+    }
     '/_protected/apps/$appId/work': {
       id: '/_protected/apps/$appId/work'
       path: '/work'
@@ -439,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdActionsRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
+    '/_protected/apps/$appId/workspaces/': {
+      id: '/_protected/apps/$appId/workspaces/'
+      path: '/'
+      fullPath: '/apps/$appId/workspaces/'
+      preLoaderRoute: typeof ProtectedAppsAppIdWorkspacesIndexRouteImport
+      parentRoute: typeof ProtectedAppsAppIdWorkspacesRoute
+    }
     '/_protected/apps/$appId/work/': {
       id: '/_protected/apps/$appId/work/'
       path: '/'
@@ -459,6 +547,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/apps/$appId/agent/'
       preLoaderRoute: typeof ProtectedAppsAppIdAgentIndexRouteImport
       parentRoute: typeof ProtectedAppsAppIdAgentRoute
+    }
+    '/_protected/apps/$appId/workspaces/$workspaceId': {
+      id: '/_protected/apps/$appId/workspaces/$workspaceId'
+      path: '/$workspaceId'
+      fullPath: '/apps/$appId/workspaces/$workspaceId'
+      preLoaderRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteImport
+      parentRoute: typeof ProtectedAppsAppIdWorkspacesRoute
     }
     '/_protected/apps/$appId/work/$threadId': {
       id: '/_protected/apps/$appId/work/$threadId'
@@ -487,6 +582,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/apps/$appId/agent/$threadId'
       preLoaderRoute: typeof ProtectedAppsAppIdAgentThreadIdRouteImport
       parentRoute: typeof ProtectedAppsAppIdAgentRoute
+    }
+    '/_protected/apps/$appId/workspaces/$workspaceId/work': {
+      id: '/_protected/apps/$appId/workspaces/$workspaceId/work'
+      path: '/work'
+      fullPath: '/apps/$appId/workspaces/$workspaceId/work'
+      preLoaderRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteImport
+      parentRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRoute
+    }
+    '/_protected/apps/$appId/workspaces/$workspaceId/work/': {
+      id: '/_protected/apps/$appId/workspaces/$workspaceId/work/'
+      path: '/'
+      fullPath: '/apps/$appId/workspaces/$workspaceId/work/'
+      preLoaderRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRouteImport
+      parentRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute
+    }
+    '/_protected/apps/$appId/workspaces/$workspaceId/work/$threadId': {
+      id: '/_protected/apps/$appId/workspaces/$workspaceId/work/$threadId'
+      path: '/$threadId'
+      fullPath: '/apps/$appId/workspaces/$workspaceId/work/$threadId'
+      preLoaderRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRouteImport
+      parentRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute
     }
   }
 }
@@ -538,6 +654,57 @@ const ProtectedAppsAppIdWorkRouteWithChildren =
     ProtectedAppsAppIdWorkRouteChildren,
   )
 
+interface ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteChildren {
+  ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute
+  ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute
+}
+
+const ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteChildren: ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteChildren =
+  {
+    ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute:
+      ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute,
+    ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute:
+      ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRoute,
+  }
+
+const ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteWithChildren =
+  ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute._addFileChildren(
+    ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteChildren,
+  )
+
+interface ProtectedAppsAppIdWorkspacesWorkspaceIdRouteChildren {
+  ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteWithChildren
+}
+
+const ProtectedAppsAppIdWorkspacesWorkspaceIdRouteChildren: ProtectedAppsAppIdWorkspacesWorkspaceIdRouteChildren =
+  {
+    ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute:
+      ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteWithChildren,
+  }
+
+const ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren =
+  ProtectedAppsAppIdWorkspacesWorkspaceIdRoute._addFileChildren(
+    ProtectedAppsAppIdWorkspacesWorkspaceIdRouteChildren,
+  )
+
+interface ProtectedAppsAppIdWorkspacesRouteChildren {
+  ProtectedAppsAppIdWorkspacesWorkspaceIdRoute: typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren
+  ProtectedAppsAppIdWorkspacesIndexRoute: typeof ProtectedAppsAppIdWorkspacesIndexRoute
+}
+
+const ProtectedAppsAppIdWorkspacesRouteChildren: ProtectedAppsAppIdWorkspacesRouteChildren =
+  {
+    ProtectedAppsAppIdWorkspacesWorkspaceIdRoute:
+      ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren,
+    ProtectedAppsAppIdWorkspacesIndexRoute:
+      ProtectedAppsAppIdWorkspacesIndexRoute,
+  }
+
+const ProtectedAppsAppIdWorkspacesRouteWithChildren =
+  ProtectedAppsAppIdWorkspacesRoute._addFileChildren(
+    ProtectedAppsAppIdWorkspacesRouteChildren,
+  )
+
 interface ProtectedAppsAppIdRouteChildren {
   ProtectedAppsAppIdActionsRoute: typeof ProtectedAppsAppIdActionsRoute
   ProtectedAppsAppIdAgentRoute: typeof ProtectedAppsAppIdAgentRouteWithChildren
@@ -545,6 +712,7 @@ interface ProtectedAppsAppIdRouteChildren {
   ProtectedAppsAppIdDeploymentsRoute: typeof ProtectedAppsAppIdDeploymentsRoute
   ProtectedAppsAppIdPrsRoute: typeof ProtectedAppsAppIdPrsRouteWithChildren
   ProtectedAppsAppIdWorkRoute: typeof ProtectedAppsAppIdWorkRouteWithChildren
+  ProtectedAppsAppIdWorkspacesRoute: typeof ProtectedAppsAppIdWorkspacesRouteWithChildren
   ProtectedAppsAppIdIndexRoute: typeof ProtectedAppsAppIdIndexRoute
   ProtectedAppsAppIdTThreadIdRoute: typeof ProtectedAppsAppIdTThreadIdRoute
 }
@@ -556,6 +724,8 @@ const ProtectedAppsAppIdRouteChildren: ProtectedAppsAppIdRouteChildren = {
   ProtectedAppsAppIdDeploymentsRoute: ProtectedAppsAppIdDeploymentsRoute,
   ProtectedAppsAppIdPrsRoute: ProtectedAppsAppIdPrsRouteWithChildren,
   ProtectedAppsAppIdWorkRoute: ProtectedAppsAppIdWorkRouteWithChildren,
+  ProtectedAppsAppIdWorkspacesRoute:
+    ProtectedAppsAppIdWorkspacesRouteWithChildren,
   ProtectedAppsAppIdIndexRoute: ProtectedAppsAppIdIndexRoute,
   ProtectedAppsAppIdTThreadIdRoute: ProtectedAppsAppIdTThreadIdRoute,
 }
@@ -602,12 +772,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

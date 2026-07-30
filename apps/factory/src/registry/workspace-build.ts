@@ -17,8 +17,8 @@ export interface WorkspaceBuildRecord {
   at: number;
 }
 
-function workspaceBuildKey(appId: string): string {
-  return `builds/${appId}/workspace.json`;
+function workspaceBuildKey(workspaceId: string): string {
+  return `builds/${workspaceId}/workspace.json`;
 }
 
 export async function compileWorkspaceFiles(
@@ -39,12 +39,16 @@ export function workspaceBuildSha(generation: number): string {
 
 export async function putWorkspaceBuild(
   env: Env,
-  appId: string,
+  workspaceId: string,
   record: WorkspaceBuildRecord
 ): Promise<void> {
-  await env.CODE_R2.put(workspaceBuildKey(appId), JSON.stringify(record), {
-    httpMetadata: { contentType: "application/json" },
-  });
+  await env.CODE_R2.put(
+    workspaceBuildKey(workspaceId),
+    JSON.stringify(record),
+    {
+      httpMetadata: { contentType: "application/json" },
+    }
+  );
 }
 
 function isWorkspaceBuildRecord(value: unknown): value is WorkspaceBuildRecord {
@@ -63,9 +67,9 @@ function isWorkspaceBuildRecord(value: unknown): value is WorkspaceBuildRecord {
 
 export async function getWorkspaceBuild(
   env: Env,
-  appId: string
+  workspaceId: string
 ): Promise<WorkspaceBuildRecord | null> {
-  const obj = await env.CODE_R2.get(workspaceBuildKey(appId));
+  const obj = await env.CODE_R2.get(workspaceBuildKey(workspaceId));
   if (!obj) {
     return null;
   }

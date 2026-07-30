@@ -16,7 +16,7 @@ import {
   deleteAppUnscoped,
   getAppOrganizationId,
   getAppUnscoped,
-  insertCreatingApp,
+  insertCreatingAppWithDefaultWorkspace,
   listAppNamesForOrganization,
   listAppsForOrganization,
   markCreateFailed,
@@ -53,7 +53,10 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     requested ||
     pickAppName(await listAppNamesForOrganization(db, organizationId));
 
-  const created = await insertCreatingApp(db, { organizationId, name });
+  const { app: created } = await insertCreatingAppWithDefaultWorkspace(db, {
+    organizationId,
+    name,
+  });
   const appId = created.id;
   const data = liveAppDataStub(rc.env, appId);
   const create = appCreateStub(rc.env, appId);

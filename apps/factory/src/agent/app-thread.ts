@@ -38,10 +38,10 @@ export class AppThread extends Think<Env> {
   #sourceFiles: string[] = [];
 
   override async onStart(): Promise<void> {
-    const appId = this.requireAppId();
+    const parent = await this.parentAgent(AppAgent);
+    const appId = await parent.forgeAppId();
     this.#appId = appId;
 
-    const parent = await this.parentAgent(AppAgent);
     const sha = await parent.liveSha();
     this.#repoHint = sha ? `main @ ${sha.slice(0, 12)}` : "main";
     this.#sourceFiles = await this.#listSourceFiles();
@@ -153,10 +153,6 @@ export class AppThread extends Think<Env> {
     if (this.#appId) {
       return this.#appId;
     }
-    const appId = this.parentPath.at(-1)?.name;
-    if (!appId) {
-      throw new Error(`AppThread ${this.name}: missing parent AppAgent name`);
-    }
-    return appId;
+    throw new Error(`AppThread ${this.name}: forge app id not resolved yet`);
   }
 }

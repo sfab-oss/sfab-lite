@@ -2,6 +2,7 @@ type ThreadStatus = "done" | "idle" | "needs-you" | "running";
 
 export interface Thread {
   appId: string | null;
+  workspaceId: string | null;
   appName: string | null;
   createdAt: number;
   id: string;

@@ -1,12 +1,15 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { fetchDefaultWorkspace } from "@/lib/api/workspaces";
 
 export const Route = createFileRoute("/_protected/apps/$appId/t/$threadId")({
   ssr: false,
-  beforeLoad: ({ params }) => {
+  beforeLoad: async ({ params }) => {
+    const workspace = await fetchDefaultWorkspace(params.appId);
     throw redirect({
-      to: "/apps/$appId/work/$threadId",
+      to: "/apps/$appId/workspaces/$workspaceId/work/$threadId",
       params: {
         appId: params.appId,
+        workspaceId: workspace.id,
         threadId: params.threadId,
       },
       replace: true,

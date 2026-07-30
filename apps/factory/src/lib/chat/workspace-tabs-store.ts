@@ -24,22 +24,26 @@ export interface AppLayoutState {
 }
 
 interface WorkspaceTabsState {
-  byApp: Record<string, AppLayoutState>;
-  closePanel: (appId: string, panel: PanelId) => void;
-  closeTab: (appId: string, panel: PanelId, id: string) => void;
-  ensureApp: (appId: string) => void;
-  focusPanel: (appId: string, panel: PanelId) => void;
-  focusTab: (appId: string, panel: PanelId, id: string) => void;
+  byWorkspace: Record<string, AppLayoutState>;
+  closePanel: (workspaceId: string, panel: PanelId) => void;
+  closeTab: (workspaceId: string, panel: PanelId, id: string) => void;
+  ensureWorkspace: (workspaceId: string) => void;
+  focusPanel: (workspaceId: string, panel: PanelId) => void;
+  focusTab: (workspaceId: string, panel: PanelId, id: string) => void;
   moveTab: (
-    appId: string,
+    workspaceId: string,
     from: PanelId,
     tabId: string,
     to: PanelId,
     toIndex?: number
   ) => void;
-  openTab: (appId: string, kind: ViewKind, target?: PanelId | "side") => void;
+  openTab: (
+    workspaceId: string,
+    kind: ViewKind,
+    target?: PanelId | "side"
+  ) => void;
   reorderTab: (
-    appId: string,
+    workspaceId: string,
     panel: PanelId,
     tabId: string,
     toIndex: number
@@ -47,7 +51,7 @@ interface WorkspaceTabsState {
   resetLocalState: () => void;
 }
 
-const LAB_WORKSPACE_STORAGE_KEY = "sfab.lab.devSessionTabs.v3";
+const LAB_WORKSPACE_STORAGE_KEY = "sfab.lab.devSessionTabs.v4";
 
 function emptyPanel(): PanelState {
   return { tabs: [], activeId: null };
@@ -196,19 +200,19 @@ function resolveEmptyPanels(
   };
 }
 
-function setApp(
+function setWorkspace(
   state: WorkspaceTabsState,
-  appId: string,
+  workspaceId: string,
   next: AppLayoutState
 ): Partial<WorkspaceTabsState> {
-  return { byApp: { ...state.byApp, [appId]: next } };
+  return { byWorkspace: { ...state.byWorkspace, [workspaceId]: next } };
 }
 
 function ensureLayout(
   state: WorkspaceTabsState,
-  appId: string
+  workspaceId: string
 ): AppLayoutState {
-  return state.byApp[appId] ?? defaultAppLayout();
+  return state.byWorkspace[workspaceId] ?? defaultAppLayout();
 }
 
 function revivePanel(value: unknown): PanelState | null {
@@ -253,15 +257,15 @@ function reviveLayout(value: unknown): AppLayoutState | null {
   return { focusedPanel, primary, secondary };
 }
 
-function reviveByApp(value: unknown): Record<string, AppLayoutState> {
+function reviveByWorkspace(value: unknown): Record<string, AppLayoutState> {
   if (!value || typeof value !== "object") {
     return {};
   }
   const revived: Record<string, AppLayoutState> = {};
-  for (const [appId, raw] of Object.entries(value)) {
+  for (const [id, raw] of Object.entries(value)) {
     const layout = reviveLayout(raw);
     if (layout) {
-      revived[appId] = layout;
+      revived[id] = layout;
     }
   }
   return revived;
@@ -270,19 +274,19 @@ function reviveByApp(value: unknown): Record<string, AppLayoutState> {
 export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
   persist(
     (set) => ({
-      byApp: {},
+      byWorkspace: {},
 
-      ensureApp: (appId) =>
+      ensureWorkspace: (workspaceId) =>
         set((state) => {
-          if (state.byApp[appId]) {
+          if (state.byWorkspace[workspaceId]) {
             return {};
           }
-          return setApp(state, appId, defaultAppLayout());
+          return setWorkspace(state, workspaceId, defaultAppLayout());
         }),
 
-      openTab: (appId, kind, target) =>
+      openTab: (workspaceId, kind, target) =>
         set((state) => {
-          const layout = ensureLayout(state, appId);
+          const layout = ensureLayout(state, workspaceId);
           const existingPanel = findTabPanel(layout, kind);
           if (existingPanel) {
             const panel = getPanel(layout, existingPanel);
@@ -290,7 +294,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             if (!(panel && existing)) {
               return {};
             }
-            return setApp(state, appId, {
+            return setWorkspace(state, workspaceId, {
               ...layout,
               focusedPanel: existingPanel,
               [existingPanel]: { ...panel, activeId: existing.id },
@@ -306,32 +310,32 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
               layout.secondary === null
                 ? { tabs: [tab], activeId: tab.id }
                 : addTabToPanel(layout.secondary, tab);
-            return setApp(state, appId, {
+            return setWorkspace(state, workspaceId, {
               ...layout,
               focusedPanel: "secondary",
               secondary,
             });
           }
 
-          return setApp(state, appId, {
+          return setWorkspace(state, workspaceId, {
             ...layout,
             focusedPanel: "primary",
             primary: addTabToPanel(layout.primary, tab),
           });
         }),
 
-      closeTab: (appId, panel, id) =>
+      closeTab: (workspaceId, panel, id) =>
         set((state) => {
-          const layout = ensureLayout(state, appId);
+          const layout = ensureLayout(state, workspaceId);
           const current = getPanel(layout, panel);
           if (!current?.tabs.some((tab) => tab.id === id)) {
             return {};
           }
 
           const updated = withActiveAfterClose(current, id);
-          return setApp(
+          return setWorkspace(
             state,
-            appId,
+            workspaceId,
             resolveEmptyPanels(
               panel === "primary" ? updated : layout.primary,
               panel === "secondary" ? updated : layout.secondary,
@@ -340,9 +344,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           );
         }),
 
-      focusTab: (appId, panel, id) =>
+      focusTab: (workspaceId, panel, id) =>
         set((state) => {
-          const layout = ensureLayout(state, appId);
+          const layout = ensureLayout(state, workspaceId);
           const current = getPanel(layout, panel);
           if (!current?.tabs.some((tab) => tab.id === id)) {
             return {};
@@ -350,33 +354,36 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           if (layout.focusedPanel === panel && current.activeId === id) {
             return {};
           }
-          return setApp(state, appId, {
+          return setWorkspace(state, workspaceId, {
             ...layout,
             focusedPanel: panel,
             [panel]: { ...current, activeId: id },
           });
         }),
 
-      focusPanel: (appId, panel) =>
+      focusPanel: (workspaceId, panel) =>
         set((state) => {
-          const layout = ensureLayout(state, appId);
+          const layout = ensureLayout(state, workspaceId);
           if (panel === "secondary" && layout.secondary === null) {
             return {};
           }
           if (layout.focusedPanel === panel) {
             return {};
           }
-          return setApp(state, appId, { ...layout, focusedPanel: panel });
+          return setWorkspace(state, workspaceId, {
+            ...layout,
+            focusedPanel: panel,
+          });
         }),
 
-      closePanel: (appId, panel) =>
+      closePanel: (workspaceId, panel) =>
         set((state) => {
-          const layout = ensureLayout(state, appId);
+          const layout = ensureLayout(state, workspaceId);
           if (panel === "secondary") {
             if (layout.secondary === null) {
               return {};
             }
-            return setApp(state, appId, {
+            return setWorkspace(state, workspaceId, {
               focusedPanel: "primary",
               primary: layout.primary,
               secondary: null,
@@ -384,23 +391,23 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           }
 
           if (layout.secondary) {
-            return setApp(state, appId, {
+            return setWorkspace(state, workspaceId, {
               focusedPanel: "primary",
               primary: layout.secondary,
               secondary: null,
             });
           }
 
-          return setApp(state, appId, {
+          return setWorkspace(state, workspaceId, {
             focusedPanel: "primary",
             primary: emptyPanel(),
             secondary: null,
           });
         }),
 
-      moveTab: (appId, from, tabId, to, toIndex) =>
+      moveTab: (workspaceId, from, tabId, to, toIndex) =>
         set((state) => {
-          const layout = ensureLayout(state, appId);
+          const layout = ensureLayout(state, workspaceId);
           if (from === to) {
             return {};
           }
@@ -423,16 +430,16 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             secondary = addTabToPanel(secondary, tab, toIndex);
           }
 
-          return setApp(
+          return setWorkspace(
             state,
-            appId,
+            workspaceId,
             resolveEmptyPanels(primary, secondary, to)
           );
         }),
 
-      reorderTab: (appId, panel, tabId, toIndex) =>
+      reorderTab: (workspaceId, panel, tabId, toIndex) =>
         set((state) => {
-          const layout = ensureLayout(state, appId);
+          const layout = ensureLayout(state, workspaceId);
           const current = getPanel(layout, panel);
           if (!current) {
             return {};
@@ -441,29 +448,33 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           if (!next) {
             return {};
           }
-          return setApp(state, appId, {
+          return setWorkspace(state, workspaceId, {
             ...layout,
             focusedPanel: panel,
             [panel]: next,
           });
         }),
 
-      resetLocalState: () => set({ byApp: {} }),
+      resetLocalState: () => set({ byWorkspace: {} }),
     }),
     {
       name: LAB_WORKSPACE_STORAGE_KEY,
       merge: (persisted, current) => ({
         ...current,
         ...(persisted as Partial<WorkspaceTabsState>),
-        byApp: reviveByApp((persisted as { byApp?: unknown } | null)?.byApp),
+        byWorkspace: reviveByWorkspace(
+          (persisted as { byWorkspace?: unknown } | null)?.byWorkspace
+        ),
       }),
       partialize: (state) => ({
-        byApp: state.byApp,
+        byWorkspace: state.byWorkspace,
       }),
     }
   )
 );
 
-export function useAppLayout(appId: string): AppLayoutState {
-  return useWorkspaceTabsStore((s) => s.byApp[appId] ?? defaultAppLayout());
+export function useAppLayout(workspaceId: string): AppLayoutState {
+  return useWorkspaceTabsStore(
+    (s) => s.byWorkspace[workspaceId] ?? defaultAppLayout()
+  );
 }
