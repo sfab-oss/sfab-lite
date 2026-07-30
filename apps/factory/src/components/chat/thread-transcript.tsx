@@ -1,6 +1,7 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: streaming parts have no stable ids */
 
 import { useAgentChat } from "@cloudflare/think/react";
+import { ThinkingPending } from "@sfab-lite/ui/components/ai-elements/thinking";
 import {
   Attachment,
   AttachmentContent,
@@ -25,7 +26,6 @@ import { FileIcon, PaperclipIcon } from "lucide-react";
 import { type RefObject, useEffect, useRef } from "react";
 import { useChatData } from "@/components/chat/chat-data-context";
 import { MessageParts } from "@/components/chat/message-parts";
-import { ThinkingPending } from "@/components/chat/thinking";
 import type { Thread } from "@/lib/chat/types";
 import { ThreadComposer } from "./thread-composer";
 

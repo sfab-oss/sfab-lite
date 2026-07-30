@@ -1,3 +1,4 @@
+import { Thinking } from "@sfab-lite/ui/components/ai-elements/thinking";
 import { Bubble, BubbleContent } from "@sfab-lite/ui/components/shadcn/bubble";
 import { Markdown } from "@sfab-lite/ui/components/shadcn/markdown";
 import { cn } from "@sfab-lite/ui/lib/utils";
@@ -10,7 +11,6 @@ import {
   type UITools,
 } from "ai";
 import { useState } from "react";
-import { Thinking } from "@/components/chat/thinking";
 import { DefaultTool } from "./default-tool";
 import { useMessagePartGroupUi } from "./message-part-group";
 import {
