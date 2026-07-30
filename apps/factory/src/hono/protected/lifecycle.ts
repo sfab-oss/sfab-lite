@@ -3,7 +3,7 @@ import {
   handleCheck,
   handleCommit,
   handleRevert,
-} from "../../lib/protected/lifecycle.js";
+} from "@/lib/protected/lifecycle.js";
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
 import {

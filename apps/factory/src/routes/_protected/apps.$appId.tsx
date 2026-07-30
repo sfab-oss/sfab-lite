@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { AppTabShell } from "@/features/console/app-tab-shell";
+import { AppTabShell } from "@/components/console/app-tab-shell";
 
 export const Route = createFileRoute("/_protected/apps/$appId")({
   ssr: false,

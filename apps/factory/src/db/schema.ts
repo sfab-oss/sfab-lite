@@ -9,7 +9,8 @@
  * table. The duplication is deliberate: an app's organizations and the
  * factory's organizations are different concepts that happen to share a
  * shape, and coupling them so one cannot change without the other would be
- * the actual mistake. See GLOSSARY.md — "organization" does two jobs.
+ * the actual mistake. See docs/engineering/terminology.md — "organization"
+ * does two jobs.
  */
 import { relations, sql } from "drizzle-orm";
 import {

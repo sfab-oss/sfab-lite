@@ -4,7 +4,7 @@
  * Bundled by the companion .mjs runner so Node can load workspace TS.
  */
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
-import seed from "../../factory/src/generated/seed.json" with { type: "json" };
+import seed from "@sfab-lite/template/seed" with { type: "json" };
 import { type LsStore, runCheck } from "../src/run-check.ts";
 
 const baseFiles: Record<string, string> = {};

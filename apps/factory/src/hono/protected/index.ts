@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { NOT_FOUND_BODY } from "../../routes.js";
+import { NOT_FOUND_BODY } from "../../serve/routes.js";
 import { requireActor } from "../middleware.js";
 import type { AdminEnv } from "../types.js";
 import appsRoutes from "./apps.js";

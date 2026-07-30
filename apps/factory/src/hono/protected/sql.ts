@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { handleSql } from "../../lib/protected/sql.js";
+import { handleSql } from "@/lib/protected/sql.js";
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
 import { sqlBodySchema } from "../schemas.js";

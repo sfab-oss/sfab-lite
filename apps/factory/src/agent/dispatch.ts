@@ -1,7 +1,7 @@
 import { routeAgentRequest } from "agents";
 import { createDb } from "../db/index.js";
-import type { RequestCtx } from "../routes.js";
-import { requireAppAccess, resolveActor } from "../tenancy.js";
+import { requireAppAccess, resolveActor } from "../hono/tenancy.js";
+import type { RequestCtx } from "../serve/routes.js";
 
 /**
  * `/agents/app-agent/<appId>[/sub/app-thread/<threadId>][/…]` only.

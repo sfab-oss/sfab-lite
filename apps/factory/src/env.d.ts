@@ -1,7 +1,7 @@
 import type { AppAgent } from "./agent/app-agent.js";
-import type { AppCreateDO } from "./app-create-do.js";
-import type { AppDataDO } from "./app-data-do.js";
-import type { OrgEvents } from "./org-events-do.js";
+import type { AppCreateDO } from "./durable-objects/app-create-do.js";
+import type { AppDataDO } from "./durable-objects/app-data-do.js";
+import type { OrgEvents } from "./durable-objects/org-events-do.js";
 
 declare global {
   interface Env {
@@ -55,9 +55,9 @@ declare global {
     /**
      * The **factory's** better-auth secret — its own sign-in, not any app's.
      *
-     * Per GLOSSARY.md, factory terms go unqualified and app-side ones take the
-     * `app` qualifier. The host now holds two better-auth secrets, so the two
-     * names must never be confused.
+     * Per docs/engineering/terminology.md, factory terms go unqualified and
+     * app-side ones take the `app` qualifier. The host now holds two
+     * better-auth secrets, so the two names must never be confused.
      */
     BETTER_AUTH_SECRET: string;
     /**
@@ -123,7 +123,7 @@ declare global {
      * mid-commit as `lint_failed` / `lintHttp: 401`, which names the wrong
      * component entirely. `/api/protected/health` reports a fingerprint of the value
      * from each worker so a mismatch is visible before it costs a debugging
-     * session. See `docs/DEPLOY.md`.
+     * session. See `docs/engineering/DEPLOY.md`.
      *
      * Unset does **not** open the surface — `resolveActor` 401s a request
      * with no usable credential whatever the config says.
@@ -131,8 +131,8 @@ declare global {
     ADMIN_TOKEN?: string;
     /**
      * GitHub sign-in for the **factory** — the intended production front
-     * door. Unqualified per GLOSSARY.md: these are the factory's own
-     * credentials and are never injected into a generated app.
+     * door. Unqualified per docs/engineering/terminology.md: these are the
+     * factory's own credentials and are never injected into a generated app.
      *
      * The provider is registered only when **both** are non-blank after a
      * trim — a whitespace-only secret is treated as absent, since it is

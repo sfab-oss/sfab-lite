@@ -3,7 +3,7 @@
 ## Tokens (canonical)
 
 **Shadcn semantic tokens are canonical for all new factory UI** — primitives
-in `@sfab-lite/ui`, the auth rebuild, and the chat graft.
+in `@sfab-lite/ui` and the auth rebuild.
 
 Use Tailwind utilities (`bg-muted`, `text-muted-foreground`, `bg-primary`,
 `text-primary`, `bg-accent`, `border-border`, …) or the matching CSS variables
@@ -35,7 +35,6 @@ the gallery (and streamdown) from the main chunk.
 ```bash
 pnpm --filter @sfab-lite/factory dev
 # → http://localhost:8790/dev/ui
-# → http://localhost:8790/dev/chat  (chat graft, DEV-only)
 ```
 
 ## Imports

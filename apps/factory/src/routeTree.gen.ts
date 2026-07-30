@@ -16,9 +16,7 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
 import { Route as McpConsentRouteImport } from './routes/mcp.consent'
 import { Route as DevUiRouteImport } from './routes/dev.ui'
-import { Route as DevChatRouteImport } from './routes/dev.chat'
 import { Route as ProtectedAppsRouteImport } from './routes/_protected/apps'
-import { Route as DevChatIndexRouteImport } from './routes/dev.chat.index'
 import { Route as ProtectedAppsIndexRouteImport } from './routes/_protected/apps.index'
 import { Route as ProtectedAppsAppIdRouteImport } from './routes/_protected/apps.$appId'
 import { Route as ProtectedAppsAppIdIndexRouteImport } from './routes/_protected/apps.$appId.index'
@@ -33,7 +31,6 @@ import { Route as ProtectedAppsAppIdAgentIndexRouteImport } from './routes/_prot
 import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as ProtectedAppsAppIdPrsPrNumberRouteImport } from './routes/_protected/apps.$appId.prs.$prNumber'
 import { Route as ProtectedAppsAppIdAgentThreadIdRouteImport } from './routes/_protected/apps.$appId.agent.$threadId'
-import { Route as DevChatAppsAppIdTThreadIdRouteImport } from './routes/dev.chat.apps.$appId.t.$threadId'
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
@@ -69,20 +66,10 @@ const DevUiRoute = DevUiRouteImport.update({
   path: '/dev/ui',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DevChatRoute = DevChatRouteImport.update({
-  id: '/dev/chat',
-  path: '/dev/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProtectedAppsRoute = ProtectedAppsRouteImport.update({
   id: '/apps',
   path: '/apps',
   getParentRoute: () => ProtectedRoute,
-} as any)
-const DevChatIndexRoute = DevChatIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DevChatRoute,
 } as any)
 const ProtectedAppsIndexRoute = ProtectedAppsIndexRouteImport.update({
   id: '/',
@@ -162,12 +149,6 @@ const ProtectedAppsAppIdAgentThreadIdRoute =
     path: '/$threadId',
     getParentRoute: () => ProtectedAppsAppIdAgentRoute,
   } as any)
-const DevChatAppsAppIdTThreadIdRoute =
-  DevChatAppsAppIdTThreadIdRouteImport.update({
-    id: '/apps/$appId/t/$threadId',
-    path: '/apps/$appId/t/$threadId',
-    getParentRoute: () => DevChatRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ProtectedIndexRoute
@@ -175,12 +156,10 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof SignInRoute
   '/signin': typeof SigninRoute
   '/apps': typeof ProtectedAppsRouteWithChildren
-  '/dev/chat': typeof DevChatRouteWithChildren
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
   '/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
   '/apps/': typeof ProtectedAppsIndexRoute
-  '/dev/chat/': typeof DevChatIndexRoute
   '/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
   '/apps/$appId/agent': typeof ProtectedAppsAppIdAgentRouteWithChildren
   '/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
@@ -193,7 +172,6 @@ export interface FileRoutesByFullPath {
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
   '/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
-  '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
 export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
@@ -203,7 +181,6 @@ export interface FileRoutesByTo {
   '/mcp/consent': typeof McpConsentRoute
   '/': typeof ProtectedIndexRoute
   '/apps': typeof ProtectedAppsIndexRoute
-  '/dev/chat': typeof DevChatIndexRoute
   '/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
   '/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
   '/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
@@ -214,7 +191,6 @@ export interface FileRoutesByTo {
   '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/apps/$appId/agent': typeof ProtectedAppsAppIdAgentIndexRoute
   '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsIndexRoute
-  '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -223,13 +199,11 @@ export interface FileRoutesById {
   '/sign-in': typeof SignInRoute
   '/signin': typeof SigninRoute
   '/_protected/apps': typeof ProtectedAppsRouteWithChildren
-  '/dev/chat': typeof DevChatRouteWithChildren
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
   '/_protected/': typeof ProtectedIndexRoute
   '/_protected/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
   '/_protected/apps/': typeof ProtectedAppsIndexRoute
-  '/dev/chat/': typeof DevChatIndexRoute
   '/_protected/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
   '/_protected/apps/$appId/agent': typeof ProtectedAppsAppIdAgentRouteWithChildren
   '/_protected/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
@@ -242,7 +216,6 @@ export interface FileRoutesById {
   '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/_protected/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
   '/_protected/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
-  '/dev/chat/apps/$appId/t/$threadId': typeof DevChatAppsAppIdTThreadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -252,12 +225,10 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/signin'
     | '/apps'
-    | '/dev/chat'
     | '/dev/ui'
     | '/mcp/consent'
     | '/apps/$appId'
     | '/apps/'
-    | '/dev/chat/'
     | '/apps/$appId/actions'
     | '/apps/$appId/agent'
     | '/apps/$appId/code'
@@ -270,7 +241,6 @@ export interface FileRouteTypes {
     | '/apps/$appId/t/$threadId'
     | '/apps/$appId/agent/'
     | '/apps/$appId/prs/'
-    | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/chat'
@@ -280,7 +250,6 @@ export interface FileRouteTypes {
     | '/mcp/consent'
     | '/'
     | '/apps'
-    | '/dev/chat'
     | '/apps/$appId/actions'
     | '/apps/$appId/code'
     | '/apps/$appId/deployments'
@@ -291,7 +260,6 @@ export interface FileRouteTypes {
     | '/apps/$appId/t/$threadId'
     | '/apps/$appId/agent'
     | '/apps/$appId/prs'
-    | '/dev/chat/apps/$appId/t/$threadId'
   id:
     | '__root__'
     | '/_protected'
@@ -299,13 +267,11 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/signin'
     | '/_protected/apps'
-    | '/dev/chat'
     | '/dev/ui'
     | '/mcp/consent'
     | '/_protected/'
     | '/_protected/apps/$appId'
     | '/_protected/apps/'
-    | '/dev/chat/'
     | '/_protected/apps/$appId/actions'
     | '/_protected/apps/$appId/agent'
     | '/_protected/apps/$appId/code'
@@ -318,7 +284,6 @@ export interface FileRouteTypes {
     | '/_protected/apps/$appId/t/$threadId'
     | '/_protected/apps/$appId/agent/'
     | '/_protected/apps/$appId/prs/'
-    | '/dev/chat/apps/$appId/t/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -326,7 +291,6 @@ export interface RootRouteChildren {
   ChatRoute: typeof ChatRoute
   SignInRoute: typeof SignInRoute
   SigninRoute: typeof SigninRoute
-  DevChatRoute: typeof DevChatRouteWithChildren
   DevUiRoute: typeof DevUiRoute
   McpConsentRoute: typeof McpConsentRoute
 }
@@ -382,26 +346,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevUiRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dev/chat': {
-      id: '/dev/chat'
-      path: '/dev/chat'
-      fullPath: '/dev/chat'
-      preLoaderRoute: typeof DevChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_protected/apps': {
       id: '/_protected/apps'
       path: '/apps'
       fullPath: '/apps'
       preLoaderRoute: typeof ProtectedAppsRouteImport
       parentRoute: typeof ProtectedRoute
-    }
-    '/dev/chat/': {
-      id: '/dev/chat/'
-      path: '/'
-      fullPath: '/dev/chat/'
-      preLoaderRoute: typeof DevChatIndexRouteImport
-      parentRoute: typeof DevChatRoute
     }
     '/_protected/apps/': {
       id: '/_protected/apps/'
@@ -501,13 +451,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdAgentThreadIdRouteImport
       parentRoute: typeof ProtectedAppsAppIdAgentRoute
     }
-    '/dev/chat/apps/$appId/t/$threadId': {
-      id: '/dev/chat/apps/$appId/t/$threadId'
-      path: '/apps/$appId/t/$threadId'
-      fullPath: '/dev/chat/apps/$appId/t/$threadId'
-      preLoaderRoute: typeof DevChatAppsAppIdTThreadIdRouteImport
-      parentRoute: typeof DevChatRoute
-    }
   }
 }
 
@@ -595,25 +538,11 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
   ProtectedRouteChildren,
 )
 
-interface DevChatRouteChildren {
-  DevChatIndexRoute: typeof DevChatIndexRoute
-  DevChatAppsAppIdTThreadIdRoute: typeof DevChatAppsAppIdTThreadIdRoute
-}
-
-const DevChatRouteChildren: DevChatRouteChildren = {
-  DevChatIndexRoute: DevChatIndexRoute,
-  DevChatAppsAppIdTThreadIdRoute: DevChatAppsAppIdTThreadIdRoute,
-}
-
-const DevChatRouteWithChildren =
-  DevChatRoute._addFileChildren(DevChatRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   ChatRoute: ChatRoute,
   SignInRoute: SignInRoute,
   SigninRoute: SigninRoute,
-  DevChatRoute: DevChatRouteWithChildren,
   DevUiRoute: DevUiRoute,
   McpConsentRoute: McpConsentRoute,
 }

@@ -127,8 +127,8 @@
   },
   "typesVfs": {
     "fileCount": 2498,
-    "rawBytes": 9416637,
-    "gzipBytes": 1284572,
+    "rawBytes": 9416651,
+    "gzipBytes": 1282999,
     "packages": {
       "@base-ui/react": 1150,
       "@base-ui/utils": 10,
@@ -171,7 +171,7 @@
   "cssVfs": {
     "entries": 9,
     "rawBytes": 137695,
-    "gzipBytes": 13169
+    "gzipBytes": 13148
   },
   "sizesRaw": {
     "react": 66670,
@@ -184,14 +184,14 @@
     "zod": 523007
   },
   "sizesGzip": {
-    "react.js": 14146,
-    "jsx-runtime.js": 4286,
-    "react-dom.js": 5292,
-    "react-dom-server.js": 228933,
-    "drizzle-orm.js": 35949,
-    "better-auth.js": 348005,
-    "hono.js": 16949,
-    "zod.js": 76834
+    "react.js": 14116,
+    "jsx-runtime.js": 4297,
+    "react-dom.js": 5280,
+    "react-dom-server.js": 228957,
+    "drizzle-orm.js": 35924,
+    "better-auth.js": 348459,
+    "hono.js": 16964,
+    "zod.js": 76887
   },
   "clientSizesRaw": {
     "react": 48444,
@@ -209,27 +209,27 @@
     "@base-ui/react": 1488030
   },
   "clientSizesGzip": {
-    "react.js": 11261,
-    "jsx-runtime.js": 4106,
-    "react-dom.js": 4528,
-    "react-dom-client.js": 171712,
-    "tanstack-router.js": 43646,
-    "tanstack-query.js": 21007,
-    "radix-icons.js": 102915,
-    "clsx.js": 335,
-    "cva.js": 899,
-    "tailwind-merge.js": 14558,
-    "hono-client.js": 3361,
-    "better-auth-client.js": 19801,
-    "base-ui-react.js": 270448
+    "react.js": 11248,
+    "jsx-runtime.js": 4115,
+    "react-dom.js": 4517,
+    "react-dom-client.js": 171440,
+    "tanstack-router.js": 43642,
+    "tanstack-query.js": 20947,
+    "radix-icons.js": 101911,
+    "clsx.js": 334,
+    "cva.js": 896,
+    "tailwind-merge.js": 14577,
+    "hono-client.js": 3368,
+    "better-auth-client.js": 19835,
+    "base-ui-react.js": 269583
   },
   "totals": {
     "raw": 7953249,
-    "gzip": 1398971,
-    "typesGzip": 1284572,
-    "cssGzip": 13169,
-    "clientGzip": 668577,
-    "hostBakeGzip": 2696712
+    "gzip": 1397297,
+    "typesGzip": 1282999,
+    "cssGzip": 13148,
+    "clientGzip": 666413,
+    "hostBakeGzip": 2693444
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,

@@ -49,7 +49,7 @@ is why ADR-0001 records **CheckDO as rejected**.
 ### 1. Bundle constants instead of a filesystem
 
 Workers have no filesystem, so the template seed
-(`apps/factory/src/generated/seed.json`) and the entire TypeScript types
+(`packages/template/generated/seed.json`) and the entire TypeScript types
 universe (`packages/kernel/src/generated/types-vfs.js`) are baked into the
 bundle at build time.
 
@@ -190,6 +190,10 @@ behind one settles on the next poll. That closes the gap where the console
   WASM). `apps/factory` at 57.5% carries the vendor bundles, where the
   `better-auth` barrel is 2.1 MB. See ADR-0004's candidate list.
 - **Client kernel is unminified** — `browserShared` has no `minify: true`.
+- **Check wall-time backlog** (affected-file diagnostics, factory tree-hash
+  skip for agent-only typecheck, `/check` `forceCold` default) — ranked in
+  [`../notes/2026-07-29-check-optimization-backlog.md`](../notes/2026-07-29-check-optimization-backlog.md).
+  Do not re-open CheckDO / affinity as the answer.
 
 ## Three lessons that keep recurring
 

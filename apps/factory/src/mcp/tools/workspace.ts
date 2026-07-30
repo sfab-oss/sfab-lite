@@ -1,10 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { appAgent, type McpContext } from "@/mcp/lib/context.js";
 import {
   isPlatformReadonlyPath,
   PlatformReadonlyError,
 } from "../../agent/platform-readonly.js";
-import { appAgent, type McpContext } from "../lib/context.js";
 import { toolError, toolResult } from "../lib/tool-result.js";
 
 const appId = z.string().describe("App id the workspace belongs to");

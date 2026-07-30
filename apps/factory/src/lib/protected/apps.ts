@@ -3,22 +3,15 @@
  * async seed via code host (TEMPLATE_SEED → main → CD → live_sha).
  */
 
-import { prDataId } from "../../app-data-ids.js";
-import { APP_NAME_MAX_LENGTH, pickAppName } from "../../app-names.js";
-import { appCreateStub, appDataStub, liveAppDataStub } from "../../app-stub.js";
-import {
-  attemptResolver,
-  createAccepted,
-  createConflict,
-} from "../../create-job.js";
-import { reconcileCreatingApps } from "../../create-reconcile.js";
+import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
+import { publishOrgEvent } from "@/org-events.js";
 import { createDb } from "../../db/index.js";
-import { listPullRequests } from "../../forge.js";
-import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };
+import { listPullRequests } from "../../forge/forge.js";
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CreateAppBody, RenameAppBody } from "../../hono/schemas.js";
 import { wireApp } from "../../hono/wire.js";
-import { publishOrgEvent } from "../../org-events.js";
+import { prDataId } from "../../registry/app-data-ids.js";
+import { APP_NAME_MAX_LENGTH, pickAppName } from "../../registry/app-names.js";
 import {
   deleteAppUnscoped,
   getAppOrganizationId,
@@ -30,8 +23,19 @@ import {
   organizationExists,
   renameAppUnscoped,
   setCreateAttemptId,
-} from "../../registry.js";
-import type { AppCtx, OrgCtx } from "../../routes.js";
+} from "../../registry/app-registry.js";
+import {
+  appCreateStub,
+  appDataStub,
+  liveAppDataStub,
+} from "../../registry/app-stub.js";
+import {
+  attemptResolver,
+  createAccepted,
+  createConflict,
+} from "../../registry/create-job.js";
+import { reconcileCreatingApps } from "../../registry/create-reconcile.js";
+import type { AppCtx, OrgCtx } from "../../serve/routes.js";
 
 export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   const { organizationId } = rc;
@@ -61,7 +65,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     if (failed) {
       publishOrgEvent(
         { env: rc.env, organizationId },
-        { topic: "app_list_changed", payload: { appId } }
+        { topic: "app_record_changed", payload: { appId } }
       );
     }
     return protectedError(
@@ -76,7 +80,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
     if (failed) {
       publishOrgEvent(
         { env: rc.env, organizationId },
-        { topic: "app_list_changed", payload: { appId } }
+        { topic: "app_record_changed", payload: { appId } }
       );
     }
     return createConflict(appId, start.jobId);

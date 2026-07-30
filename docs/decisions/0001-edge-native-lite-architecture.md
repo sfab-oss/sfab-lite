@@ -16,7 +16,7 @@ without new evidence.
 We will ship sfab-lite on this shape:
 
 - Host worker + **AppDO per app** (files / versions / pointer / SQLite via
-  ScopedSql).
+  AppDataDO as D1-shaped `env.DB`).
 - **LOADER** child isolates for serve.
 - **Plain async TypeScript check worker** (~13s honest); publish gated on
   pass. **CheckDO is rejected** (DO warmth survives ~5s idle but not ~30s;

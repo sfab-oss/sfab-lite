@@ -4,31 +4,30 @@
  * Create returns `202` with a create-job id; poll `GET .../attempts/:id`.
  * Shipping code is PR merge onto `main` (CD writes an immutable build and sets
  * D1 `live_sha`). Protected API credentials: `X-Admin-Token` or session.
- * See `tenancy.ts`. Domain handlers in `lib/protected/`; Hono in
- * `hono/protected/`; CD in `cd.ts`; code host in `r2-code-host.ts`.
+ * See `hono/tenancy.ts`. Domain handlers in `lib/protected/`; Hono in
+ * `hono/protected/`; CD in `forge/cd.ts`; code host in `code-host/`.
  */
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
 import { dispatchAgents } from "./agent/dispatch.js";
-import { createAuth } from "./auth.js";
+import { createAuth } from "./auth/server.js";
 import { createDb } from "./db/index.js";
+import { dispatchInternal } from "./forge/internal.js";
 import { apiApp } from "./hono/index.js";
-import { dispatchInternal } from "./internal.js";
+import { requireAppAccess, resolveActor } from "./hono/tenancy.js";
 import { dispatchMcp } from "./mcp/index.js";
-import type { PublicRoute, RequestCtx, RouteCtx } from "./routes.js";
-import { matchRoute } from "./routes.js";
-import { serveSubApp } from "./serve.js";
-import { serveKernel } from "./serve-kernel.js";
-import { requireAppAccess, resolveActor } from "./tenancy.js";
+import type { PublicRoute, RequestCtx, RouteCtx } from "./serve/routes.js";
+import { matchRoute } from "./serve/routes.js";
+import { serveSubApp } from "./serve/serve.js";
+import { serveKernel } from "./serve/serve-kernel.js";
 
 /** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
 export { CodemodeRuntime } from "@cloudflare/codemode";
 export { AppAgent } from "./agent/app-agent.js";
 /** Facet of AppAgent — exported so the runtime can construct it; no binding. */
 export { AppThread } from "./agent/app-thread.js";
-export { AppCreateDO } from "./app-create-do.js";
-export { AppDataDO } from "./app-data-do.js";
-export { OrgEvents } from "./org-events-do.js";
-export { ScopedSql } from "./scoped-sql.js";
+export { AppCreateDO } from "./durable-objects/app-create-do.js";
+export { AppDataDO } from "./durable-objects/app-data-do.js";
+export { OrgEvents } from "./durable-objects/org-events-do.js";
 
 const RE_KERNEL = /^\/kernel\/(.+)$/;
 const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
@@ -120,7 +119,7 @@ async function handlePreviewSubApp(
     return denied;
   }
   const inner = slash === -1 ? "" : after.slice(slash + 1);
-  return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "preview", {
+  return serveSubApp(rc.request, rc.env, appId, inner, "preview", {
     prNumber,
   });
 }
@@ -134,12 +133,12 @@ async function handleSubApp(rc: RouteCtx): Promise<Response> {
       return denied;
     }
     const inner = rest === "workspace" ? "" : rest.slice("workspace/".length);
-    return serveSubApp(rc.request, rc.env, rc.ctx, appId, inner, "workspace");
+    return serveSubApp(rc.request, rc.env, appId, inner, "workspace");
   }
   if (rest === "preview" || rest.startsWith("preview/")) {
     return handlePreviewSubApp(rc, appId, rest);
   }
-  return serveSubApp(rc.request, rc.env, rc.ctx, appId, rest, "live");
+  return serveSubApp(rc.request, rc.env, appId, rest, "live");
 }
 
 /**

@@ -37,8 +37,9 @@ interface D1PreparedStatement {
 }
 
 /**
- * D1 shapes, served by the app's Durable Object SQLite through `ScopedSql`.
- * Apps write `drizzle-orm/d1` against this and never learn the difference.
+ * D1 shapes, served by the app's Durable Object SQLite (`AppDataDO` stub as
+ * `env.DB`). Apps write `drizzle-orm/d1` against this and never learn the
+ * difference.
  */
 interface D1Database {
   prepare(query: string): D1PreparedStatement;

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppConsolePreviewScreen } from "@/screens/app-console-preview";
+import { AppConsolePreviewPage } from "@/components/apps/app-console-preview";
 
 export const Route = createFileRoute("/_protected/apps/$appId/preview")({
   ssr: false,
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/_protected/apps/$appId/preview")({
 
 function ProtectedAppPreview() {
   const { appId } = Route.useParams();
-  return <AppConsolePreviewScreen appId={appId} />;
+  return <AppConsolePreviewPage appId={appId} />;
 }

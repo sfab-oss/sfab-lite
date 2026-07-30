@@ -19,7 +19,7 @@
   // buy a one-time setup step. Cloudflare's documented alternative is exactly
   // this: no `routes` key, `workers_dev` off, domain attached from the
   // dashboard. Wrangler leaves unlisted domains alone (only an explicit
-  // `routes: []` clears them). See `docs/DEPLOY.md`.
+  // `routes: []` clears them). See `docs/engineering/DEPLOY.md`.
   "workers_dev": false,
   // A commit awaits check (10-24s measured in production) and lint. The 30s
   // default left almost no margin and correlated with intermittent 1101s.
@@ -123,9 +123,9 @@
       "service": "sfab-lite-lint"
     },
     // Loopback, so the agent's shell can reach a served app through the same
-    // path a browser takes. Serving an app needs `ctx.exports.ScopedSql`,
-    // which only exists on a real fetch — a Durable Object cannot build the
-    // loader worker itself.
+    // path a browser takes. Serving an app needs Worker Loader + an AppDataDO
+    // stub as `env.DB`, which only exists on a real fetch — a Durable Object
+    // cannot build the loader worker itself.
     {
       "binding": "SELF",
       "service": "sfab-lite-factory"

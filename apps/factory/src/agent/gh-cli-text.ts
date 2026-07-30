@@ -1,4 +1,4 @@
-import type { CheckRunRecord, PrRecord } from "../forge-wire.js";
+import type { CheckRunRecord, PrRecord } from "../forge/wire.js";
 
 export type GhParse =
   | { ok: true; group: "run" | "pr"; action: string; rest: string[] }

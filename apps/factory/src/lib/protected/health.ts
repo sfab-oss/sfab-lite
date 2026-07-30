@@ -1,13 +1,13 @@
+import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import {
   githubAuthEnabled,
   githubSecretsPresent,
   passwordAuthEnabled,
   signUpAllowlist,
   signUpOpen,
-} from "../../auth.js";
-import TEMPLATE_SEED from "../../generated/seed.json" with { type: "json" };
+} from "@/lib/auth/policy";
 import type { ProtectedReply } from "../../hono/reply.js";
-import type { ProtectedCtx } from "../../routes.js";
+import type { ProtectedCtx } from "../../serve/routes.js";
 
 /**
  * Ask a bound worker whether it holds the same `ADMIN_TOKEN` we do.

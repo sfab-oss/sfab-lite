@@ -61,6 +61,23 @@ ADRs under [`../decisions/`](../decisions/).
 
 Shared contracts live in `packages/core`.
 
+## Related primitives (compose these)
+
+Prefer composing these over inventing feature-specific substrate (e.g. a
+Design board). **Rule:** no feature-only storage — Viewer / Workspace /
+Deployment stay general.
+
+| Primitive | Job | Who uses it |
+| --- | --- | --- |
+| **Workspace** | Mutable checkout; id shared by agent + MCP | Agent, MCP |
+| **Deployment** | Immutable build serve (`live` / PR `preview`) | Serve, Deployments, Viewer |
+| **Viewer** | iframe (+ chrome) of `deployment \| workspace` | Agent Browser first; any later surface |
+| **Board** | Zoom/pan layout of N Viewers | **Deferred product** — not scheduled |
+
+Cardinality for now: **one workspace per app**. Multi-version compare =
+multiple **Deployments** (branches/PRs), not N WIP trees. Nested canvases are
+a non-goal. Naming: [`../engineering/terminology.md`](../engineering/terminology.md).
+
 ## What is in, what is not
 
 | In | Not built yet |
@@ -75,3 +92,5 @@ Shared contracts live in `packages/core`.
 
 - [ADR-0001](../decisions/0001-edge-native-lite-architecture.md)
 - [ADR-0002](../decisions/0002-monorepo-tooling-not-product-lite.md)
+- [`../engineering/terminology.md`](../engineering/terminology.md)
+- [`../engineering/agent-surfaces.md`](../engineering/agent-surfaces.md)

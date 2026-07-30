@@ -4,7 +4,7 @@ import {
   requireAppAccess,
   resolveActor,
   resolveOrganization,
-} from "../tenancy.js";
+} from "./tenancy.js";
 import type { AdminEnv } from "./types.js";
 
 /**

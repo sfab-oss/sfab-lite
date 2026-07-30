@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./seed": "./generated/seed.json"
   },
   "scripts": {
     "dev": "concurrently -k -n api,ui -c blue,green \"pnpm dev:api\" \"pnpm dev:ui\"",
@@ -15,6 +16,7 @@
     "db:migrate": "wrangler d1 migrations apply sfab-lite-template --local",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate",
     "pack": "node scripts/pack.mjs",
+    "bake-seed": "node scripts/pack.mjs --out=generated/seed.json",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {

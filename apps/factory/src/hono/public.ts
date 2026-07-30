@@ -1,13 +1,13 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import {
-  createAuth,
   githubAuthEnabled,
   passwordAuthEnabled,
   signUpAvailable,
-} from "../auth.js";
+} from "@/lib/auth/policy";
+import { createAuth } from "../auth/server.js";
 import { handleMcpConsent, handleMcpConsentContext } from "../mcp/consent.js";
-import type { RouteCtx } from "../routes.js";
+import type { RouteCtx } from "../serve/routes.js";
 import type { ApiEnv } from "./types.js";
 
 function routeCtx(c: Context<ApiEnv>): RouteCtx {

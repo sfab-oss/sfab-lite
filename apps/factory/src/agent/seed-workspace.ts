@@ -1,5 +1,5 @@
 import type { WorkspaceFsLike } from "@cloudflare/shell";
-import { createR2CodeHost } from "../r2-code-host.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
 
 export const WORKSPACE_CLONED_KEY = "workspaceClonedFromCodeHost";
 
@@ -48,7 +48,7 @@ export async function cloneWorkspaceFromCodeHost(
   await host.ensureRepo(appId);
   return host.cloneTo(
     appId,
-    workspace as unknown as import("../code-host.js").GitWorkFs,
+    workspace as unknown as import("../code-host/code-host.js").GitWorkFs,
     "/"
   );
 }

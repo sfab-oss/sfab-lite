@@ -10,10 +10,9 @@ import { dispatchFactoryRequest } from "./index.js";
 export { CodemodeRuntime } from "@cloudflare/codemode";
 export { AppAgent } from "./agent/app-agent.js";
 export { AppThread } from "./agent/app-thread.js";
-export { AppCreateDO } from "./app-create-do.js";
-export { AppDataDO } from "./app-data-do.js";
-export { OrgEvents } from "./org-events-do.js";
-export { ScopedSql } from "./scoped-sql.js";
+export { AppCreateDO } from "./durable-objects/app-create-do.js";
+export { AppDataDO } from "./durable-objects/app-data-do.js";
+export { OrgEvents } from "./durable-objects/org-events-do.js";
 
 export default {
   async fetch(

@@ -3,14 +3,14 @@ import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
-import { collectMigrations } from "../app-migrations.js";
-import { getLiveSha } from "../cd.js";
-import { remoteUrlFor } from "../code-host.js";
+import { remoteUrlFor } from "../code-host/code-host.js";
+import { getLiveSha } from "../forge/cd.js";
+import { collectMigrations } from "../registry/app-migrations.js";
 import {
   compileWorkspaceFiles,
   putWorkspaceBuild,
   workspaceBuildSha,
-} from "../workspace-build.js";
+} from "../registry/workspace-build.js";
 import { AppThread } from "./app-thread.js";
 import { GatedWorkspace } from "./gated-workspace.js";
 import {
