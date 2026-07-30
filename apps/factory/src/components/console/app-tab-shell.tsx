@@ -15,7 +15,6 @@ const TABS = [
   },
   { id: "prs", label: "Pull requests", to: "/apps/$appId/prs" as const },
   { id: "actions", label: "Actions", to: "/apps/$appId/actions" as const },
-  { id: "agent", label: "Agent", to: "/apps/$appId/agent" as const },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -37,12 +36,6 @@ function activeTabFromPath(pathname: string, appId: string): TabId | null {
   if (pathname.startsWith(`${base}/actions`)) {
     return "actions";
   }
-  if (
-    pathname.startsWith(`${base}/agent`) ||
-    pathname.startsWith(`${base}/t/`)
-  ) {
-    return "agent";
-  }
   return null;
 }
 
@@ -57,9 +50,7 @@ export function AppTabShell({ appId }: { appId: string }) {
       <div className="flex h-10 min-w-0 items-center gap-2 px-3">
         <AppLayoutSidebarTrigger className="-ml-1" />
         <Separator className="h-4 md:hidden" orientation="vertical" />
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40">
-          <AgentSigil className="size-4" grid id={appId} />
-        </div>
+        <AgentSigil className="size-7 shrink-0" grid id={appId} />
         <span className="min-w-0 flex-1 truncate font-medium text-sm">
           {appName}
         </span>

@@ -1,9 +1,7 @@
 /**
- * Live-sha hint bus for factory preview shells.
- *
- * Chat browser tabs and the console iframe route subscribe here so a single
- * `app_live_changed` fan-out can reload matching iframes without injecting a
- * bus client into the served app origin.
+ * Live-sha hint bus for factory surfaces that care about `app_live_changed`.
+ * Call `subscribeLive` from a shell that needs reload hints (kept as a
+ * named export so knip sees the pair used together from call sites).
  */
 type Listener = (appId: string, liveSha: string) => void;
 

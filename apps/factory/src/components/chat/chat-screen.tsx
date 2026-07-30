@@ -1,4 +1,3 @@
-import { Button } from "@sfab-lite/ui/components/shadcn/button";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -13,13 +12,13 @@ import {
 import { useIsMobile } from "@sfab-lite/ui/hooks/use-mobile";
 import { useNavigate } from "@tanstack/react-router";
 import type { UIMessage } from "ai";
-import { ListTree, PanelRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createServerThread,
   useAppAgentRegistry,
 } from "@/components/chat/app-agent-bridge";
 import { useChatData } from "@/components/chat/chat-data-context";
+import { WorkViewHeader } from "@/components/chat/work-view-header";
 import {
   useApps,
   useCreateApp,
@@ -29,7 +28,6 @@ import { useConsoleRoute } from "@/hooks/use-console-route";
 import { useConsoleSession } from "@/hooks/use-console-session";
 import { useHandleThreadDeleted } from "@/hooks/use-handle-thread-deleted";
 import { readyAppsFromList } from "@/lib/api/apps";
-import { formatRelativeTime } from "@/lib/chat/thread-list";
 import type { Thread } from "@/lib/chat/types";
 import { useWorkspaceTabsStore } from "@/lib/chat/workspace-tabs-store";
 import type { ComposerScope } from "./composer-scope-chip";
@@ -39,7 +37,6 @@ import {
 } from "./responsive-side-panel";
 import { SessionWorkspacePanel } from "./session-workspace-panel";
 import { ThreadComposer } from "./thread-composer";
-import { ThreadHeaderMenu } from "./thread-header-menu";
 import { ThreadSummaryPanel } from "./thread-summary-panel";
 import { ThreadTranscript } from "./thread-transcript";
 
@@ -95,7 +92,7 @@ export function ChatScreen() {
   const {
     appId: routeAppId,
     threadId: routeThreadId,
-    goAgentHome,
+    goWorkHome,
     goChatHome,
     goThread,
   } = route;
@@ -118,6 +115,12 @@ export function ChatScreen() {
   const [shellError, setShellError] = useState<string | null>(null);
   const workspaceOpen = useWorkspaceTabsStore((s) => s.workspaceOpen);
   const setWorkspaceOpen = useWorkspaceTabsStore((s) => s.setWorkspaceOpen);
+  const chatHidden = useWorkspaceTabsStore((s) => s.chatHidden);
+  const setChatHidden = useWorkspaceTabsStore((s) => s.setChatHidden);
+  const openTab = useWorkspaceTabsStore((s) => s.openTab);
+  const routeAppTabs = useWorkspaceTabsStore((s) =>
+    routeAppId ? s.byApp[routeAppId] : undefined
+  );
   const { canDock, setContainerNode } = useSidePanelLayout();
 
   const creating = createApp.isPending || createReadyApp.isPending;
@@ -147,6 +150,16 @@ export function ChatScreen() {
     }
     setActiveThreadId(null);
   }, [attend, readyApps, routeAppId, routeThreadId, setScope]);
+
+  useEffect(() => {
+    if (!routeAppId) {
+      return;
+    }
+    if (routeAppTabs && routeAppTabs.tabs.length > 0) {
+      return;
+    }
+    openTab(routeAppId, "browser");
+  }, [openTab, routeAppId, routeAppTabs]);
 
   const activeThread = useMemo(
     () =>
@@ -205,20 +218,20 @@ export function ChatScreen() {
       setShellError(null);
       createApp.reset();
       createReadyApp.reset();
-      goAgentHome(appId);
+      goWorkHome(appId);
     },
-    [attend, createApp, createReadyApp, goAgentHome, setScope, setWorkspaceOpen]
+    [attend, createApp, createReadyApp, goWorkHome, setScope, setWorkspaceOpen]
   );
 
   const goHome = useCallback(() => {
     setActiveThreadId(null);
     setSummaryOpen(false);
-    setWorkspaceOpen(false);
+    setChatHidden(false);
     setShellError(null);
     createApp.reset();
     createReadyApp.reset();
     if (routeAppId) {
-      goAgentHome(routeAppId);
+      goWorkHome(routeAppId);
       return;
     }
     clearScope();
@@ -229,10 +242,10 @@ export function ChatScreen() {
     clearScope,
     createApp,
     createReadyApp,
-    goAgentHome,
+    goWorkHome,
     goChatHome,
     routeAppId,
-    setWorkspaceOpen,
+    setChatHidden,
   ]);
 
   const createThreadFromBlank = useCallback(
@@ -352,12 +365,14 @@ export function ChatScreen() {
     activeThread: displayThread,
     appThreads,
     canDock,
+    chatHidden,
     createError,
     creating,
     onBlankSubmit: createThreadFromBlank,
     onCloseRail: () => setSummaryOpen(false),
     onCreateEmptyApp:
       routeAppId || scopeAppId || activeThreadId ? undefined : createEmptyApp,
+    onNewThread: goHome,
     onSelectThread: (threadId) => {
       if (!routeAppId) {
         return;
@@ -369,6 +384,7 @@ export function ChatScreen() {
     onSetSummaryOpen: setSummaryOpen,
     onSetWorkspaceOpen,
     onThreadDeleted: handleThreadDeleted,
+    routeAppId,
     scope: composerScope,
     seedMessage: activeThreadId ? (seedByThread[activeThreadId] ?? null) : null,
     summaryOpen,
@@ -385,17 +401,20 @@ interface ChatChromeProps {
   activeThread: Thread | null;
   appThreads: Thread[];
   canDock: boolean;
+  chatHidden: boolean;
   createError: string | null;
   creating: boolean;
   onBlankSubmit: (text: string) => void;
   onCloseRail: () => void;
   onCreateEmptyApp?: () => void;
+  onNewThread: () => void;
   onSelectThread: (threadId: string) => void;
   onSeedConsumed: (threadId: string) => void;
   onSetContainerNode: (node: HTMLElement | null) => void;
   onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
   onThreadDeleted: (thread: Thread) => void;
+  routeAppId: string | null;
   scope?: ComposerScope;
   seedMessage: string | null;
   summaryOpen: boolean;
@@ -403,7 +422,23 @@ interface ChatChromeProps {
 }
 
 function MobileLayout(props: ChatChromeProps) {
-  const { activeThread, workspaceOpen } = props;
+  const { chatHidden, routeAppId, workspaceOpen } = props;
+  const setChatHidden = useWorkspaceTabsStore((s) => s.setChatHidden);
+
+  if (chatHidden) {
+    if (!routeAppId) {
+      return null;
+    }
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-accent/5">
+        <SessionWorkspacePanel
+          appId={routeAppId}
+          onDismiss={() => setChatHidden(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col">
@@ -417,11 +452,11 @@ function MobileLayout(props: ChatChromeProps) {
           <SheetHeader className="sr-only">
             <SheetTitle>Workspace</SheetTitle>
           </SheetHeader>
-          {workspaceOpen && activeThread ? (
+          {workspaceOpen && routeAppId ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-accent/5">
               <SessionWorkspacePanel
+                appId={routeAppId}
                 onDismiss={() => props.onSetWorkspaceOpen(false)}
-                threadId={activeThread.id}
               />
             </div>
           ) : null}
@@ -432,17 +467,35 @@ function MobileLayout(props: ChatChromeProps) {
 }
 
 function DesktopLayout(props: ChatChromeProps) {
-  const { activeThread, workspaceOpen } = props;
+  const { chatHidden, routeAppId, workspaceOpen } = props;
+  const setChatHidden = useWorkspaceTabsStore((s) => s.setChatHidden);
+
+  if (chatHidden) {
+    if (!routeAppId) {
+      return null;
+    }
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-accent/5">
+        <SessionWorkspacePanel
+          appId={routeAppId}
+          onDismiss={() => setChatHidden(false)}
+        />
+      </div>
+    );
+  }
+
+  const showWorkspace = workspaceOpen && Boolean(routeAppId);
+
   return (
     <ResizablePanelGroup className="min-h-0 flex-1" direction="horizontal">
       <ResizablePanel
         className="flex min-h-0 flex-col"
-        defaultSize={workspaceOpen ? 65 : 100}
-        minSize={workspaceOpen ? 28 : 40}
+        defaultSize={showWorkspace ? 65 : 100}
+        minSize={showWorkspace ? 28 : 40}
       >
         <ChatColumn {...props} />
       </ResizablePanel>
-      {workspaceOpen && activeThread ? (
+      {showWorkspace && routeAppId ? (
         <>
           <ResizableHandle className="bg-transparent" />
           <ResizablePanel
@@ -451,7 +504,7 @@ function DesktopLayout(props: ChatChromeProps) {
             maxSize={60}
             minSize={22}
           >
-            <SessionWorkspacePanel threadId={activeThread.id} />
+            <SessionWorkspacePanel appId={routeAppId} />
           </ResizablePanel>
         </>
       ) : null}
@@ -468,12 +521,14 @@ function ChatColumn({
   onBlankSubmit,
   onCloseRail,
   onCreateEmptyApp,
+  onNewThread,
   onSelectThread,
   onSeedConsumed,
   onSetContainerNode,
   onSetSummaryOpen,
   onSetWorkspaceOpen,
   onThreadDeleted,
+  routeAppId,
   scope,
   seedMessage,
   summaryOpen,
@@ -483,15 +538,21 @@ function ChatColumn({
 
   return (
     <>
-      <ThreadHeader
-        activeThread={activeThread}
-        onSetSummaryOpen={onSetSummaryOpen}
-        onSetWorkspaceOpen={onSetWorkspaceOpen}
-        onThreadDeleted={onThreadDeleted}
-        readMessages={() => messagesRef.current}
-        summaryOpen={summaryOpen}
-        workspaceOpen={workspaceOpen}
-      />
+      {routeAppId ? (
+        <WorkViewHeader
+          activeThread={activeThread}
+          appId={routeAppId}
+          appThreads={appThreads}
+          onNewThread={onNewThread}
+          onSelectThread={onSelectThread}
+          onSetSummaryOpen={onSetSummaryOpen}
+          onSetWorkspaceOpen={onSetWorkspaceOpen}
+          onThreadDeleted={onThreadDeleted}
+          readMessages={() => messagesRef.current}
+          summaryOpen={summaryOpen}
+          workspaceOpen={workspaceOpen}
+        />
+      ) : null}
       <div
         className="flex min-h-0 flex-1 flex-col transition-[justify-content] duration-300 ease-out"
         ref={onSetContainerNode}
@@ -516,7 +577,7 @@ function ChatColumn({
             <div className="mb-6 max-w-md text-center">
               <p className="font-medium text-lg">What should we build?</p>
               <p className="mt-1 text-muted-foreground text-sm">
-                Start a new conversation or open a thread below.
+                Start a new conversation, or open history from the header.
               </p>
             </div>
             <div className="w-full max-w-3xl">
@@ -549,94 +610,10 @@ function ChatColumn({
                   {createError}
                 </p>
               ) : null}
-              {appThreads.length > 0 ? (
-                <ul className="mt-8 flex list-none flex-col gap-1 border-border border-t p-0 pt-6">
-                  <li className="mb-1 px-1 text-muted-foreground text-xs">
-                    Threads
-                  </li>
-                  {appThreads.map((thread) => (
-                    <li key={thread.id}>
-                      <button
-                        className="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
-                        onClick={() => onSelectThread(thread.id)}
-                        type="button"
-                      >
-                        <span className="min-w-0 truncate font-medium">
-                          {thread.title}
-                        </span>
-                        <span className="shrink-0 text-muted-foreground text-xs">
-                          {formatRelativeTime(thread.updatedAt)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </div>
           </div>
         )}
       </div>
     </>
-  );
-}
-
-function ThreadHeader({
-  activeThread,
-  onSetSummaryOpen,
-  onSetWorkspaceOpen,
-  onThreadDeleted,
-  readMessages,
-  summaryOpen,
-  workspaceOpen,
-}: {
-  activeThread: Thread | null;
-  onSetSummaryOpen: (value: boolean | ((open: boolean) => boolean)) => void;
-  onSetWorkspaceOpen: (value: boolean | ((open: boolean) => boolean)) => void;
-  onThreadDeleted: (thread: Thread) => void;
-  readMessages: () => UIMessage[];
-  summaryOpen: boolean;
-  workspaceOpen: boolean;
-}) {
-  if (!activeThread) {
-    return null;
-  }
-
-  return (
-    <div className="flex h-10 shrink-0 items-center gap-2 border-border border-b px-3">
-      <div className="flex min-w-0 flex-1 items-center gap-1.5">
-        <span className="truncate font-medium text-sm">
-          {activeThread.title}
-        </span>
-        <ThreadHeaderMenu
-          onDeleted={onThreadDeleted}
-          readMessages={readMessages}
-          thread={activeThread}
-        />
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <Button
-          aria-label={summaryOpen ? "Hide summary panel" : "Show summary panel"}
-          aria-pressed={summaryOpen}
-          onClick={() => onSetSummaryOpen((open) => !open)}
-          size="icon-sm"
-          type="button"
-          variant={summaryOpen ? "secondary" : "ghost"}
-        >
-          <ListTree className="size-4" />
-        </Button>
-        <Button
-          aria-label={
-            workspaceOpen ? "Hide workspace panel" : "Show workspace panel"
-          }
-          aria-pressed={workspaceOpen}
-          onClick={() => onSetWorkspaceOpen((open) => !open)}
-          size="icon-sm"
-          type="button"
-          variant={workspaceOpen ? "secondary" : "ghost"}
-        >
-          <PanelRight className="size-4" />
-        </Button>
-      </div>
-    </div>
   );
 }

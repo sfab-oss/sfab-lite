@@ -1,9 +1,11 @@
 import { Workspace, type WorkspaceChangeEvent } from "@cloudflare/shell";
+import { createGit } from "@cloudflare/shell/git";
 import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
 import { remoteUrlFor } from "../code-host/code-host.js";
+import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { getLiveSha } from "../forge/cd.js";
 import { collectMigrations } from "../registry/app-migrations.js";
 import {
@@ -37,6 +39,15 @@ export interface WorkspaceBuildStatus {
   status: "idle" | "compiling" | "ready" | "error";
 }
 
+export interface WorkspaceBranchInfo {
+  branches: string[];
+  current: string | null;
+}
+
+export type CheckoutBranchResult =
+  | { ok: true; current: string }
+  | { ok: false; error: string };
+
 const SHELL_TIMEOUT_MS = 120_000;
 const SEED_CALLBACK = "seedWorkspaceClone" as const;
 const COMPILE_CALLBACK = "compileWorkspaceBuild" as const;
@@ -44,6 +55,7 @@ const WORKSPACE_COMPILE_DEBOUNCE_SEC = 1;
 const WORKSPACE_BUILD_GEN_KEY = "workspaceBuildGeneration";
 const WORKSPACE_BUILD_STATUS_KEY = "workspaceBuildStatus";
 const WORKSPACE_BUILD_ERROR_KEY = "workspaceBuildError";
+const INVALID_BRANCH_CHARS = /[\s\\]/;
 
 export interface ThreadSummary {
   createdAt: number;
@@ -465,6 +477,60 @@ export class AppAgent extends Think<Env> {
   @callable()
   readDir(path: string, opts?: Parameters<Workspace["readDir"]>[1]) {
     return this.#fs.readDir(path, opts);
+  }
+
+  @callable()
+  async workspaceBranch(): Promise<WorkspaceBranchInfo> {
+    await this.#ensureWorkspaceReady();
+    const git = this.#workspaceGit();
+    const listed = await git.branch({ list: true });
+    const local =
+      "branches" in listed && Array.isArray(listed.branches)
+        ? listed.branches
+        : [];
+    const current =
+      "current" in listed && typeof listed.current === "string"
+        ? listed.current
+        : null;
+    const remote = await createR2CodeHost(this.env).listBranches(this.name);
+    const branches = [...new Set([...local, ...remote])].sort((a, b) =>
+      a.localeCompare(b)
+    );
+    return { current, branches };
+  }
+
+  @callable()
+  async checkoutBranch(name: string): Promise<CheckoutBranchResult> {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return { ok: false, error: "Branch name required" };
+    }
+    if (trimmed.includes("..") || INVALID_BRANCH_CHARS.test(trimmed)) {
+      return { ok: false, error: "Invalid branch name" };
+    }
+    await this.#ensureWorkspaceReady();
+    try {
+      const git = this.#workspaceGit();
+      await git.checkout({ ref: trimmed });
+      this.broadcast(
+        JSON.stringify({
+          type: "workspace-change",
+          event: { type: "checkout", branch: trimmed },
+        })
+      );
+      await this.#scheduleWorkspaceCompile();
+      return { ok: true, current: trimmed };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, error: message || "Checkout failed" };
+    }
+  }
+
+  #workspaceGit() {
+    return createGit(
+      this.workspace as unknown as Parameters<typeof createGit>[0],
+      "/"
+    );
   }
 
   rm(path: string, opts?: Parameters<Workspace["rm"]>[1]) {

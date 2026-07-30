@@ -149,6 +149,14 @@ function OverviewBody({
             ) : null}
             <Button
               render={
+                <Link params={{ appId: app.id }} to="/apps/$appId/work" />
+              }
+              variant="outline"
+            >
+              Open workspace
+            </Button>
+            <Button
+              render={
                 <Link
                   params={{ appId: app.id }}
                   to="/apps/$appId/deployments"

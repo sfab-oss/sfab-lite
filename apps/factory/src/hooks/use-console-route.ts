@@ -6,19 +6,19 @@ export interface ConsoleRoute {
   threadId: string | null;
   appsRoute: boolean;
   appDashboardId: string | null;
-  goAgentHome: (appId: string) => void;
+  goWorkHome: (appId: string) => void;
   goChatHome: () => void;
   goThread: (appId: string, threadId: string) => void;
 }
 
 export function useConsoleRoute(): ConsoleRoute {
   const navigate = useNavigate();
-  const agentThread = useMatch({
-    from: "/_protected/apps/$appId/agent/$threadId",
+  const workThread = useMatch({
+    from: "/_protected/apps/$appId/work/$threadId",
     shouldThrow: false,
   });
-  const agentLayout = useMatch({
-    from: "/_protected/apps/$appId/agent",
+  const workLayout = useMatch({
+    from: "/_protected/apps/$appId/work",
     shouldThrow: false,
   });
   const legacyThread = useMatch({
@@ -34,17 +34,17 @@ export function useConsoleRoute(): ConsoleRoute {
     shouldThrow: false,
   });
 
-  const threadMatch = agentThread ?? legacyThread;
+  const threadMatch = workThread ?? legacyThread;
   const threadId = threadMatch?.params.threadId ?? null;
-  const appId = threadMatch?.params.appId ?? agentLayout?.params.appId ?? null;
+  const appId = threadMatch?.params.appId ?? workLayout?.params.appId ?? null;
 
   const appsRoute = Boolean(appLayout) || Boolean(appsIndex);
   const appDashboardId = appLayout?.params.appId ?? null;
 
-  const goAgentHome = useCallback(
+  const goWorkHome = useCallback(
     (nextAppId: string) => {
       navigate({
-        to: "/apps/$appId/agent",
+        to: "/apps/$appId/work",
         params: { appId: nextAppId },
       });
     },
@@ -55,7 +55,7 @@ export function useConsoleRoute(): ConsoleRoute {
     const scoped = appId ?? appLayout?.params.appId ?? null;
     if (scoped) {
       navigate({
-        to: "/apps/$appId/agent",
+        to: "/apps/$appId/work",
         params: { appId: scoped },
       });
       return;
@@ -66,7 +66,7 @@ export function useConsoleRoute(): ConsoleRoute {
   const goThread = useCallback(
     (nextAppId: string, nextThreadId: string) => {
       navigate({
-        to: "/apps/$appId/agent/$threadId",
+        to: "/apps/$appId/work/$threadId",
         params: { appId: nextAppId, threadId: nextThreadId },
       });
     },
@@ -79,7 +79,7 @@ export function useConsoleRoute(): ConsoleRoute {
       threadId,
       appsRoute,
       appDashboardId,
-      goAgentHome,
+      goWorkHome,
       goChatHome,
       goThread,
     }),
@@ -87,7 +87,7 @@ export function useConsoleRoute(): ConsoleRoute {
       appDashboardId,
       appId,
       appsRoute,
-      goAgentHome,
+      goWorkHome,
       goChatHome,
       goThread,
       threadId,

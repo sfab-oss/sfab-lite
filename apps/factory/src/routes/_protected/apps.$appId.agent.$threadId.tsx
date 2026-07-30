@@ -1,9 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { LazyChatScreen } from "@/components/chat/lazy-chat-screen";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_protected/apps/$appId/agent/$threadId")(
   {
     ssr: false,
-    component: LazyChatScreen,
+    beforeLoad: ({ params }) => {
+      throw redirect({
+        to: "/apps/$appId/work/$threadId",
+        params: {
+          appId: params.appId,
+          threadId: params.threadId,
+        },
+        replace: true,
+      });
+    },
+    component: () => null,
   }
 );

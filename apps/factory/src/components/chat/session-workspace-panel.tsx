@@ -21,14 +21,16 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useChatData } from "@/components/chat/chat-data-context";
 import {
   type OpenTab,
-  useThreadTabs,
+  useAppWorkspaceTabs,
   useWorkspaceTabsStore,
   WORKSPACE_KINDS,
   type WorkspaceKind,
 } from "@/lib/chat/workspace-tabs-store";
+import { subscribeLive } from "@/lib/preview/live-bus";
 import { SessionTabBrowser } from "./session-tab-browser";
 import { SessionTabFiles } from "./session-tab-files";
 
@@ -58,7 +60,28 @@ function WorkspaceTabIcon({ tab }: { tab: OpenTab }) {
 
 function LiveTipBody() {
   const data = useChatData();
-  const liveSha = data.getLiveSha();
+  const appId = data.getAppId();
+  const [liveSha, setLiveSha] = useState(() => data.getLiveSha());
+
+  useEffect(() => {
+    setLiveSha(data.getLiveSha());
+  }, [data]);
+
+  useEffect(() => {
+    if (!appId) {
+      return;
+    }
+    return subscribeLive((nextAppId, nextLiveSha) => {
+      if (nextAppId !== appId) {
+        return;
+      }
+      setLiveSha(nextLiveSha);
+      data.refreshApp(appId).catch((error: unknown) => {
+        console.error("[workspace] live tip refresh failed", error);
+      });
+    });
+  }, [appId, data]);
+
   if (!liveSha) {
     return (
       <p className="p-3 text-muted-foreground text-sm">No live tip yet.</p>
@@ -151,13 +174,13 @@ function WorkspaceEmptyState({
 }
 
 export function SessionWorkspacePanel({
-  threadId,
+  appId,
   onDismiss,
 }: {
+  appId: string;
   onDismiss?: () => void;
-  threadId: string;
 }) {
-  const { tabs, activeId } = useThreadTabs(threadId);
+  const { tabs, activeId } = useAppWorkspaceTabs(appId);
   const openTab = useWorkspaceTabsStore((s) => s.openTab);
   const closeTab = useWorkspaceTabsStore((s) => s.closeTab);
   const focusTab = useWorkspaceTabsStore((s) => s.focusTab);
@@ -165,13 +188,13 @@ export function SessionWorkspacePanel({
   return (
     <Tabs
       className="flex h-full min-h-0 flex-col gap-0 bg-muted/15"
-      onValueChange={(id) => focusTab(threadId, id)}
+      onValueChange={(id) => focusTab(appId, id)}
       value={activeId ?? ""}
     >
       <div className="flex h-10 shrink-0 items-center gap-1 border-b bg-background px-2">
         {onDismiss ? (
           <Button
-            aria-label="Close workspace"
+            aria-label="Close panel"
             className="size-8 shrink-0"
             onClick={onDismiss}
             size="icon"
@@ -196,7 +219,7 @@ export function SessionWorkspacePanel({
                 <button
                   aria-label={`Close ${label}`}
                   className="absolute right-1 flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
-                  onClick={() => closeTab(threadId, tab.id)}
+                  onClick={() => closeTab(appId, tab.id)}
                   type="button"
                 >
                   <X className="size-3.5" />
@@ -205,12 +228,12 @@ export function SessionWorkspacePanel({
             );
           })}
         </TabsList>
-        <AddTabMenu onOpen={(kind) => openTab(threadId, kind)} />
+        <AddTabMenu onOpen={(kind) => openTab(appId, kind)} />
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {tabs.length === 0 ? (
-          <WorkspaceEmptyState onOpen={(kind) => openTab(threadId, kind)} />
+          <WorkspaceEmptyState onOpen={(kind) => openTab(appId, kind)} />
         ) : (
           tabs.map((tab) => (
             <TabsContent
