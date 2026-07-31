@@ -12,7 +12,7 @@ const BAD_JSON = /is not valid JSON/;
 const byName = (a: string, b: string) => a.localeCompare(b);
 
 function workspace(entries: Record<string, string>): Record<string, string> {
-  return { "src/db/schema.ts": "// schema", ...entries };
+  return { "src/db/schema/index.ts": "// schema", ...entries };
 }
 
 describe("snapshotPathFor", () => {

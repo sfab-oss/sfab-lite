@@ -21,7 +21,8 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "types": []
+    "types": [],
+    "allowImportingTsExtensions": true
   },
   "include": ["app/src", "../core/src/cloudflare-ambient.d.ts"]
 }

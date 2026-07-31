@@ -1,7 +1,7 @@
 /**
  * Schema diffing and DDL emission for app migrations.
  *
- * The app's `src/db/schema.ts` declares tables; the app's Durable Object holds
+ * The app's `src/db/schema/` declares tables; the app's Durable Object holds
  * the real ones. Nothing connected the two, so an agent could rewrite the
  * schema, pass every gate, and ship an app whose first query hit a table that
  * was never created. This module is the missing half: given what the code

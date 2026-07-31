@@ -1,26 +1,25 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "../components/alert";
-import { AppShell } from "../components/app-shell";
-import { Badge } from "../components/badge";
-import { Button } from "../components/button";
+import { AppShell } from "../components/layout/app-shell";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/card";
+} from "../components/ui/card";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
-} from "../components/empty";
-import { Input } from "../components/input";
-import { NativeSelect } from "../components/native-select";
-import { Skeleton } from "../components/skeleton";
-import { Spinner } from "../components/spinner";
+} from "../components/ui/empty";
+import { Input } from "../components/ui/input";
+import { NativeSelect } from "../components/ui/native-select";
+import { Skeleton } from "../components/ui/skeleton";
+import { Spinner } from "../components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -28,13 +27,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../components/table";
+} from "../components/ui/table";
 import {
-  createEntity,
-  deleteEntity,
   type EntityKind,
-  entitiesQueryOptions,
-} from "../lib/entities";
+  useCreateEntity,
+  useDeleteEntity,
+  useEntities,
+} from "../hooks/use-entities";
 
 const BLANK = {
   name: "",
@@ -44,34 +43,23 @@ const BLANK = {
 };
 
 export function EntitiesPage() {
-  const queryClient = useQueryClient();
-  const entities = useQuery(entitiesQueryOptions);
+  const entities = useEntities();
   const [form, setForm] = useState(BLANK);
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: entitiesQueryOptions.queryKey });
-
-  const create = useMutation({
-    mutationFn: createEntity,
-    onSuccess: async () => {
-      setForm(BLANK);
-      await invalidate();
-    },
-  });
-
-  const remove = useMutation({
-    mutationFn: deleteEntity,
-    onSuccess: invalidate,
-  });
+  const create = useCreateEntity();
+  const remove = useDeleteEntity();
 
   function onCreate(event: FormEvent) {
     event.preventDefault();
-    create.mutate({
-      name: form.name,
-      kind: form.kind,
-      email: form.email.trim() || null,
-      taxId: form.taxId.trim() || null,
-    });
+    create.mutate(
+      {
+        name: form.name,
+        kind: form.kind,
+        email: form.email.trim() || null,
+        taxId: form.taxId.trim() || null,
+      },
+      { onSuccess: () => setForm(BLANK) }
+    );
   }
 
   return (

@@ -13,7 +13,7 @@
   "aliases": {
     "components": "src/ui/components",
     "utils": "src/ui/lib/utils",
-    "ui": "src/ui/components",
+    "ui": "src/ui/components/ui",
     "lib": "src/ui/lib",
     "hooks": "src/ui/hooks"
   }

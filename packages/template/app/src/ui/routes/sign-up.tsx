@@ -1,25 +1,25 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "../components/alert";
-import { AuthShell } from "../components/auth-shell";
-import { Button } from "../components/button";
+import { AuthShell } from "../components/layout/auth-shell";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/card";
+} from "../components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-} from "../components/field";
-import { Input } from "../components/input";
-import { Spinner } from "../components/spinner";
+} from "../components/ui/field";
+import { Input } from "../components/ui/input";
+import { Spinner } from "../components/ui/spinner";
+import { invalidateSession } from "../hooks/use-session";
 import { authClient } from "../lib/auth-client";
-import { invalidateSession } from "../lib/session";
 
 export function SignUpPage() {
   const navigate = useNavigate();

@@ -5,9 +5,9 @@ import {
   Outlet,
   redirect,
 } from "@tanstack/react-router";
-import { AppLayout } from "./components/app-shell";
+import { AppLayout } from "./components/layout/app-shell";
+import { loadSession } from "./hooks/use-session";
 import { publicBase } from "./lib/public-base";
-import { loadSession } from "./lib/session";
 import { CatalogPage } from "./routes/catalog";
 import { DocumentDetailPage } from "./routes/document-detail";
 import { DocumentsPage } from "./routes/documents";

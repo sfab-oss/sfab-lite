@@ -1,24 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "../components/alert";
-import { AppShell } from "../components/app-shell";
-import { Button } from "../components/button";
+import { AppShell } from "../components/layout/app-shell";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/card";
+} from "../components/ui/card";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
-} from "../components/empty";
-import { Input } from "../components/input";
-import { Skeleton } from "../components/skeleton";
-import { Spinner } from "../components/spinner";
+} from "../components/ui/empty";
+import { Input } from "../components/ui/input";
+import { Skeleton } from "../components/ui/skeleton";
+import { Spinner } from "../components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -26,44 +25,37 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../components/table";
-import { formatCents, parseCents } from "../lib/money";
+} from "../components/ui/table";
 import {
-  createProduct,
-  deleteProduct,
-  productsQueryOptions,
-} from "../lib/products";
+  useCreateProduct,
+  useDeleteProduct,
+  useProducts,
+} from "../hooks/use-products";
+import { formatCents, parseCents } from "../lib/money";
 
 const BLANK = { sku: "", name: "", price: "" };
 
 export function CatalogPage() {
-  const queryClient = useQueryClient();
-  const products = useQuery(productsQueryOptions);
+  const products = useProducts();
   const [form, setForm] = useState(BLANK);
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: productsQueryOptions.queryKey });
-
-  const create = useMutation({
-    mutationFn: createProduct,
-    onSuccess: async () => {
-      setForm(BLANK);
-      await invalidate();
-    },
-  });
-
-  const remove = useMutation({
-    mutationFn: deleteProduct,
-    onSuccess: invalidate,
-  });
+  const create = useCreateProduct();
+  const remove = useDeleteProduct();
 
   function onCreate(event: FormEvent) {
     event.preventDefault();
-    create.mutate({
-      sku: form.sku,
-      name: form.name,
-      unitPriceCents: parseCents(form.price),
-    });
+    const cents = parseCents(form.price);
+    if (cents === null) {
+      return;
+    }
+    create.mutate(
+      {
+        sku: form.sku,
+        name: form.name,
+        unitPriceCents: cents,
+      },
+      { onSuccess: () => setForm(BLANK) }
+    );
   }
 
   return (

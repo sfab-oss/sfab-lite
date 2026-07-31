@@ -1,25 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { AppShell } from "../components/app-shell";
-import { Badge } from "../components/badge";
-import { Button } from "../components/button";
+import { AppShell } from "../components/layout/app-shell";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/card";
+} from "../components/ui/card";
 import {
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
-} from "../components/empty";
-import { NativeSelect } from "../components/native-select";
-import { Skeleton } from "../components/skeleton";
-import { Spinner } from "../components/spinner";
+} from "../components/ui/empty";
+import { NativeSelect } from "../components/ui/native-select";
+import { Skeleton } from "../components/ui/skeleton";
+import { Spinner } from "../components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -27,42 +26,37 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../components/table";
+} from "../components/ui/table";
 import {
-  createDocument,
   documentReference,
-  documentsQueryOptions,
-} from "../lib/documents";
-import { entitiesQueryOptions } from "../lib/entities";
+  useCreateDocument,
+  useDocuments,
+} from "../hooks/use-documents";
+import { useEntities } from "../hooks/use-entities";
 import { formatCents } from "../lib/money";
 
 export function DocumentsPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const documents = useQuery(documentsQueryOptions);
-  const entities = useQuery(entitiesQueryOptions);
+  const documents = useDocuments();
+  const entities = useEntities();
   const [entityId, setEntityId] = useState("");
 
-  const create = useMutation({
-    mutationFn: createDocument,
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries({
-        queryKey: documentsQueryOptions.queryKey,
-      });
-      if (result.document) {
-        await navigate({
-          to: "/documents/$id",
-          params: { id: result.document.id },
-        });
-      }
-    },
-  });
+  const create = useCreateDocument();
 
   function onCreate(event: FormEvent) {
     event.preventDefault();
     const chosen = entityId || entities.data?.[0]?.id;
     if (chosen) {
-      create.mutate(chosen);
+      create.mutate(chosen, {
+        onSuccess: async (result) => {
+          if (result.document) {
+            await navigate({
+              to: "/documents/$id",
+              params: { id: result.document.id },
+            });
+          }
+        },
+      });
     }
   }
 

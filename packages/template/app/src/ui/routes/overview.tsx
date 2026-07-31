@@ -1,14 +1,13 @@
 import { CubeIcon, FileTextIcon, PersonIcon } from "@radix-ui/react-icons";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { AppShell } from "../components/app-shell";
+import { AppShell } from "../components/layout/app-shell";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/card";
-import { sessionQueryOptions } from "../lib/session";
+} from "../components/ui/card";
+import { useSession } from "../hooks/use-session";
 
 const SECTIONS = [
   {
@@ -37,7 +36,7 @@ const SECTIONS = [
  * sections does not.
  */
 export function OverviewPage() {
-  const session = useQuery(sessionQueryOptions);
+  const session = useSession();
   const orgName = session.data?.organization?.name ?? "your organization";
 
   return (

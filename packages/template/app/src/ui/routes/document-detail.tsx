@@ -1,15 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "../components/alert";
-import { AppShell } from "../components/app-shell";
-import { Badge } from "../components/badge";
-import { Button } from "../components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/card";
-import { Input } from "../components/input";
-import { NativeSelect } from "../components/native-select";
-import { Skeleton } from "../components/skeleton";
-import { Spinner } from "../components/spinner";
+import { AppShell } from "../components/layout/app-shell";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { NativeSelect } from "../components/ui/native-select";
+import { Skeleton } from "../components/ui/skeleton";
+import { Spinner } from "../components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -18,64 +22,32 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../components/table";
+} from "../components/ui/table";
 import {
-  addDocumentLine,
-  deleteDocument,
-  deleteDocumentLine,
-  documentQueryOptions,
   documentReference,
-  documentsQueryOptions,
-  finalizeDocument,
-} from "../lib/documents";
+  useAddDocumentLine,
+  useDeleteDocument,
+  useDeleteDocumentLine,
+  useDocument,
+  useFinalizeDocument,
+} from "../hooks/use-documents";
+import { useProducts } from "../hooks/use-products";
 import { formatCents } from "../lib/money";
-import { productsQueryOptions } from "../lib/products";
 
 export function DocumentDetailPage() {
   const { id } = useParams({ from: "/_app/documents/$id" });
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
-  const detail = useQuery(documentQueryOptions(id));
-  const products = useQuery(productsQueryOptions);
+  const detail = useDocument(id);
+  const products = useProducts();
 
   const [productId, setProductId] = useState("");
   const [quantity, setQuantity] = useState("1");
 
-  const invalidate = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: documentQueryOptions(id).queryKey,
-    });
-    await queryClient.invalidateQueries({
-      queryKey: documentsQueryOptions.queryKey,
-    });
-  };
-
-  const addLine = useMutation({
-    mutationFn: addDocumentLine,
-    onSuccess: async () => {
-      setQuantity("1");
-      await invalidate();
-    },
-  });
-
-  const removeLine = useMutation({
-    mutationFn: deleteDocumentLine,
-    onSuccess: invalidate,
-  });
-
-  const finalize = useMutation({
-    mutationFn: finalizeDocument,
-    onSuccess: invalidate,
-  });
-
-  const discard = useMutation({
-    mutationFn: deleteDocument,
-    onSuccess: async () => {
-      await invalidate();
-      await navigate({ to: "/documents" });
-    },
-  });
+  const addLine = useAddDocumentLine();
+  const removeLine = useDeleteDocumentLine();
+  const finalize = useFinalizeDocument();
+  const discard = useDeleteDocument();
 
   if (detail.isLoading) {
     return (
@@ -106,11 +78,14 @@ export function DocumentDetailPage() {
     event.preventDefault();
     const chosen = productId || products.data?.[0]?.id;
     if (chosen) {
-      addLine.mutate({
-        id,
-        productId: chosen,
-        quantity: Math.max(1, Number.parseInt(quantity, 10) || 1),
-      });
+      addLine.mutate(
+        {
+          id,
+          productId: chosen,
+          quantity: Math.max(1, Number.parseInt(quantity, 10) || 1),
+        },
+        { onSuccess: () => setQuantity("1") }
+      );
     }
   }
 
@@ -239,7 +214,13 @@ export function DocumentDetailPage() {
           </Button>
           <Button
             disabled={discard.isPending}
-            onClick={() => discard.mutate(id)}
+            onClick={() =>
+              discard.mutate(id, {
+                onSuccess: async () => {
+                  await navigate({ to: "/documents" });
+                },
+              })
+            }
             type="button"
             variant="ghost"
           >

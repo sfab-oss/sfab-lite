@@ -1,4 +1,8 @@
-import { Workspace, type WorkspaceChangeEvent } from "@cloudflare/shell";
+import {
+  Workspace,
+  type WorkspaceChangeEvent,
+  WorkspaceFileSystem,
+} from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
 import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
@@ -615,10 +619,7 @@ export class AppAgent extends Think<Env> {
   }
 
   #workspaceGit() {
-    return createGit(
-      this.workspace as unknown as Parameters<typeof createGit>[0],
-      "/"
-    );
+    return createGit(new WorkspaceFileSystem(this.#fs), "/");
   }
 
   rm(path: string, opts?: Parameters<Workspace["rm"]>[1]) {

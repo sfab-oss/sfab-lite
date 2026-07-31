@@ -1,24 +1,24 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { Alert, AlertDescription, AlertTitle } from "../components/alert";
-import { AppShell } from "../components/app-shell";
-import { Button } from "../components/button";
+import { AppShell } from "../components/layout/app-shell";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/card";
-import { Field, FieldGroup, FieldLabel } from "../components/field";
-import { Input } from "../components/input";
-import { Spinner } from "../components/spinner";
+} from "../components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
+import { Input } from "../components/ui/input";
+import { Spinner } from "../components/ui/spinner";
+import { invalidateSession, useSession } from "../hooks/use-session";
 import { authClient } from "../lib/auth-client";
-import { invalidateSession, sessionQueryOptions } from "../lib/session";
 
 export function SettingsPage() {
   const queryClient = useQueryClient();
-  const session = useQuery(sessionQueryOptions);
+  const session = useSession();
   const organization = session.data?.organization;
 
   const [name, setName] = useState<string | null>(null);

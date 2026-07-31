@@ -92,14 +92,14 @@ measure("union (today)", appRoots);
 measure("client-only", [CLIENT_ENTRY]);
 measure("server-only", [SERVER_ENTRY]);
 
-// `api.ts` does `hc<AppType>` against the server's Hono app type, so the client
-// half infers the entire server route graph — drizzle, better-auth, zod. Stub
-// that one import to price what breaking the client→server type link would buy,
-// before proposing it as a change to the template's RPC design.
-const API = "/app/src/ui/lib/api.ts";
-files[API] = `import { hc } from "hono/client";
+// `client.ts` does `hc<ApiType>` against the server's Hono app type, so the
+// client half infers the entire server route graph — drizzle, better-auth,
+// zod. Stub that one import to price what breaking the client→server type
+// link would buy, before proposing it as a change to the template's RPC design.
+const CLIENT = "/app/src/ui/lib/client.ts";
+files[CLIENT] = `import { hc } from "hono/client";
 import { publicBase } from "./public-base";
 // biome-ignore lint/suspicious/noExplicitAny: measurement stub
-export const api = hc<any>(publicBase ?? "/");
+export const client = hc<any>(publicBase ? \`\${publicBase}/api\` : "/api");
 `;
-measure("client-only, AppType stubbed", [CLIENT_ENTRY]);
+measure("client-only, ApiType stubbed", [CLIENT_ENTRY]);

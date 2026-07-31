@@ -10,7 +10,7 @@
   },
   "safelist": "safelist.txt",
   "migrations": "migrations",
-  "schema": "src/db/schema.ts",
+  "schema": "src/db/schema/index.ts",
   "inject": {
     "biome.json": "../core/app-biome.json"
   },
