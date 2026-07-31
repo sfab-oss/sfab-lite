@@ -485,6 +485,7 @@ export class AppAgent extends Think<Env> {
         customCommands: createAppShellCommands({
           env: this.env,
           appId,
+          workspaceId: this.name,
         }),
       },
     });

@@ -46,10 +46,11 @@ declare global {
     /** Service binding → sfab-lite-lint */
     LINT: Fetcher;
     /**
-     * Service binding → this same worker. `pnpm seed` runs inside the AppAgent
-     * DO, which has no `ExecutionContext` and therefore cannot call
-     * `serveSubApp` directly; going back through the front door gives the app
-     * worker the same environment a browser request would.
+     * Service binding → this same worker. `pnpm seed` (computer or `--live`)
+     * runs inside the AppAgent DO, which has no `ExecutionContext` and
+     * therefore cannot call `serveSubApp` directly; going back through the
+     * front door gives the app worker the same environment a browser request
+     * would.
      */
     SELF: Fetcher;
     /**

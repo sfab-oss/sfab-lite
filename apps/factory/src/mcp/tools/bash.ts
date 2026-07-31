@@ -21,7 +21,8 @@ export function registerBashTools(server: McpServer, ctx: McpContext): void {
       description:
         "Run a shell command in the app workspace via the AppAgent shell " +
         "table (pnpm typecheck, pnpm lint, pnpm db:generate <name>, " +
-        "pnpm seed, …). Non-zero exit is still a tool result (passed: false).",
+        "pnpm seed [= computer DB], pnpm seed --live, …). Non-zero exit is " +
+        "still a tool result (passed: false).",
       inputSchema: { appId, workspaceId, command },
     },
     async ({ appId: id, workspaceId: wsId, command: script }) => {

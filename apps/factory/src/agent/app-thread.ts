@@ -60,6 +60,7 @@ export class AppThread extends Think<Env> {
       customCommands: createAppShellCommands({
         env: this.env,
         appId,
+        workspaceId: parent.name,
       }),
     };
   }

@@ -6,8 +6,21 @@ import {
   type ExecResult,
 } from "just-bash";
 import { callCheck, callLint, checkPasses, getLiveSha } from "../forge/cd.js";
-import { nextMigrationPath } from "../registry/app-migrations.js";
-import { liveAppDataStub } from "../registry/app-stub.js";
+import {
+  collectMigrations,
+  nextMigrationPath,
+} from "../registry/app-migrations.js";
+import { serveTargetAppDataStub } from "../registry/app-stub.js";
+import {
+  parseSeedTarget,
+  pathPrefixForTarget,
+} from "../registry/serve-target.js";
+import {
+  compileWorkspaceFiles,
+  getWorkspaceBuild,
+  putWorkspaceBuild,
+  workspaceBuildSha,
+} from "../registry/workspace-build.js";
 import { describeBlocking, diffSchema } from "../schema/schema-ddl.js";
 import { probeSchema } from "../schema/schema-probe.js";
 import {
@@ -42,6 +55,8 @@ function refuseFrozen(cmd: string): ExecResult {
 export interface ShellCommandDeps {
   env: Env;
   appId: string;
+  /** AppAgent DO name — computer pair for default `pnpm seed`. */
+  workspaceId: string;
 }
 
 async function runTypecheck(
@@ -158,18 +173,65 @@ async function runDbGenerate(
 
 const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
 
-async function runSeed(deps: ShellCommandDeps): Promise<ExecResult> {
-  const liveSha = await getLiveSha(deps.env, deps.appId);
-  if (!liveSha) {
+/**
+ * Ensure a workspace WIP build exists without re-entering AppAgent (same DO
+ * as this shell). Compiles from the bash VFS when R2 has no record yet.
+ */
+async function ensureWorkspaceBuildForSeed(
+  deps: ShellCommandDeps,
+  ctx: CommandContext
+): Promise<ExecResult | null> {
+  if (await getWorkspaceBuild(deps.env, deps.workspaceId)) {
+    return null;
+  }
+  try {
+    const files = await collectWorkspaceSourceFiles(ctx);
+    const compiled = await compileWorkspaceFiles(files);
+    const migrations = collectMigrations(files);
+    const generation = Date.now();
+    await putWorkspaceBuild(deps.env, deps.workspaceId, {
+      generation,
+      build: { ...compiled, sha: workspaceBuildSha(generation) },
+      migrations,
+      at: Date.now(),
+    });
+    return null;
+  } catch (e) {
     return fail(
-      "seed: app has no live build yet — merge a PR to main first (gh pr merge)\n",
+      `seed: workspace compile failed — ${e instanceof Error ? e.message : String(e)}\n`,
       1
     );
   }
+}
 
-  const stub = liveAppDataStub(deps.env, deps.appId);
+async function runSeed(
+  deps: ShellCommandDeps,
+  args: string[],
+  ctx: CommandContext
+): Promise<ExecResult> {
+  const target = parseSeedTarget(deps, args);
+  if ("error" in target) {
+    return fail(target.error, 1);
+  }
+
+  if (target.mode === "live") {
+    const liveSha = await getLiveSha(deps.env, deps.appId);
+    if (!liveSha) {
+      return fail(
+        "seed --live: app has no live build yet — merge a PR to main first (gh pr merge)\n",
+        1
+      );
+    }
+  } else {
+    const compileFail = await ensureWorkspaceBuildForSeed(deps, ctx);
+    if (compileFail) {
+      return compileFail;
+    }
+  }
+
+  const stub = serveTargetAppDataStub(deps.env, target);
   const { token, password } = await stub.seedCredentials();
-  const path = `/a/${encodeURIComponent(deps.appId)}/api/dev/seed`;
+  const path = `${pathPrefixForTarget(target)}/api/dev/seed`;
   const res = await deps.env.SELF.fetch(
     new Request(`${LOOPBACK_ORIGIN}${path}`, {
       method: "POST",
@@ -194,8 +256,13 @@ async function runSeed(deps: ShellCommandDeps): Promise<ExecResult> {
     organization: string;
   };
 
+  const where =
+    target.mode === "live"
+      ? "live"
+      : `computer workspace (${deps.workspaceId})`;
+
   return ok(
-    `${body.seeded ? "seed: created the demo organization and sample rows" : "seed: already seeded — credentials unchanged"}\n\n` +
+    `${body.seeded ? "seed: created the demo organization and sample rows" : "seed: already seeded — credentials unchanged"} (${where})\n\n` +
       `  organization  ${body.organization}\n` +
       `  email         ${body.email}\n` +
       `  password      ${password}\n`
@@ -251,7 +318,7 @@ export function createAppShellCommands(
       return await commitAllAndPushMain(deps, ctx);
     }
     if (script === "seed") {
-      return await runSeed(deps);
+      return await runSeed(deps, scriptArgs, ctx);
     }
     return fail(
       `pnpm ${script}: not supported in this shell.\n${FROZEN_IMPORT_MAP_MSG}`,

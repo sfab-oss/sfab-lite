@@ -1,6 +1,7 @@
 /** Explicit DO stub surfaces — DO Rpc generics erase method returns under tsc alone. */
 
 import { liveDataId } from "./app-data-ids.js";
+import { dataIdForTarget, type ServeTarget } from "./serve-target.js";
 
 export interface AppDataStub {
   touch: () => Promise<{
@@ -55,6 +56,13 @@ export function appDataStub(env: Env, dataId: string): AppDataStub {
 
 export function liveAppDataStub(env: Env, appId: string): AppDataStub {
   return appDataStub(env, liveDataId(appId));
+}
+
+export function serveTargetAppDataStub(
+  env: Env,
+  target: ServeTarget
+): AppDataStub {
+  return appDataStub(env, dataIdForTarget(target));
 }
 
 export function appCreateStub(env: Env, appId: string): AppCreateStub {
