@@ -16,14 +16,21 @@ import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import type { AppDataDO } from "../durable-objects/app-data-do.js";
 import { getLiveSha } from "../forge/cd.js";
 import { getPullRequestByNumber } from "../forge/forge.js";
-import { liveDataId, prDataId, wsDataId } from "../registry/app-data-ids.js";
 import {
   type AppMigration,
   collectMigrations,
 } from "../registry/app-migrations.js";
 import { appDataStub } from "../registry/app-stub.js";
+import {
+  dataIdForTarget,
+  pathPrefixForTarget,
+  type ServeTarget,
+  serveId,
+} from "../registry/serve-target.js";
 import { getWorkspaceBuild } from "../registry/workspace-build.js";
 import { kernelModules } from "./kernel-modules.js";
+
+export type { ServeTarget } from "../registry/serve-target.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
 
@@ -44,26 +51,6 @@ function contentType(path: string): string {
     return "application/json";
   }
   return "application/octet-stream";
-}
-
-/** Discriminated serve identity — never overload appId as workspaceId. */
-export type ServeTarget =
-  | { mode: "live"; appId: string }
-  | { mode: "preview"; appId: string; prNumber: number }
-  | { mode: "workspace"; workspaceId: string };
-
-function serveId(target: ServeTarget): string {
-  return target.mode === "workspace" ? target.workspaceId : target.appId;
-}
-
-function dataIdFor(target: ServeTarget): string {
-  if (target.mode === "workspace") {
-    return wsDataId(target.workspaceId);
-  }
-  if (target.mode === "preview") {
-    return prDataId(target.appId, target.prNumber);
-  }
-  return liveDataId(target.appId);
 }
 
 type LoadBuildResult =
@@ -202,16 +189,6 @@ function workspaceStartingResponse(
   );
 }
 
-function pathPrefixFor(target: ServeTarget): string {
-  if (target.mode === "workspace") {
-    return `/a/${encodeURIComponent(target.workspaceId)}/workspace`;
-  }
-  if (target.mode === "preview") {
-    return `/a/${encodeURIComponent(target.appId)}/preview/${target.prNumber}`;
-  }
-  return `/a/${encodeURIComponent(target.appId)}`;
-}
-
 function buildPathContext(
   request: Request,
   target: ServeTarget,
@@ -219,7 +196,7 @@ function buildPathContext(
 ): { rest: string; publicBase: string } {
   const url = new URL(request.url);
   const rest = restPath.replace(LEADING_SLASHES_RE, "");
-  const pathPrefix = pathPrefixFor(target);
+  const pathPrefix = pathPrefixForTarget(target);
   return { rest, publicBase: `${url.origin}${pathPrefix}` };
 }
 
@@ -294,7 +271,7 @@ async function serveApiRoute(
       DB: stub,
       BETTER_AUTH_SECRET: secret,
       BETTER_AUTH_URL: new URL(publicBase).origin,
-      APP_BASE_PATH: pathPrefixFor(target),
+      APP_BASE_PATH: pathPrefixForTarget(target),
       SEED_TOKEN: (await stub.seedCredentials()).token,
     },
     globalOutbound: null,
@@ -447,7 +424,7 @@ export async function serveSubApp(
     );
   }
 
-  const dataId = dataIdFor(target);
+  const dataId = dataIdForTarget(target);
   const stub = env.APP_DATA_DO.get(env.APP_DATA_DO.idFromName(dataId));
   const loaded = await loadBuild(env, target);
 

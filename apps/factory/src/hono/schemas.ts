@@ -60,8 +60,32 @@ export const sqlBodySchema = z
   .object({
     query: z.string().min(1),
     binds: z.array(z.unknown()).optional(),
+    /**
+     * Which serve-target DB to query. Default `live` (factory inspect).
+     * Computer shell seeds default to workspace separately.
+     */
+    target: z.enum(["live", "workspace", "preview"]).optional(),
+    workspaceId: z.string().trim().min(1).optional(),
+    prNumber: z.number().int().positive().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((body, ctx) => {
+    const target = body.target ?? "live";
+    if (target === "workspace" && !body.workspaceId) {
+      ctx.addIssue({
+        code: "custom",
+        message: "workspaceId required when target is workspace",
+        path: ["workspaceId"],
+      });
+    }
+    if (target === "preview" && body.prNumber == null) {
+      ctx.addIssue({
+        code: "custom",
+        message: "prNumber required when target is preview",
+        path: ["prNumber"],
+      });
+    }
+  });
 
 export const checkBodySchema = z
   .object({
