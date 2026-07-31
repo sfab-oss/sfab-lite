@@ -27,6 +27,8 @@ import {
 
 const ROUTER_FILE = "/src/ui/router.tsx";
 const LOCATION_POLL_MS = 300;
+const BUILD_STATUS_POLL_MS = 400;
+const BUILD_STATUS_POLL_MAX_MS = 45_000;
 const IFRAME_SANDBOX = "allow-same-origin allow-scripts allow-forms";
 
 interface WorkspaceBuildRpcStatus {
@@ -35,8 +37,103 @@ interface WorkspaceBuildRpcStatus {
   status?: string;
 }
 
+interface AgentRpc {
+  ready: Promise<unknown>;
+  call: (name: string, args: unknown[]) => Promise<unknown>;
+}
+
 function fireAndForget(promise: Promise<unknown>): void {
   promise.catch(() => undefined);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+function applyReadyFromPoll(
+  status: WorkspaceBuildRpcStatus,
+  generationRef: { current: number | null },
+  loadedGenerationRef: { current: number | null },
+  setBuildHint: (hint: string | null) => void,
+  reloadFrame: () => void,
+  reloadIfAlreadyLoaded: boolean
+): "done" | "continue" {
+  if (status.status === "error") {
+    setBuildHint(status.error ?? "Workspace compile failed");
+    return "done";
+  }
+  if (status.status !== "ready") {
+    setBuildHint(compilingHint(generationRef));
+    return "continue";
+  }
+  const gen = typeof status.generation === "number" ? status.generation : null;
+  rememberGeneration(status, generationRef);
+  setBuildHint(null);
+  if (
+    gen != null &&
+    (gen !== loadedGenerationRef.current || reloadIfAlreadyLoaded)
+  ) {
+    loadedGenerationRef.current = gen;
+    reloadFrame();
+  } else if (gen != null) {
+    loadedGenerationRef.current = gen;
+  }
+  return "done";
+}
+
+/**
+ * Poll workspaceBuildStatus until ready/error. Used as a fallback when the
+ * WebSocket `workspace-build-ready` message is missed — without this the
+ * Browser can stick on "Updating…" with a stale iframe.
+ */
+async function pollUntilBuildReady(
+  agent: AgentRpc,
+  generationRef: { current: number | null },
+  loadedGenerationRef: { current: number | null },
+  setBuildHint: (hint: string | null) => void,
+  reloadFrame: () => void,
+  isCancelled: () => boolean,
+  options: { kick: boolean; reloadIfAlreadyLoaded: boolean }
+): Promise<void> {
+  await agent.ready;
+  if (isCancelled()) {
+    return;
+  }
+  if (options.kick) {
+    await agent.call("kickWorkspaceCompile", []);
+    if (isCancelled()) {
+      return;
+    }
+  }
+
+  const started = Date.now();
+  while (!isCancelled()) {
+    const status = (await agent.call(
+      "workspaceBuildStatus",
+      []
+    )) as WorkspaceBuildRpcStatus;
+    if (isCancelled()) {
+      return;
+    }
+    const step = applyReadyFromPoll(
+      status,
+      generationRef,
+      loadedGenerationRef,
+      setBuildHint,
+      reloadFrame,
+      options.reloadIfAlreadyLoaded
+    );
+    if (step === "done") {
+      return;
+    }
+    if (Date.now() - started >= BUILD_STATUS_POLL_MAX_MS) {
+      setBuildHint("Workspace compile timed out");
+      return;
+    }
+    await sleep(BUILD_STATUS_POLL_MS);
+  }
 }
 
 function toWorkspaceRelative(
@@ -111,11 +208,9 @@ function hintForStatus(
 }
 
 async function ensureWorkspaceBuildReady(
-  agent: {
-    ready: Promise<unknown>;
-    call: (name: string, args: unknown[]) => Promise<unknown>;
-  },
+  agent: AgentRpc,
   generationRef: { current: number | null },
+  loadedGenerationRef: { current: number | null },
   setBuildHint: (hint: string | null) => void,
   reloadFrame: () => void,
   isCancelled: () => boolean
@@ -130,6 +225,9 @@ async function ensureWorkspaceBuildReady(
   }
   rememberGeneration(status, generationRef);
   if (applyReadyGeneration(status, generationRef)) {
+    if (typeof status.generation === "number") {
+      loadedGenerationRef.current = status.generation;
+    }
     setBuildHint(null);
     return;
   }
@@ -137,39 +235,29 @@ async function ensureWorkspaceBuildReady(
   if (hint) {
     setBuildHint(hint);
   }
-  if (status.status === "compiling" || status.status === "error") {
+  if (status.status === "error") {
     return;
   }
-  setBuildHint(compilingHint(generationRef));
-  await agent.call("kickWorkspaceCompile", []);
-  if (isCancelled()) {
-    return;
-  }
-  const next = (await agent.call(
-    "workspaceBuildStatus",
-    []
-  )) as WorkspaceBuildRpcStatus;
-  if (isCancelled()) {
-    return;
-  }
-  rememberGeneration(next, generationRef);
-  if (applyReadyGeneration(next, generationRef)) {
-    setBuildHint(null);
-    reloadFrame();
-    return;
-  }
-  const nextHint = hintForStatus(next, generationRef);
-  if (nextHint) {
-    setBuildHint(nextHint);
-  }
+  // compiling or idle — poll (kick only when idle so we don't double-schedule)
+  await pollUntilBuildReady(
+    agent,
+    generationRef,
+    loadedGenerationRef,
+    setBuildHint,
+    reloadFrame,
+    isCancelled,
+    { kick: status.status !== "compiling", reloadIfAlreadyLoaded: false }
+  );
 }
 
 function handleWorkspaceAgentMessage(
   data: string,
   generationRef: { current: number | null },
+  loadedGenerationRef: { current: number | null },
   setBuildHint: (hint: string | null) => void,
   reloadFrame: () => void,
-  refreshQuickLinks: () => void
+  refreshQuickLinks: () => void,
+  startBuildPoll: () => void
 ): void {
   try {
     const parsed = JSON.parse(data) as {
@@ -180,17 +268,21 @@ function handleWorkspaceAgentMessage(
     };
     if (parsed.type === "workspace-change") {
       refreshQuickLinks();
+      // Write landed — compile is scheduled on the DO; poll in case ready WS is missed.
+      startBuildPoll();
       return;
     }
     if (parsed.type === "workspace-build-ready") {
       if (
         typeof parsed.generation === "number" &&
-        parsed.generation === generationRef.current
+        parsed.generation === loadedGenerationRef.current
       ) {
+        setBuildHint(null);
         return;
       }
       if (typeof parsed.generation === "number") {
         generationRef.current = parsed.generation;
+        loadedGenerationRef.current = parsed.generation;
       }
       setBuildHint(null);
       refreshQuickLinks();
@@ -202,6 +294,7 @@ function handleWorkspaceAgentMessage(
     }
     if (parsed.status === "compiling") {
       setBuildHint(compilingHint(generationRef));
+      startBuildPoll();
       return;
     }
     if (parsed.status === "error") {
@@ -252,6 +345,8 @@ function BrowserFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pathRef = useRef("/");
   const generationRef = useRef<number | null>(null);
+  const loadedGenerationRef = useRef<number | null>(null);
+  const pollEpochRef = useRef(0);
   const [path, setPath] = useState("/");
   const [draft, setDraft] = useState(localhostDisplayPath("/"));
   const [editing, setEditing] = useState(false);
@@ -266,6 +361,7 @@ function BrowserFrame({
   }, [workspaceId]);
 
   const refreshQuickLinksRef = useRef<() => void>(() => undefined);
+  const startBuildPollRef = useRef<() => void>(() => undefined);
 
   const agent = useAgent({
     agent: "AppAgent",
@@ -277,9 +373,11 @@ function BrowserFrame({
       handleWorkspaceAgentMessage(
         event.data,
         generationRef,
+        loadedGenerationRef,
         setBuildHint,
         reloadFrame,
-        () => refreshQuickLinksRef.current()
+        () => refreshQuickLinksRef.current(),
+        () => startBuildPollRef.current()
       );
     },
   });
@@ -298,21 +396,39 @@ function BrowserFrame({
 
   refreshQuickLinksRef.current = refreshQuickLinks;
 
+  const startBuildPoll = useCallback(() => {
+    const epoch = ++pollEpochRef.current;
+    fireAndForget(
+      pollUntilBuildReady(
+        agent,
+        generationRef,
+        loadedGenerationRef,
+        setBuildHint,
+        reloadFrame,
+        () => epoch !== pollEpochRef.current,
+        { kick: false, reloadIfAlreadyLoaded: false }
+      )
+    );
+  }, [agent, reloadFrame]);
+
+  startBuildPollRef.current = startBuildPoll;
+
   useEffect(() => {
     refreshQuickLinks();
   }, [refreshQuickLinks]);
 
   useEffect(() => {
-    let cancelled = false;
+    const epoch = ++pollEpochRef.current;
     fireAndForget(
       ensureWorkspaceBuildReady(
         agent,
         generationRef,
+        loadedGenerationRef,
         setBuildHint,
         reloadFrame,
-        () => cancelled
+        () => epoch !== pollEpochRef.current
       ).catch((e) => {
-        if (!cancelled) {
+        if (epoch === pollEpochRef.current) {
           setBuildHint(
             e instanceof Error ? e.message : "Workspace unavailable"
           );
@@ -320,7 +436,7 @@ function BrowserFrame({
       })
     );
     return () => {
-      cancelled = true;
+      pollEpochRef.current += 1;
     };
   }, [agent, reloadFrame]);
 
@@ -405,27 +521,23 @@ function BrowserFrame({
   };
 
   const reload = () => {
-    const run = async () => {
-      setBuildHint(compilingHint(generationRef));
-      try {
-        await agent.ready;
-        await agent.call("kickWorkspaceCompile", []);
-        const next = (await agent.call(
-          "workspaceBuildStatus",
-          []
-        )) as WorkspaceBuildRpcStatus;
-        if (applyReadyGeneration(next, generationRef)) {
-          setBuildHint(null);
-          reloadFrame();
-          return;
+    const epoch = ++pollEpochRef.current;
+    setBuildHint(compilingHint(generationRef));
+    fireAndForget(
+      pollUntilBuildReady(
+        agent,
+        generationRef,
+        loadedGenerationRef,
+        setBuildHint,
+        reloadFrame,
+        () => epoch !== pollEpochRef.current,
+        { kick: true, reloadIfAlreadyLoaded: true }
+      ).catch((e) => {
+        if (epoch === pollEpochRef.current) {
+          setBuildHint(e instanceof Error ? e.message : "Reload failed");
         }
-        const hint = hintForStatus(next, generationRef);
-        setBuildHint(hint ?? compilingHint(generationRef));
-      } catch (e) {
-        setBuildHint(e instanceof Error ? e.message : "Reload failed");
-      }
-    };
-    fireAndForget(run());
+      })
+    );
   };
 
   const openExternal = () => {
