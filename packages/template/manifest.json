@@ -5,8 +5,8 @@
     "exportName": "app"
   },
   "client": {
-    "entry": "src/main.tsx",
-    "styles": "src/styles.css"
+    "entry": "src/ui/main.tsx",
+    "styles": "src/ui/styles.css"
   },
   "safelist": "safelist.txt",
   "migrations": "migrations",

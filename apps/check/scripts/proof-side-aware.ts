@@ -213,7 +213,7 @@ if (sideEffectResult.clean || !sideEffectHit) {
 
 const importTypeFiles = {
   ...baseFiles,
-  [`${clientDir}/lib/type-cross.tsx`]: `import type { AppType } from "../../hono";\nexport type X = AppType;\n`,
+  [`${clientDir}/lib/type-cross.tsx`]: `import type { ApiType } from "../../hono";\nexport type X = ApiType;\n`,
 };
 const importTypeResult = check("9-import-type-crosses", importTypeFiles);
 if (!importTypeResult.clean) {

@@ -29,10 +29,10 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `migrations/` | Applied SQL migrations (root of the app tree). |
 | `src/hono/` | API tiers: `public/` / `protected/` / `org-protected/`. |
 | `src/contract/` | Shared Zod schemas for Hono + hooks. |
-| `src/components/` | `ui/` (shadcn), `layout/`, `providers/`. |
-| `src/hooks/` | Data hooks (`use-entities`, `use-session`, …). |
-| `src/lib/` | Client, auth client, money helpers. |
-| `src/routes/` | SPA pages (code-based router in `src/router.tsx`). |
+| `src/ui/components/` | `ui/` (shadcn), `layout/`, `providers/`. |
+| `src/ui/hooks/` | Data hooks (`use-entities`, `use-session`, …). |
+| `src/ui/lib/` | Client, auth client, money helpers. |
+| `src/ui/routes/` | SPA pages (code-based router in `src/ui/router.tsx`). |
 
 `wrangler` config is **not** seeded this pass.
 

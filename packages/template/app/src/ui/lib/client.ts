@@ -1,5 +1,5 @@
 import { hc } from "hono/client";
-import type { ApiType } from "../hono";
+import type { ApiType } from "../../hono";
 import { publicBase } from "./public-base";
 
 /**
