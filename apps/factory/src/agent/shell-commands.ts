@@ -232,13 +232,30 @@ async function runSeed(
   const stub = serveTargetAppDataStub(deps.env, target);
   const { token, password } = await stub.seedCredentials();
   const path = `${pathPrefixForTarget(target)}/api/dev/seed`;
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    "x-sfab-seed": token,
+  };
+  // Workspace/preview host gates require a factory actor. Loopback seed has
+  // no session cookie; ADMIN_TOKEN is the established SELF/service pattern
+  // (see forge/cd serviceHeaders). Live is public at the host, but send it
+  // anyway when configured — SEED_TOKEN still authorizes the app route.
+  if (target.mode !== "live") {
+    const admin = deps.env.ADMIN_TOKEN?.trim();
+    if (!admin) {
+      return fail(
+        "seed: ADMIN_TOKEN is not configured — required to seed a gated serve target (workspace/preview) via loopback\n",
+        1
+      );
+    }
+    headers["X-Admin-Token"] = admin;
+  } else if (deps.env.ADMIN_TOKEN) {
+    headers["X-Admin-Token"] = deps.env.ADMIN_TOKEN;
+  }
   const res = await deps.env.SELF.fetch(
     new Request(`${LOOPBACK_ORIGIN}${path}`, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-sfab-seed": token,
-      },
+      headers,
       body: JSON.stringify({ password }),
     })
   );
