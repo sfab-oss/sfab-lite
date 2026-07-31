@@ -29,6 +29,8 @@ const ROUTER_FILE = "/src/ui/router.tsx";
 const LOCATION_POLL_MS = 300;
 const BUILD_STATUS_POLL_MS = 400;
 const BUILD_STATUS_POLL_MAX_MS = 45_000;
+/** Catches ready builds when both workspace-change and build-ready WS are missed. */
+const BUILD_GENERATION_HEARTBEAT_MS = 2000;
 const IFRAME_SANDBOX = "allow-same-origin allow-scripts allow-forms";
 
 interface WorkspaceBuildRpcStatus {
@@ -205,6 +207,40 @@ function hintForStatus(
     return status.error ?? "Workspace compile failed";
   }
   return null;
+}
+
+/**
+ * One heartbeat tick: if the DO has a newer ready generation than the iframe,
+ * reload. If compiling, escalate to the fast poll. No-op when already current.
+ */
+function applyHeartbeatStatus(
+  status: WorkspaceBuildRpcStatus,
+  generationRef: { current: number | null },
+  loadedGenerationRef: { current: number | null },
+  setBuildHint: (hint: string | null) => void,
+  reloadFrame: () => void,
+  startBuildPoll: () => void
+): void {
+  if (status.status === "compiling") {
+    setBuildHint(compilingHint(generationRef));
+    startBuildPoll();
+    return;
+  }
+  if (status.status === "error") {
+    setBuildHint(status.error ?? "Workspace compile failed");
+    return;
+  }
+  if (status.status !== "ready") {
+    return;
+  }
+  const gen = typeof status.generation === "number" ? status.generation : null;
+  rememberGeneration(status, generationRef);
+  if (gen == null || gen === loadedGenerationRef.current) {
+    return;
+  }
+  loadedGenerationRef.current = gen;
+  setBuildHint(null);
+  reloadFrame();
 }
 
 async function ensureWorkspaceBuildReady(
@@ -439,6 +475,65 @@ function BrowserFrame({
       pollEpochRef.current += 1;
     };
   }, [agent, reloadFrame]);
+
+  // Slow heartbeat: WS can drop both change and ready; still pick up new gens.
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    let cancelled = false;
+    let intervalId: number | null = null;
+
+    const tick = () => {
+      fireAndForget(
+        (async () => {
+          await agent.ready;
+          if (cancelled || document.visibilityState !== "visible") {
+            return;
+          }
+          const status = (await agent.call(
+            "workspaceBuildStatus",
+            []
+          )) as WorkspaceBuildRpcStatus;
+          if (cancelled) {
+            return;
+          }
+          applyHeartbeatStatus(
+            status,
+            generationRef,
+            loadedGenerationRef,
+            setBuildHint,
+            reloadFrame,
+            startBuildPoll
+          );
+        })()
+      );
+    };
+
+    const sync = () => {
+      if (document.visibilityState === "visible") {
+        if (intervalId == null) {
+          intervalId = window.setInterval(tick, BUILD_GENERATION_HEARTBEAT_MS);
+        }
+        return;
+      }
+      if (intervalId != null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      cancelled = true;
+      if (intervalId != null) {
+        window.clearInterval(intervalId);
+      }
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [active, agent, reloadFrame, startBuildPoll]);
 
   useEffect(() => {
     if (!active) {
