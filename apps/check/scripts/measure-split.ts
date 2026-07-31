@@ -16,7 +16,7 @@ import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
 
-const CLIENT_ENTRY = "/app/src/ui/main.tsx";
+const CLIENT_ENTRY = "/app/src/main.tsx";
 const SERVER_ENTRY = "/app/src/hono/index.ts";
 
 /** Mirrors ls-host's AMBIENT_ROOT_FILES, which it does not export. */
@@ -92,14 +92,14 @@ measure("union (today)", appRoots);
 measure("client-only", [CLIENT_ENTRY]);
 measure("server-only", [SERVER_ENTRY]);
 
-// `api.ts` does `hc<AppType>` against the server's Hono app type, so the client
-// half infers the entire server route graph — drizzle, better-auth, zod. Stub
-// that one import to price what breaking the client→server type link would buy,
-// before proposing it as a change to the template's RPC design.
-const API = "/app/src/ui/lib/api.ts";
-files[API] = `import { hc } from "hono/client";
+// `client.ts` does `hc<ApiType>` against the server's Hono app type, so the
+// client half infers the entire server route graph — drizzle, better-auth,
+// zod. Stub that one import to price what breaking the client→server type
+// link would buy, before proposing it as a change to the template's RPC design.
+const CLIENT = "/app/src/lib/client.ts";
+files[CLIENT] = `import { hc } from "hono/client";
 import { publicBase } from "./public-base";
 // biome-ignore lint/suspicious/noExplicitAny: measurement stub
-export const api = hc<any>(publicBase ?? "/");
+export const client = hc<any>(publicBase ? \`\${publicBase}/api\` : "/api");
 `;
-measure("client-only, AppType stubbed", [CLIENT_ENTRY]);
+measure("client-only, ApiType stubbed", [CLIENT_ENTRY]);

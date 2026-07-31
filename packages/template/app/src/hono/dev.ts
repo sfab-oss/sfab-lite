@@ -1,7 +1,7 @@
 import { and, eq, notExists } from "drizzle-orm";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
-import { seedSchema } from "../../contract/dev";
+import { seedSchema } from "../contract/dev";
 import {
   account,
   document,
@@ -12,9 +12,9 @@ import {
   product,
   session,
   user,
-} from "../../db/schema";
-import type { AppEnv } from "../types";
-import { jsonBody } from "../validate";
+} from "../db/schema";
+import type { AppEnv } from "./types";
+import { jsonBody } from "./validate";
 
 function isAuthApiError(err: unknown): err is {
   name: "APIError";

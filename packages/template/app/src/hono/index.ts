@@ -1,7 +1,7 @@
 import { Hono } from "hono";
+import { devRoutes } from "./dev";
 import { withAuth } from "./middleware/auth";
 import { appErrorHandler } from "./middleware/error-handler";
-import { devRoutes } from "./org-protected/dev";
 import { protectedRoutes } from "./protected";
 import { publicRoutes } from "./public";
 import type { AppEnv } from "./types";

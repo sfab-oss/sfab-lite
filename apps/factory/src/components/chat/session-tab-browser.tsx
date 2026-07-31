@@ -25,7 +25,7 @@ import {
   stripLocalhostDisplay,
 } from "@/lib/preview/reload-preview";
 
-const ROUTER_FILE = "/src/ui/router.tsx";
+const ROUTER_FILE = "/src/router.tsx";
 const LOCATION_POLL_MS = 300;
 const IFRAME_SANDBOX = "allow-same-origin allow-scripts allow-forms";
 
