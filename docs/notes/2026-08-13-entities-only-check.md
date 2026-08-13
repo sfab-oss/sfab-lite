@@ -21,8 +21,11 @@ From the monorepo root, after `pnpm install` and
 NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter @sfab-lite/check measure:entities
 ```
 
-Harness: `apps/check/scripts/measure-entities.mjs` (same overlay-all /
-seed-roots shape as `measure-split.mjs`). Two modes:
+Harness: `apps/check/scripts/measure-entities.ts` (via `run-measure.mjs`;
+same overlay-all / seed-roots shape as `measure-split.mjs`). The union
+rows root every seed `.ts`/`.tsx` including `/app/vite.config.ts` — the
+worker roots only `/app/src/**` — so the 3 union diagnostics are
+`vite.config.ts` without vite types, not app errors. Two modes:
 
 - **Import closure:** `programRoots = diagRoots = [the file]`.
 - **Affected-file:** `programRoots = every /app file` (today's worker),

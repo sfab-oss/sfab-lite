@@ -22,9 +22,15 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter @sfab-lite/check measure:zo
 APPS=1 NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter @sfab-lite/check measure:memory
 ```
 
-`measure-zones.mjs` overlays every app file and only `roots` seed the program
-(same harness as `measure-split.mjs`). `measure-memory.mjs` is `runCheck` over
-the seed (worker-shaped union).
+`measure-zones.ts` (via `run-measure.mjs`) overlays every app file and only
+`roots` seed the program (same harness as `measure-split.mjs`).
+`measure-memory.mjs` is `runCheck` over the seed (worker-shaped union).
+
+The harness's "union" roots every seed `.ts`/`.tsx` file, including
+`/app/vite.config.ts`; the worker roots only `/app/src/**`
+(`ls-host.ts` `rootFilesFor`). The 3 union diagnostics are
+`vite.config.ts` without vite types — not app errors. Heap matches the
+worker-shaped run (340 vs 339.5), so the baseline stands.
 
 ## What we ran
 
@@ -43,7 +49,7 @@ baseline (VFS module loaded, no program): 88.7 MB
 Retained over baseline **339.5 MB**. 2026-07-27 was 336.8 MB / 1351 files;
 zones-harness union today is 1368 files / 340 MB. The template has grown.
 
-### Four programs (`measure-zones.mjs`)
+### Four programs (`measure-zones.ts`)
 
 ```
 {"label":"union (today)","roots":72,"loadedFiles":1368,"loadedTextMb":5.82,"diagnostics":3,"ms":6530,"heapRetainedMb":340}

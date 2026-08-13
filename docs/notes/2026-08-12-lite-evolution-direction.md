@@ -479,7 +479,7 @@ today's equivalent failure is a bare resolution error.
    write-up:
    [`2026-08-13-zone-check-memory.md`](2026-08-13-zone-check-memory.md)
    (eject: [`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md)).
-   Four programs over today's template (`measure-zones.mjs`): data-only 77 MB,
+   Four programs over today's template (`measure-zones.ts`): data-only 77 MB,
    shared-only 53 MB, server-with-client-edge-cut 215 MB, client vs
    generated API `.d.ts` 145 MB. Peak 215 MB against a 340 MB union.
    Splitting today's VFS into zones does not fit the cap; the server

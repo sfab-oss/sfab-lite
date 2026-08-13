@@ -214,7 +214,7 @@ behind one settles on the next poll. That closes the gap where the console
 - **Per-slice checking against today's VFS does not fit locally.** Full
   write-up:
   [`../notes/2026-08-13-zone-check-memory.md`](../notes/2026-08-13-zone-check-memory.md).
-  Measured 2026-08-13 with `apps/check/scripts/measure-zones.mjs` (same overlay-all /
+  Measured 2026-08-13 with `apps/check/scripts/measure-zones.ts` (same overlay-all /
   seed-roots harness as `measure-split.mjs`):
 
   | program | files loaded | retained heap |
