@@ -301,6 +301,19 @@ behind one settles on the next poll. That closes the gap where the console
   **147 MB** (UI floor, same as shallow-only 149). 92 and 148 do not
   compose into one program. Two check units, not today's 71 roots.
 
+- **Cheap accumulating Hono emits a snapshot; the full-server
+  accumulating check does not fit locally.** Full write-up:
+  [`../notes/2026-08-13-snapshot-accumulating-hono.md`](../notes/2026-08-13-snapshot-accumulating-hono.md).
+  Server entry, typed drizzle+Hono, no accum: **93 MB**. Same tree
+  accumulating routes + emit: **146 MB** (12 paths / 18 methods,
+  standalone `api.d.ts` 6.2 KB, no `AppEnv` / drizzle). Client vs that
+  snapshot is green except the seed `styles.css` import. Planted
+  handler bugs and a GET `data` → `items` freshness break both land.
+  One–five methods stay at 92–93 MB; the jump is the accumulated
+  schema, not files. Do not accumulate on the ordinary server check.
+  Per-module fragment emit stays at **92 MB**:
+  [`../notes/2026-08-13-snapshot-route-fragments.md`](../notes/2026-08-13-snapshot-route-fragments.md).
+
 - **`tsgo` forecast: faster here, not 2.9× RSS.** Full write-up:
   [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md).
   See the rejected-table row. Pin stays 6.0.3.
@@ -363,6 +376,10 @@ it.
   — shallow RPC (contracts, not `typeof api`)
 - [`../notes/2026-08-13-stack-typed-shallow.md`](../notes/2026-08-13-stack-typed-shallow.md)
   — stacked typed stubs + shallow RPC
+- [`../notes/2026-08-13-snapshot-accumulating-hono.md`](../notes/2026-08-13-snapshot-accumulating-hono.md)
+  — cheap accumulating Hono + snapshot emit
+- [`../notes/2026-08-13-snapshot-route-fragments.md`](../notes/2026-08-13-snapshot-route-fragments.md)
+  — per-module snapshot fragments
 - [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md)
   — serve / upload diet (not check-cap)
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)

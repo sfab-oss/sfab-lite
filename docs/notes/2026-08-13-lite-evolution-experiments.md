@@ -14,6 +14,8 @@ Non-authoritative. **One file per experiment** — this page is only a pointer.
 | Shallow RPC | [`2026-08-13-shallow-rpc.md`](2026-08-13-shallow-rpc.md) |
 | Serve / upload diet | [`2026-08-13-serve-upload-diet.md`](2026-08-13-serve-upload-diet.md) |
 | Stack typed stubs + shallow RPC | [`2026-08-13-stack-typed-shallow.md`](2026-08-13-stack-typed-shallow.md) |
+| Snapshot from cheap accumulating Hono | [`2026-08-13-snapshot-accumulating-hono.md`](2026-08-13-snapshot-accumulating-hono.md) |
+| Snapshot route-module fragments | [`2026-08-13-snapshot-route-fragments.md`](2026-08-13-snapshot-route-fragments.md) |
 
 Later rounds get their own `YYYY-MM-DD-<slug>.md`. Do not append them here.
 See [`README.md`](README.md).
