@@ -62,7 +62,7 @@ export interface Database {
     shape: S
   ): Query<RowOf<S>>;
   insert<T extends Record<string, Column<unknown>>>(table: T): {
-    values(row: InsertValues<T>): {
+    values(row: InsertValues<T> | Array<InsertValues<T>>): {
       returning(): Promise<Array<RowOf<T>>>;
     };
   };
@@ -170,6 +170,207 @@ export declare function createMiddleware<E extends EnvBase>(
   fn: (c: Context<E>, next: () => Promise<void>) => unknown
 ): Handler<E>;
 `.trim();
+
+export const HONO_ACCUMULATING = `
+export type EnvBase = {
+  Bindings?: object;
+  Variables?: Record<string, unknown>;
+};
+
+export type Validator<T> = { readonly __valid: T };
+
+export type JsonResult<T, S extends number = 200> = Response & {
+  readonly __body: T;
+  readonly __status: S;
+};
+
+export type Context<E extends EnvBase = EnvBase, V = unknown> = {
+  env: NonNullable<E["Bindings"]>;
+  set<K extends keyof NonNullable<E["Variables"]>>(
+    key: K,
+    value: NonNullable<E["Variables"]>[K]
+  ): void;
+  get<K extends keyof NonNullable<E["Variables"]>>(
+    key: K
+  ): NonNullable<E["Variables"]>[K];
+  json<T>(body: T): JsonResult<T, 200>;
+  json<T, S extends number>(body: T, status: S): JsonResult<T, S>;
+  notFound(): Response;
+  req: {
+    param(name: string): string;
+    header(name: string): string | undefined;
+    valid(target: "json"): V;
+    raw: Request;
+  };
+};
+
+type ParamName<P extends string> = P extends \`\${string}:\${infer Rest}\`
+  ? Rest extends \`\${infer Name}/\${infer Tail}\`
+    ? Name | ParamName<\`/\${Tail}\`>
+    : Rest extends \`\${infer Name}*\`
+      ? Name
+      : Rest
+  : never;
+
+type ParamInput<P extends string> = [ParamName<P>] extends [never]
+  ? {}
+  : { param: { [K in ParamName<P>]: string } };
+
+type NoJson = { readonly __noJson: true };
+
+type RouteInput<P extends string, V = NoJson> = ParamInput<P> &
+  (V extends NoJson ? {} : { json: V });
+
+type RouteOutput<R> = Awaited<R> extends {
+  readonly __body: infer B;
+  readonly __status: infer St extends number;
+}
+  ? { output: B; outputFormat: "json"; status: St }
+  : { output: unknown; outputFormat: "json"; status: number };
+
+type RouteEntry<P extends string, V, R> = {
+  input: RouteInput<P, V>;
+} & RouteOutput<R>;
+
+type AddRoute<
+  S,
+  P extends string,
+  M extends string,
+  Entry,
+> = {
+  [K in keyof S | P]: K extends P
+    ? (P extends keyof S ? S[P] : {}) & { [Key in M]: Entry }
+    : K extends keyof S
+      ? S[K]
+      : never;
+};
+
+type JoinPath<A extends string, B extends string> = A extends "/"
+  ? B
+  : B extends "/"
+    ? A
+    : \`\${A}\${B}\`;
+
+type Prefixed<Prefix extends string, S> = {
+  [K in keyof S as K extends string ? JoinPath<Prefix, K> : never]: S[K];
+};
+
+type MergeSchema<A, B> = {
+  [K in keyof A | keyof B]: K extends keyof B
+    ? K extends keyof A
+      ? A[K] & B[K]
+      : B[K]
+    : K extends keyof A
+      ? A[K]
+      : never;
+};
+
+export type ErrorHandler<E extends EnvBase = EnvBase> = (
+  err: Error,
+  c: Context<E>
+) => Response | Promise<Response>;
+
+export declare class Hono<E extends EnvBase = EnvBase, S = {}> {
+  readonly _schema: S;
+
+  get<P extends string, R>(
+    path: P,
+    handler: (c: Context<E>) => R
+  ): Hono<E, AddRoute<S, P, "$get", RouteEntry<P, NoJson, R>>>;
+
+  post<P extends string, T, R>(
+    path: P,
+    mw: (c: Context<E>, next: () => Promise<void>) => unknown,
+    v: Validator<T>,
+    handler: (c: Context<E, T>) => R
+  ): Hono<E, AddRoute<S, P, "$post", RouteEntry<P, T, R>>>;
+  post<P extends string, T, R>(
+    path: P,
+    v: Validator<T>,
+    handler: (c: Context<E, T>) => R
+  ): Hono<E, AddRoute<S, P, "$post", RouteEntry<P, T, R>>>;
+  post<P extends string, R>(
+    path: P,
+    handler: (c: Context<E>) => R
+  ): Hono<E, AddRoute<S, P, "$post", RouteEntry<P, NoJson, R>>>;
+
+  patch<P extends string, T, R>(
+    path: P,
+    v: Validator<T>,
+    handler: (c: Context<E, T>) => R
+  ): Hono<E, AddRoute<S, P, "$patch", RouteEntry<P, T, R>>>;
+  patch<P extends string, R>(
+    path: P,
+    handler: (c: Context<E>) => R
+  ): Hono<E, AddRoute<S, P, "$patch", RouteEntry<P, NoJson, R>>>;
+
+  delete<P extends string, R>(
+    path: P,
+    handler: (c: Context<E>) => R
+  ): Hono<E, AddRoute<S, P, "$delete", RouteEntry<P, NoJson, R>>>;
+
+  all<P extends string, R>(
+    path: P,
+    handler: (c: Context<E>) => R
+  ): Hono<E, AddRoute<S, P, "$all", RouteEntry<P, NoJson, R>>>;
+
+  use(
+    path: string,
+    handler: (c: Context<E>, next: () => Promise<void>) => unknown
+  ): Hono<E, S>;
+  route<P extends string, S2>(path: P, app: Hono<EnvBase, S2>): Hono<
+    E,
+    MergeSchema<S, Prefixed<P, S2>>
+  >;
+  onError(handler: ErrorHandler<E>): Hono<E, S>;
+  basePath(path: string): Hono<E, S>;
+  on(
+    event: string,
+    handler: (c: Context<E>) => unknown
+  ): Hono<E, S>;
+}
+
+export type ExtractSchema<T> = T extends Hono<any, infer S> ? S : never;
+
+export declare function validator<T>(
+  target: "json",
+  fn: (value: unknown, c: Context) => T
+): Validator<Exclude<T, Response>>;
+
+export declare function createMiddleware<E extends EnvBase>(
+  fn: (c: Context<E>, next: () => Promise<void>) => unknown
+): (c: Context<E>, next: () => Promise<void>) => unknown;
+`.trim();
+
+export const DRIZZLE = "/node_modules/drizzle-orm";
+export const HONO = "/node_modules/hono";
+
+export function matchesPrefix(key: string, prefix: string): boolean {
+  return key === prefix || key.startsWith(`${prefix}/`);
+}
+
+export function overlayTypedVendors(
+  overlay: Map<string, string>,
+  versions: Map<string, number>,
+  honoText: string,
+  vfsKeys: string[]
+): number {
+  let n = 0;
+  for (const key of vfsKeys) {
+    let text: string | undefined;
+    if (matchesPrefix(key, DRIZZLE)) {
+      text = DRIZZLE_TYPED;
+    } else if (matchesPrefix(key, HONO)) {
+      text = honoText;
+    }
+    if (text) {
+      overlay.set(key, text);
+      versions.set(key, 1);
+      n += 1;
+    }
+  }
+  return n;
+}
 
 export const CLIENT = "/app/src/ui/lib/client.ts";
 export const HOOK_ENTITIES = "/app/src/ui/hooks/use-entities.ts";

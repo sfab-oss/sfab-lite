@@ -24,7 +24,8 @@
     "measure:tsgo": "node scripts/run-measure.mjs measure-tsgo.ts",
     "measure:serve-diet": "node scripts/measure-serve-diet.mjs",
     "measure:typed-stubs": "node scripts/run-measure.mjs measure-typed-stubs.ts",
-    "measure:stack": "node scripts/run-measure.mjs measure-stack.ts"
+    "measure:stack": "node scripts/run-measure.mjs measure-stack.ts",
+    "measure:snapshot": "node scripts/run-measure.mjs measure-snapshot.ts"
   },
   "dependencies": {
     "@sfab-lite/core": "workspace:*",
