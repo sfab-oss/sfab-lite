@@ -172,10 +172,14 @@ behind one settles on the next poll. That closes the gap where the console
   | before ADR-0004 | 877 | 330.5 MB |
   | after ADR-0004 | 645 | 263.1 MB |
   | **2026-07-27** | **1351** | **336.8 MB** |
+  | **2026-08-13** | **1368** | **340 MB** |
 
   Retention is now *above* the pre-trim figure, and one create in four failed
   against the live factory. Technique 6 above stops that costing the app — an
   OOM is now a retry — but it is a mitigation and this is still a regression.
+  Re-measured 2026-08-13 with `measure-memory.mjs` (APPS=1): 72 app source
+  files, **339.5 MB** over the 88.7 MB VFS baseline — same ballpark as the
+  2026-07-27 figure; the template has grown, not shrunk.
 
   `check:check-memory` passes throughout, because it bounds *growth between
   apps* (+9.1 MB against a 50 MB limit) and never looks at the absolute floor.
@@ -194,6 +198,45 @@ behind one settles on the next poll. That closes the gap where the console
   skip for agent-only typecheck, `/check` `forceCold` default) — ranked in
   [`../notes/2026-07-29-check-optimization-backlog.md`](../notes/2026-07-29-check-optimization-backlog.md).
   Do not re-open CheckDO / affinity as the answer.
+
+- **Per-slice checking against today's VFS does not fit locally.** Measured
+  2026-08-13 with `apps/check/scripts/measure-zones.mjs` (same overlay-all /
+  seed-roots harness as `measure-split.mjs`):
+
+  | program | files loaded | retained heap |
+  | --- | --- | --- |
+  | union (today) | 1368 | 340 MB |
+  | data-only (`src/db/`) | 140 | **77 MB** |
+  | shared-only (`src/contract/`) | 145 | **53 MB** |
+  | server, client edge cut | 487 | **215 MB** |
+  | client vs generated API `.d.ts` | 1250 | **145 MB** |
+  | *peak of the four slices* | — | **215 MB** |
+
+  Data and shared sit under 128 MB *as a local indicator*. Server (215) and
+  client-with-generated-dts (145) do not. Peak is 63% of the union, still
+  above the cap, and the server number is the 2026-07-27 server-only 213 MB
+  re-derived — slicing the program does not shrink the expensive half.
+  Generated `api.d.ts` (`typeof ApiType` via `typeToString`, 12.5 KB, no
+  drizzle mention) matches the old `hc<any>` stub (~144 MB): it severs the
+  client→server inference and does not save the client from React / base-ui.
+  **Not adopted.** Local numbers never close a memory claim here; production
+  verification of the server zone (the peak that has to fit) was not run —
+  no Wrangler credentials on this host. Do not treat slice-checking, or
+  per-capability-set vendoring, as the cap solution until that tail count
+  exists. The separate requirement that the runtime's type surface not be
+  *derived from the template* still stands; this experiment only falsifies
+  "split today's program into zones and the cap is fine."
+
+- **Eject copy-out is not real today.** Unpacked the committed seed
+  (`packages/template/generated/seed.json`, 81 files — what a live app
+  actually is) into a fresh tree and ran `pnpm install && vite build`.
+  `pnpm install` is a no-op: the seeded `package.json` has **no
+  dependencies**. `vite build` then fails resolving `@tailwindcss/vite`,
+  `@vitejs/plugin-react`, and `vite` itself from `vite.config.ts`. The seed
+  also has **no `index.html`**. Recorded so the app-format RFC cannot claim
+  eject. Generated `package.json` / `tsconfig` with real pins (decision 9)
+  are load-bearing, not polish; price their absence as an eject regression
+  if they do not ship with the format.
 
 ## Three lessons that keep recurring
 
@@ -233,5 +276,7 @@ it.
   unreachable vendor surface
 - [`../notes/2026-07-25-check-worker-memory.md`](../notes/2026-07-25-check-worker-memory.md)
   — the full memory investigation
+- [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
+  — direction note; item 8 is the zone/eject experiments
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and
   the resolution gate

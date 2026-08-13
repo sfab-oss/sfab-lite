@@ -475,6 +475,18 @@ today's equivalent failure is a bare resolution error.
    measurement supports it** — milestone item 8 runs the falsification
    experiments first, in this repo's tradition.
 
+   **Item 8, local result (2026-08-13) — candidate not adopted.** Four
+   programs over today's template (`measure-zones.mjs`): data-only 77 MB,
+   shared-only 53 MB, server-with-client-edge-cut 215 MB, client vs
+   generated API `.d.ts` 145 MB. Peak 215 MB against a 340 MB union.
+   Splitting today's VFS into zones does not fit the cap; the server
+   half is the already-rejected 213 MB split re-derived. Generated
+   `.d.ts` severs `hc<ApiType>` (no drizzle in the emit) and does not
+   save the client from React / base-ui. Production verification of the
+   server zone was not run (no Wrangler login). Per-capability-set
+   vendoring remains unmeasured. The independence requirement above
+   still stands; only the memory candidate is rejected for now.
+
 9. **The eject rule.** Eject = copy the app tree + pick an adapter, and
    that stays true by construction: the base runtime may expose only
    (a) the API of a real, pinned npm package, or (b) framework source
@@ -587,6 +599,8 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
 
    *Done when:* both results are recorded in `making-it-fit.md` and
    decision 8's candidate is adopted or rejected in writing.
+   **2026-08-13:** local numbers and eject failure recorded; candidate
+   **not adopted**. Stage 2 (prod tail of the server zone) still open.
 
 ### Suggested rollout — about eight PRs
 
