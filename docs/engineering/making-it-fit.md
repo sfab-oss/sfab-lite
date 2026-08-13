@@ -160,7 +160,7 @@ behind one settles on the next poll. That closes the gap where the console
 | `better-auth` deep imports | 157 → 141 files, 2 MB of heap; also blocked by the import-map resolver gate | dep-shape probe |
 | CheckDO for warm affinity | Retention ~30s; full template checks did not stay warm and often 500'd | DO warm-curve ladder |
 | A bigger Worker | 128 MB on Free and Paid alike; no 2026 increase | Cloudflare docs |
-| TypeScript 7 / `tsgo` (~2.9x less memory) | Excluded by the repo's TS 6.0.3 pin | — |
+| TypeScript 7 / `tsgo` (~2.9x less memory) | Pin stays 6.0.3. Local disk `tsc` vs `tsgo` 7.0.0-dev.20260707.2 on the materialized VFS+seed: **1.14× RSS** (523 vs 459 MB), ~2.5× user time. The ~2.9× figure is not this program or this metric. | [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md) |
 
 ## Still open
 
@@ -172,10 +172,14 @@ behind one settles on the next poll. That closes the gap where the console
   | before ADR-0004 | 877 | 330.5 MB |
   | after ADR-0004 | 645 | 263.1 MB |
   | **2026-07-27** | **1351** | **336.8 MB** |
+  | **2026-08-13** | **1368** | **340 MB** |
 
   Retention is now *above* the pre-trim figure, and one create in four failed
   against the live factory. Technique 6 above stops that costing the app — an
   OOM is now a retry — but it is a mitigation and this is still a regression.
+  Re-measured 2026-08-13 with `measure-memory.mjs` (APPS=1): 72 app source
+  files, **339.5 MB** over the 88.7 MB VFS baseline — same ballpark as the
+  2026-07-27 figure; the template has grown, not shrunk.
 
   `check:check-memory` passes throughout, because it bounds *growth between
   apps* (+9.1 MB against a 50 MB limit) and never looks at the absolute floor.
@@ -183,17 +187,116 @@ behind one settles on the next poll. That closes the gap where the console
   wants an absolute ceiling.
 
   The icon collapse in the rejected table above was the first hypothesis and
-  accounted for 4 MB of it. The open question is `@base-ui/react` at 373 loaded
-  files against the 22 recorded when the exception was written.
+  accounted for 4 MB of it. `@base-ui/react` at 383 loaded vs the 22 recorded
+  when the exception was written is real — a two-widget seed restores **22
+  loaded** and only drops union heap 339 → 289 MB
+  ([`../notes/2026-08-13-thin-seed.md`](../notes/2026-08-13-thin-seed.md)).
+  That is not the cap.
 
-- **Runtime bundle diet.** `apps/lint` is at 95.4% of the upload limit (Biome
-  WASM). `apps/factory` at 57.5% carries the vendor bundles, where the
-  `better-auth` barrel is 2.1 MB. See ADR-0004's candidate list.
+- **Runtime bundle diet.** Full write-up:
+  [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md).
+  `apps/lint` is at 95.4% of the upload limit (Biome WASM). `apps/factory` at
+  57.5% carries the vendor bundles. `better-auth.js` is 2.2 MB raw / 346 KB
+  gzip because **`betterAuth` core** is that large — the vendor entry already
+  re-exports only `betterAuth` + drizzle adapter + organization, and swapping
+  `better-auth/plugins` for `better-auth/plugins/organization` saved **0 bytes**.
+  `esbuild --minify` on committed **client** chunks saves **197 KB gzip**
+  (662 → 460), mostly `base-ui-react` and `react-dom-client`. Minifying
+  `better-auth.js` saves ~102 KB gzip. **Not check-cap.** zod-compiler 1.26.2
+  exists; do not put it on the import map.
 - **Client kernel is unminified** — `browserShared` has no `minify: true`.
+  The 197 KB figure above is the probe; landing minify is a prebuild PR.
 - **Check wall-time backlog** (affected-file diagnostics, factory tree-hash
   skip for agent-only typecheck, `/check` `forceCold` default) — ranked in
   [`../notes/2026-07-29-check-optimization-backlog.md`](../notes/2026-07-29-check-optimization-backlog.md).
   Do not re-open CheckDO / affinity as the answer.
+
+- **Per-slice checking against today's VFS does not fit locally.** Full
+  write-up:
+  [`../notes/2026-08-13-zone-check-memory.md`](../notes/2026-08-13-zone-check-memory.md).
+  Measured 2026-08-13 with `apps/check/scripts/measure-zones.ts` (same overlay-all /
+  seed-roots harness as `measure-split.mjs`):
+
+  | program | files loaded | retained heap |
+  | --- | --- | --- |
+  | union (today) | 1368 | 340 MB |
+  | data-only (`src/db/`) | 140 | **77 MB** |
+  | shared-only (`src/contract/`) | 145 | **53 MB** |
+  | server, client edge cut | 487 | **215 MB** |
+  | client vs generated API `.d.ts` | 1250 | **145 MB** |
+  | *peak of the four slices* | — | **215 MB** |
+
+  Data and shared sit under 128 MB *as a local indicator*. Server (215) and
+  client-with-generated-dts (145) do not. Peak is 63% of the union, still
+  above the cap, and the server number is the 2026-07-27 server-only 213 MB
+  re-derived — slicing the program does not shrink the expensive half.
+  Generated `api.d.ts` (`typeof ApiType` via `typeToString`, 12.5 KB, no
+  drizzle mention) matches the old `hc<any>` stub (~144 MB): it severs the
+  client→server inference and does not save the client from React / base-ui.
+  **Not adopted.** Local numbers never close a memory claim here; production
+  verification of the server zone (the peak that has to fit) was not run —
+  no Wrangler credentials on this host. Do not treat slice-checking, or
+  per-capability-set vendoring, as the cap solution until that tail count
+  exists. The separate requirement that the runtime's type surface not be
+  *derived from the template* still stands; this experiment only falsifies
+  "split today's program into zones and the cap is fine."
+
+- **Eject copy-out is not real today.** Full write-up:
+  [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md).
+  Unpacked the committed seed
+  (`packages/template/generated/seed.json`, 81 files — what a live app
+  actually is) into a fresh tree and ran `pnpm install && vite build`.
+  `pnpm install` is a no-op: the seeded `package.json` has **no
+  dependencies**. `vite build` then fails resolving `@tailwindcss/vite`,
+  `@vitejs/plugin-react`, and `vite` itself from `vite.config.ts`. The seed
+  also has **no `index.html`**. Recorded so the app-format RFC cannot claim
+  eject. Generated `package.json` / `tsconfig` with real pins (decision 9)
+  are load-bearing, not polish; price their absence as an eject regression
+  if they do not ship with the format.
+
+- **Entities-only / one-file check does not fit as a cap solution.** Full
+  write-up:
+  [`../notes/2026-08-13-entities-only-check.md`](../notes/2026-08-13-entities-only-check.md).
+  Import-closure heap: contract 52 MB, server `entities.ts` **135 MB**, hook
+  222 MB, client page **281 MB** (almost the 339 MB union). Affected-file
+  (full program, semantic pass on one file) is 165–189 MB — faster (1.4–2.2 s
+  vs 6.2 s), still over. Granularity helps server/contract edits; a route
+  that imports AppShell + widgets does not shrink. **Not adopted** as the
+  cap strategy; still a road for seeding the program from the edited file,
+  not for keeping today's 72 roots.
+
+- **Stub VFS on server entities fits locally and is not a product.** Full
+  write-up:
+  [`../notes/2026-08-13-stub-vfs-server-entities.md`](../notes/2026-08-13-stub-vfs-server-entities.md).
+  Overlaying tiny `any` `.d.ts` stubs on vendor packages, same
+  server-entities import-closure roots: 141 → 100 (drizzle) → 85 (hono) →
+  76 (zod) → **44 MB** (better-auth family). All `/node_modules` stubs floor
+  at 41 MB. **Do not ship `any` overlays.** Follow-up (typed, not `any`):
+  [`../notes/2026-08-13-typed-cheap-stubs.md`](../notes/2026-08-13-typed-cheap-stubs.md)
+  — typed drizzle stays **100 MB** (same as `any`); typed drizzle + Hono
+  **92 MB**, 0 diags, and catches planted `number`/`string` errors that
+  `any` misses. Specialized check surface is a real road; handwritten
+  overlays are still not the product.
+
+- **Two-widget seed is not the cap.** Full write-up:
+  [`../notes/2026-08-13-thin-seed.md`](../notes/2026-08-13-thin-seed.md).
+  Keeping button + input and stubbing the other Base UI wrappers: union
+  339 → **289 MB**, entities page 282 → **253 MB**. `@base-ui` files loaded
+  383 → **22** (the original exception size). Tens of megabytes, still far
+  over 128.
+
+- **Shallow RPC severs the client→server graph; UI types are the floor.**
+  Full write-up:
+  [`../notes/2026-08-13-shallow-rpc.md`](../notes/2026-08-13-shallow-rpc.md).
+  Handwritten fetch map + `src/contract/` instead of `hc<ApiType>`:
+  entities hook 222 → **57 MB** (fits locally), page 283 → **148 MB**,
+  client entry 170 → **139 MB** (same family as generated `api.d.ts` ~
+  145 MB). Union barely moves (339 → 327) because server files stay roots.
+  Independence already required this cut.
+
+- **`tsgo` forecast: faster here, not 2.9× RSS.** Full write-up:
+  [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md).
+  See the rejected-table row. Pin stays 6.0.3.
 
 ## Three lessons that keep recurring
 
@@ -233,5 +336,27 @@ it.
   unreachable vendor surface
 - [`../notes/2026-07-25-check-worker-memory.md`](../notes/2026-07-25-check-worker-memory.md)
   — the full memory investigation
+- [`../notes/2026-07-27-check-worker-memory-regression.md`](../notes/2026-07-27-check-worker-memory-regression.md)
+  — ADR-0004 win given back
+- [`../notes/2026-08-13-zone-check-memory.md`](../notes/2026-08-13-zone-check-memory.md)
+  — zone-check against today's VFS (item 8a)
+- [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md)
+  — eject copy-out of the seed (item 8b)
+- [`../notes/2026-08-13-entities-only-check.md`](../notes/2026-08-13-entities-only-check.md)
+  — entities-only / one-file check
+- [`../notes/2026-08-13-stub-vfs-server-entities.md`](../notes/2026-08-13-stub-vfs-server-entities.md)
+  — stub VFS on server entities
+- [`../notes/2026-08-13-typed-cheap-stubs.md`](../notes/2026-08-13-typed-cheap-stubs.md)
+  — typed cheap vendor stubs (not `any`)
+- [`../notes/2026-08-13-thin-seed.md`](../notes/2026-08-13-thin-seed.md)
+  — two-widget / thinner seed
+- [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md)
+  — tsgo / TS 7 forecast
+- [`../notes/2026-08-13-shallow-rpc.md`](../notes/2026-08-13-shallow-rpc.md)
+  — shallow RPC (contracts, not `typeof api`)
+- [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md)
+  — serve / upload diet (not check-cap)
+- [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
+  — direction note
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and
   the resolution gate
