@@ -16,7 +16,8 @@
     "measure:memory": "node scripts/measure-memory.mjs",
     "measure:program": "node scripts/measure-program.mjs",
     "measure:split": "node scripts/measure-split.mjs",
-    "measure:zones": "node scripts/measure-zones.mjs"
+    "measure:zones": "node scripts/measure-zones.mjs",
+    "measure:entities": "node scripts/measure-entities.mjs"
   },
   "dependencies": {
     "@sfab-lite/core": "workspace:*",

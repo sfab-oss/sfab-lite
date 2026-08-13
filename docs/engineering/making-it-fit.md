@@ -242,6 +242,17 @@ behind one settles on the next poll. That closes the gap where the console
   are load-bearing, not polish; price their absence as an eject regression
   if they do not ship with the format.
 
+- **Entities-only / one-file check does not fit as a cap solution.** Full
+  write-up:
+  [`../notes/2026-08-13-entities-only-check.md`](../notes/2026-08-13-entities-only-check.md).
+  Import-closure heap: contract 52 MB, server `entities.ts` **135 MB**, hook
+  222 MB, client page **281 MB** (almost the 339 MB union). Affected-file
+  (full program, semantic pass on one file) is 165–189 MB — faster (1.4–2.2 s
+  vs 6.2 s), still over. Granularity helps server/contract edits; a route
+  that imports AppShell + widgets does not shrink. **Not adopted** as the
+  cap strategy; still a road for seeding the program from the edited file,
+  not for keeping today's 72 roots.
+
 ## Three lessons that keep recurring
 
 **Local verification of a platform limit is worthless.** Local workerd applies
@@ -286,6 +297,8 @@ it.
   — zone-check against today's VFS (item 8a)
 - [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md)
   — eject copy-out of the seed (item 8b)
+- [`../notes/2026-08-13-entities-only-check.md`](../notes/2026-08-13-entities-only-check.md)
+  — entities-only / one-file check
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
   — direction note
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and

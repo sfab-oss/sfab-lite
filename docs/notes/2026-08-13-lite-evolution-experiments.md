@@ -6,6 +6,7 @@ Non-authoritative. **One file per experiment** — this page is only a pointer.
 | --- | --- |
 | Zone-check memory (today's VFS) | [`2026-08-13-zone-check-memory.md`](2026-08-13-zone-check-memory.md) |
 | Eject copy-out | [`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md) |
+| Entities-only / one-file check | [`2026-08-13-entities-only-check.md`](2026-08-13-entities-only-check.md) |
 
 Later rounds get their own `YYYY-MM-DD-<slug>.md`. Do not append them here.
 See [`README.md`](README.md).
