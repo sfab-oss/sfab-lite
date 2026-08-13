@@ -17,7 +17,12 @@
     "measure:program": "node scripts/measure-program.mjs",
     "measure:split": "node scripts/measure-split.mjs",
     "measure:zones": "node scripts/measure-zones.mjs",
-    "measure:entities": "node scripts/measure-entities.mjs"
+    "measure:entities": "node scripts/measure-entities.mjs",
+    "measure:stub-vfs": "node scripts/run-measure.mjs measure-stub-vfs.ts",
+    "measure:thin-seed": "node scripts/run-measure.mjs measure-thin-seed.ts",
+    "measure:shallow-rpc": "node scripts/run-measure.mjs measure-shallow-rpc.ts",
+    "measure:tsgo": "node scripts/run-measure.mjs measure-tsgo.ts",
+    "measure:serve-diet": "node scripts/measure-serve-diet.mjs"
   },
   "dependencies": {
     "@sfab-lite/core": "workspace:*",
