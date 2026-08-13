@@ -67,7 +67,9 @@ under 128 MB, and it barely moves the union.
 
 - That we should check the union with a broken handwritten client (25 diags).
 - That production OOMs at 148 MB.
-- That two-widget + shallow was stacked (not run).
+- That two-widget + shallow was stacked (not run). Typed stubs + shallow
+  on the union/page:
+  [`2026-08-13-stack-typed-shallow.md`](2026-08-13-stack-typed-shallow.md).
 
 ## Follow-ups
 

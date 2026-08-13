@@ -294,6 +294,13 @@ behind one settles on the next poll. That closes the gap where the console
   145 MB). Union barely moves (339 → 327) because server files stay roots.
   Independence already required this cut.
 
+- **Stacking typed stubs + shallow RPC does not fit the union.** Full
+  write-up:
+  [`../notes/2026-08-13-stack-typed-shallow.md`](../notes/2026-08-13-stack-typed-shallow.md).
+  Union 340 → **255 MB** stacked (same as typed-only 254); entities page
+  **147 MB** (UI floor, same as shallow-only 149). 92 and 148 do not
+  compose into one program. Two check units, not today's 71 roots.
+
 - **`tsgo` forecast: faster here, not 2.9× RSS.** Full write-up:
   [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md).
   See the rejected-table row. Pin stays 6.0.3.
@@ -354,6 +361,8 @@ it.
   — tsgo / TS 7 forecast
 - [`../notes/2026-08-13-shallow-rpc.md`](../notes/2026-08-13-shallow-rpc.md)
   — shallow RPC (contracts, not `typeof api`)
+- [`../notes/2026-08-13-stack-typed-shallow.md`](../notes/2026-08-13-stack-typed-shallow.md)
+  — stacked typed stubs + shallow RPC
 - [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md)
   — serve / upload diet (not check-cap)
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
