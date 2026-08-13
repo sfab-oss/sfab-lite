@@ -380,7 +380,14 @@ today's equivalent failure is a bare resolution error.
      entire kill-recovery mechanism; (4) the `@base-ui/react`
      whole-package exception is load-bearing (ADR-0004); (5) the drizzle
      trim's two build-time assertions stay. Red-test the gates that
-     protect these before trusting a rewrite.
+     protect these before trusting a rewrite. Two more join the
+     inventory with decision 8's architecture: (6) **snapshot
+     freshness is structural, not disciplined** — the `api.d.ts` is
+     keyed to a hash of the server tree, and a client check can never
+     run against a snapshot from a different hash; (7) if the check
+     runs as units (decision 8's open fork), unit ordering — server
+     pass emits before any client pass consumes — must be reconciled
+     with the sync-`runCheck` invariant *in the RFC, in writing*.
 
 4. **Apps are configured by a declarative manifest — there is no
    app-level plugin system.** No executable config file, no build/serve
@@ -490,6 +497,51 @@ today's equivalent failure is a bare resolution error.
    vendoring remains unmeasured. The independence requirement above
    still stands; only the memory candidate is rejected for now.
 
+   **Rounds 2–4, local result (2026-08-13) — replacement architecture
+   adopted locally.** The zone candidate stayed dead; what the follow-up
+   experiments converged on instead
+   ([stack](2026-08-13-stack-typed-shallow.md) ·
+   [typed stubs](2026-08-13-typed-cheap-stubs.md) ·
+   [snapshot emit](2026-08-13-snapshot-accumulating-hono.md) ·
+   [fragments](2026-08-13-snapshot-route-fragments.md)) is:
+
+   - **Generated, accurate, cheap vendor type surfaces**, owned by the
+     runtime — the independence mechanism and the heap fix are the same
+     artifact. Typed drizzle+Hono checks the server entry at **93 MB**
+     (real VFS: 222) with zero false diagnostics, and catches planted
+     errors that `any` misses. The measured overlays were handwritten
+     proofs; the product is a generation pipeline gated by an
+     **agreement gate** (cheap surface and real types must produce
+     identical verdicts over template + recipes, planted errors caught
+     by both).
+   - **The client edge is a snapshot, not live inference.** The
+     server's `ApiType` is evaluated once and emitted as a standalone
+     `api.d.ts` (~6 KB, no vendor leakage); the client keeps
+     `hc<ApiType>` inference — routes, inputs, response types — against
+     that file. Freshness proven: a server return-shape change
+     regenerates the snapshot and breaks stale client call sites.
+     Regeneration stays cheap by re-emitting only the **changed route
+     module** and prefix-merging (**92 MB**; full-tree emit is 146 and
+     is only a cold-rebuild path). Route accumulation stays *off* the
+     ordinary server check. Wildcard auth routes are excluded from the
+     snapshot; the auth client types that edge.
+   - **The whole-app union is not the unit that fits.** Stacked best
+     case is 255 MB local. The check runs as units: server (93),
+     snapshot emit (92/module), client vs snapshot (147–175 — the
+     React/base-ui floor).
+
+   **Remaining adoption gate — the production tail matrix** (five
+   programs; spec lives with the packet, results land in
+   `making-it-fit.md`). It carries one open fork: if the 255 MB
+   cheap-surface union fits production comfortably (255 sits below the
+   263-local point that produced 0/64 prod OOMs), a **single-program
+   architecture** — today's worker loop with the surface and client
+   edge swapped — is viable and simpler than check units. Both
+   branches use identical components; the tail picks the
+   orchestration. The dedicated real-types snapshot worker (215 MB
+   program) is demoted to fallback-only. Local numbers adopt nothing
+   by themselves, per this repo's tradition.
+
 9. **The eject rule.** Eject = copy the app tree + pick an adapter, and
    that stays true by construction: the base runtime may expose only
    (a) the API of a real, pinned npm package, or (b) framework source
@@ -527,8 +579,16 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
    per decision 4), the adapter interface shape (defined now, even while
    Cloudflare is the only implementation), and a gap map of existing
    factory / check / lint / LOADER surfaces onto named develop-plane
-   APIs. *Done when:* the RFC is merged and a template-shaped app
-   validates against manifest v0's schema.
+   APIs. Three requirements inherited from the experiments: the
+   `api.d.ts` **snapshot is a first-class generated artifact** of the
+   format (host-authoritative, hash-keyed to the server tree, listed
+   alongside the generated `package.json`/`tsconfig` — and `index.html`,
+   which the eject test proved missing); the client's API typing is
+   **snapshot-based** (`hc<ApiType>` from the generated file, never
+   `typeof` the live server); and the **auth routes are excluded** from
+   the snapshot — the auth client types that edge, stated in the RFC,
+   not discovered. *Done when:* the RFC is merged and a template-shaped
+   app validates against manifest v0's schema.
 3. **Closed resolve at check — correctness first, then diagnostics.**
    This is not a copywriting task: today, types for transitive
    dependencies the runtime does not serve (kysely, jose, better-call…)
@@ -605,15 +665,25 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
    **2026-08-13:** local numbers and eject failure recorded in
    [`2026-08-13-zone-check-memory.md`](2026-08-13-zone-check-memory.md)
    and [`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md);
-   candidate **not adopted**. Stage 2 (prod tail of the server zone) still open.
+   candidate **not adopted**. Follow-up rounds (see the
+   [experiments index](2026-08-13-lite-evolution-experiments.md))
+   replaced it with the architecture now recorded in decision 8;
+   local stage is **complete**. Stage 2 is now the **five-program prod
+   tail matrix** (control union · cheap-surface union at 255 — the
+   units-vs-single-program fork · server unit 93 · full emit 146 ·
+   client unit vs snapshot), still open pending Wrangler login.
 
-### Suggested rollout — about eight PRs
+### Suggested rollout — about ten PRs
 
 Consolidated deliberately: few enough that each PR is a meaningful unit,
 not so few that any becomes unreviewable. Each lands gate-green.
+(Was "about eight"; the experiment rounds added two implementation
+units the original list did not name.)
 
 1. **Experiments** — the item-8 results into `making-it-fit.md`, plus
-   the written adopt/reject of decision 8's candidate.
+   the written adopt/reject of decision 8's candidate. **Done locally**
+   (PRs #122–#124 + this amendment); the prod tail matrix is the
+   remaining stage and gates nothing before PR 6.
 2. **Restructure** — the mechanical `git mv` to the future-repo map,
    workspace/CI paths, the runtime's own universe pins (the inversion
    fix), and the direction gate with its red test. Large but low-risk;
@@ -622,14 +692,24 @@ not so few that any becomes unreviewable. Each lands gate-green.
    a starter-shaped app.
 4. **Closed resolve** — transitive types pruned or resolver-gated in
    check, the agent-grade diagnostic, the `kysely` red test.
-5. **Registry** — the package, pinned vendored schema, CI gates,
+5. **Types pack** — the generation pipeline for the runtime-owned
+   vendor surfaces (decision 8): generator, the agreement gate
+   (cheap-vs-real verdict parity over template + recipes), planted-
+   error red tests. Replaces the handwritten experiment overlays.
+6. **Check plumbing** — the snapshot artifact (emit, hash-keyed store,
+   per-module regen + prefix merge) and, per the prod-tail fork,
+   either check units or the single cheap-surface program wired into
+   the worker loop. Shaped by the tail's numbers; both branches
+   consume PRs 3 and 5 unchanged.
+7. **Registry** — the package, pinned vendored schema, CI gates,
    resolver, hosted `add` with provenance and collision refusal.
-6. **Starter** — the rebuild on the new tree, assembled from the
+8. **Starter** — the rebuild on the new tree, assembled from the
    registry, recipes extracted as they emerge (splits into two PRs if
    the diff gets large: skeleton, then the slice).
-7. **Image + generated files** — image v0 on every serve path, plus the
-   generated `package.json`/`tsconfig` with their drift gate.
-8. **Agent design doc** — doc-only.
+9. **Image + generated files** — image v0 on every serve path, plus
+   the generated `package.json`/`tsconfig`/`api.d.ts` (and
+   `index.html`) with their drift gate.
+10. **Agent design doc** — doc-only.
 
 ### Milestone 1 exit criteria
 
@@ -658,14 +738,21 @@ bundle via R2 (only if measurement says develop must carry more than ~2
 runtime versions) · a node/libsql CI-fixture adapter (when the image
 format stabilizes) · a fast pre-lint structural validate gate ·
 per-file `pinned`/`seeded`/`owned` recipe modes (the provenance hashes
-already preserve this option).
+already preserve this option) · the **component-layer snapshot lever**
+(sever base-ui from page checks the same way `api.d.ts` severs the
+server — binds only if the prod tail says the 147–175 MB client unit
+is tight) · the **better-auth typed surface** (~36 MB more off the
+server unit; implementation-adjacent, not research).
 
 **Named only** (acknowledged, no design yet): a catalog-module admission
 process — it must exist *before* the first external-service need
 arrives, not after · a fleet-upgrade operation (plan/dry-run/promote/
 rollback) · an unmanaged-fraction metric (how much of an app no
 mechanism can upgrade) · derived-manifest machinery (the hand-authored,
-schema-validated manifest comes first).
+schema-validated manifest comes first) · **facade packages** — runtime
+APIs designed to be cheap-to-check *by construction* (real published
+packages, so the eject rule holds) instead of cheap surfaces mimicking
+vendor APIs; the long-game version of decision 8.
 
 **Named but not built: the source-upgrade problem.** The seed is a
 snapshot and registry copies are too — fixes reach *new* apps only
@@ -685,12 +772,14 @@ on; the mechanism itself is deferred — deliberately, and in writing.
 - **Measured-and-rejected ideas stay rejected**
   ([`making-it-fit.md`](../engineering/making-it-fit.md)) — this
   direction does not reopen them.
-- **The TS 7 lever is tracked, not built.** `tsgo` measures ~2.9× less
-  memory and is excluded only by the TS 6.0.3 pin. A versioned base
-  runtime is precisely what makes that bump schedulable (a future
-  runtime line = TS 7 closure) — the one external event large enough to
-  change this plan's design space. Tracking task, re-plan the budget
-  the day the pin can move.
+- **The TS 7 lever is tracked, not built — and measured smaller than
+  advertised.** On this tree `tsgo` was **1.14× leaner in RSS** (not
+  the cited ~2.9×, a different metric and program —
+  [`2026-08-13-tsgo-forecast.md`](2026-08-13-tsgo-forecast.md)) and
+  ~2.5–4.7× faster. Excluded by the TS 6.0.3 pin. A versioned base
+  runtime still makes the bump schedulable (a future runtime line =
+  TS 7 closure); re-measure LanguageService-shaped heap the day the
+  pin can move, and do not budget the isolate on 2.9×.
 - **Existing experiment apps are a declared reset.** M1 changes the app
   shape, and the seed-is-snapshot rule means existing apps never follow;
   rather than carry a two-shape compatibility rule forever, apps created
@@ -722,4 +811,5 @@ on; the mechanism itself is deferred — deliberately, and in writing.
 When milestone 1 lands: the app format RFC becomes
 `docs/architecture/APP-FORMAT.md`; decisions 2, 3, 4, 6, 8 and 9 become
 ADRs if their reversal cost proves real; this note is deleted (deletion
-is success).
+is success). Decision 8 is the furthest along: nine experiment notes
+back it, and it is ADR-ready the day the prod tail matrix lands.
