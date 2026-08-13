@@ -199,8 +199,10 @@ behind one settles on the next poll. That closes the gap where the console
   [`../notes/2026-07-29-check-optimization-backlog.md`](../notes/2026-07-29-check-optimization-backlog.md).
   Do not re-open CheckDO / affinity as the answer.
 
-- **Per-slice checking against today's VFS does not fit locally.** Measured
-  2026-08-13 with `apps/check/scripts/measure-zones.mjs` (same overlay-all /
+- **Per-slice checking against today's VFS does not fit locally.** Full
+  write-up:
+  [`../notes/2026-08-13-lite-evolution-experiments.md`](../notes/2026-08-13-lite-evolution-experiments.md).
+  Measured 2026-08-13 with `apps/check/scripts/measure-zones.mjs` (same overlay-all /
   seed-roots harness as `measure-split.mjs`):
 
   | program | files loaded | retained heap |
@@ -227,7 +229,8 @@ behind one settles on the next poll. That closes the gap where the console
   *derived from the template* still stands; this experiment only falsifies
   "split today's program into zones and the cap is fine."
 
-- **Eject copy-out is not real today.** Unpacked the committed seed
+- **Eject copy-out is not real today.** Full write-up in the same note.
+  Unpacked the committed seed
   (`packages/template/generated/seed.json`, 81 files — what a live app
   actually is) into a fresh tree and ran `pnpm install && vite build`.
   `pnpm install` is a no-op: the seeded `package.json` has **no
@@ -276,7 +279,11 @@ it.
   unreachable vendor surface
 - [`../notes/2026-07-25-check-worker-memory.md`](../notes/2026-07-25-check-worker-memory.md)
   — the full memory investigation
+- [`../notes/2026-07-27-check-worker-memory-regression.md`](../notes/2026-07-27-check-worker-memory-regression.md)
+  — ADR-0004 win given back
+- [`../notes/2026-08-13-lite-evolution-experiments.md`](../notes/2026-08-13-lite-evolution-experiments.md)
+  — zone-check + eject copy-out (item 8)
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
-  — direction note; item 8 is the zone/eject experiments
+  — direction note
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and
   the resolution gate

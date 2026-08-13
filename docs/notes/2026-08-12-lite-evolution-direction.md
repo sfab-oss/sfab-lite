@@ -475,8 +475,10 @@ today's equivalent failure is a bare resolution error.
    measurement supports it** — milestone item 8 runs the falsification
    experiments first, in this repo's tradition.
 
-   **Item 8, local result (2026-08-13) — candidate not adopted.** Four
-   programs over today's template (`measure-zones.mjs`): data-only 77 MB,
+   **Item 8, local result (2026-08-13) — candidate not adopted.** Full
+   write-up:
+   [`2026-08-13-lite-evolution-experiments.md`](2026-08-13-lite-evolution-experiments.md).
+   Four programs over today's template (`measure-zones.mjs`): data-only 77 MB,
    shared-only 53 MB, server-with-client-edge-cut 215 MB, client vs
    generated API `.d.ts` 145 MB. Peak 215 MB against a 340 MB union.
    Splitting today's VFS into zones does not fit the cap; the server
@@ -599,8 +601,9 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
 
    *Done when:* both results are recorded in `making-it-fit.md` and
    decision 8's candidate is adopted or rejected in writing.
-   **2026-08-13:** local numbers and eject failure recorded; candidate
-   **not adopted**. Stage 2 (prod tail of the server zone) still open.
+   **2026-08-13:** local numbers and eject failure recorded in
+   [`2026-08-13-lite-evolution-experiments.md`](2026-08-13-lite-evolution-experiments.md);
+   candidate **not adopted**. Stage 2 (prod tail of the server zone) still open.
 
 ### Suggested rollout — about eight PRs
 
