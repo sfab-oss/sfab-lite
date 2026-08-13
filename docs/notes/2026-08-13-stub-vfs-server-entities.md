@@ -79,6 +79,8 @@ measurement, not an architecture.
 
 ## Follow-ups
 
-- If we pursue a compiled check surface, start with better-auth + drizzle
-  types for server import-closure checks; do not overlay `any`.
-- Client page / union still need their own notes (thin seed, shallow RPC).
+- Typed (not `any`) drizzle + Hono: done in
+  [`2026-08-13-typed-cheap-stubs.md`](2026-08-13-typed-cheap-stubs.md)
+  — 100 / 92 MB, planted errors caught.
+- better-auth specialization is the remaining server-heap slice (~36 MB).
+- Client page / union: thin seed and shallow RPC (own notes).

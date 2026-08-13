@@ -22,7 +22,8 @@
     "measure:thin-seed": "node scripts/run-measure.mjs measure-thin-seed.ts",
     "measure:shallow-rpc": "node scripts/run-measure.mjs measure-shallow-rpc.ts",
     "measure:tsgo": "node scripts/run-measure.mjs measure-tsgo.ts",
-    "measure:serve-diet": "node scripts/measure-serve-diet.mjs"
+    "measure:serve-diet": "node scripts/measure-serve-diet.mjs",
+    "measure:typed-stubs": "node scripts/run-measure.mjs measure-typed-stubs.ts"
   },
   "dependencies": {
     "@sfab-lite/core": "workspace:*",

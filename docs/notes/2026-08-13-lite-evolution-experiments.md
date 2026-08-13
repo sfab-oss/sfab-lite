@@ -8,6 +8,7 @@ Non-authoritative. **One file per experiment** — this page is only a pointer.
 | Eject copy-out | [`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md) |
 | Entities-only / one-file check | [`2026-08-13-entities-only-check.md`](2026-08-13-entities-only-check.md) |
 | Stub VFS on server entities | [`2026-08-13-stub-vfs-server-entities.md`](2026-08-13-stub-vfs-server-entities.md) |
+| Typed cheap vendor stubs | [`2026-08-13-typed-cheap-stubs.md`](2026-08-13-typed-cheap-stubs.md) |
 | Two-widget / thinner seed | [`2026-08-13-thin-seed.md`](2026-08-13-thin-seed.md) |
 | tsgo / TS 7 forecast | [`2026-08-13-tsgo-forecast.md`](2026-08-13-tsgo-forecast.md) |
 | Shallow RPC | [`2026-08-13-shallow-rpc.md`](2026-08-13-shallow-rpc.md) |

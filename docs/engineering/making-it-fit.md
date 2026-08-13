@@ -271,9 +271,12 @@ behind one settles on the next poll. That closes the gap where the console
   Overlaying tiny `any` `.d.ts` stubs on vendor packages, same
   server-entities import-closure roots: 141 → 100 (drizzle) → 85 (hono) →
   76 (zod) → **44 MB** (better-auth family). All `/node_modules` stubs floor
-  at 41 MB. **Do not ship `any` overlays.** This is evidence for a pack-time
-  specialized check surface aimed at drizzle / Hono / better-auth, not for
-  zone-splitting today's VFS (already rejected).
+  at 41 MB. **Do not ship `any` overlays.** Follow-up (typed, not `any`):
+  [`../notes/2026-08-13-typed-cheap-stubs.md`](../notes/2026-08-13-typed-cheap-stubs.md)
+  — typed drizzle stays **100 MB** (same as `any`); typed drizzle + Hono
+  **92 MB**, 0 diags, and catches planted `number`/`string` errors that
+  `any` misses. Specialized check surface is a real road; handwritten
+  overlays are still not the product.
 
 - **Two-widget seed is not the cap.** Full write-up:
   [`../notes/2026-08-13-thin-seed.md`](../notes/2026-08-13-thin-seed.md).
@@ -343,6 +346,8 @@ it.
   — entities-only / one-file check
 - [`../notes/2026-08-13-stub-vfs-server-entities.md`](../notes/2026-08-13-stub-vfs-server-entities.md)
   — stub VFS on server entities
+- [`../notes/2026-08-13-typed-cheap-stubs.md`](../notes/2026-08-13-typed-cheap-stubs.md)
+  — typed cheap vendor stubs (not `any`)
 - [`../notes/2026-08-13-thin-seed.md`](../notes/2026-08-13-thin-seed.md)
   — two-widget / thinner seed
 - [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md)
