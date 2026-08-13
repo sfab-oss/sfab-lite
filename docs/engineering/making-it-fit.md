@@ -201,7 +201,7 @@ behind one settles on the next poll. That closes the gap where the console
 
 - **Per-slice checking against today's VFS does not fit locally.** Full
   write-up:
-  [`../notes/2026-08-13-lite-evolution-experiments.md`](../notes/2026-08-13-lite-evolution-experiments.md).
+  [`../notes/2026-08-13-zone-check-memory.md`](../notes/2026-08-13-zone-check-memory.md).
   Measured 2026-08-13 with `apps/check/scripts/measure-zones.mjs` (same overlay-all /
   seed-roots harness as `measure-split.mjs`):
 
@@ -229,7 +229,8 @@ behind one settles on the next poll. That closes the gap where the console
   *derived from the template* still stands; this experiment only falsifies
   "split today's program into zones and the cap is fine."
 
-- **Eject copy-out is not real today.** Full write-up in the same note.
+- **Eject copy-out is not real today.** Full write-up:
+  [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md).
   Unpacked the committed seed
   (`packages/template/generated/seed.json`, 81 files — what a live app
   actually is) into a fresh tree and ran `pnpm install && vite build`.
@@ -281,8 +282,10 @@ it.
   — the full memory investigation
 - [`../notes/2026-07-27-check-worker-memory-regression.md`](../notes/2026-07-27-check-worker-memory-regression.md)
   — ADR-0004 win given back
-- [`../notes/2026-08-13-lite-evolution-experiments.md`](../notes/2026-08-13-lite-evolution-experiments.md)
-  — zone-check + eject copy-out (item 8)
+- [`../notes/2026-08-13-zone-check-memory.md`](../notes/2026-08-13-zone-check-memory.md)
+  — zone-check against today's VFS (item 8a)
+- [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md)
+  — eject copy-out of the seed (item 8b)
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
   — direction note
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and

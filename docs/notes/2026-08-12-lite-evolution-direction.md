@@ -477,7 +477,8 @@ today's equivalent failure is a bare resolution error.
 
    **Item 8, local result (2026-08-13) — candidate not adopted.** Full
    write-up:
-   [`2026-08-13-lite-evolution-experiments.md`](2026-08-13-lite-evolution-experiments.md).
+   [`2026-08-13-zone-check-memory.md`](2026-08-13-zone-check-memory.md)
+   (eject: [`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md)).
    Four programs over today's template (`measure-zones.mjs`): data-only 77 MB,
    shared-only 53 MB, server-with-client-edge-cut 215 MB, client vs
    generated API `.d.ts` 145 MB. Peak 215 MB against a 340 MB union.
@@ -602,7 +603,8 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
    *Done when:* both results are recorded in `making-it-fit.md` and
    decision 8's candidate is adopted or rejected in writing.
    **2026-08-13:** local numbers and eject failure recorded in
-   [`2026-08-13-lite-evolution-experiments.md`](2026-08-13-lite-evolution-experiments.md);
+   [`2026-08-13-zone-check-memory.md`](2026-08-13-zone-check-memory.md)
+   and [`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md);
    candidate **not adopted**. Stage 2 (prod tail of the server zone) still open.
 
 ### Suggested rollout — about eight PRs
