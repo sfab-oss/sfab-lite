@@ -90,4 +90,7 @@ the product shape. better-auth is still the remaining chunk (~36 MB from
 
 - Compiled / kernel-owned drizzle + Hono check types as an implementation
   PR, not another research round.
+- Stacked with shallow RPC on the union:
+  [`2026-08-13-stack-typed-shallow.md`](2026-08-13-stack-typed-shallow.md)
+  — union **255 MB**, not a fit.
 - better-auth specialization is a separate, smaller heap bet (64 vs 100).

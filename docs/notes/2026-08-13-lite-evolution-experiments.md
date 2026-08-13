@@ -13,6 +13,7 @@ Non-authoritative. **One file per experiment** — this page is only a pointer.
 | tsgo / TS 7 forecast | [`2026-08-13-tsgo-forecast.md`](2026-08-13-tsgo-forecast.md) |
 | Shallow RPC | [`2026-08-13-shallow-rpc.md`](2026-08-13-shallow-rpc.md) |
 | Serve / upload diet | [`2026-08-13-serve-upload-diet.md`](2026-08-13-serve-upload-diet.md) |
+| Stack typed stubs + shallow RPC | [`2026-08-13-stack-typed-shallow.md`](2026-08-13-stack-typed-shallow.md) |
 
 Later rounds get their own `YYYY-MM-DD-<slug>.md`. Do not append them here.
 See [`README.md`](README.md).
