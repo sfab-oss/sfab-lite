@@ -68,8 +68,8 @@ them on demand.
 `check:drizzle-agreement` is the cheap-vs-real types-pack gate: starter
 drizzle-using server files must be 0 diagnostics under both the real drizzle
 `.d.ts` and the generated sqlite/D1 surface, and the planted
-`eq(entity.id, 0)` / `name: 123` failures on
-`starters/erp/app/src/hono/org-protected/entities.ts` must be caught under
+`eq(party.id, 0)` / `name: 123` failures on
+`starters/erp/app/src/hono/org-protected/parties.ts` must be caught under
 both (codes may differ). Heap is recorded, not gated. It needs
 `--max-old-space-size=8192` and several LanguageService programs, so it
 runs in CI only — not in pre-commit.

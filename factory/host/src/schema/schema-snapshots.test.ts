@@ -12,7 +12,7 @@ const BAD_JSON = /is not valid JSON/;
 const byName = (a: string, b: string) => a.localeCompare(b);
 
 function workspace(entries: Record<string, string>): Record<string, string> {
-  return { "src/db/schema/index.ts": "// schema", ...entries };
+  return { "src/db/schema.ts": "// schema", ...entries };
 }
 
 describe("snapshotPathFor", () => {
@@ -81,13 +81,11 @@ describe("the template ships its own snapshot", () => {
     assert.notDeepEqual(snapshot, EMPTY_SNAPSHOT);
     assert.deepEqual(snapshot.tables.map((t) => t.name).toSorted(byName), [
       "account",
-      "document",
-      "document_line",
-      "entity",
       "invitation",
+      "ledger_entry",
       "member",
       "organization",
-      "product",
+      "party",
       "session",
       "user",
       "verification",

@@ -8,7 +8,7 @@ import { extractCandidates } from "./css-extract.ts";
 const here = dirname(fileURLToPath(import.meta.url));
 const buttonPath = join(
   here,
-  "../../../../starters/erp/app/src/ui/components/ui/button.tsx"
+  "../../../../starters/erp/app/src/components/ui/button.tsx"
 );
 
 describe("extractCandidates", () => {

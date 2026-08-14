@@ -88,9 +88,9 @@ if (
   fail("snapshot must be standalone (no drizzle / hono/index / AppEnv)");
 }
 if (
-  !(seedDts.includes('"/health"') && seedDts.includes('"/protected/entities"'))
+  !(seedDts.includes('"/health"') && seedDts.includes('"/protected/parties"'))
 ) {
-  fail("snapshot must include /health and /protected/entities");
+  fail("snapshot must include /health and /protected/parties");
 }
 if (seedDts.includes("$all") || seedDts.includes("/auth")) {
   fail("snapshot must omit auth wildcard / $all routes");
@@ -132,10 +132,10 @@ if (process.env.WRITE_SNAPSHOT === "1" && cold.emittedFiles) {
   console.log("wrote starter snapshot from cold emit");
 }
 
-const entitiesPath = "src/hono/org-protected/entities.ts";
+const partiesPath = "src/hono/org-protected/parties.ts";
 const warm = check("warm-leaf-emit", {
   ...baseFiles,
-  [entitiesPath]: `${baseFiles[entitiesPath] ?? ""}\n`,
+  [partiesPath]: `${baseFiles[partiesPath] ?? ""}\n`,
 });
 if (warm.diagnosticCount !== 0) {
   fail(`warm leaf emit must stay clean (${warm.diagnosticCount} diagnostics)`);
@@ -145,21 +145,21 @@ if (warm.units?.find((u) => u.unit === "emit")?.skipped) {
 }
 const warmDts = warm.emittedFiles?.[API_DTS] ?? "";
 if (
-  !(warmDts.includes('"/health"') && warmDts.includes('"/protected/entities"'))
+  !(warmDts.includes('"/health"') && warmDts.includes('"/protected/parties"'))
 ) {
-  fail("prefix-merge must keep /health and /protected/entities");
+  fail("prefix-merge must keep /health and /protected/parties");
 }
 
-const healthyEntities = baseFiles[entitiesPath] ?? "";
-const brokenEntities = healthyEntities
-  .replace("eq(entity.id, id)", "eq(entity.id, 0)")
+const healthyParties = baseFiles[partiesPath] ?? "";
+const brokenParties = healthyParties
+  .replace("eq(party.id, id)", "eq(party.id, 0)")
   .replace("name: input.name,", "name: 123,");
-if (brokenEntities === healthyEntities) {
-  fail("broken overlay did not change entities.ts");
+if (brokenParties === healthyParties) {
+  fail("broken overlay did not change parties.ts");
 } else {
   const plantedServer = check("planted-server", {
     ...baseFiles,
-    [entitiesPath]: brokenEntities,
+    [partiesPath]: brokenParties,
   });
   const serverFailed = plantedServer.units?.find((u) => u.unit === "server");
   const emitSkipped = plantedServer.units?.find((u) => u.unit === "emit");
@@ -195,7 +195,7 @@ if (brokenEntities === healthyEntities) {
 
 const clientPlant = check("planted-client", {
   ...baseFiles,
-  "src/ui/lib/snapshot-plant.ts": `export const n: number = "nope";\n`,
+  "src/lib/snapshot-plant.ts": `export const n: number = "nope";\n`,
 });
 if (clientPlant.diagnosticCount === 0) {
   fail("planted client error must be caught against a fresh snapshot");
@@ -211,7 +211,7 @@ if (!clientHit) {
 }
 
 const staleFiles: Record<string, string> = {
-  "src/ui/lib/client-stale.ts": `export const n: number = "nope";\n`,
+  "src/lib/client-stale.ts": `export const n: number = "nope";\n`,
   [API_DTS]: `export type ApiType = import("hono").Hono<any, {}>;\n`,
   [API_HASH]: "sha256:deadbeef",
 };

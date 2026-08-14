@@ -1,11 +1,11 @@
 /**
  * Module resolution against the types VFS (+ per-app overlay).
  *
- * Side-aware for app sources: client files under the directory of
- * TEMPLATE_MANIFEST.client.entry resolve against CLIENT_IMPORT_MAP only, and
- * may not value-import app modules outside that tree. Server files keep the
- * union gate. One LanguageService / one VFS — classification only changes
- * which specifiers resolve, not how many programs are built.
+ * Side-aware for app sources: client files (see isClientAppPath) resolve
+ * against CLIENT_IMPORT_MAP only, and may not value-import app modules
+ * outside that tree. Server files keep the union gate. One LanguageService
+ * / one VFS — classification only changes which specifiers resolve, not how
+ * many programs are built.
  */
 import {
   CLIENT_IMPORT_MAP,
@@ -76,22 +76,58 @@ const CLOSED_RESOLVE_FIX =
 const LEADING_SLASHES = /^\/+/;
 
 /**
- * Client compile tree = dirname(TEMPLATE_MANIFEST.client.entry) under `/app/`.
- * Derived at module load so relocating the client entry moves classification
- * with it (same source compile-client.ts reads).
+ * RFC client subtrees when the client entry lives at `src/` (not a nested
+ * `src/ui/` tree). Dirname of `src/router.tsx` is `src/` and would swallow
+ * the server tree — so classification uses these prefixes plus the entry file.
  */
-function clientTreeFromManifest(): { relDir: string; prefix: string } {
+const RFC_CLIENT_DIRS = ["routes", "components", "hooks", "lib"] as const;
+
+/**
+ * Client compile tree, derived from TEMPLATE_MANIFEST.client.entry.
+ * Nested entries (`src/ui/main.tsx`) keep the dirname prefix. An entry at
+ * `src/<file>` uses the RFC client dirs so hono/db/auth stay server-side.
+ */
+function clientTreeFromManifest(): {
+  relDir: string;
+  prefixes: string[];
+  label: string;
+} {
   const entry = TEMPLATE_MANIFEST.client.entry.replace(LEADING_SLASHES, "");
   const slash = entry.lastIndexOf("/");
   const relDir = slash >= 0 ? entry.slice(0, slash) : "";
-  return { relDir, prefix: `${normalizePath(`/app/${relDir}`)}/` };
+  const entryFile = normalizePath(`/app/${entry}`);
+  const styles = TEMPLATE_MANIFEST.client.styles.replace(LEADING_SLASHES, "");
+  const stylesFile = normalizePath(`/app/${styles}`);
+  if (relDir === "src") {
+    const prefixes = [
+      entryFile,
+      stylesFile,
+      ...RFC_CLIENT_DIRS.map((dir) => `${normalizePath(`/app/src/${dir}`)}/`),
+    ];
+    return {
+      relDir,
+      prefixes,
+      label: "src/{routes,components,hooks,lib}",
+    };
+  }
+  return {
+    relDir,
+    prefixes: [`${normalizePath(`/app/${relDir}`)}/`],
+    label: relDir,
+  };
 }
 
-const { relDir: CLIENT_TREE_REL, prefix: CLIENT_APP_PREFIX } =
+const { prefixes: CLIENT_PREFIXES, label: CLIENT_TREE_REL } =
   clientTreeFromManifest();
 
 export function isClientAppPath(path: string | undefined): boolean {
-  return path != null && normalizePath(path).startsWith(CLIENT_APP_PREFIX);
+  if (path == null) {
+    return false;
+  }
+  const n = normalizePath(path);
+  return CLIENT_PREFIXES.some((prefix) =>
+    prefix.endsWith("/") ? n.startsWith(prefix) : n === prefix
+  );
 }
 
 function isAppSourcePath(path: string): boolean {

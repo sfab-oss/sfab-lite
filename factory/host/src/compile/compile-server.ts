@@ -132,7 +132,7 @@ export interface CompileServerResult {
 }
 
 /**
- * Compile sub-app server from source files (keys like `src/hono/index.ts`).
+ * Compile sub-app server from source files (keys like `src/server.ts`).
  */
 export async function compileServer(
   sourceFiles: Record<string, string>

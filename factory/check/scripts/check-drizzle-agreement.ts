@@ -26,8 +26,8 @@ const SURFACE_PATH = join(
   "framework/runtime/src/generated/types-pack/drizzle-orm.d.ts"
 );
 
-const SERVER_ENTITIES = "/app/src/hono/org-protected/entities.ts";
-const EQ_PLANT = "eq(entity.id, 0)";
+const SERVER_PARTIES = "/app/src/hono/org-protected/parties.ts";
+const EQ_PLANT = "eq(party.id, 0)";
 const NAME_PLANT = "name: 123,";
 
 const AMBIENT_ROOTS: string[] = [
@@ -46,19 +46,19 @@ for (const [path, text] of Object.entries(
   }
 }
 
-const healthyEntities = files[SERVER_ENTITIES] ?? "";
-const brokenEntities = healthyEntities
-  .replace("eq(entity.id, id)", EQ_PLANT)
+const healthyParties = files[SERVER_PARTIES] ?? "";
+const brokenParties = healthyParties
+  .replace("eq(party.id, id)", EQ_PLANT)
   .replace("name: input.name,", NAME_PLANT);
 
-if (brokenEntities === healthyEntities) {
-  throw new Error("broken overlay did not change entities.ts");
+if (brokenParties === healthyParties) {
+  throw new Error("broken overlay did not change parties.ts");
 }
-if (!brokenEntities.includes(EQ_PLANT)) {
-  throw new Error(`eq plant missing from broken entities: ${EQ_PLANT}`);
+if (!brokenParties.includes(EQ_PLANT)) {
+  throw new Error(`eq plant missing from broken parties: ${EQ_PLANT}`);
 }
-if (!brokenEntities.includes(NAME_PLANT)) {
-  throw new Error(`name plant missing from broken entities: ${NAME_PLANT}`);
+if (!brokenParties.includes(NAME_PLANT)) {
+  throw new Error(`name plant missing from broken parties: ${NAME_PLANT}`);
 }
 
 const drizzleAppFiles = Object.keys(files)
@@ -256,7 +256,7 @@ interface MeasureRow {
 function measure(
   label: string,
   surface: "real" | "generated",
-  entitiesSrc: string,
+  partiesSrc: string,
   extraRoots: string[]
 ): MeasureRow {
   const before = heapMb();
@@ -265,20 +265,20 @@ function measure(
     st.overlay.set(p, text);
     st.versions.set(p, 1);
   }
-  st.overlay.set(SERVER_ENTITIES, entitiesSrc);
-  st.versions.set(SERVER_ENTITIES, 1);
+  st.overlay.set(SERVER_PARTIES, partiesSrc);
+  st.versions.set(SERVER_PARTIES, 1);
   const stubbedFiles =
     surface === "generated"
       ? overlayGenerated(st.overlay, st.versions)
       : overlayReal(st.overlay, st.versions);
-  const roots = new Set([SERVER_ENTITIES, ...AMBIENT_ROOTS, ...extraRoots]);
+  const roots = new Set([SERVER_PARTIES, ...AMBIENT_ROOTS, ...extraRoots]);
   st.rootFiles = [...roots];
   const ls = getLanguageService(st);
 
   const t0 = Date.now();
   const seen = new Set<string>();
   const diags: ts.Diagnostic[] = [];
-  for (const root of [SERVER_ENTITIES, ...extraRoots]) {
+  for (const root of [SERVER_PARTIES, ...extraRoots]) {
     if (seen.has(root)) {
       continue;
     }
@@ -299,11 +299,11 @@ function measure(
     ms,
     heapRetainedMb: Number((after - before).toFixed(0)),
   };
-  if (entitiesSrc === brokenEntities) {
-    const eqSpan = plantSpan(entitiesSrc, EQ_PLANT);
-    const nameSpan = valuesCallSpan(entitiesSrc, NAME_PLANT);
-    row.plantEq = diagHitsSpan(diags, eqSpan, SERVER_ENTITIES);
-    row.plantName = diagHitsSpan(diags, nameSpan, SERVER_ENTITIES);
+  if (partiesSrc === brokenParties) {
+    const eqSpan = plantSpan(partiesSrc, EQ_PLANT);
+    const nameSpan = valuesCallSpan(partiesSrc, NAME_PLANT);
+    row.plantEq = diagHitsSpan(diags, eqSpan, SERVER_PARTIES);
+    row.plantName = diagHitsSpan(diags, nameSpan, SERVER_PARTIES);
   }
   console.log(JSON.stringify(row));
   return row;
@@ -331,45 +331,45 @@ if (missingSeams.length > 0) {
   );
 }
 
-const entitiesOnly: string[] = [];
+const partiesOnly: string[] = [];
 const drizzleRoots = drizzleAppFiles;
 
 const realHealthy = measure(
-  "entities, real VFS",
+  "parties, real VFS",
   "real",
-  healthyEntities,
-  entitiesOnly
+  healthyParties,
+  partiesOnly
 );
 const genHealthy = measure(
-  "entities, generated",
+  "parties, generated",
   "generated",
-  healthyEntities,
-  entitiesOnly
+  healthyParties,
+  partiesOnly
 );
 
 const realBroken = measure(
-  "broken entities, real VFS",
+  "broken parties, real VFS",
   "real",
-  brokenEntities,
-  entitiesOnly
+  brokenParties,
+  partiesOnly
 );
 const genBroken = measure(
-  "broken entities, generated",
+  "broken parties, generated",
   "generated",
-  brokenEntities,
-  entitiesOnly
+  brokenParties,
+  partiesOnly
 );
 
 const realServer = measure(
   "drizzle-using server files, real VFS",
   "real",
-  healthyEntities,
+  healthyParties,
   drizzleRoots
 );
 const genServer = measure(
   "drizzle-using server files, generated",
   "generated",
-  healthyEntities,
+  healthyParties,
   drizzleRoots
 );
 

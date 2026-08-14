@@ -88,9 +88,9 @@ published recipe, asserting byte-identical placement vs `planAdd`.
 
 ## Recipes in this milestone
 
-Extracted from the starter's shared UI so PR 8 can assemble the starter
+Extracted from the starter's shared UI so the starter can assemble
 from the registry. Targets are the RFC §2 tree (`src/components/ui/`,
-`src/lib/`), not today's `src/ui/*`.
+`src/lib/`).
 
 | Name | Why it survives the starter rebuild |
 | --- | --- |

@@ -25,7 +25,7 @@ import {
   stripLocalhostDisplay,
 } from "@/lib/preview/reload-preview";
 
-const ROUTER_FILE = "/src/ui/router.tsx";
+const ROUTER_FILE = "/src/router.tsx";
 const LOCATION_POLL_MS = 300;
 const BUILD_STATUS_POLL_MS = 400;
 const BUILD_STATUS_POLL_MAX_MS = 45_000;
