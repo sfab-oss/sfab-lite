@@ -1,25 +1,53 @@
 /**
- * Per-app LanguageService cache + typecheck entry point.
+ * Per-app LanguageService cache + unit-shaped typecheck entry point.
+ *
+ * One check run = one worker invocation = ordered sync units (server → emit →
+ * client) with LanguageService disposed between them. Two programs are never
+ * live. runCheck stays synchronous: an await between construct and dispose
+ * would let two programs coexist and re-OOM the isolate.
  */
 import type {
   CheckDiagnostic,
   CheckRequest,
   CheckResult,
+  CheckUnitResult,
 } from "@sfab-lite/core";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
 import {
+  type AfterUnit,
+  runEmit,
+  skippedUnit,
+  type UnitRun,
+} from "./emit-units.js";
+import { applyHonoOverlay, HONO_TYPED } from "./hono-surface.js";
+import {
+  AMBIENT_ROOT_FILES,
   type AppLsState,
   createAppLsState,
+  disposeService,
   getLanguageService,
-  rootsForState,
 } from "./ls-host.js";
 import {
   closedResolveUnresolvedMessage,
+  isClientAppPath,
   sideAwareUnresolvedMessage,
 } from "./resolve-modules.js";
 import {
+  generatedOverlayPath,
+  hashServerTree,
+  overlayAppPath,
+  parseHashFile,
+  serverEntryRel,
+  serverImportClosure,
+} from "./server-tree.js";
+import {
+  hashesMatch,
+  snapshotFreshnessDiagnostic,
+} from "./snapshot-freshness.js";
+import {
   type Diagnostic,
   flattenDiagnosticMessageText,
+  type LanguageService,
 } from "./typescript-runtime.js";
 import { normalizePath } from "./vfs.js";
 
@@ -31,38 +59,19 @@ export type LsStore = Map<string, AppLsState>;
 
 const defaultStore: LsStore = new Map();
 const LEADING_SLASH = /^\//;
+const GENERATED_PREFIX = "/app/src/generated/";
 
 /**
  * At most one app may hold state at a time, evicted *before* the next program
- * is built.
- *
- * A TS program over the frozen types VFS retains ~320 MB (measured by
- * `scripts/measure-memory.mjs`) and a Worker isolate gets 128 MB. The store is
- * keyed by appId and one isolate serves many apps, so an unbounded store meant
- * the second distinct app checked in an isolate built its program while the
- * first was still retained — the isolate died with `exceededMemory`. That is
- * exactly the production shape: 4 of 6 create attempts crashed and the retry
- * succeeded, because a cold isolate has nothing retained and a warm one does.
- *
- * Consecutive checks of the *same* app still reuse the LanguageService, which
- * is the case the incremental path was built for. Alternating apps now pay a
- * cold rebuild: ~1050 ms versus ~770 ms warm, the whole price of not crashing.
- *
- * Dropping the entry also resets its `versions` map, which is safe only
- * because the DocumentRegistry is owned by the LanguageService and dies with
- * it — there is no surviving cache for a reset version to collide with. Do
- * not split these two lifetimes; `regression-delete-readd-inprocess.ts` covers
- * why a stale registry entry keyed by an old version string is a real bug.
- *
- * Evicting on entry bounds *concurrent* requests too, but only because
- * {@link runCheck} is synchronous: two requests in one isolate cannot
- * interleave, so the earlier program is always unreferenced before the next is
- * built. Making `runCheck` async would let two programs coexist and put the
- * isolate straight back over its limit, with this cap still looking correct.
+ * is built (see {@link disposeService} for the memory invariant).
  */
 function stateFor(appId: string, store: LsStore): AppLsState {
   for (const other of [...store.keys()]) {
     if (other !== appId) {
+      const prev = store.get(other);
+      if (prev) {
+        disposeService(prev);
+      }
       store.delete(other);
     }
   }
@@ -86,59 +95,69 @@ function overlayPathForRel(rel: string): string {
   if (path === "/app" || path.startsWith("/app/")) {
     return path;
   }
-  // `..` segments escaped /app — re-root under /app so classification and
-  // roots never key the overlay outside the app tree.
   return normalizePath(`/app/${path.replace(LEADING_SLASH, "")}`);
 }
 
+function mapOneDiagnostic(
+  d: Diagnostic | CheckDiagnostic,
+  overlay: Map<string, string>
+): CheckDiagnostic {
+  if ("message" in d && typeof d.message === "string") {
+    return d;
+  }
+  const tsDiag = d as Diagnostic;
+  let message = flattenDiagnosticMessageText(tsDiag.messageText, "\n");
+  if (
+    tsDiag.code === TS_CANNOT_FIND_MODULE ||
+    tsDiag.code === TS_SIDE_EFFECT_IMPORT
+  ) {
+    const mod = MODULE_NAME_IN_DIAG.exec(message)?.[1];
+    const sideMsg =
+      mod == null
+        ? undefined
+        : sideAwareUnresolvedMessage(mod, tsDiag.file?.fileName, overlay);
+    const closedMsg =
+      mod == null
+        ? undefined
+        : closedResolveUnresolvedMessage(mod, tsDiag.file?.fileName);
+    if (sideMsg) {
+      message = sideMsg;
+    } else if (closedMsg) {
+      message = closedMsg;
+    }
+  }
+  let line: number | undefined;
+  let column: number | undefined;
+  if (tsDiag.file && tsDiag.start != null) {
+    const pos = tsDiag.file.getLineAndCharacterOfPosition(tsDiag.start);
+    line = pos.line + 1;
+    column = pos.character + 1;
+  }
+  return {
+    code: tsDiag.code,
+    message,
+    file: tsDiag.file?.fileName,
+    line,
+    column,
+  };
+}
+
 function summarize(
-  diags: Diagnostic[],
+  diags: (Diagnostic | CheckDiagnostic)[],
   overlay: Map<string, string>
 ): CheckDiagnostic[] {
-  return diags.slice(0, MAX_REPORTED_DIAGNOSTICS).map((d) => {
-    let message = flattenDiagnosticMessageText(d.messageText, "\n");
-    if (d.code === TS_CANNOT_FIND_MODULE || d.code === TS_SIDE_EFFECT_IMPORT) {
-      const mod = MODULE_NAME_IN_DIAG.exec(message)?.[1];
-      const sideMsg =
-        mod == null
-          ? undefined
-          : sideAwareUnresolvedMessage(mod, d.file?.fileName, overlay);
-      const closedMsg =
-        mod == null
-          ? undefined
-          : closedResolveUnresolvedMessage(mod, d.file?.fileName);
-      if (sideMsg) {
-        message = sideMsg;
-      } else if (closedMsg) {
-        message = closedMsg;
-      }
-    }
-    let line: number | undefined;
-    let column: number | undefined;
-    if (d.file && d.start != null) {
-      const pos = d.file.getLineAndCharacterOfPosition(d.start);
-      line = pos.line + 1;
-      column = pos.character + 1;
-    }
-    return {
-      code: d.code,
-      message,
-      file: d.file?.fileName,
-      line,
-      column,
-    };
-  });
+  return diags
+    .map((d) => mapOneDiagnostic(d, overlay))
+    .slice(0, MAX_REPORTED_DIAGNOSTICS);
 }
 
 function resetAppOverlay(st: AppLsState): void {
+  disposeService(st);
   for (const k of [...st.overlay.keys()]) {
     if (k.startsWith("/app/")) {
       st.overlay.delete(k);
-      st.snapshots.delete(k);
     }
   }
-  st.rootFiles = null;
-  st.service = null;
 }
 
 function bumpVersion(st: AppLsState, path: string): void {
@@ -174,9 +193,6 @@ function syncOverlay(
     bumpedFiles.push(path);
   }
 
-  // Full merged tree is always passed; drop overlay paths not in files.
-  // Versions stay and bump — never restart — so a later re-add cannot reuse
-  // a DocumentRegistry SourceFile keyed by the old version string.
   for (const path of [...st.overlay.keys()]) {
     if (!path.startsWith("/app/")) {
       continue;
@@ -195,7 +211,7 @@ function syncOverlay(
 }
 
 function collectDiagnostics(
-  ls: ReturnType<typeof getLanguageService>,
+  ls: LanguageService,
   appRoots: string[]
 ): Diagnostic[] {
   const compiler = ls.getCompilerOptionsDiagnostics();
@@ -207,57 +223,228 @@ function collectDiagnostics(
   return [...compiler, ...semantic];
 }
 
+function isAppTs(path: string): boolean {
+  return (
+    path.startsWith("/app/src/") &&
+    (path.endsWith(".ts") || path.endsWith(".tsx") || path.endsWith(".d.ts"))
+  );
+}
+
+function serverUnitRoots(overlay: Map<string, string>): string[] {
+  return [...overlay.keys()]
+    .filter(
+      (k) =>
+        isAppTs(k) && !isClientAppPath(k) && !k.startsWith(GENERATED_PREFIX)
+    )
+    .sort();
+}
+
+function clientUnitRoots(overlay: Map<string, string>): string[] {
+  const apiDts = generatedOverlayPath("apiDts");
+  const roots = [...overlay.keys()]
+    .filter((k) => isAppTs(k) && isClientAppPath(k))
+    .sort();
+  if (overlay.has(apiDts) && !roots.includes(apiDts)) {
+    roots.push(apiDts);
+  }
+  return roots;
+}
+
+function liveServiceCount(store: LsStore): number {
+  let n = 0;
+  for (const st of store.values()) {
+    if (st.service) {
+      n += 1;
+    }
+  }
+  return n;
+}
+
+/** Everything a run accumulates, built once and closed by {@link finish}. */
+interface RunCtx {
+  wallT0: number;
+  appId: string;
+  forceCold: boolean;
+  st: AppLsState;
+  store: LsStore;
+  bumpedFiles: string[];
+  lsReused: boolean;
+  units: CheckUnitResult[];
+  allDiags: Array<Diagnostic | CheckDiagnostic>;
+  checkMs: number;
+  rootFileCount: number;
+  emittedFiles?: Record<string, string>;
+  serverTreeHash?: string;
+}
+
 /**
- * Typecheck full app sources for an appId.
+ * Typecheck an app as ordered units: server, emit, client-vs-snapshot.
  * `files` keys are relative like `src/hono/index.ts`.
  *
- * Default is **incremental** (reuse per-appId LS; bump script versions only
- * when overlay content changes). Pass `forceCold: true` to drop the LS and
- * rehydrate — used for cold baselines, not the /edit hot path.
+ * Each unit is synchronous. The LanguageService is disposed before the next
+ * unit (and before the handler returns). CHECK_ATTEMPTS / alarm re-arm apply
+ * to the run, on the host, not per unit.
  */
 export function runCheck(
   body: CheckRequest,
-  opts?: { store?: LsStore }
+  opts?: { store?: LsStore; afterUnit?: AfterUnit }
 ): CheckResult {
-  const wallT0 = Date.now();
   const store = opts?.store ?? defaultStore;
-  const appId = body.appId;
-  const files = body.files;
+  const afterUnit = opts?.afterUnit;
   const forceCold = body.forceCold === true;
-  const st = stateFor(appId, store);
-  const lsReused = !forceCold && st.service != null;
+  const st = stateFor(body.appId, store);
+  const ctx: RunCtx = {
+    wallT0: Date.now(),
+    appId: body.appId,
+    forceCold,
+    st,
+    store,
+    bumpedFiles: [],
+    lsReused: !forceCold && st.service != null,
+    units: [],
+    allDiags: [],
+    checkMs: 0,
+    rootFileCount: 0,
+  };
 
   if (forceCold) {
     resetAppOverlay(st);
   }
 
-  const { bumpedFiles, fileSetChanged } = syncOverlay(st, files);
-  if (fileSetChanged) {
-    st.rootFiles = null;
+  ctx.bumpedFiles = syncOverlay(st, body.files).bumpedFiles;
+  applyHonoOverlay(st.overlay, st.versions, null);
+
+  const entryRel = serverEntryRel(body.files);
+  const entryPath = overlayAppPath(entryRel);
+  const serverRoots = serverUnitRoots(st.overlay);
+
+  const runUnit: UnitRun = (unitRoots, honoText) => {
+    if (st.service) {
+      disposeService(st);
+    }
+    applyHonoOverlay(st.overlay, st.versions, honoText);
+    st.rootFiles = [...unitRoots, ...AMBIENT_ROOT_FILES];
+    const t0 = Date.now();
+    const ls = getLanguageService(st);
+    const appRoots = unitRoots.filter((f) => f.startsWith("/app/"));
+    const diags = collectDiagnostics(ls, appRoots);
+    return { diags, checkMs: Date.now() - t0, ls };
+  };
+
+  if (serverRoots.length > 0) {
+    const server = runUnit(serverRoots, HONO_TYPED);
+    ctx.checkMs += server.checkMs;
+    ctx.rootFileCount += st.rootFiles?.length ?? 0;
+    ctx.allDiags.push(...server.diags);
+    const serverResult: CheckUnitResult = {
+      unit: "server",
+      diagnosticCount: server.diags.length,
+      checkMs: server.checkMs,
+      rootFileCount: st.rootFiles?.length ?? 0,
+    };
+    ctx.units.push(serverResult);
+    afterUnit?.(serverResult);
+    disposeService(st);
+    applyHonoOverlay(st.overlay, st.versions, null);
+    if (server.diags.length > 0) {
+      ctx.units.push(skippedUnit("emit"), skippedUnit("client"));
+      return finish(ctx);
+    }
+  } else {
+    ctx.units.push(skippedUnit("server"));
   }
 
-  const roots = rootsForState(st);
-  // Collect diagnostics on /app sources only (libs stay in the program via
-  // getScriptFileNames; skipLibCheck — no per-call lib fan-out).
-  const appRoots = roots.filter((f) => f.startsWith("/app/"));
-  // Date.now(): performance.now() deltas were observed as 0 on Workers (lint).
-  const t0 = Date.now();
-  const ls = getLanguageService(st);
-  const diags = collectDiagnostics(ls, appRoots);
-  const checkMs = Date.now() - t0;
+  const closure = serverImportClosure(st.overlay, entryRel);
+  const hashed = hashServerTree(st.overlay, closure);
+  ctx.serverTreeHash = hashed.treeHash;
+  const stored = parseHashFile(st.overlay.get(generatedOverlayPath("apiHash")));
+  const storedDts = st.overlay.get(generatedOverlayPath("apiDts"));
+  const emit = runEmit(
+    st,
+    runUnit,
+    entryPath,
+    entryRel,
+    hashed,
+    stored,
+    storedDts,
+    afterUnit
+  );
+  ctx.units.push(emit.unit);
+  ctx.checkMs += emit.unit.checkMs;
+  ctx.rootFileCount += emit.unit.rootFileCount;
+  if (emit.emittedFiles) {
+    ctx.emittedFiles = emit.emittedFiles;
+  }
+  if (emit.error) {
+    ctx.allDiags.push(emit.error);
+    ctx.units.push(skippedUnit("client"));
+    return finish(ctx);
+  }
 
+  const gotHash = parseHashFile(
+    st.overlay.get(generatedOverlayPath("apiHash"))
+  ).treeHash;
+  const hasServerEntry = st.overlay.has(entryPath);
+  if (
+    (hasServerEntry || gotHash != null) &&
+    !hashesMatch(hashed.treeHash, gotHash)
+  ) {
+    ctx.allDiags.push(snapshotFreshnessDiagnostic(hashed.treeHash, gotHash));
+    ctx.units.push(skippedUnit("client"));
+    return finish(ctx);
+  }
+
+  const clientRoots = clientUnitRoots(st.overlay);
+  if (clientRoots.length === 0) {
+    ctx.units.push(skippedUnit("client"));
+  } else {
+    const client = runUnit(clientRoots, null);
+    ctx.checkMs += client.checkMs;
+    ctx.rootFileCount += st.rootFiles?.length ?? 0;
+    ctx.allDiags.push(...client.diags);
+    const clientResult: CheckUnitResult = {
+      unit: "client",
+      diagnosticCount: client.diags.length,
+      checkMs: client.checkMs,
+      rootFileCount: st.rootFiles?.length ?? 0,
+    };
+    ctx.units.push(clientResult);
+    afterUnit?.(clientResult);
+    disposeService(st);
+  }
+
+  return finish(ctx);
+}
+
+function finish(ctx: RunCtx): CheckResult {
+  disposeService(ctx.st);
+  applyHonoOverlay(ctx.st.overlay, ctx.st.versions, null);
+  if (liveServiceCount(ctx.store) > 0) {
+    throw new Error(
+      `check store holds ${liveServiceCount(ctx.store)} live LanguageServices after the run`
+    );
+  }
+  const summarized = summarize(ctx.allDiags, ctx.st.overlay);
   return {
     ok: true,
-    appId,
-    pass: forceCold ? "cold" : "incremental",
-    diagnosticCount: diags.length,
-    truncated: diags.length > MAX_REPORTED_DIAGNOSTICS,
-    diagnostics: summarize(diags, st.overlay),
-    checkMs,
-    wallMs: Date.now() - wallT0,
-    rootFileCount: roots.length,
-    bumpedFiles,
-    lsReused,
+    appId: ctx.appId,
+    pass: ctx.forceCold ? "cold" : "incremental",
+    diagnosticCount: ctx.allDiags.length,
+    truncated: ctx.allDiags.length > MAX_REPORTED_DIAGNOSTICS,
+    diagnostics: summarized,
+    checkMs: ctx.checkMs,
+    wallMs: Date.now() - ctx.wallT0,
+    rootFileCount: ctx.rootFileCount,
+    bumpedFiles: ctx.bumpedFiles,
+    lsReused: ctx.lsReused,
     vfsFileCount: TYPES_VFS_MANIFEST.vfsFileCount,
+    emittedFiles: ctx.emittedFiles,
+    units: ctx.units,
+    serverTreeHash: ctx.serverTreeHash,
   };
+}
+
+/** Used by the store-bound gate: a live LanguageService after runCheck is a leak. */
+export function liveLanguageServices(store: LsStore): number {
+  return liveServiceCount(store);
 }

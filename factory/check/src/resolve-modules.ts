@@ -90,7 +90,7 @@ function clientTreeFromManifest(): { relDir: string; prefix: string } {
 const { relDir: CLIENT_TREE_REL, prefix: CLIENT_APP_PREFIX } =
   clientTreeFromManifest();
 
-function isClientAppPath(path: string | undefined): boolean {
+export function isClientAppPath(path: string | undefined): boolean {
   return path != null && normalizePath(path).startsWith(CLIENT_APP_PREFIX);
 }
 

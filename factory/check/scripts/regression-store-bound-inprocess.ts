@@ -1,21 +1,20 @@
 /**
  * In-process regression: the LS store stays bounded across distinct appIds.
  *
- * One TS program over the frozen types VFS retains ~320 MB and a Worker isolate
- * gets 128 MB, so an unbounded per-appId store kills the isolate on the second
- * distinct app it serves. That shipped, and surfaced in production as
- * `exceededMemory` on 4 of 6 create attempts with the retry succeeding — the
- * signature of isolate reuse, not of any particular app's code.
- *
- * Asserts the invariant two ways because either alone can pass while the bug is
- * back: the store holding one entry is what the fix *does*, and flat heap across
- * distinct apps is what the fix is *for*. A future refactor that bounds the map
- * but leaks the LanguageService elsewhere would satisfy only the first.
+ * One TS program over the frozen types VFS retains hundreds of MB and a Worker
+ * isolate gets 128 MB, so an unbounded per-appId store kills the isolate on the
+ * second distinct app it serves. Units dispose between programs, so the gate
+ * is now: at most one app in the store, and zero live LanguageServices after
+ * a run returns.
  *
  * Bundled by the companion .mjs runner (esbuild) so Node can load workspace TS.
  */
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { type LsStore, runCheck } from "../src/run-check.ts";
+import {
+  type LsStore,
+  liveLanguageServices,
+  runCheck,
+} from "../src/run-check.ts";
 
 /** Distinct apps to check. Must exceed 2 — the bug needs a second app. */
 const APPS = 6;
@@ -31,7 +30,7 @@ const files: Record<string, string> = {};
 for (const [path, text] of Object.entries(
   seed.sourceFiles as Record<string, string>
 )) {
-  if (path.endsWith(".ts") || path.endsWith(".tsx")) {
+  if (path.endsWith(".ts") || path.endsWith(".tsx") || path.endsWith(".css")) {
     files[path] = text;
   }
 }
@@ -54,6 +53,9 @@ for (let i = 1; i <= APPS; i++) {
       `FAIL: app ${i} did not typecheck clean (${result.diagnosticCount} diagnostics) — ` +
         "the seed template must be clean for this measurement to mean anything"
     );
+    if (result.diagnostics[0]) {
+      console.error(JSON.stringify(result.diagnostics.slice(0, 5), null, 2));
+    }
     process.exit(1);
   }
   last = heapUsedMb();
@@ -64,6 +66,13 @@ for (let i = 1; i <= APPS; i++) {
     console.error(
       `FAIL: store holds ${store.size} apps after checking ${i}; at most 1 may ` +
         "retain a LanguageService or the isolate exceeds its 128 MB limit"
+    );
+    process.exit(1);
+  }
+  if (liveLanguageServices(store) !== 0) {
+    console.error(
+      `FAIL: ${liveLanguageServices(store)} LanguageService(s) still live after ` +
+        `app ${i}; units must dispose so zero programs remain between runs`
     );
     process.exit(1);
   }

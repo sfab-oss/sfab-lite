@@ -36,7 +36,11 @@ export function useDocument(id: string) {
       if (!res.ok) {
         throw new Error(`document ${res.status}`);
       }
-      return await res.json();
+      const body = await res.json();
+      if ("error" in body) {
+        throw new Error(`document ${res.status}`);
+      }
+      return body;
     },
     enabled: !!id,
   });
@@ -52,7 +56,11 @@ export function useCreateDocument() {
       if (!res.ok) {
         throw new Error(`create document ${res.status}`);
       }
-      return await res.json();
+      const body = await res.json();
+      if ("error" in body) {
+        throw new Error(`create document ${res.status}`);
+      }
+      return body;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: getDocumentsKey() });

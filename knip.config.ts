@@ -44,6 +44,7 @@ const config: KnipConfig = {
         "src/index.ts",
         "src/exp/index.ts",
         "scripts/check-drizzle-agreement.ts",
+        "scripts/proof-check-units.ts",
       ],
       project: ["src/**/*.ts"],
     },
@@ -65,6 +66,11 @@ const config: KnipConfig = {
       // kernel pin, so it must stay explicit here rather than float as a
       // transitive dep.
       ignoreDependencies: ["tailwindcss"],
+      ignoreIssues: {
+        // Emit walks this alias by name (`findApiTypeAlias`); the SPA client
+        // imports `src/generated/api` instead of `typeof` the live server.
+        "app/src/hono/index.ts": ["exports", "types"],
+      },
     },
     "framework/runtime": {
       // Prebuild CLI + vendor entry modules are the reachability roots.

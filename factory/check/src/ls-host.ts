@@ -35,7 +35,7 @@ const LIB_ROOT_FILES: readonly string[] = Object.keys(TYPES_VFS)
   .filter((k) => k.startsWith("/libs/lib.") && k.endsWith(".d.ts"))
   .sort();
 
-const AMBIENT_ROOT_FILES: readonly string[] = [
+export const AMBIENT_ROOT_FILES: readonly string[] = [
   "/types/cloudflare-ambient.d.ts",
   ...LIB_ROOT_FILES,
 ];
@@ -57,6 +57,20 @@ export function createAppLsState(): AppLsState {
     rootFiles: null,
     service: null,
   };
+}
+
+/**
+ * A TS program over the frozen types VFS retains hundreds of MB and a Worker
+ * isolate gets 128 MB. Units of one run dispose between programs so two are
+ * never live; the store still holds at most one app. An `await` between
+ * construct and dispose would let two programs coexist and put the isolate
+ * straight back over its limit.
+ */
+export function disposeService(st: AppLsState): void {
+  st.service?.dispose();
+  st.service = null;
+  st.snapshots.clear();
+  st.rootFiles = null;
 }
 
 function compilerOptions(): CompilerOptions {
@@ -89,7 +103,7 @@ function rootFilesFor(overlay: Map<string, string>): string[] {
     : [...AMBIENT_ROOT_FILES];
 }
 
-export function rootsForState(st: AppLsState): string[] {
+function rootsForState(st: AppLsState): string[] {
   if (st.rootFiles) {
     return st.rootFiles;
   }

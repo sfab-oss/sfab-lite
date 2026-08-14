@@ -30,11 +30,23 @@ export const {
   ScriptSnapshot,
   ScriptTarget,
   SyntaxKind,
+  SymbolFlags,
+  TypeFlags,
 } = ts;
 
 export type CompilerOptions = import("typescript").CompilerOptions;
 export type Diagnostic = import("typescript").Diagnostic;
 export type IScriptSnapshot = import("typescript").IScriptSnapshot;
+export type IntersectionType = import("typescript").IntersectionType;
 export type LanguageService = import("typescript").LanguageService;
 export type LanguageServiceHost = import("typescript").LanguageServiceHost;
+export type Node = import("typescript").Node;
+export type NumberLiteralType = import("typescript").NumberLiteralType;
 export type StringLiteralLike = import("typescript").StringLiteralLike;
+export type StringLiteralType = import("typescript").StringLiteralType;
+export type Symbol = import("typescript").Symbol;
+export type Type = import("typescript").Type;
+export type TypeAliasDeclaration = import("typescript").TypeAliasDeclaration;
+export type TypeChecker = import("typescript").TypeChecker;
+export type TypeReference = import("typescript").TypeReference;
+export type UnionType = import("typescript").UnionType;

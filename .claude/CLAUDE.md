@@ -43,13 +43,16 @@ template without re-baking would leave every other gate green while the factory
 kept seeding the old source.
 
 `check:check-memory` runs the check worker over six distinct appIds in one
-process and fails if its LanguageService store holds more than one app or if
-the heap grows. **One TS program over the types VFS retains ~263 MB and a
-Worker isolate gets 128 MB on every plan**, so the check worker can afford
-state for exactly one app at a time. Treat that as a standing budget when
-touching `factory/check/src`: anything cached per app, and anything that grows the
-types VFS, spends against it. `factory/check/scripts/measure-memory.mjs` is the
-diagnostic that produced these numbers and re-derives them on demand.
+process and fails if its LanguageService store holds more than one app, if a
+LanguageService is still live after a run returns, or if the heap grows.
+A check run is three ordered units (server → emit → client-vs-snapshot) with
+the LanguageService disposed between them; **one TS program** still retains
+far more than a Worker isolate's 128 MB, so the worker can afford state for
+exactly one app at a time. Treat that as a standing budget when touching
+`factory/check/src`: anything cached per app, and anything that grows the
+types VFS, spends against it. `factory/check/scripts/measure-memory.mjs` and
+`measure:units` are the diagnostics that produced these numbers and re-derive
+them on demand.
 
 `check:drizzle-agreement` is the cheap-vs-real types-pack gate: starter
 drizzle-using server files must be 0 diagnostics under both the real drizzle

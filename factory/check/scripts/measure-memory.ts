@@ -21,7 +21,7 @@ const files: Record<string, string> = {};
 for (const [path, text] of Object.entries(
   seed.sourceFiles as Record<string, string>
 )) {
-  if (path.endsWith(".ts") || path.endsWith(".tsx")) {
+  if (path.endsWith(".ts") || path.endsWith(".tsx") || path.endsWith(".css")) {
     files[path] = text;
   }
 }
