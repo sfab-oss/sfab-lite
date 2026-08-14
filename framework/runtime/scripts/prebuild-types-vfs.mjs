@@ -1,9 +1,10 @@
 /**
  * Types VFS for the check worker's TypeScript LanguageService.
  *
- * Prunes to the template app's TypeScript program closure (files the
- * checker actually pulls), not whole-package .d.ts dumps. Keeps DOM/ES
- * libs + Cloudflare ambient from @sfab-lite/core.
+ * Prunes to the TypeScript program closure of synthetic roots that import
+ * every specifier in CLIENT_IMPORT_MAP ∪ SERVER_IMPORT_MAP (the served
+ * surface), not whole-package .d.ts dumps and not the starter's program.
+ * Keeps DOM/ES libs + Cloudflare ambient from @sfab-lite/core.
  *
  * Module resolution for bare specifiers is forced through the isolated
  * kernel universe (framework/runtime/universe) so workspace peers cannot
@@ -23,7 +24,12 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
+import {
+  GENERATED_SURFACE_ABS,
+  isDrizzleDeclVfsPath,
+} from "./gen-drizzle-surface.mjs";
 import { PINS } from "./pins.mjs";
+import { SERVER_IMPORT_MAP } from "./served-specifiers.mjs";
 import { isTrimTarget, trimDrizzleDialects } from "./trim-drizzle-dialects.mjs";
 import {
   getUniverseRequire,
@@ -33,8 +39,6 @@ import {
 } from "./universe.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const templatePkg = join(root, "..", "..", "starters", "erp");
-const templateAppSrc = join(templatePkg, "app", "src");
 const coreAmbient = join(
   root,
   "..",
@@ -117,25 +121,62 @@ vfs["/types/libs-ref.d.ts"] = `
 /// <reference path="/libs/lib.dom.iterable.d.ts" />
 `.trim();
 
-/** Collect template app roots (overlay at check time; not baked into VFS). */
-function listTemplateRoots() {
-  /** @type {string[]} */
-  const roots = [];
-  function walk(dir) {
-    for (const name of readdirSync(dir).sort()) {
-      const abs = join(dir, name);
-      if (statSync(abs).isDirectory()) {
-        walk(abs);
-      } else if (/\.(ts|tsx)$/.test(name)) {
-        roots.push(abs);
-      }
+function loadClientImportMap() {
+  const sizesPath = join(root, "results", "client-kernel-sizes.json");
+  if (existsSync(sizesPath)) {
+    const parsed = JSON.parse(readFileSync(sizesPath, "utf8"));
+    if (parsed.importMap && typeof parsed.importMap === "object") {
+      return parsed.importMap;
     }
   }
-  if (!existsSync(templateAppSrc)) {
-    throw new Error(`template app src missing: ${templateAppSrc}`);
+  const clientKernel = join(generatedDir, "client-kernel.js");
+  if (!existsSync(clientKernel)) {
+    throw new Error(
+      "types VFS: CLIENT_IMPORT_MAP missing — run prebuild-client.mjs first"
+    );
   }
-  walk(templateAppSrc);
-  return roots;
+  const src = readFileSync(clientKernel, "utf8");
+  const match = src.match(/export const CLIENT_IMPORT_MAP = (\{[^\n]*\});/);
+  if (!match) {
+    throw new Error(
+      "types VFS: could not parse CLIENT_IMPORT_MAP from client-kernel.js"
+    );
+  }
+  return JSON.parse(match[1]);
+}
+
+function listServedSpecifiers() {
+  const clientMap = loadClientImportMap();
+  return [
+    ...new Set([...Object.keys(clientMap), ...Object.keys(SERVER_IMPORT_MAP)]),
+  ].sort((a, b) => a.localeCompare(b));
+}
+
+const SYNTHETIC_ROOT = join(universeRoot, "_served_surface.ts");
+
+function syntheticSource(specifiers) {
+  return `${specifiers.map((s) => `import ${JSON.stringify(s)};`).join("\n")}\n`;
+}
+
+function applyDrizzleOverlay(text) {
+  if (!existsSync(GENERATED_SURFACE_ABS)) {
+    throw new Error(
+      `types VFS: generated drizzle surface missing at ${GENERATED_SURFACE_ABS} — run gen-drizzle-surface.mjs first`
+    );
+  }
+  let n = 0;
+  for (const key of Object.keys(vfs)) {
+    if (isDrizzleDeclVfsPath(key)) {
+      putText(key, text);
+      n += 1;
+    }
+  }
+  if (n === 0) {
+    throw new Error(
+      "types VFS: drizzle overlay found no drizzle-orm declaration files to replace"
+    );
+  }
+  return n;
 }
 
 /**
@@ -247,8 +288,10 @@ function isUnderUniverse(abs) {
   return norm === uni || norm.startsWith(`${uni}/`);
 }
 
-function buildClosureFromTemplateProgram() {
-  const roots = listTemplateRoots();
+function buildClosureFromServedSurface() {
+  const specifiers = listServedSpecifiers();
+  const synthText = syntheticSource(specifiers);
+  const synthNorm = SYNTHETIC_ROOT.replaceAll("\\", "/");
   const options = {
     target: ts.ScriptTarget.ES2022,
     module: ts.ModuleKind.ESNext,
@@ -260,7 +303,6 @@ function buildClosureFromTemplateProgram() {
     esModuleInterop: true,
     isolatedModules: true,
     lib: ["ES2022", "DOM", "DOM.Iterable"],
-    // No ambient @types from the workspace — only what the universe installs.
     types: [],
     typeRoots: [],
   };
@@ -274,6 +316,10 @@ function buildClosureFromTemplateProgram() {
    * dialect the VFS no longer ships.
    */
   function readTrimmed(fileName) {
+    const norm = fileName.replaceAll("\\", "/");
+    if (norm === synthNorm) {
+      return synthText;
+    }
     const text = baseHost.readFile(fileName);
     if (text === undefined || !isTrimTarget(fileName)) {
       return text;
@@ -284,6 +330,12 @@ function buildClosureFromTemplateProgram() {
 
   const host = {
     ...baseHost,
+    fileExists(fileName) {
+      if (fileName.replaceAll("\\", "/") === synthNorm) {
+        return true;
+      }
+      return baseHost.fileExists(fileName);
+    },
     readFile: readTrimmed,
     getSourceFile(fileName, languageVersionOrOptions) {
       const text = readTrimmed(fileName);
@@ -297,7 +349,7 @@ function buildClosureFromTemplateProgram() {
         false
       );
     },
-    getCurrentDirectory: () => templatePkg,
+    getCurrentDirectory: () => universeRoot,
     resolveModuleNameLiterals(
       moduleLiterals,
       containingFile,
@@ -310,9 +362,6 @@ function buildClosureFromTemplateProgram() {
           name.startsWith("./") ||
           name.startsWith("../") ||
           name.startsWith("/");
-        // Template sources live outside the universe — force bare specs to
-        // resolve from universe/. Files already under universe/node_modules
-        // must keep their real containingFile so pnpm nested deps resolve.
         let resolveFrom = containingFile;
         if (!(isRelative || isUnderUniverse(containingFile))) {
           resolveFrom = universeResolveContainingFile;
@@ -336,7 +385,7 @@ function buildClosureFromTemplateProgram() {
   };
 
   const program = ts.createProgram({
-    rootNames: roots,
+    rootNames: [SYNTHETIC_ROOT],
     options,
     host,
   });
@@ -408,7 +457,8 @@ function buildClosureFromTemplateProgram() {
   }
 
   return {
-    templateRootCount: roots.length,
+    syntheticRootCount: specifiers.length,
+    servedSpecifiers: specifiers,
     nodeModulesFiles: nmFiles,
     packages: [...pkgs].sort(),
     trimmedFiles,
@@ -523,12 +573,16 @@ function includeFullPackageTypes(pkgName) {
   return added;
 }
 
-const closure = buildClosureFromTemplateProgram();
+const closure = buildClosureFromServedSurface();
 const baseUiExtraFiles = includeFullPackageTypes("@base-ui/react");
 // Same reason as base-ui: the client kernel vendors every icon, so an app may
 // import any of them. Pruning to what the template happens to draw would make
 // the check worker reject the other three hundred.
 const iconExtraFiles = includeFullPackageTypes("@radix-ui/react-icons");
+
+const drizzleSurface = readFileSync(GENERATED_SURFACE_ABS, "utf8");
+const drizzleOverlayFiles = applyDrizzleOverlay(drizzleSurface);
+
 assertNoDeadDialects();
 
 if (!existsSync(coreAmbient)) {
@@ -563,15 +617,30 @@ const manifest = {
   vfsRawBytes: raw,
   vfsJsonGzipBytes: gzip,
   prune: {
-    mode: "template-ts-program-closure",
-    templateRootCount: closure.templateRootCount,
+    mode: "served-specifier-program-closure",
+    syntheticRootCount: closure.syntheticRootCount,
+    servedSpecifiers: closure.servedSpecifiers,
     nodeModulesFiles: closure.nodeModulesFiles,
     packages: closure.packages,
-    note: "Only .d.ts (and package.json) reachable from starters/erp/app/src via TS program resolution against framework/runtime/universe.",
+    note: "Only .d.ts (and package.json) reachable from synthetic roots that import every CLIENT_IMPORT_MAP ∪ SERVER_IMPORT_MAP specifier, resolved against framework/runtime/universe.",
+    overlay: {
+      "drizzle-orm": {
+        mode: "generated-cheap-surface",
+        artifact: "src/generated/types-pack/drizzle-orm.d.ts",
+        filesRewritten: drizzleOverlayFiles,
+        servedSpecifiers: [
+          "drizzle-orm",
+          "drizzle-orm/sql",
+          "drizzle-orm/sqlite-core",
+          "drizzle-orm/d1",
+        ],
+        note: "Live TYPES_VFS serves the generated cheap sqlite/D1 surface at drizzle-orm declaration files. Hono and better-auth still ride the real .d.ts.",
+      },
+    },
     trim: {
       "drizzle-orm/column-builder.d.ts": {
         filesRewritten: closure.trimmedFiles,
-        note: "Dialect-dispatching aliases collapsed to their sqlite branch so the pg/mysql/gel/singlestore modules leave the program. sfab-lite runs on D1. See scripts/trim-drizzle-dialects.mjs.",
+        note: "Dialect-dispatching aliases collapsed to their sqlite branch so the pg/mysql/gel/singlestore modules leave the program. sfab-lite runs on D1. See scripts/trim-drizzle-dialects.mjs. The finished VFS then replaces drizzle declaration files with the generated surface; the trim still runs during closure so a shape-change still fails the build.",
       },
     },
     fullPackageExceptions: {
@@ -585,7 +654,7 @@ const manifest = {
       },
     },
   },
-  note: "Pruned types VFS — template app program closure (isolated universe), plus full @base-ui/react and @radix-ui/react-icons.",
+  note: "Pruned types VFS — served-specifier program closure (isolated universe), plus full @base-ui/react and @radix-ui/react-icons. drizzle-orm declaration files are the generated cheap surface.",
 };
 
 writeFileSync(
