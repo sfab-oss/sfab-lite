@@ -446,6 +446,8 @@ it.
   — direction note
 - [`../notes/2026-08-14-live-factory-baseline.md`](../notes/2026-08-14-live-factory-baseline.md)
   — live `sfab-lite-check` create OOM baseline (0/8)
+- [`../notes/2026-08-14-units-retail.md`](../notes/2026-08-14-units-retail.md)
+  — units re-tail after PR #134 (0/8 OOM, 0 retries; wall ~+60%)
 - [`../notes/2026-08-14-evidence-audit.md`](../notes/2026-08-14-evidence-audit.md)
   — grades for standing rejections (CheckDO, `@base-ui`, gzip, aged 1-in-4)
 - [`../notes/2026-08-14-generator-spike.md`](../notes/2026-08-14-generator-spike.md)
