@@ -22,12 +22,18 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
 `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
-`pnpm check:seed`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`.
+`pnpm check:seed`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
+`pnpm check:registry-agreement`.
 
 `check:registry` validates every published recipe against the lite
 profile, fails closed on committed red fixtures (`dependencies` key,
 unknown types, bare names), and refuses mutation of published version
 hashes.
+
+`check:registry-agreement` is the cheap-vs-real CLI gate: the pinned
+`shadcn` CLI adding every published recipe from a locally served
+`/r/{name}.json` must place files byte-identical to `planAdd`. CI-only
+— not in pre-commit.
 
 `check:app-lint` is the odd one: it checks `starters/erp/app/src` —
 the seed payload — against `framework/toolchain/app-biome.json`, the config the

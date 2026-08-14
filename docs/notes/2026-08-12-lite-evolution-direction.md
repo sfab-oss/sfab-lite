@@ -420,9 +420,9 @@ today's equivalent failure is a bare resolution error.
    first. Milestone 1 produces its design (DO shape, tool transport,
    memory posture); the build lands in a later milestone.
 
-6. **Registry: reuse the shadcn *data format*; own the resolver; close
-   it with gates.** Do not invent a recipe format — use the shadcn
-   registry-item schema, which sfab-starter already ships. But treat
+6. **Registry: reuse the shadcn *data format*; serve it in the standard
+   form; lock the namespace.** Do not invent a recipe format — use the
+   shadcn registry-item schema, which sfab-starter already ships. Treat
    shadcn as an upstream adopted on our schedule, not a live dependency:
    the schema revision is **vendored and pinned** (shadcn shipped three
    unilateral schema releases in ten months, drifting *toward* carrying
@@ -430,22 +430,26 @@ today's equivalent failure is a bare resolution error.
    and registry CI **fails closed** — unknown item types rejected, and
    the npm `dependencies` key must be *absent*, not merely empty.
 
-   The resolver is lite's own (~small, but load-bearing): recipe names
-   live in the `lite/` namespace and **bare names are a hard error** —
-   in stock shadcn tooling a bare `registryDependencies` name resolves
-   upstream to ui.shadcn.com and pulls Radix-shaped source with npm
-   deps, which is the open world re-entering through the transitive
-   edge. Only lite's `add` is supported; stock shadcn tooling is *not*
-   claimed to work. `add` resolves `registryDependencies` flat, refuses
-   to overwrite any file whose content hash differs from its provenance
-   record (collisions are file-level and common — silent overwrite of
-   agent-edited source is the failure mode), copies source, and records
-   provenance: recipe version **plus per-file content hash at copy
-   time**. Recipe versions are retained immutably forever — a registry
-   living only at monorepo HEAD loses the original bytes, and any
-   future diff-assist needs them (the difference between the systems
-   where deferred upgrade worked and where it didn't). No auto-update,
-   ever.
+   **Owner revision 2026-08-14 (supersedes the collision-refusal choice
+   in the original decision):** lean into shadcn compatibility. The
+   factory serves built items at `/r/{name}.json` (canonical address:
+   `https://lite.sfab.dev/r/{name}.json` — survives extracting
+   `registry/` into its own repo). `components.json` is host-generated
+   and configures `@lite` as the **only** registry, so
+   `npx shadcn add @lite/button` works for local/ejected apps and
+   foreign registries are unreachable by construction (this replaces
+   any wrapper CLI). Bare names remain a hard error on hosted `add`
+   (they still resolve to ui.shadcn.com in stock CLI). `add` overwrites
+   target files — nothing is silent; every add ships through the PR
+   loop and the PR diff is the review surface. No modified-since-add
+   warnings. Provenance (`manifest.recipes` version + per-file hash at
+   copy time) stays; it records what came from where, it no longer
+   blocks. A CI agreement gate runs the real pinned `shadcn` CLI
+   against the served registry and asserts file placement matches
+   `planAdd`. GitHub source-registry form (`owner/repo/item#ref`) is a
+   possible later bonus, not the canonical address. Recipe versions
+   are retained immutably forever — a registry living only at monorepo
+   HEAD loses the original bytes. No auto-update, ever.
 
 7. **The memory gate is an absolute per-app ceiling, measured in
    production — not a per-recipe budget.** Every recipe copied into an
@@ -600,17 +604,18 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
    the named diagnostic — red-tested by deliberately breaking it, per
    making-it-fit's gate lesson.
 4. **Registry MVP** — the `registry/` package with the pinned vendored
-   schema, lite's own resolver (`lite/` namespace, bare names error),
-   the fail-closed CI gates (`dependencies` absent, unknown types
-   rejected), the hosted `add` verb with per-file hash provenance and
-   collision refusal, immutable version retention, and a handful of
-   excellent recipes pulled from the slice's real needs. Open design
-   point to settle inside this item: what a recipe may target — a
-   credit-ledger recipe wants a migration, and migrations are an
-   immutable applied ledger. *Done when:* the starter's shared
-   components install via `add` with provenance recorded; a bare
-   `registryDependencies` name hard-fails; an item carrying a
-   `dependencies` key is rejected by registry CI.
+   schema, lite's own resolver (`lite/` catalog keys, `@lite/` CLI
+   addresses, bare names error), the fail-closed CI gates
+   (`dependencies` absent, unknown types rejected), the hosted `add`
+   verb with per-file hash provenance (overwrite, not collision
+   refusal — owner 2026-08-14), immutable version retention, the
+   served `/r/{name}.json` registry, and a handful of excellent
+   recipes pulled from the slice's real needs. *Done when:* the
+   starter's shared components install via `add` with provenance
+   recorded; a bare `registryDependencies` name hard-fails; an item
+   carrying a `dependencies` key is rejected by registry CI; `npx
+   shadcn add @lite/button` against the served registry matches
+   `planAdd` (agreement gate).
 5. **Starter slice** — rebuild the template as a generic ERP starter on
    the new app tree (`src/routes/`, `src/components/<feature>/`,
    `src/lib/<feature>/` — not `src/ui/*`): parties + credit ledger,
@@ -705,12 +710,9 @@ units the original list did not name.)
    0/8 baseline: **0/8 OOM, 0 retries, 8/8 ready**; wall per check
    ~+60% ([`2026-08-14-units-retail.md`](2026-08-14-units-retail.md)).
 7. **Registry** — the package, pinned vendored schema, CI gates,
-   resolver, hosted `add` with provenance and collision refusal.
-   **Done** (this PR). Seven recipes at `recipes/<slug>/0.1.0/`;
-   immutability via `published.json` + `check:registry` vs
-   `origin/main`. Local assembled-app check:
-   [`2026-08-14-assembled-recipes-check.md`](2026-08-14-assembled-recipes-check.md)
-   (production gate deferred).
+   resolver, hosted `add` with provenance. **Done** (PR #136). Owner
+   revision 2026-08-14 (this PR): overwrite `add`, served
+   `/r/{name}.json`, `@lite` namespace lock, CLI agreement gate.
 8. **Starter** — the rebuild on the new tree, assembled from the
    registry, recipes extracted as they emerge (splits into two PRs if
    the diff gets large: skeleton, then the slice).
@@ -732,8 +734,8 @@ early.
 ## Non-goals for this phase
 
 An app-level plugin/config system (decided against, not merely deferred —
-decision 4) · CLI binary (hosted verbs only; the verb vocabulary is
-designed now, shipped later) · serve adapters beyond Cloudflare and any
+decision 4) · a lite CLI wrapper (stock `npx shadcn add @lite/…` is
+the ejected path; hosted verbs stay on the factory) · serve adapters beyond Cloudflare and any
 second-adapter proof · an owned pack engine (existing bundling stays
 underneath) · catalog modules · the in-app agent *build*, write-actions,
 and confirmation UX · repo extraction or renaming · the wider ERP domain

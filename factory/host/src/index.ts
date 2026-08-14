@@ -20,6 +20,7 @@ import type { PublicRoute, RequestCtx, RouteCtx } from "./serve/routes.js";
 import { matchRoute } from "./serve/routes.js";
 import { serveSubApp } from "./serve/serve.js";
 import { serveKernel } from "./serve/serve-kernel.js";
+import { serveRegistryItem } from "./serve/serve-registry.js";
 
 /** Facet class for Think's execute / code-mode runtime (`ctx.exports`). */
 export { CodemodeRuntime } from "@cloudflare/codemode";
@@ -31,6 +32,7 @@ export { AppDataDO } from "./durable-objects/app-data-do.js";
 export { OrgEvents } from "./durable-objects/org-events-do.js";
 
 const RE_KERNEL = /^\/kernel\/(.+)$/;
+const RE_REGISTRY_ITEM = /^\/r\/(.+)\.json$/;
 const RE_SUBAPP = /^\/a\/([^/]+)(?:\/(.*))?$/;
 const RE_PREVIEW_PR = /^\d+$/;
 
@@ -63,6 +65,10 @@ async function handleKernel(rc: RouteCtx): Promise<Response> {
   const rest = rc.match[1] ?? "";
   const res = await serveKernel(rc.request, rest, rc.env);
   return res ?? new Response("unknown kernel path\n", { status: 404 });
+}
+
+function handleRegistryItem(rc: RouteCtx): Response {
+  return serveRegistryItem(rc.request, rc.match[1] ?? "");
 }
 
 async function requirePreviewAccess(
@@ -182,6 +188,11 @@ const PUBLIC_ROUTES: PublicRoute[] = [
     handler: handleProtectedResourceMetadata,
   },
   { method: ["GET", "HEAD"], pattern: RE_KERNEL, handler: handleKernel },
+  {
+    method: ["GET", "HEAD"],
+    pattern: RE_REGISTRY_ITEM,
+    handler: handleRegistryItem,
+  },
   // Live `/a/:appId/*` is public at the host; preview and workspace paths
   // inside the handler require factory org session. See `tenancy.ts`.
   { method: "*", pattern: RE_SUBAPP, handler: handleSubApp },

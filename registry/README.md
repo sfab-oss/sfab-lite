@@ -7,7 +7,8 @@ exists.
 
 ## Pinned schema
 
-We reuse the shadcn **item format**, not shadcn's resolver or CLI.
+We reuse the shadcn **item format** and the standard served registry
+(`/r/{name}.json`, `@lite` namespace). Lite's overlay stays fail-closed.
 
 | | |
 | --- | --- |
@@ -17,34 +18,47 @@ We reuse the shadcn **item format**, not shadcn's resolver or CLI.
 | sha256 | `sha256:cdf0fba75a26ebf594018264eff2d55407ec14deb3071d0fce0e2b20848e5d44` |
 | Pin statement | `src/pin.ts` |
 
-Lite's profile is a fail-closed overlay: allowed types only, no npm
-`dependencies` / `devDependencies` keys, `lite/` names, required
+Lite's profile: allowed types only, no npm `dependencies` /
+`devDependencies` keys, `lite/` catalog names, required
 `meta.liteProfile: 1`. Upstream schema changes are adopted by replacing
 the vendored file on our schedule.
 
-## Resolver
+## Resolver and namespace
 
-`parseRecipeName` / `resolveAdd` are lite's own. Recipe names live in
-the `lite/` namespace. **Bare names hard-error before any catalog
-lookup** — they must never reach anything that could leak to
-ui.shadcn.com. `add` resolves `registryDependencies` flat.
+Catalog and provenance keys stay `lite/<slug>`. The CLI address is
+`@lite/<slug>`. Bare names hard-error before any catalog lookup — they
+must never reach ui.shadcn.com. Foreign namespaces (`@shadcn/…`) are
+refused. `add` resolves `registryDependencies` flat.
 
-Stock shadcn tooling is not claimed to work.
+`npx shadcn add @lite/button` works for local/ejected apps because
+`components.json` configures `@lite` as the **only** registry, pointing
+at the served URL. That replaces any wrapper CLI. The CLI's built-in
+official registry still resolves a *bare* `button`; hosted `add` does
+not.
+
+## Served registry
+
+Canonical address: `https://lite.sfab.dev/r/{name}.json` (`{name}` is
+the slug, e.g. `button`). Public GET/HEAD, no auth — registry items are
+AGPL source. Served from the bundled catalog (no R2, no DO). Latest
+per name; shadcn addresses have no version. Provenance still records
+the exact version. Old versions stay in git. GitHub source-registry
+form (`owner/repo/item#ref`) is a possible later bonus, not the
+canonical address.
+
+`registry.json` is the generated shadcn **source** registry (latest
+per slug, namespaced deps). One source of truth stays `recipes/`.
 
 ## Immutable version retention
 
 Published versions live at `recipes/<slug>/<version>/`. `published.json`
-is the hash lockfile of every file in each published tree (content
-addressing). `check:registry` recomputes those hashes and, when
-`origin/main:registry/published.json` exists, refuses any change or
-deletion of an existing `name@version` key. Ship a new version by adding
-a new directory; never mutate `0.1.0` in place. No auto-update, ever.
+is the hash lockfile of every file in each published tree. `check:registry`
+recomputes those hashes and, when `origin/main:registry/published.json`
+exists, refuses any change or deletion of an existing `name@version`
+key. Ship a new version by adding a new directory; never mutate `0.1.0`
+in place. No auto-update, ever.
 
-`generated/catalog.json` is the worker-importable bake of the **latest**
-version of each name (`src/generated/catalog.json`). Drift against
-recipes/ fails the same gate (`pnpm --filter @sfab-lite/registry bake`).
-
-## What a recipe may target (draft — owner ratification)
+## What a recipe may target (ratified, owner 2026-08-14)
 
 Applied migrations are an immutable ledger (ADR-0005: `db:generate` is
 offline; CD applies by id and hash). A credit-ledger recipe wants a
@@ -53,12 +67,24 @@ table, not a row in that ledger.
 **Recipes may copy schema source under `src/db/` (and ordinary
 `src/` files). They must not target `migrations/` or `migrations/meta/`.**
 The validator refuses those targets. Schema lands via `add`;
-`db:generate` produces the SQL. If a schema target already exists with
-a different hash, collision refusal applies — the agent composes, `add`
-does not merge files.
+`db:generate` produces the SQL. Overwrite `add` does not extend to
+those targets.
 
-This is the same shape as the RFC's §10 drafted decisions: written here
-so the owner can ratify or replace it before later PRs bake it in.
+## Hosted `add`
+
+`factory/host` `POST /api/protected/apps/:appId/add` and MCP `apps_add`
+copy source and write `manifest.recipes` (`{ version, files: { path:
+sha256 } }`). Re-adding **overwrites** target files (shadcn-standard).
+Identical content is skipped. Every add ships through the PR loop; the
+PR diff is the review surface. Response `200` includes `overwrote: […]`.
+No modified-since-add warnings.
+
+## CLI agreement
+
+`pnpm check:registry-agreement` (CI-only) runs the real `shadcn@4.17.0`
+CLI: `registry validate` on the generated source registry, then `add
+@lite/<slug>` against a locally served `/r/{name}.json` for every
+published recipe, asserting byte-identical placement vs `planAdd`.
 
 ## Recipes in this milestone
 
@@ -75,10 +101,3 @@ from the registry. Targets are the RFC §2 tree (`src/components/ui/`,
 | `lite/field` | form layout the plan's party-form assumes |
 | `lite/card` | detail / balance tiles |
 | `lite/table` | party list, open balances, ledger lines |
-
-## Hosted `add`
-
-`factory/host` `POST /api/protected/apps/:appId/add` and MCP `apps_add`
-copy source and write `manifest.recipes` (`{ version, files: { path:
-sha256 } }`). Collision: a target that exists with a different hash is
-refused, never overwritten.

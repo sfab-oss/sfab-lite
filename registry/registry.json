@@ -1,0 +1,146 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "lite",
+  "homepage": "https://lite.sfab.dev",
+  "items": [
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "title": "Button",
+      "description": "Base-ui button primitive with variant and size. Use for primary actions on forms and lists. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/button/0.1.0/button.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/button.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "card",
+      "type": "registry:ui",
+      "title": "Card",
+      "description": "Surface container (header, title, description, content). Use on detail pages and summary tiles such as a party's running balance. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/card/0.1.0/card.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/card.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "field",
+      "type": "registry:ui",
+      "title": "Field",
+      "description": "Form field layout (group, label, description). Use when building a party form or any labeled control cluster. Assumes src/lib/utils exports cn and lite/label is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/label"
+      ],
+      "files": [
+        {
+          "path": "recipes/field/0.1.0/field.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/field.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "input",
+      "type": "registry:ui",
+      "title": "Input",
+      "description": "Base-ui text input primitive. Use on create/edit forms (party name, amounts). Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/input/0.1.0/input.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/input.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "label",
+      "type": "registry:ui",
+      "title": "Label",
+      "description": "Form label primitive. Use next to inputs; Field composes it. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/label/0.1.0/label.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/label.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "table",
+      "type": "registry:ui",
+      "title": "Table",
+      "description": "HTML table primitives for lists (parties, open balances, ledger lines). Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/table/0.1.0/table.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/table.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "utils",
+      "type": "registry:lib",
+      "title": "cn helper",
+      "description": "clsx + tailwind-merge `cn()` helper. Use when a component needs className merging. Assumes the base runtime serves clsx and tailwind-merge.",
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "recipes/utils/0.1.0/utils.ts",
+          "type": "registry:lib",
+          "target": "src/lib/utils.ts"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    }
+  ]
+}

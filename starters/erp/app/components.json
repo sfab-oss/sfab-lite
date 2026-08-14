@@ -16,5 +16,8 @@
     "ui": "src/ui/components/ui",
     "lib": "src/ui/lib",
     "hooks": "src/ui/hooks"
+  },
+  "registries": {
+    "@lite": "https://lite.sfab.dev/r/{name}.json"
   }
 }

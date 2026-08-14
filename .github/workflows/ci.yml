@@ -87,6 +87,12 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:registry
 
+      # Cheap-vs-real: pinned shadcn CLI add vs planAdd file placement.
+      # Needs the CLI binary (lockfile-pinned) and a scratch project; CI-only.
+      - name: registry-agreement
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:registry-agreement
+
       - name: pins
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:pins

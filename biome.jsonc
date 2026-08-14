@@ -20,6 +20,9 @@
       // Baked by bake-template-snapshot.mjs and compared byte-for-byte by
       // check:template-snapshot. Formatting it here would desync the two.
       "!!**/starters/erp/app/migrations/meta",
+      // Baked by bake-catalog.mjs and compared byte-for-byte by
+      // check:registry. Formatting it here would desync the two.
+      "!!**/registry/registry.json",
       "!!**/scripts/fixtures"
     ]
   },
