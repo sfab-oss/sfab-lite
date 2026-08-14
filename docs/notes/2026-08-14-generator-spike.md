@@ -18,17 +18,14 @@ server files 0 diags = 0 diags against the real VFS, planted
 From the monorepo root, after `pnpm install` and
 `pnpm --filter @sfab-lite/kernel install-universe`:
 
-```bash
-NODE_OPTIONS=--max-old-space-size=8192 pnpm --filter @sfab-lite/check measure:gen-drizzle
-```
+The product gate is `pnpm check:drizzle-agreement` (runtime seam table
++ committed types-pack). Numbers below are the spike at `bc24d20`; the
+spike harness was deleted after the live VFS overlay made a `null`
+overlay cheap-vs-cheap.
 
-Harness: `apps/check/scripts/measure-gen-drizzle.ts` via `run-measure.mjs`
-(no extra `.mjs` wrapper). Generator:
-`apps/check/scripts/gen-drizzle-surface.ts`. Walks
-`packages/template/app/src` for `drizzle-orm` imports, confirms each
-name exists in `packages/kernel/universe/node_modules/drizzle-orm`
-(skipping dead SQL dialects), and emits a cheap overlay from curated
-seams. Exits 1 if the agreement object `pass` is false.
+```bash
+pnpm check:drizzle-agreement
+```
 
 ## What we ran
 

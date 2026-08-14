@@ -346,8 +346,9 @@ behind one settles on the next poll. That closes the gap where the console
   **Shipped in the types pack (PR 5):** live `TYPES_VFS` overlays drizzle
   declaration files with the generated sqlite/D1 surface. Agreement
   0=0 on starter drizzle server files, plants caught; entities
-  generated **102 MB** vs real **141**. Union `measure-memory` APPS=1:
-  **394.4 MB** (was 339.5 on 2026-08-13) — local indicator; prod
+  generated **102 MB** vs real **141**. Union `measure-memory` APPS=1
+  same-session vs parent `9d51e65`: overBaseline **305.5 MB** (parent
+  **339.6 MB**); total heap 394.4 vs 431.9. Local indicator; prod
   re-tail stays post-PR6.
 
 ## Three lessons that keep recurring

@@ -40,24 +40,6 @@ const EXPORT_DECL = (name) =>
     String.raw`export\s+declare\s+(?:async\s+)?(?:function|const|class|type|interface)\s+${name}\b|export\s+declare\s+const\s+${name}\s*:|export\s+type\s+${name}\b|export\s+\{[^}]*\b${name}\b`
   );
 
-const DRIZZLE_VFS_PREFIX = "/node_modules/drizzle-orm";
-
-/** @param {string} vfsPath */
-export function isDrizzleDeclVfsPath(vfsPath) {
-  if (
-    !(
-      vfsPath === DRIZZLE_VFS_PREFIX ||
-      vfsPath.startsWith(`${DRIZZLE_VFS_PREFIX}/`)
-    )
-  ) {
-    return false;
-  }
-  if (vfsPath.endsWith("package.json") || vfsPath.endsWith(".json")) {
-    return false;
-  }
-  return /\.d\.[cm]?ts$/i.test(vfsPath) || /\.(mts|cts|ts)$/i.test(vfsPath);
-}
-
 /**
  * @param {string} dir
  * @param {string[]} out

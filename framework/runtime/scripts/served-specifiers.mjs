@@ -27,3 +27,21 @@ export const DRIZZLE_SERVED_SPECIFIERS = [
   "drizzle-orm/sqlite-core",
   "drizzle-orm/d1",
 ];
+
+const DRIZZLE_VFS_PREFIX = "/node_modules/drizzle-orm";
+
+/** @param {string} vfsPath */
+export function isDrizzleDeclVfsPath(vfsPath) {
+  if (
+    !(
+      vfsPath === DRIZZLE_VFS_PREFIX ||
+      vfsPath.startsWith(`${DRIZZLE_VFS_PREFIX}/`)
+    )
+  ) {
+    return false;
+  }
+  if (vfsPath.endsWith("package.json") || vfsPath.endsWith(".json")) {
+    return false;
+  }
+  return /\.d\.[cm]?ts$/i.test(vfsPath) || /\.(mts|cts|ts)$/i.test(vfsPath);
+}

@@ -11,6 +11,7 @@ import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import type ts from "typescript";
 import { SEAM_NAMES } from "../../../framework/runtime/scripts/drizzle-seams.mjs";
+import { isDrizzleDeclVfsPath } from "../../../framework/runtime/scripts/served-specifiers.mjs";
 import {
   isTrimTarget,
   trimDrizzleDialects,
@@ -26,7 +27,6 @@ const SURFACE_PATH = join(
 );
 
 const SERVER_ENTITIES = "/app/src/hono/org-protected/entities.ts";
-const DRIZZLE_PREFIX = "/node_modules/drizzle-orm";
 const EQ_PLANT = "eq(entity.id, 0)";
 const NAME_PLANT = "name: 123,";
 
@@ -66,19 +66,6 @@ const drizzleAppFiles = Object.keys(files)
   .sort((a, b) => a.localeCompare(b));
 
 const generatedText = readFileSync(SURFACE_PATH, "utf8");
-
-const D_TS_EXT_RE = /\.d\.[cm]?ts$/i;
-const TS_EXT_RE = /\.(mts|cts|ts)$/i;
-
-function isDrizzleDeclVfsPath(key: string): boolean {
-  if (!(key === DRIZZLE_PREFIX || key.startsWith(`${DRIZZLE_PREFIX}/`))) {
-    return false;
-  }
-  if (key.endsWith("package.json") || key.endsWith(".json")) {
-    return false;
-  }
-  return D_TS_EXT_RE.test(key) || TS_EXT_RE.test(key);
-}
 
 const IMPORT_RE =
   /import\s+(?:type\s+)?(?:\{([^}]+)\}|\*\s+as\s+\w+|\w+)\s+from\s+["'](drizzle-orm(?:\/[^"']+)?)["']/g;

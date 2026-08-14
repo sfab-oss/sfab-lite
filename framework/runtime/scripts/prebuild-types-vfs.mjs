@@ -24,12 +24,13 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import {
-  GENERATED_SURFACE_ABS,
-  isDrizzleDeclVfsPath,
-} from "./gen-drizzle-surface.mjs";
+import { GENERATED_SURFACE_ABS } from "./gen-drizzle-surface.mjs";
 import { PINS } from "./pins.mjs";
-import { SERVER_IMPORT_MAP } from "./served-specifiers.mjs";
+import {
+  DRIZZLE_SERVED_SPECIFIERS,
+  isDrizzleDeclVfsPath,
+  SERVER_IMPORT_MAP,
+} from "./served-specifiers.mjs";
 import { isTrimTarget, trimDrizzleDialects } from "./trim-drizzle-dialects.mjs";
 import {
   getUniverseRequire,
@@ -628,13 +629,8 @@ const manifest = {
         mode: "generated-cheap-surface",
         artifact: "src/generated/types-pack/drizzle-orm.d.ts",
         filesRewritten: drizzleOverlayFiles,
-        servedSpecifiers: [
-          "drizzle-orm",
-          "drizzle-orm/sql",
-          "drizzle-orm/sqlite-core",
-          "drizzle-orm/d1",
-        ],
-        note: "Live TYPES_VFS serves the generated cheap sqlite/D1 surface at drizzle-orm declaration files. Hono and better-auth still ride the real .d.ts.",
+        servedSpecifiers: DRIZZLE_SERVED_SPECIFIERS,
+        note: "Live TYPES_VFS serves the generated cheap sqlite/D1 surface at drizzle-orm declaration files. Hono package files stay real; drizzle types they import are this overlay.",
       },
     },
     trim: {
