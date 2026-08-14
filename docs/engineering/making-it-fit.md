@@ -343,12 +343,12 @@ behind one settles on the next poll. That closes the gap where the console
 
 - **Generated cheap drizzle works with curated seams.** Full write-up:
   [`../notes/2026-08-14-generator-spike.md`](../notes/2026-08-14-generator-spike.md).
-  Usage scan + universe existence check emit a sqlite/D1 overlay that
-  agrees with the real VFS on template server files (0=0), catches
-  planted `eq(entity.id, 0)` / `name: 123`, and stays at **100 MB** on
-  the server-entities closure (handwritten 101). Real signatures
-  (`BinaryOperator`, `SQLiteTableFn`, dialect builders) cannot be
-  copied. Gates PR 5; not a VFS we ship from this spike.
+  **Shipped in the types pack (PR 5):** live `TYPES_VFS` overlays drizzle
+  declaration files with the generated sqlite/D1 surface. Agreement
+  0=0 on starter drizzle server files, plants caught; entities
+  generated **102 MB** vs real **141**. Union `measure-memory` APPS=1:
+  **394.4 MB** (was 339.5 on 2026-08-13) — local indicator; prod
+  re-tail stays post-PR6.
 
 ## Three lessons that keep recurring
 
