@@ -3,8 +3,6 @@ import { test } from "node:test";
 import { contentHash, planAdd } from "./lite.ts";
 import type { Catalog, CatalogEntry } from "./types.ts";
 
-const COLLISION = /collision/;
-
 function entry(name: string, target: string, body: string): CatalogEntry {
   return {
     version: "0.1.0",
@@ -42,25 +40,27 @@ test("add writes missing targets and records sha256 provenance", () => {
     return;
   }
   assert.equal(result.writes[target], incoming);
+  assert.deepEqual(result.overwrote, []);
   assert.equal(
     result.provenance["lite/button"]?.files[target],
     contentHash(incoming)
   );
 });
 
-test("collision refuses a target whose hash differs", () => {
+test("re-add overwrites a target whose hash differs", () => {
   const result = planAdd("lite/button", catalog, {
     [target]: "export function Button() { return 'edited'; }\n",
   });
-  assert.equal(result.ok, false);
+  assert.equal(result.ok, true);
   if (!result.ok) {
-    assert.match(result.error, COLLISION);
-    assert.equal(result.collisions?.[0]?.path, target);
-    assert.notEqual(
-      result.collisions?.[0]?.existing,
-      result.collisions?.[0]?.incoming
-    );
+    return;
   }
+  assert.equal(result.writes[target], incoming);
+  assert.deepEqual(result.overwrote, [target]);
+  assert.equal(
+    result.provenance["lite/button"]?.files[target],
+    contentHash(incoming)
+  );
 });
 
 test("identical existing content is skipped, not overwritten", () => {
@@ -69,5 +69,15 @@ test("identical existing content is skipped, not overwritten", () => {
   if (result.ok) {
     assert.deepEqual(result.writes, {});
     assert.deepEqual(result.skipped, [target]);
+    assert.deepEqual(result.overwrote, []);
+  }
+});
+
+test("@lite/button resolves the same catalog key as lite/button", () => {
+  const result = planAdd("@lite/button", catalog, {});
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.writes[target], incoming);
+    assert.ok(result.provenance["lite/button"]);
   }
 });

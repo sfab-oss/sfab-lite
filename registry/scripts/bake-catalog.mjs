@@ -13,13 +13,14 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { validateItem } from "../src/lite.ts";
+import { namespacedAddress, serveSlug, validateItem } from "../src/lite.ts";
 import { SHADCN_REGISTRY_ITEM_SCHEMA } from "../src/pin.ts";
 
 const registryRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const recipesRoot = join(registryRoot, "recipes");
 const catalogPath = join(registryRoot, "src/generated/catalog.json");
 const publishedPath = join(registryRoot, "published.json");
+const sourceRegistryPath = join(registryRoot, "registry.json");
 const schemaPath = join(registryRoot, SHADCN_REGISTRY_ITEM_SCHEMA.vendoredPath);
 
 function hash(text) {
@@ -97,6 +98,35 @@ for (const slug of readdirSync(recipesRoot).sort()) {
 
 const catalogJson = `${JSON.stringify(catalog, null, 2)}\n`;
 const publishedJson = `${JSON.stringify(published, null, 2)}\n`;
+const sourceItems = Object.entries(catalog.items)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([name, entry]) => {
+    const slug = serveSlug(name);
+    return {
+      name: slug,
+      type: entry.item.type,
+      title: entry.item.title,
+      description: entry.item.description,
+      registryDependencies:
+        entry.item.registryDependencies.map(namespacedAddress),
+      files: entry.item.files.map((file) => ({
+        path: `recipes/${slug}/${entry.version}/${file.path}`,
+        type: file.type,
+        target: file.target,
+      })),
+      meta: entry.item.meta,
+    };
+  });
+const sourceRegistryJson = `${JSON.stringify(
+  {
+    $schema: "https://ui.shadcn.com/schema/registry.json",
+    name: "lite",
+    homepage: "https://lite.sfab.dev",
+    items: sourceItems,
+  },
+  null,
+  2
+)}\n`;
 const check = process.argv.includes("--check");
 
 if (check) {
@@ -107,6 +137,9 @@ if (check) {
   const currentPublished = existsSync(publishedPath)
     ? readFileSync(publishedPath, "utf8")
     : "";
+  const currentSource = existsSync(sourceRegistryPath)
+    ? readFileSync(sourceRegistryPath, "utf8")
+    : "";
   if (currentCatalog !== catalogJson) {
     console.error(
       "check:registry — generated catalog is stale; run pnpm --filter @sfab-lite/registry bake"
@@ -116,6 +149,12 @@ if (check) {
   if (currentPublished !== publishedJson) {
     console.error(
       "check:registry — published.json is stale; run pnpm --filter @sfab-lite/registry bake"
+    );
+    failed = true;
+  }
+  if (currentSource !== sourceRegistryJson) {
+    console.error(
+      "check:registry — registry.json is stale; run pnpm --filter @sfab-lite/registry bake"
     );
     failed = true;
   }
@@ -131,6 +170,7 @@ if (check) {
 mkdirSync(dirname(catalogPath), { recursive: true });
 writeFileSync(catalogPath, catalogJson);
 writeFileSync(publishedPath, publishedJson);
+writeFileSync(sourceRegistryPath, sourceRegistryJson);
 console.error(
   `bake-catalog: ${Object.keys(catalog.items).length} recipes, ${Object.keys(published).length} versions`
 );

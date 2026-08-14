@@ -56,3 +56,14 @@ test("flat resolve puts dependencies first", () => {
     );
   }
 });
+
+test("@lite/button resolves the same as lite/button", () => {
+  const result = resolveAdd("@lite/button", catalog);
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(
+      result.entries.map((e) => e.item.name),
+      ["lite/utils", "lite/button"]
+    );
+  }
+});

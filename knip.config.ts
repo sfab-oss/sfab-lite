@@ -110,6 +110,10 @@ const config: KnipConfig = {
     registry: {
       entry: ["src/index.ts", "src/**/*.test.ts", "scripts/*.mjs"],
       project: ["src/**/*.ts", "scripts/**/*.mjs"],
+      // Invoked as `pnpm exec shadcn` with cwd=registry/ from
+      // check-cli-agreement.mjs; the version pin is the agreement-gate contract.
+      ignoreBinaries: ["shadcn"],
+      ignoreDependencies: ["shadcn"],
     },
   },
 };

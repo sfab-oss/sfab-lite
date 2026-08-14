@@ -23,6 +23,10 @@ export type {
 /** Must match `RECIPE_NAME_RE` in `@sfab-lite/core`. */
 const RECIPE_NAME_RE =
   /^lite\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+const LITE_PREFIX = "lite/";
+const AT_LITE_PREFIX = "@lite/";
+const ITEM_SCHEMA_URL = "https://ui.shadcn.com/schema/registry-item.json";
 
 export const LITE_ITEM_TYPES = [
   "registry:lib",
@@ -73,25 +77,52 @@ export interface NameErr {
 
 export type NameResult = NameOk | NameErr;
 
+export function serveSlug(catalogName: string): string {
+  return catalogName.startsWith(LITE_PREFIX)
+    ? catalogName.slice(LITE_PREFIX.length)
+    : catalogName;
+}
+
+export function namespacedAddress(catalogName: string): string {
+  return `${AT_LITE_PREFIX}${serveSlug(catalogName)}`;
+}
+
 /**
- * Lite recipe names live in `lite/`. Bare names hard-error *before* any
- * catalog lookup — they must never reach a resolver that could leak to
- * ui.shadcn.com (stock shadcn tooling resolves a bare `button` upstream).
+ * Lite recipe names live in `lite/` (catalog / provenance) and `@lite/`
+ * (CLI / served registry). Bare names hard-error *before* any catalog
+ * lookup — they must never reach a resolver that could leak to
+ * ui.shadcn.com. Foreign namespaces are refused.
  */
 export function parseRecipeName(raw: string): NameResult {
   if (raw.length === 0) {
     return { ok: false, error: "recipe name is empty" };
   }
-  if (raw.includes("://") || raw.startsWith("@")) {
+  if (raw.includes("://")) {
     return {
       ok: false,
-      error: `recipe name "${raw}" is not a lite/<slug> name — remote and namespaced registries are not resolved`,
+      error: `recipe name "${raw}" is not a lite/<slug> or @lite/<slug> name — remote URLs are not resolved`,
     };
   }
-  if (!raw.startsWith("lite/")) {
+  if (raw.startsWith("@")) {
+    if (!raw.startsWith(AT_LITE_PREFIX)) {
+      return {
+        ok: false,
+        error: `recipe name "${raw}" is not the @lite namespace — foreign registries are not resolved`,
+      };
+    }
+    const slug = raw.slice(AT_LITE_PREFIX.length);
+    if (!SLUG_RE.test(slug)) {
+      return {
+        ok: false,
+        error: `recipe name "${raw}" is not a valid @lite/<slug> (lowercase slugs, slash-separated)`,
+      };
+    }
+    return { ok: true, name: `${LITE_PREFIX}${slug}` };
+  }
+  if (!raw.startsWith(LITE_PREFIX)) {
     return {
       ok: false,
-      error: `bare names are a hard error — "${raw}" never resolves (including not to ui.shadcn.com). Use lite/<slug>.`,
+      error: `bare names are a hard error — "${raw}" never resolves (including not to ui.shadcn.com). Use @lite/<slug> or lite/<slug>.`,
     };
   }
   if (!RECIPE_NAME_RE.test(raw)) {
@@ -397,7 +428,32 @@ export function catalogNames(catalog: Catalog): string[] {
   return Object.keys(catalog.items).sort();
 }
 
-export interface Collision {
+export function catalogNameForSlug(slug: string): string {
+  return `${LITE_PREFIX}${slug}`;
+}
+
+export function toBuiltRegistryItem(
+  entry: CatalogEntry
+): Record<string, unknown> {
+  return {
+    $schema: ITEM_SCHEMA_URL,
+    name: serveSlug(entry.item.name),
+    type: entry.item.type,
+    title: entry.item.title,
+    description: entry.item.description,
+    registryDependencies:
+      entry.item.registryDependencies.map(namespacedAddress),
+    files: entry.item.files.map((file) => ({
+      path: file.target,
+      type: file.type,
+      target: file.target,
+      content: entry.contents[file.target] ?? "",
+    })),
+    meta: entry.item.meta,
+  };
+}
+
+export interface CatalogConflict {
   path: string;
   existing: string;
   incoming: string;
@@ -407,20 +463,23 @@ export interface PlanOk {
   ok: true;
   writes: Record<string, string>;
   skipped: string[];
+  overwrote: string[];
   provenance: Record<string, RecipeProvenance>;
 }
 
 export interface PlanErr {
   ok: false;
   error: string;
-  collisions?: Collision[];
+  conflicts?: CatalogConflict[];
 }
 
 export type PlanResult = PlanOk | PlanErr;
 
 /**
- * Copy recipe source into an app tree. A target that already exists with a
- * different hash is refused — never overwritten.
+ * Copy recipe source into an app tree. Re-adding overwrites a target whose
+ * hash differs (shadcn-standard). Identical content is skipped. Provenance
+ * is always rewritten. Two recipes in one resolve that disagree on a path
+ * is a catalog error, not an overwrite.
  */
 export function planAdd(
   name: string,
@@ -434,8 +493,9 @@ export function planAdd(
 
   const writes: Record<string, string> = {};
   const skipped: string[] = [];
+  const overwrote: string[] = [];
   const provenance: Record<string, RecipeProvenance> = {};
-  const collisions: Collision[] = [];
+  const conflicts: CatalogConflict[] = [];
   const claimed = new Map<string, { hash: string; from: string }>();
 
   for (const entry of resolved.entries) {
@@ -452,7 +512,7 @@ export function planAdd(
       files[file.target] = incoming;
       const prior = claimed.get(file.target);
       if (prior && prior.hash !== incoming) {
-        collisions.push({
+        conflicts.push({
           path: file.target,
           existing: prior.hash,
           incoming,
@@ -470,21 +530,18 @@ export function planAdd(
         skipped.push(file.target);
         continue;
       }
-      collisions.push({
-        path: file.target,
-        existing: existingHash,
-        incoming,
-      });
+      writes[file.target] = content;
+      overwrote.push(file.target);
     }
     provenance[entry.item.name] = { version: entry.version, files };
   }
 
-  if (collisions.length > 0) {
+  if (conflicts.length > 0) {
     return {
       ok: false,
-      error: "collision: refusing to overwrite a file whose hash differs",
-      collisions,
+      error: "catalog conflict: two recipes in this add disagree on a file",
+      conflicts,
     };
   }
-  return { ok: true, writes, skipped, provenance };
+  return { ok: true, writes, skipped, overwrote, provenance };
 }

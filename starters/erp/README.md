@@ -23,7 +23,7 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `package.json` | Describes the frozen kernel surface the app runs on. |
 | `tsconfig.json` | TypeScript chrome (mirrors the host check surface). |
 | `biome.json` | Injected at pack from `framework/toolchain/app-biome.json` (not stored as `app/biome.json` — that would nest-root the monorepo Biome). Same rules the factory lint worker applies. |
-| `components.json` | shadcn orientation for the seed UI tree. |
+| `components.json` | Host-generated: `@lite` → `https://lite.sfab.dev/r/{name}.json` is the only registry. |
 | `vite.config.ts` | Vite chrome (standalone package still uses the package-root Vite config with `root: "app"`). |
 | `src/db/` | Schema under `schema/{auth,catalog,transactions}.ts`. |
 | `migrations/` | Applied SQL migrations (root of the app tree). |

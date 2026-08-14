@@ -32,18 +32,17 @@ export type ApplyAddResult =
       files: Record<string, string>;
       added: string[];
       skipped: string[];
+      overwrote: string[];
       recipes: string[];
     }
   | {
       ok: false;
       error: string;
-      collisions?: Array<{ path: string; existing: string; incoming: string }>;
     };
 
 /**
  * Pure hosted `add`: copy recipe source into a files map and write
- * provenance onto `manifest.recipes`. No I/O — the HTTP/MCP wrappers
- * read and write the workspace around this.
+ * provenance onto `manifest.recipes`. Re-add overwrites. No I/O.
  */
 export function applyAdd(
   name: string,
@@ -59,7 +58,6 @@ export function applyAdd(
     return {
       ok: false,
       error: planned.error,
-      collisions: planned.collisions,
     };
   }
 
@@ -89,11 +87,15 @@ export function applyAdd(
     next[path] = content;
   }
   next["manifest.json"] = `${JSON.stringify(validated.manifest, null, 2)}\n`;
+  const overwrote = new Set(planned.overwrote);
   return {
     ok: true,
     files: next,
-    added: Object.keys(planned.writes).sort(),
+    added: Object.keys(planned.writes)
+      .filter((path) => !overwrote.has(path))
+      .sort(),
     skipped: [...planned.skipped].sort(),
+    overwrote: [...planned.overwrote].sort(),
     recipes: Object.keys(planned.provenance).sort(),
   };
 }

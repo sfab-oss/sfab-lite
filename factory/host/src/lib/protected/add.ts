@@ -20,13 +20,11 @@ export async function handleAddRecipe(rc: AppCtx, body: AddRecipeBody) {
     return protectedError(message, 500);
   }
   if (!result.ok) {
-    const status = result.collisions ? 409 : 400;
     return {
-      status,
+      status: 400 as const,
       body: {
         ok: false as const,
         error: result.error,
-        collisions: result.collisions,
       },
     } satisfies ProtectedReply;
   }
@@ -37,6 +35,7 @@ export async function handleAddRecipe(rc: AppCtx, body: AddRecipeBody) {
       appId: rc.appId,
       added: result.added,
       skipped: result.skipped,
+      overwrote: result.overwrote,
       recipes: result.recipes,
     },
   };

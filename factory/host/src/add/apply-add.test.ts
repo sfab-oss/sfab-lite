@@ -4,7 +4,6 @@ import { applyAdd } from "./apply-add.ts";
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const BARE_NAME = /bare names are a hard error/;
-const COLLISION = /collision/;
 
 test("add lite/field copies deps and writes sha256 provenance", () => {
   const result = applyAdd("lite/field", {});
@@ -25,6 +24,7 @@ test("add lite/field copies deps and writes sha256 provenance", () => {
     SHA256
   );
   assert.deepEqual(result.recipes, ["lite/field", "lite/label", "lite/utils"]);
+  assert.deepEqual(result.overwrote, []);
 });
 
 test("bare names never copy files", () => {
@@ -35,7 +35,7 @@ test("bare names never copy files", () => {
   }
 });
 
-test("collision refuses a hand-edited target", () => {
+test("re-add overwrites a hand-edited target and updates provenance", () => {
   const first = applyAdd("lite/button", {});
   assert.equal(first.ok, true);
   if (!first.ok) {
@@ -47,9 +47,31 @@ test("collision refuses a hand-edited target", () => {
       "export function Button() { return 'no'; }\n",
   };
   const second = applyAdd("lite/button", edited);
-  assert.equal(second.ok, false);
+  assert.equal(second.ok, true);
   if (!second.ok) {
-    assert.match(second.error, COLLISION);
-    assert.equal(second.collisions?.[0]?.path, "src/components/ui/button.tsx");
+    return;
+  }
+  assert.deepEqual(second.overwrote, ["src/components/ui/button.tsx"]);
+  assert.equal(
+    second.files["src/components/ui/button.tsx"],
+    first.files["src/components/ui/button.tsx"]
+  );
+  const manifest = JSON.parse(second.files["manifest.json"] ?? "{}");
+  assert.match(
+    manifest.recipes["lite/button"].files["src/components/ui/button.tsx"],
+    SHA256
+  );
+});
+
+test("@lite/field is the same add as lite/field", () => {
+  const result = applyAdd("@lite/field", {});
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.ok(result.files["src/components/ui/field.tsx"]);
+    assert.deepEqual(result.recipes, [
+      "lite/field",
+      "lite/label",
+      "lite/utils",
+    ]);
   }
 });

@@ -19,6 +19,7 @@
   "devDependencies": {
     "@sfab-lite/tsconfig": "workspace:*",
     "@types/node": "^22.16.5",
+    "shadcn": "4.17.0",
     "typescript": "6.0.3"
   }
 }

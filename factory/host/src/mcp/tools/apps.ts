@@ -121,14 +121,14 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     "apps_add",
     {
       description:
-        "Copy a lite/ registry recipe into the app workspace and record " +
-        "provenance on manifest.recipes. Bare names are a hard error. A " +
-        "target file whose content hash differs is refused, never overwritten.",
+        "Copy an @lite registry recipe into the app workspace and record " +
+        "provenance on manifest.recipes. Bare names are a hard error. " +
+        "Re-adding overwrites target files; the PR diff is the review surface.",
       inputSchema: {
         appId,
         name: z
           .string()
-          .describe("Recipe name, e.g. lite/field. Must be lite/<slug>."),
+          .describe("Recipe name, e.g. @lite/field or lite/field."),
         workspaceId: z
           .string()
           .optional()

@@ -20,6 +20,14 @@ test("bare names hard-error before any lookup", () => {
   }
 });
 
+test("@lite/slug canonicalizes to lite/slug", () => {
+  const result = parseRecipeName("@lite/button");
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.name, "lite/button");
+  }
+});
+
 test("urls and foreign namespaces never resolve", () => {
   assert.equal(
     parseRecipeName("https://ui.shadcn.com/r/button.json").ok,

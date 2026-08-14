@@ -44,7 +44,7 @@ TanStack-Start-shaped. Feature scope is a subdirectory under
   tsconfig.json                 # GENERATED — same regime
   index.html                    # GENERATED — Vite / eject shell
   safelist.txt                  # owner-editable
-  components.json               # owner-editable (UI kit config)
+  components.json               # GENERATED — @lite namespace lock
   vite.config.ts                # standalone / eject; host compiles itself
   biome.json                    # injected at seed from the toolchain
   migrations/
@@ -80,6 +80,7 @@ rebuild lands on. Schema validation does not require the target paths.
 | `package.json` | Host, from the manifest + runtime pins | exact pins; owner edits are overwritten |
 | `tsconfig.json` | Host | same |
 | `index.html` | Host | same; eject-load-bearing |
+| `components.json` | Host | `@lite` → served `/r/{name}.json` is the only registry |
 | `src/generated/api.d.ts` | Check emit unit | keyed to `api.hash` |
 | `src/generated/api.hash` | Check emit unit | must match the current server tree |
 | `biome.json` | Seed inject | not owner-authored |
@@ -187,8 +188,8 @@ The owner / agent must not edit these; the host overwrites them:
 - `runtime` — platform-resolved line; a CVE fix is re-resolve +
   re-pack, never a per-app edit.
 - `recipes` — written by `add` (version + per-file `sha256:` at copy
-  time). Hand-editing provenance is how silent overwrite of
-  agent-edited source would sneak back in.
+  time). Re-adding overwrites files; provenance records what landed.
+  The PR diff is the review surface.
 
 Generated files (§4) are host-authoritative by the same rule, and are
 not manifest fields: their paths are fixed by this format.
@@ -411,7 +412,7 @@ call sites keep working; later PRs retarget them onto these names.
 | `app.sql` | `POST /apps/:id/sql` | App-database probe; not schema introspection (ADR-0005). |
 | `app.migrate` | CD apply-by-id-and-hash | Applied migrations immutable. |
 | `app.generate` | host `db:generate` — offline schema vs `migrations/meta` | Ordinary drizzle loop. |
-| `app.add` | `POST /api/protected/apps/:id/add`, MCP `apps_add` | Copies `lite/` recipes into the think-workspace; provenance → `manifest.recipes`. Collision refusal. |
+| `app.add` | `POST /api/protected/apps/:id/add`, MCP `apps_add` | Copies `@lite` recipes into the think-workspace; provenance → `manifest.recipes`. Re-add overwrites. |
 | `workspace.list` / `ls` / `read` / `write` / `rm` / `glob` | MCP `workspaces_*` / `workspace_*` | Think-workspace FS, not a console screen. |
 | `workspace.bash` | MCP `bash` | |
 | `forge.pr` / `forge.merge` / `forge.checks` / `forge.runs` | protected `/prs`, `/runs` | Ship via PR, not snapshot publish. |
@@ -471,8 +472,9 @@ Left open by the plan, drafted here:
 6. **Snapshot paths** — `src/generated/api.d.ts` + `src/generated/api.hash`.
 7. **Check-run shape** — three ordered sync units, dispose between,
    in-memory snapshot I/O, host persists after return.
-8. **Recipe targeting (draft — owner ratification)** — recipes may
+8. **Recipe targeting (ratified, owner 2026-08-14)** — recipes may
    copy schema source under `src/db/` and ordinary `src/` files; they
    must not target `migrations/` or `migrations/meta/`. Schema lands
-   via `add`; `db:generate` writes SQL. Collision if a schema target
-   exists with a different hash. Full write-up: `registry/README.md`.
+   via `add`; `db:generate` writes SQL. Overwrite `add` does not
+   extend to those targets — the validator still refuses them.
+   Full write-up: `registry/README.md`.
