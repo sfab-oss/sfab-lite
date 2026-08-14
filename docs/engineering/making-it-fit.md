@@ -177,7 +177,11 @@ behind one settles on the next poll. That closes the gap where the console
   Retention is now *above* the pre-trim figure. Against the live factory
   (2026-07) one create in four failed; technique 6 above stops that
   costing the app — an OOM is now a retry — but it is a mitigation and
-  this is still a local-heap regression. Re-measured 2026-08-13 with
+  this is still a local-heap regression. **Re-tailed 2026-08-14 on live
+  `sfab-lite-check`:** eight sequential creates, **8/8 ready**, **8/8
+  check `ok`**, **0 `exceededMemory`**, no retries
+  ([`../notes/2026-08-14-live-factory-baseline.md`](../notes/2026-08-14-live-factory-baseline.md)).
+  Do not cite 1-in-4 as the current live rate. Re-measured 2026-08-13 with
   `measure-memory.mjs` (APPS=1): 72 app source files, **339.5 MB** over
   the 88.7 MB VFS baseline — same ballpark as the 2026-07-27 figure; the
   template has grown, not shrunk.
@@ -403,5 +407,7 @@ it.
   — serve / upload diet (not check-cap)
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
   — direction note
+- [`../notes/2026-08-14-live-factory-baseline.md`](../notes/2026-08-14-live-factory-baseline.md)
+  — live `sfab-lite-check` create OOM baseline (0/8)
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and
   the resolution gate
