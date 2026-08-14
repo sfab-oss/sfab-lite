@@ -47,9 +47,12 @@ export type {
 } from "./manifest.js";
 export {
   ADAPTER_TARGETS,
+  EXACT_VERSION_RE,
   GENERATED_ARTIFACTS,
   HOST_AUTHORITATIVE_FIELDS,
   MANIFEST_FORMAT,
+  RECIPE_NAME_RE,
+  SHA256_RE,
 } from "./manifest.js";
 export { mergeSources } from "./merge-sources.js";
 export type { ManifestIssue, ManifestValidation } from "./validate-manifest.js";

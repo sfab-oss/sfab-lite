@@ -7,6 +7,14 @@
 
 export const MANIFEST_FORMAT = 0;
 
+/** Provenance keys and recipe names: `lite/<slug>` only. Bare names fail. */
+export const RECIPE_NAME_RE =
+  /^lite\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
+
+export const SHA256_RE = /^sha256:[a-f0-9]{64}$/;
+
+export const EXACT_VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+
 export type AdapterTarget = "cloudflare";
 
 export const ADAPTER_TARGETS = [

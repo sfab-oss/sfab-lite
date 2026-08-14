@@ -2,6 +2,13 @@ import { z } from "zod";
 import { APP_NAME_MAX_LENGTH } from "../registry/app-names.js";
 import { WORKSPACE_NAME_MAX_LENGTH } from "../registry/workspace-registry.js";
 
+export const addRecipeBodySchema = z
+  .object({
+    name: z.string().min(1),
+    workspaceId: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
 export const createAppBodySchema = z
   .object({
     name: z.string().optional(),
@@ -110,6 +117,7 @@ export const revertBodySchema = z
   })
   .strict();
 
+export type AddRecipeBody = z.infer<typeof addRecipeBodySchema>;
 export type CreateAppBody = z.infer<typeof createAppBodySchema>;
 export type RenameAppBody = z.infer<typeof renameAppBodySchema>;
 export type CreateWorkspaceBody = z.infer<typeof createWorkspaceBodySchema>;

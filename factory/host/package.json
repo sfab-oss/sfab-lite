@@ -36,6 +36,7 @@
     "@pierre/diffs": "^1.2.12",
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
+    "@sfab-lite/registry": "workspace:*",
     "@sfab-lite/template": "workspace:*",
     "@sfab-lite/ui": "workspace:*",
     "@tailwindcss/vite": "4.1.11",

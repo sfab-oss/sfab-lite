@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { handleAddRecipe } from "@/lib/protected/add.js";
 import {
   handleCreateApp,
   handleDeleteApp,
@@ -19,6 +20,7 @@ import {
 import { appCtx, orgCtx } from "../context.js";
 import { requireApp, requireOrganization } from "../middleware.js";
 import {
+  addRecipeBodySchema,
   createAppBodySchema,
   createWorkspaceBodySchema,
   renameAppBodySchema,
@@ -44,6 +46,10 @@ const appsRoutes = new Hono<AdminEnv>()
   })
   .get("/:appId/touch", requireApp, async (c) => {
     const r = await handleTouch(appCtx(c));
+    return c.json(r.body, r.status);
+  })
+  .post("/:appId/add", requireApp, jsonBody(addRecipeBodySchema), async (c) => {
+    const r = await handleAddRecipe(appCtx(c), c.req.valid("json"));
     return c.json(r.body, r.status);
   })
   .get("/:appId/workspaces", requireApp, async (c) => {

@@ -1,0 +1,44 @@
+{
+  "lite/button@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:6f7db96a7227440e69f16981eb62dd3c398bdb9369160a66d34e2a44654b49ec",
+      "button.tsx": "sha256:521cf3ca8073d605f5d056047fe981ffaf1cc78fa9c45feabec4499721964932"
+    }
+  },
+  "lite/card@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:6792e39adb9441f3c4a348882b908491ea5baccafdac039a64cd81f55953ee22",
+      "card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
+    }
+  },
+  "lite/field@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:07d9688fd42a6ff3a972170503887b20ee03d21a87ca62baf1f3ad996812019e",
+      "field.tsx": "sha256:55e26b1d524846614a743f550a189dd087256d4eae53fdc767d961e3ffe7dbd1"
+    }
+  },
+  "lite/input@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:43a2f59b550b76ce7f1503f9a44f3f86d0de229c68e15f06be02990c149b8172",
+      "input.tsx": "sha256:39fadb9d6916a7c6dda9c4bc0e3f7454ef02df0a50ff6b137e64b09b82b019b8"
+    }
+  },
+  "lite/label@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:0a15383ebc25561f14d05dc0b1cd1cec8303d4202c876ed4e4c13302cc44b536",
+      "label.tsx": "sha256:1287d61955d50681c37640d7534f3dd2341ebe3053e9385dd7979cdfb838305a"
+    }
+  },
+  "lite/table@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:21a14d8edacffcb6cb2c284b0f50a69b9270ee3972686bb80694ffee2123110e",
+      "table.tsx": "sha256:18e5f174572c8c8485d9ee9b3b1d003be5cf62d60bed7981d41ceb9be7b8aa1f"
+    }
+  },
+  "lite/utils@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:8a65d1f05b8f5c0f083f5b4688c18bbd2eaeb3477857200d10f9f01abada206c",
+      "utils.ts": "sha256:4acbc7165a8d54738ff62b51414e772c08fe78434e524e6d8770180d3ba2925f"
+    }
+  }
+}

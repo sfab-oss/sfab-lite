@@ -118,6 +118,35 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
   );
 
   server.registerTool(
+    "apps_add",
+    {
+      description:
+        "Copy a lite/ registry recipe into the app workspace and record " +
+        "provenance on manifest.recipes. Bare names are a hard error. A " +
+        "target file whose content hash differs is refused, never overwritten.",
+      inputSchema: {
+        appId,
+        name: z
+          .string()
+          .describe("Recipe name, e.g. lite/field. Must be lite/<slug>."),
+        workspaceId: z
+          .string()
+          .optional()
+          .describe("Workspace id (ws_…). Omit to use the app's default."),
+      },
+    },
+    async ({ appId: id, name, workspaceId }) =>
+      passThrough(
+        await protectedFetch(
+          ctx,
+          "POST",
+          `/api/protected/apps/${encodeURIComponent(id)}/add`,
+          workspaceId === undefined ? { name } : { name, workspaceId }
+        )
+      )
+  );
+
+  server.registerTool(
     "apps_live",
     {
       description:

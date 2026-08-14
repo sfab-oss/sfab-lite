@@ -1,0 +1,17 @@
+{
+  "name": "lite/utils",
+  "type": "registry:lib",
+  "title": "cn helper",
+  "description": "clsx + tailwind-merge `cn()` helper. Use when a component needs className merging. Assumes the base runtime serves clsx and tailwind-merge.",
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "utils.ts",
+      "type": "registry:lib",
+      "target": "src/lib/utils.ts"
+    }
+  ]
+}

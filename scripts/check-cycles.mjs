@@ -32,6 +32,7 @@ const result = spawnSync(
     "--exclude",
     exclude,
     "framework",
+    "registry",
     "starters",
     "factory",
   ],

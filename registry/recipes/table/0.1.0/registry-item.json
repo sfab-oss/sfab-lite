@@ -1,0 +1,18 @@
+{
+  "name": "lite/table",
+  "type": "registry:ui",
+  "title": "Table",
+  "description": "HTML table primitives for lists (parties, open balances, ledger lines). Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "table.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/table.tsx"
+    }
+  ]
+}

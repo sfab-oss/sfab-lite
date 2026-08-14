@@ -1,0 +1,24 @@
+{
+  "name": "@sfab-lite/registry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lite": "./src/lite.ts",
+    "./catalog": "./src/generated/catalog.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test --experimental-strip-types src/names.test.ts src/validate-item.test.ts src/resolve.test.ts src/plan-add.test.ts",
+    "bake": "node --experimental-strip-types scripts/bake-catalog.mjs"
+  },
+  "dependencies": {
+    "@sfab-lite/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@sfab-lite/tsconfig": "workspace:*",
+    "@types/node": "^22.16.5",
+    "typescript": "6.0.3"
+  }
+}

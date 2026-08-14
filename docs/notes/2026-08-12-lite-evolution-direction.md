@@ -706,6 +706,11 @@ units the original list did not name.)
    ~+60% ([`2026-08-14-units-retail.md`](2026-08-14-units-retail.md)).
 7. **Registry** — the package, pinned vendored schema, CI gates,
    resolver, hosted `add` with provenance and collision refusal.
+   **Done** (this PR). Seven recipes at `recipes/<slug>/0.1.0/`;
+   immutability via `published.json` + `check:registry` vs
+   `origin/main`. Local assembled-app check:
+   [`2026-08-14-assembled-recipes-check.md`](2026-08-14-assembled-recipes-check.md)
+   (production gate deferred).
 8. **Starter** — the rebuild on the new tree, assembled from the
    registry, recipes extracted as they emerge (splits into two PRs if
    the diff gets large: skeleton, then the slice).

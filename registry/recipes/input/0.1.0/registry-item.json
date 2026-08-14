@@ -1,0 +1,18 @@
+{
+  "name": "lite/input",
+  "type": "registry:ui",
+  "title": "Input",
+  "description": "Base-ui text input primitive. Use on create/edit forms (party name, amounts). Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "input.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/input.tsx"
+    }
+  ]
+}
