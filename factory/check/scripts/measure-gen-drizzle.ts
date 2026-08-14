@@ -1,17 +1,25 @@
 /**
- * Agreement gate for the generated cheap drizzle surface.
+ * Historical measure: generated cheap drizzle vs handwritten overlay vs real
+ * VFS. The CI contract is `check:drizzle-agreement` (runtime seam table +
+ * committed types-pack artifact). This script keeps the handwritten heap
+ * comparison from the spike.
  *
  *   node scripts/run-measure.mjs measure-gen-drizzle.ts
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import type ts from "typescript";
 import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
 import { DRIZZLE_TYPED } from "./experiment-overlays.ts";
-import { generateDrizzleSurface } from "./gen-drizzle-surface.ts";
 
 const SERVER_ENTITIES = "/app/src/hono/org-protected/entities.ts";
 const DRIZZLE_PREFIX = "/node_modules/drizzle-orm";
+const SURFACE_PATH = join(
+  process.cwd(),
+  "../../framework/runtime/src/generated/types-pack/drizzle-orm.d.ts"
+);
 
 const AMBIENT_ROOTS: string[] = [
   "/types/cloudflare-ambient.d.ts",
@@ -167,32 +175,15 @@ function measure(
   return row;
 }
 
-const gen = generateDrizzleSurface();
+const genText = readFileSync(SURFACE_PATH, "utf8");
 console.log(
   JSON.stringify({
     label: "generator",
-    usedNames: gen.usedNames,
-    seamsUsed: gen.seamsUsed,
-    missingSeams: gen.missingSeams,
-    missingUniverse: gen.missingUniverse,
-    usageFiles: gen.usage.map((u) => u.file).sort((a, b) => a.localeCompare(b)),
-    universeHits: gen.universeHits.map((h) => ({
-      name: h.name,
-      specifier: h.specifier,
-      file: h.file,
-      snippet: h.snippet.slice(0, 160),
-    })),
-    generatedBytes: gen.text.length,
+    generatedBytes: genText.length,
     handwrittenBytes: DRIZZLE_TYPED.length,
+    artifact: "framework/runtime/src/generated/types-pack/drizzle-orm.d.ts",
   })
 );
-
-if (gen.missingSeams.length > 0) {
-  throw new Error(`missing seams: ${gen.missingSeams.join(", ")}`);
-}
-if (gen.missingUniverse.length > 0) {
-  throw new Error(`missing in universe: ${gen.missingUniverse.join(", ")}`);
-}
 
 const entitiesOnly: string[] = [];
 const drizzleRoots = drizzleAppFiles;
@@ -211,7 +202,7 @@ const handHealthy = measure(
 );
 const genHealthy = measure(
   "entities, generated",
-  gen.text,
+  genText,
   healthyEntities,
   entitiesOnly
 );
@@ -224,7 +215,7 @@ const realBroken = measure(
 );
 const genBroken = measure(
   "broken entities, generated",
-  gen.text,
+  genText,
   brokenEntities,
   entitiesOnly
 );
@@ -243,7 +234,7 @@ const realServer = measure(
 );
 const genServer = measure(
   "drizzle-using server files, generated",
-  gen.text,
+  genText,
   healthyEntities,
   drizzleRoots
 );
@@ -270,7 +261,7 @@ const verdict = {
   heapDeltaMb: heapDelta,
   heapNearHandwritten: heapOk,
   pass: healthyAgree && plantAgree && heapOk && serverAgree,
-  result: gen.missingSeams.length > 0 ? "doesn't" : "works-with-seams",
+  result: "works-with-seams",
 };
 
 console.log(JSON.stringify(verdict));
