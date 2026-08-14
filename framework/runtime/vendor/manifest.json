@@ -126,11 +126,11 @@
     "client/base-ui-react.js": "sha256:5c152675dfebc289fe95806e230d5e8d961d10b17106eacced0b06908a4fe345"
   },
   "typesVfs": {
-    "fileCount": 2498,
-    "rawBytes": 9416648,
-    "gzipBytes": 1283006,
+    "fileCount": 2500,
+    "rawBytes": 9618160,
+    "gzipBytes": 1253629,
     "packages": {
-      "@base-ui/react": 1150,
+      "@base-ui/react": 1151,
       "@base-ui/utils": 10,
       "@better-auth/core": 90,
       "@better-auth/drizzle-adapter": 1,
@@ -150,7 +150,7 @@
       "@tanstack/router-core": 30,
       "@tanstack/store": 6,
       "@types/react": 3,
-      "@types/react-dom": 2,
+      "@types/react-dom": 3,
       "better-auth": 157,
       "better-call": 11,
       "class-variance-authority": 2,
@@ -226,10 +226,10 @@
   "totals": {
     "raw": 7953249,
     "gzip": 1397297,
-    "typesGzip": 1283006,
+    "typesGzip": 1253629,
     "cssGzip": 13148,
     "clientGzip": 666413,
-    "hostBakeGzip": 2693451
+    "hostBakeGzip": 2664074
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,

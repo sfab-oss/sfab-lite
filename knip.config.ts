@@ -40,7 +40,11 @@ const config: KnipConfig = {
       ignoreDependencies: ["tailwindcss", "tw-animate-css"],
     },
     "factory/check": {
-      entry: ["src/index.ts", "src/exp/index.ts"],
+      entry: [
+        "src/index.ts",
+        "src/exp/index.ts",
+        "scripts/check-drizzle-agreement.ts",
+      ],
       project: ["src/**/*.ts"],
     },
     "factory/lint": {
@@ -72,6 +76,9 @@ const config: KnipConfig = {
         "scripts/prebuild-client.mjs!",
         "scripts/prebuild-css-vfs.mjs!",
         "scripts/prebuild-types-vfs.mjs!",
+        "scripts/gen-drizzle-surface.mjs!",
+        "scripts/drizzle-seams.mjs!",
+        "scripts/served-specifiers.mjs!",
         "scripts/ensure-universe.mjs!",
         "scripts/pins.mjs!",
         "scripts/universe.mjs!",

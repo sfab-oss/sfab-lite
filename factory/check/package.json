@@ -27,7 +27,6 @@
     "measure:typed-stubs": "node scripts/run-measure.mjs measure-typed-stubs.ts",
     "measure:stack": "node scripts/run-measure.mjs measure-stack.ts",
     "measure:snapshot": "node scripts/run-measure.mjs measure-snapshot.ts",
-    "measure:gen-drizzle": "node scripts/run-measure.mjs measure-gen-drizzle.ts",
     "exp:watch-tail": "node scripts/watch-tail.mjs",
     "exp:drive": "node scripts/drive-exp-matrix.mjs"
   },

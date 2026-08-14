@@ -22,7 +22,7 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
 `pnpm check:pins`, `pnpm check:dead-code`, `pnpm check:seed`,
-`pnpm check:check-memory`.
+`pnpm check:check-memory`, `pnpm check:drizzle-agreement`.
 
 `check:app-lint` is the odd one: it checks `starters/erp/app/src` —
 the seed payload — against `framework/toolchain/app-biome.json`, the config the
@@ -50,6 +50,15 @@ state for exactly one app at a time. Treat that as a standing budget when
 touching `factory/check/src`: anything cached per app, and anything that grows the
 types VFS, spends against it. `factory/check/scripts/measure-memory.mjs` is the
 diagnostic that produced these numbers and re-derives them on demand.
+
+`check:drizzle-agreement` is the cheap-vs-real types-pack gate: starter
+drizzle-using server files must be 0 diagnostics under both the real drizzle
+`.d.ts` and the generated sqlite/D1 surface, and the planted
+`eq(entity.id, 0)` / `name: 123` failures on
+`starters/erp/app/src/hono/org-protected/entities.ts` must be caught under
+both (codes may differ). Heap is recorded, not gated. It needs
+`--max-old-space-size=8192` and several LanguageService programs, so it
+runs in CI only — not in pre-commit.
 
 Part of that budget is bought by
 `framework/runtime/scripts/trim-drizzle-dialects.mjs`, which drops drizzle's pg /
