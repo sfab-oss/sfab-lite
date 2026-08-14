@@ -59,6 +59,20 @@ export function createAppLsState(): AppLsState {
   };
 }
 
+/**
+ * A TS program over the frozen types VFS retains hundreds of MB and a Worker
+ * isolate gets 128 MB. Units of one run dispose between programs so two are
+ * never live; the store still holds at most one app. An `await` between
+ * construct and dispose would let two programs coexist and put the isolate
+ * straight back over its limit.
+ */
+export function disposeService(st: AppLsState): void {
+  st.service?.dispose();
+  st.service = null;
+  st.snapshots.clear();
+  st.rootFiles = null;
+}
+
 function compilerOptions(): CompilerOptions {
   return {
     target: ScriptTarget.ES2022,

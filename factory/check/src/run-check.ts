@@ -10,29 +10,21 @@ import type {
   CheckDiagnostic,
   CheckRequest,
   CheckResult,
-  CheckUnitName,
   CheckUnitResult,
 } from "@sfab-lite/core";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
 import {
-  extractSchemaText,
-  fragmentSource,
-  generateApiDts,
-  parseSchemaEntries,
-  prefixMergeSchema,
-  printSchemaEntries,
-  wrapApiDts,
-} from "./emit-snapshot.js";
-import { API_DTS, API_HASH } from "./generated-paths.js";
-import {
-  applyHonoOverlay,
-  HONO_ACCUMULATING,
-  HONO_TYPED,
-} from "./hono-surface.js";
+  type AfterUnit,
+  runEmit,
+  skippedUnit,
+  type UnitRun,
+} from "./emit-units.js";
+import { applyHonoOverlay, HONO_TYPED } from "./hono-surface.js";
 import {
   AMBIENT_ROOT_FILES,
   type AppLsState,
   createAppLsState,
+  disposeService,
   getLanguageService,
 } from "./ls-host.js";
 import {
@@ -41,13 +33,10 @@ import {
   sideAwareUnresolvedMessage,
 } from "./resolve-modules.js";
 import {
-  formatHashFile,
   generatedOverlayPath,
   hashServerTree,
   overlayAppPath,
   parseHashFile,
-  relFromOverlay,
-  routeModules,
   serverEntryRel,
   serverImportClosure,
 } from "./server-tree.js";
@@ -68,32 +57,14 @@ const MAX_REPORTED_DIAGNOSTICS = 40;
 /** Per-isolate LS store keyed by appId. */
 export type LsStore = Map<string, AppLsState>;
 
-/** Node measure scripts sample heap while the unit's LanguageService is live. */
-type AfterUnit = (unit: CheckUnitResult) => void;
-
 const defaultStore: LsStore = new Map();
 const LEADING_SLASH = /^\//;
-const FRAGMENT_ENTRY = "/app/src/hono/_fragment.ts";
 const GENERATED_PREFIX = "/app/src/generated/";
-const TS_EXT = /\.(ts|tsx)$/;
 
 /**
  * At most one app may hold state at a time, evicted *before* the next program
- * is built.
- *
- * A TS program over the frozen types VFS retains hundreds of MB and a Worker
- * isolate gets 128 MB. Units of one run dispose between programs so two are
- * never live; the store still holds at most one app. Making {@link runCheck}
- * async would let two programs coexist and put the isolate straight back over
- * its limit, with this cap still looking correct.
+ * is built (see {@link disposeService} for the memory invariant).
  */
-function disposeService(st: AppLsState): void {
-  st.service?.dispose();
-  st.service = null;
-  st.snapshots.clear();
-  st.rootFiles = null;
-}
-
 function stateFor(appId: string, store: LsStore): AppLsState {
   for (const other of [...store.keys()]) {
     if (other !== appId) {
@@ -279,45 +250,6 @@ function clientUnitRoots(overlay: Map<string, string>): string[] {
   return roots;
 }
 
-function relativeModuleSpec(fromFile: string, toFile: string): string {
-  const fromDir = fromFile
-    .slice(0, fromFile.lastIndexOf("/"))
-    .split("/")
-    .filter(Boolean);
-  const toParts = toFile.replace(TS_EXT, "").split("/").filter(Boolean);
-  let i = 0;
-  while (
-    i < fromDir.length &&
-    i < toParts.length - 1 &&
-    fromDir[i] === toParts[i]
-  ) {
-    i += 1;
-  }
-  const ups = fromDir.length - i;
-  const down = toParts.slice(i).join("/");
-  const spec = `${"../".repeat(ups)}${down}`;
-  return spec.startsWith(".") ? spec : `./${spec}`;
-}
-
-function writeGenerated(
-  st: AppLsState,
-  dts: string,
-  hashFile: string
-): Record<string, string> {
-  const dtsPath = generatedOverlayPath("apiDts");
-  const hashPath = generatedOverlayPath("apiHash");
-  st.overlay.set(dtsPath, dts);
-  st.overlay.set(hashPath, hashFile);
-  bumpVersion(st, dtsPath);
-  bumpVersion(st, hashPath);
-  st.snapshots.delete(dtsPath);
-  st.snapshots.delete(hashPath);
-  return {
-    [API_DTS]: dts,
-    [API_HASH]: hashFile,
-  };
-}
-
 function liveServiceCount(store: LsStore): number {
   let n = 0;
   for (const st of store.values()) {
@@ -328,168 +260,21 @@ function liveServiceCount(store: LsStore): number {
   return n;
 }
 
-function skippedUnit(unit: CheckUnitName): CheckUnitResult {
-  return {
-    unit,
-    diagnosticCount: 0,
-    checkMs: 0,
-    rootFileCount: 0,
-    skipped: true,
-  };
-}
-
-type UnitRun = (
-  unitRoots: string[],
-  honoText: string | null
-) => { diags: Diagnostic[]; checkMs: number; ls: LanguageService };
-
-function runEmit(
-  st: AppLsState,
-  runUnit: UnitRun,
-  entryPath: string,
-  entryRel: string,
-  hashed: { treeHash: string; fileHashes: Record<string, string> },
-  stored: ReturnType<typeof parseHashFile>,
-  storedDts: string | undefined,
-  afterUnit?: AfterUnit
-): {
-  unit: CheckUnitResult;
+/** Everything a run accumulates, built once and closed by {@link finish}. */
+interface RunCtx {
+  wallT0: number;
+  appId: string;
+  forceCold: boolean;
+  st: AppLsState;
+  store: LsStore;
+  bumpedFiles: string[];
+  lsReused: boolean;
+  units: CheckUnitResult[];
+  allDiags: Array<Diagnostic | CheckDiagnostic>;
+  checkMs: number;
+  rootFileCount: number;
   emittedFiles?: Record<string, string>;
-  error?: CheckDiagnostic;
-} {
-  const snapshotFresh = hashesMatch(hashed.treeHash, stored.treeHash);
-  if (
-    !st.overlay.has(entryPath) ||
-    (snapshotFresh && storedDts != null && storedDts !== "")
-  ) {
-    return { unit: skippedUnit("emit") };
-  }
-  const modules = routeModules(st.overlay, entryRel);
-  const leaves = modules.filter((m) => m.isLeaf);
-  const changedRels: string[] = [];
-  const closure = serverImportClosure(st.overlay, entryRel);
-  for (const path of closure) {
-    const rel = relFromOverlay(path);
-    if (hashed.fileHashes[rel] !== stored.fileHashes[rel]) {
-      changedRels.push(rel);
-    }
-  }
-  const canWarm =
-    stored.treeHash != null &&
-    storedDts != null &&
-    changedRels.length > 0 &&
-    changedRels.every((rel) => leaves.some((leaf) => leaf.rel === rel));
-  try {
-    if (canWarm && storedDts != null) {
-      return emitWarmLeaves(
-        st,
-        runUnit,
-        hashed,
-        storedDts,
-        leaves,
-        changedRels,
-        afterUnit
-      );
-    }
-    return emitFullTree(st, runUnit, entryPath, hashed, afterUnit);
-  } catch (e) {
-    disposeService(st);
-    applyHonoOverlay(st.overlay, st.versions, null);
-    return {
-      unit: {
-        unit: "emit",
-        diagnosticCount: 1,
-        checkMs: 0,
-        rootFileCount: 0,
-      },
-      error: {
-        code: 9002,
-        message: `LITE-SNAPSHOT: emit failed: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
-        file: entryPath,
-      },
-    };
-  }
-}
-
-function emitWarmLeaves(
-  st: AppLsState,
-  runUnit: UnitRun,
-  hashed: { treeHash: string; fileHashes: Record<string, string> },
-  storedDts: string,
-  leaves: ReturnType<typeof routeModules>,
-  changedRels: string[],
-  afterUnit?: AfterUnit
-): {
-  unit: CheckUnitResult;
-  emittedFiles: Record<string, string>;
-} {
-  const baseSchema = parseSchemaEntries(extractSchemaText(storedDts) ?? "{}");
-  let merged = new Map(baseSchema);
-  let emitMs = 0;
-  let emitRoots = 0;
-  for (const rel of changedRels) {
-    const leaf = leaves.find((l) => l.rel === rel);
-    if (!leaf) {
-      continue;
-    }
-    const spec = relativeModuleSpec(FRAGMENT_ENTRY, leaf.overlayPath);
-    st.overlay.set(FRAGMENT_ENTRY, fragmentSource(leaf.exportName, spec));
-    bumpVersion(st, FRAGMENT_ENTRY);
-    const frag = runUnit([FRAGMENT_ENTRY], HONO_ACCUMULATING);
-    emitMs += frag.checkMs;
-    emitRoots += st.rootFiles?.length ?? 0;
-    const dts = generateApiDts(frag.ls, FRAGMENT_ENTRY);
-    merged = prefixMergeSchema(
-      merged,
-      leaf.prefix,
-      parseSchemaEntries(dts.schemaText)
-    );
-    disposeService(st);
-    st.overlay.delete(FRAGMENT_ENTRY);
-  }
-  applyHonoOverlay(st.overlay, st.versions, null);
-  const hashFile = formatHashFile(hashed.treeHash, hashed.fileHashes);
-  const emittedFiles = writeGenerated(
-    st,
-    wrapApiDts(printSchemaEntries(merged)),
-    hashFile
-  );
-  const unit: CheckUnitResult = {
-    unit: "emit",
-    diagnosticCount: 0,
-    checkMs: emitMs,
-    rootFileCount: emitRoots,
-  };
-  afterUnit?.(unit);
-  return { unit, emittedFiles };
-}
-
-function emitFullTree(
-  st: AppLsState,
-  runUnit: UnitRun,
-  entryPath: string,
-  hashed: { treeHash: string; fileHashes: Record<string, string> },
-  afterUnit?: AfterUnit
-): {
-  unit: CheckUnitResult;
-  emittedFiles: Record<string, string>;
-} {
-  const emit = runUnit([entryPath], HONO_ACCUMULATING);
-  const dts = generateApiDts(emit.ls, entryPath);
-  const hashFile = formatHashFile(hashed.treeHash, hashed.fileHashes);
-  const emittedFiles = writeGenerated(st, dts.text, hashFile);
-  const unit: CheckUnitResult = {
-    unit: "emit",
-    diagnosticCount: emit.diags.length,
-    checkMs: emit.checkMs,
-    rootFileCount: st.rootFiles?.length ?? 0,
-  };
-  afterUnit?.(unit);
-  disposeService(st);
-  applyHonoOverlay(st.overlay, st.versions, null);
-  return { unit, emittedFiles };
+  serverTreeHash?: string;
 }
 
 /**
@@ -504,36 +289,36 @@ export function runCheck(
   body: CheckRequest,
   opts?: { store?: LsStore; afterUnit?: AfterUnit }
 ): CheckResult {
-  const wallT0 = Date.now();
   const store = opts?.store ?? defaultStore;
   const afterUnit = opts?.afterUnit;
-  const appId = body.appId;
-  const files = body.files;
   const forceCold = body.forceCold === true;
-  const st = stateFor(appId, store);
-  const lsReused = !forceCold && st.service != null;
+  const st = stateFor(body.appId, store);
+  const ctx: RunCtx = {
+    wallT0: Date.now(),
+    appId: body.appId,
+    forceCold,
+    st,
+    store,
+    bumpedFiles: [],
+    lsReused: !forceCold && st.service != null,
+    units: [],
+    allDiags: [],
+    checkMs: 0,
+    rootFileCount: 0,
+  };
 
   if (forceCold) {
     resetAppOverlay(st);
   }
 
-  const { bumpedFiles } = syncOverlay(st, files);
+  ctx.bumpedFiles = syncOverlay(st, body.files).bumpedFiles;
   applyHonoOverlay(st.overlay, st.versions, null);
 
-  const entryRel = serverEntryRel(files);
+  const entryRel = serverEntryRel(body.files);
   const entryPath = overlayAppPath(entryRel);
   const serverRoots = serverUnitRoots(st.overlay);
-  const units: CheckUnitResult[] = [];
-  const allDiags: Array<Diagnostic | CheckDiagnostic> = [];
-  let checkMs = 0;
-  let emittedFiles: Record<string, string> | undefined;
-  let serverTreeHash: string | undefined;
-  let rootFileCount = 0;
 
-  const runUnit = (
-    unitRoots: string[],
-    honoText: string | null
-  ): { diags: Diagnostic[]; checkMs: number; ls: LanguageService } => {
+  const runUnit: UnitRun = (unitRoots, honoText) => {
     if (st.service) {
       disposeService(st);
     }
@@ -548,44 +333,30 @@ export function runCheck(
 
   if (serverRoots.length > 0) {
     const server = runUnit(serverRoots, HONO_TYPED);
-    checkMs += server.checkMs;
-    rootFileCount += st.rootFiles?.length ?? 0;
-    allDiags.push(...server.diags);
+    ctx.checkMs += server.checkMs;
+    ctx.rootFileCount += st.rootFiles?.length ?? 0;
+    ctx.allDiags.push(...server.diags);
     const serverResult: CheckUnitResult = {
       unit: "server",
       diagnosticCount: server.diags.length,
       checkMs: server.checkMs,
       rootFileCount: st.rootFiles?.length ?? 0,
     };
-    units.push(serverResult);
+    ctx.units.push(serverResult);
     afterUnit?.(serverResult);
     disposeService(st);
     applyHonoOverlay(st.overlay, st.versions, null);
     if (server.diags.length > 0) {
-      units.push(skippedUnit("emit"), skippedUnit("client"));
-      return finish(
-        wallT0,
-        appId,
-        forceCold,
-        allDiags,
-        st,
-        store,
-        checkMs,
-        rootFileCount,
-        bumpedFiles,
-        lsReused,
-        units,
-        emittedFiles,
-        serverTreeHash
-      );
+      ctx.units.push(skippedUnit("emit"), skippedUnit("client"));
+      return finish(ctx);
     }
   } else {
-    units.push(skippedUnit("server"));
+    ctx.units.push(skippedUnit("server"));
   }
 
   const closure = serverImportClosure(st.overlay, entryRel);
   const hashed = hashServerTree(st.overlay, closure);
-  serverTreeHash = hashed.treeHash;
+  ctx.serverTreeHash = hashed.treeHash;
   const stored = parseHashFile(st.overlay.get(generatedOverlayPath("apiHash")));
   const storedDts = st.overlay.get(generatedOverlayPath("apiDts"));
   const emit = runEmit(
@@ -598,30 +369,16 @@ export function runCheck(
     storedDts,
     afterUnit
   );
-  units.push(emit.unit);
-  checkMs += emit.unit.checkMs;
-  rootFileCount += emit.unit.rootFileCount;
+  ctx.units.push(emit.unit);
+  ctx.checkMs += emit.unit.checkMs;
+  ctx.rootFileCount += emit.unit.rootFileCount;
   if (emit.emittedFiles) {
-    emittedFiles = emit.emittedFiles;
+    ctx.emittedFiles = emit.emittedFiles;
   }
   if (emit.error) {
-    allDiags.push(emit.error);
-    units.push(skippedUnit("client"));
-    return finish(
-      wallT0,
-      appId,
-      forceCold,
-      allDiags,
-      st,
-      store,
-      checkMs,
-      rootFileCount,
-      bumpedFiles,
-      lsReused,
-      units,
-      emittedFiles,
-      serverTreeHash
-    );
+    ctx.allDiags.push(emit.error);
+    ctx.units.push(skippedUnit("client"));
+    return finish(ctx);
   }
 
   const gotHash = parseHashFile(
@@ -632,100 +389,58 @@ export function runCheck(
     (hasServerEntry || gotHash != null) &&
     !hashesMatch(hashed.treeHash, gotHash)
   ) {
-    allDiags.push(snapshotFreshnessDiagnostic(hashed.treeHash, gotHash));
-    units.push(skippedUnit("client"));
-    return finish(
-      wallT0,
-      appId,
-      forceCold,
-      allDiags,
-      st,
-      store,
-      checkMs,
-      rootFileCount,
-      bumpedFiles,
-      lsReused,
-      units,
-      emittedFiles,
-      serverTreeHash
-    );
+    ctx.allDiags.push(snapshotFreshnessDiagnostic(hashed.treeHash, gotHash));
+    ctx.units.push(skippedUnit("client"));
+    return finish(ctx);
   }
 
   const clientRoots = clientUnitRoots(st.overlay);
   if (clientRoots.length === 0) {
-    units.push(skippedUnit("client"));
+    ctx.units.push(skippedUnit("client"));
   } else {
     const client = runUnit(clientRoots, null);
-    checkMs += client.checkMs;
-    rootFileCount += st.rootFiles?.length ?? 0;
-    allDiags.push(...client.diags);
+    ctx.checkMs += client.checkMs;
+    ctx.rootFileCount += st.rootFiles?.length ?? 0;
+    ctx.allDiags.push(...client.diags);
     const clientResult: CheckUnitResult = {
       unit: "client",
       diagnosticCount: client.diags.length,
       checkMs: client.checkMs,
       rootFileCount: st.rootFiles?.length ?? 0,
     };
-    units.push(clientResult);
+    ctx.units.push(clientResult);
     afterUnit?.(clientResult);
     disposeService(st);
   }
 
-  return finish(
-    wallT0,
-    appId,
-    forceCold,
-    allDiags,
-    st,
-    store,
-    checkMs,
-    rootFileCount,
-    bumpedFiles,
-    lsReused,
-    units,
-    emittedFiles,
-    serverTreeHash
-  );
+  return finish(ctx);
 }
 
-function finish(
-  wallT0: number,
-  appId: string,
-  forceCold: boolean,
-  allDiags: (Diagnostic | CheckDiagnostic)[],
-  st: AppLsState,
-  store: LsStore,
-  checkMs: number,
-  rootFileCount: number,
-  bumpedFiles: string[],
-  lsReused: boolean,
-  units: CheckUnitResult[],
-  emittedFiles: Record<string, string> | undefined,
-  serverTreeHash: string | undefined
-): CheckResult {
-  disposeService(st);
-  applyHonoOverlay(st.overlay, st.versions, null);
-  if (liveServiceCount(store) > 0) {
+function finish(ctx: RunCtx): CheckResult {
+  disposeService(ctx.st);
+  applyHonoOverlay(ctx.st.overlay, ctx.st.versions, null);
+  if (liveServiceCount(ctx.store) > 0) {
     throw new Error(
-      `check store holds ${liveServiceCount(store)} live LanguageServices after the run`
+      `check store holds ${liveServiceCount(ctx.store)} live LanguageServices after the run`
     );
   }
-  const summarized = summarize(allDiags, st.overlay);
+  const summarized = summarize(ctx.allDiags, ctx.st.overlay);
   return {
     ok: true,
-    appId,
-    pass: forceCold ? "cold" : "incremental",
-    diagnosticCount: allDiags.length,
-    truncated: allDiags.length > MAX_REPORTED_DIAGNOSTICS,
+    appId: ctx.appId,
+    pass: ctx.forceCold ? "cold" : "incremental",
+    diagnosticCount: ctx.allDiags.length,
+    truncated: ctx.allDiags.length > MAX_REPORTED_DIAGNOSTICS,
     diagnostics: summarized,
-    checkMs,
-    wallMs: Date.now() - wallT0,
-    rootFileCount,
-    bumpedFiles,
-    lsReused,
+    checkMs: ctx.checkMs,
+    wallMs: Date.now() - ctx.wallT0,
+    rootFileCount: ctx.rootFileCount,
+    bumpedFiles: ctx.bumpedFiles,
+    lsReused: ctx.lsReused,
     vfsFileCount: TYPES_VFS_MANIFEST.vfsFileCount,
-    emittedFiles,
-    units,
-    serverTreeHash,
+    emittedFiles: ctx.emittedFiles,
+    units: ctx.units,
+    serverTreeHash: ctx.serverTreeHash,
   };
 }
 
