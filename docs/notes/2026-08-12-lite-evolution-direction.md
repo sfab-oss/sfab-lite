@@ -385,7 +385,7 @@ today's equivalent failure is a bare resolution error.
      freshness is structural, not disciplined** — the `api.d.ts` is
      keyed to a hash of the server tree, and a client check can never
      run against a snapshot from a different hash; (7) if the check
-     runs as units (decision 8's open fork), unit ordering — server
+     runs as units, unit ordering — server
      pass emits before any client pass consumes — must be reconciled
      with the sync-`runCheck` invariant *in the RFC, in writing*.
 
@@ -530,17 +530,16 @@ today's equivalent failure is a bare resolution error.
      snapshot emit (92/module), client vs snapshot (147–175 — the
      React/base-ui floor).
 
-   **Remaining adoption gate — the production tail matrix** (five
-   programs; spec lives with the packet, results land in
-   `making-it-fit.md`). It carries one open fork: if the 255 MB
-   cheap-surface union fits production comfortably (255 sits below the
-   263-local point that produced 0/64 prod OOMs), a **single-program
-   architecture** — today's worker loop with the surface and client
-   edge swapped — is viable and simpler than check units. Both
-   branches use identical components; the tail picks the
-   orchestration. The dedicated real-types snapshot worker (215 MB
-   program) is demoted to fallback-only. Local numbers adopt nothing
-   by themselves, per this repo's tradition.
+   **Production tail matrix (2026-08-13) — fork closed.** Throwaway
+   worker `sfab-lite-check-exp`, 50 invocations each
+   ([write-up](2026-08-13-prod-tail-matrix.md)). The 255 MB cheap-surface
+   union was **4/50 `exceededMemory`** — a single-program architecture is
+   not viable. Units confirmed. Server unit 0/50, full-server emit 0/50,
+   client-vs-snapshot 0/50. Control union (340 local) 0/50: the old
+   330-local → ~1-in-4 mapping does not hold on this worker; the tail
+   was measuring (same session caught the four cheap-union kills). The
+   dedicated real-types snapshot worker (215 MB program) stays
+   fallback-only.
 
 9. **The eject rule.** Eject = copy the app tree + pick an adapter, and
    that stays true by construction: the base runtime may expose only
@@ -668,10 +667,11 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
    candidate **not adopted**. Follow-up rounds (see the
    [experiments index](2026-08-13-lite-evolution-experiments.md))
    replaced it with the architecture now recorded in decision 8;
-   local stage is **complete**. Stage 2 is now the **five-program prod
-   tail matrix** (control union · cheap-surface union at 255 — the
-   units-vs-single-program fork · server unit 93 · full emit 146 ·
-   client unit vs snapshot), still open pending Wrangler login.
+   local stage is **complete**. Stage 2, the **five-program prod tail
+   matrix**, ran 2026-08-13
+   ([`2026-08-13-prod-tail-matrix.md`](2026-08-13-prod-tail-matrix.md)):
+   cheap-union **4/50** OOM → units; server / emit / client units 0/50.
+   Decision 8's fork is closed.
 
 ### Suggested rollout — about ten PRs
 
@@ -681,9 +681,9 @@ not so few that any becomes unreviewable. Each lands gate-green.
 units the original list did not name.)
 
 1. **Experiments** — the item-8 results into `making-it-fit.md`, plus
-   the written adopt/reject of decision 8's candidate. **Done locally**
-   (PRs #122–#124 + this amendment); the prod tail matrix is the
-   remaining stage and gates nothing before PR 6.
+   the written adopt/reject of decision 8's candidate. **Done** (PRs
+   #122–#125 + the prod tail matrix). Cheap-union 4/50 OOM closed the
+   fork on units. Does not gate PR 2.
 2. **Restructure** — the mechanical `git mv` to the future-repo map,
    workspace/CI paths, the runtime's own universe pins (the inversion
    fix), and the direction gate with its red test. Large but low-risk;
@@ -697,10 +697,9 @@ units the original list did not name.)
    (cheap-vs-real verdict parity over template + recipes), planted-
    error red tests. Replaces the handwritten experiment overlays.
 6. **Check plumbing** — the snapshot artifact (emit, hash-keyed store,
-   per-module regen + prefix merge) and, per the prod-tail fork,
-   either check units or the single cheap-surface program wired into
-   the worker loop. Shaped by the tail's numbers; both branches
-   consume PRs 3 and 5 unchanged.
+   per-module regen + prefix merge) and **check units** wired into the
+   worker loop (prod tail closed the single-program fork: cheap-union
+   4/50 OOM). Consumes PRs 3 and 5.
 7. **Registry** — the package, pinned vendored schema, CI gates,
    resolver, hosted `add` with provenance and collision refusal.
 8. **Starter** — the rebuild on the new tree, assembled from the
@@ -811,5 +810,5 @@ on; the mechanism itself is deferred — deliberately, and in writing.
 When milestone 1 lands: the app format RFC becomes
 `docs/architecture/APP-FORMAT.md`; decisions 2, 3, 4, 6, 8 and 9 become
 ADRs if their reversal cost proves real; this note is deleted (deletion
-is success). Decision 8 is the furthest along: nine experiment notes
-back it, and it is ADR-ready the day the prod tail matrix lands.
+is success). Decision 8 is the furthest along: the experiment notes
+back it, the prod tail closed its fork on units, and it is ADR-ready.

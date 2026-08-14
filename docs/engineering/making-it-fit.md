@@ -174,12 +174,19 @@ behind one settles on the next poll. That closes the gap where the console
   | **2026-07-27** | **1351** | **336.8 MB** |
   | **2026-08-13** | **1368** | **340 MB** |
 
-  Retention is now *above* the pre-trim figure, and one create in four failed
-  against the live factory. Technique 6 above stops that costing the app — an
-  OOM is now a retry — but it is a mitigation and this is still a regression.
-  Re-measured 2026-08-13 with `measure-memory.mjs` (APPS=1): 72 app source
-  files, **339.5 MB** over the 88.7 MB VFS baseline — same ballpark as the
-  2026-07-27 figure; the template has grown, not shrunk.
+  Retention is now *above* the pre-trim figure. Against the live factory
+  (2026-07) one create in four failed; technique 6 above stops that
+  costing the app — an OOM is now a retry — but it is a mitigation and
+  this is still a local-heap regression. Re-measured 2026-08-13 with
+  `measure-memory.mjs` (APPS=1): 72 app source files, **339.5 MB** over
+  the 88.7 MB VFS baseline — same ballpark as the 2026-07-27 figure; the
+  template has grown, not shrunk.
+
+  Production recalibration 2026-08-13 on throwaway `sfab-lite-check-exp`
+  (not the live check worker): the same 340 MB union was **0/50**
+  `exceededMemory`. The cheap-surface 255 MB union was **4/50**. Local
+  heap ranking is not production ranking. Details:
+  [`../notes/2026-08-13-prod-tail-matrix.md`](../notes/2026-08-13-prod-tail-matrix.md).
 
   `check:check-memory` passes throughout, because it bounds *growth between
   apps* (+9.1 MB against a 50 MB limit) and never looks at the absolute floor.
@@ -233,13 +240,15 @@ behind one settles on the next poll. That closes the gap where the console
   Generated `api.d.ts` (`typeof ApiType` via `typeToString`, 12.5 KB, no
   drizzle mention) matches the old `hc<any>` stub (~144 MB): it severs the
   client→server inference and does not save the client from React / base-ui.
-  **Not adopted.** Local numbers never close a memory claim here; production
-  verification of the server zone (the peak that has to fit) was not run —
-  no Wrangler credentials on this host. Do not treat slice-checking, or
-  per-capability-set vendoring, as the cap solution until that tail count
-  exists. The separate requirement that the runtime's type surface not be
-  *derived from the template* still stands; this experiment only falsifies
-  "split today's program into zones and the cap is fine."
+  **Not adopted.** Local numbers never close a memory claim here; the
+  215 MB real-VFS server *zone* was not tailed. The later typed server
+  *unit* (93 local) was **0/50** on a throwaway worker
+  ([`../notes/2026-08-13-prod-tail-matrix.md`](../notes/2026-08-13-prod-tail-matrix.md))
+  — a different program. Do not treat slice-checking, or
+  per-capability-set vendoring, as the cap solution. The separate
+  requirement that the runtime's type surface not be *derived from the
+  template* still stands; this experiment only falsifies "split today's
+  program into zones and the cap is fine."
 
 - **Eject copy-out is not real today.** Full write-up:
   [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md).
@@ -313,6 +322,16 @@ behind one settles on the next poll. That closes the gap where the console
   schema, not files. Do not accumulate on the ordinary server check.
   Per-module fragment emit stays at **92 MB**:
   [`../notes/2026-08-13-snapshot-route-fragments.md`](../notes/2026-08-13-snapshot-route-fragments.md).
+
+- **Prod tail matrix: units, not a single cheap-surface program.** Full
+  write-up:
+  [`../notes/2026-08-13-prod-tail-matrix.md`](../notes/2026-08-13-prod-tail-matrix.md).
+  Throwaway `sfab-lite-check-exp`, 50 spaced invocations each, count
+  `exceededMemory`. Cheap-union **4/50**; control union **0/50**; server
+  unit **0/50**; accumulating emit **0/50**; client-vs-snapshot **0/50**.
+  255 local does not fit production. 340 local no longer maps to the
+  historical ~1-in-4 on this worker (live-factory 1-in-4 is a different
+  worker and date).
 
 - **`tsgo` forecast: faster here, not 2.9× RSS.** Full write-up:
   [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md).

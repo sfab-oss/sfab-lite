@@ -8,6 +8,7 @@
  * import closure. Local heap is an indicator, never a production claim.
  */
 
+import { writeFileSync } from "node:fs";
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import ts from "typescript";
@@ -485,6 +486,13 @@ const accum = measure({
 
 if (!accum.dts) {
   throw new Error("accumulating pass did not emit api.d.ts");
+}
+
+if (process.env.WRITE_DTS) {
+  writeFileSync(
+    process.env.WRITE_DTS,
+    `export const BAKED_API_DTS =\n  ${JSON.stringify(accum.dts.text)};\n`
+  );
 }
 
 console.log(
