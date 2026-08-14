@@ -500,7 +500,7 @@ function assertNoDeadDialects() {
 
 /**
  * Include every .d.ts and package.json under a package in the isolated
- * universe, not only what the template program closure reached.
+ * universe, not only what the served-surface program closure reached.
  * Deliberate per-package exception: the client kernel vendors the full
  * @base-ui/react surface, so the types VFS must advertise the same vocabulary
  * or apps that import e.g. dialog would fail the check worker.
@@ -510,8 +510,8 @@ function assertNoDeadDialects() {
  * the `.d.ts` side is present.
  *
  * Consequence worth knowing before reading `packageTypeCounts` as evidence:
- * an excepted package's count still moves when the template imports more of
- * it, because `ensureDualDeclSiblings` adds `.d.mts` siblings from the program
+ * an excepted package's count still moves when the served closure reaches more
+ * of it, because `ensureDualDeclSiblings` adds `.d.mts` siblings from the program
  * closure that this walk deliberately skipped. A rising count therefore does
  * not mean the exception is leaking; every `.d.ts` is already here.
  */
@@ -577,7 +577,7 @@ function includeFullPackageTypes(pkgName) {
 const closure = buildClosureFromServedSurface();
 const baseUiExtraFiles = includeFullPackageTypes("@base-ui/react");
 // Same reason as base-ui: the client kernel vendors every icon, so an app may
-// import any of them. Pruning to what the template happens to draw would make
+// import any of them. Pruning to what the closure happens to reach would make
 // the check worker reject the other three hundred.
 const iconExtraFiles = includeFullPackageTypes("@radix-ui/react-icons");
 
