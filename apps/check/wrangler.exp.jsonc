@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "sfab-lite-check-exp",
+  "main": "src/exp/index.ts",
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": ["nodejs_compat"],
+  // Throwaway worker for the prod-tail matrix. workers.dev is on so we can
+  // drive /exp/* by URL. The live check worker stays workers_dev: false.
+  // Every /exp/* route fails closed without ADMIN_TOKEN.
+  "workers_dev": true,
+  "limits": {
+    "cpu_ms": 300000
+  }
+}

@@ -40,6 +40,7 @@ const config: KnipConfig = {
       ignoreDependencies: ["tailwindcss", "tw-animate-css"],
     },
     "apps/check": {
+      entry: ["src/index.ts", "src/exp/index.ts"],
       project: ["src/**/*.ts"],
     },
     "apps/lint": {
