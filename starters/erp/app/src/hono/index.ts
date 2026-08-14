@@ -25,8 +25,9 @@ const api = new Hono<AppEnv>()
  * The app's API. `app` is the contract with the factory: it compiles this
  * export into the worker that serves your app, so keep the name.
  *
- * `ApiType` (not `AppType`) is what the SPA client is inferred from — the
- * tree under `/api`, so the client is not stuck with an awkward `.api.` hop.
+ * `ApiType` (not `AppType`) is the inner `/api` tree the emit unit prints
+ * into `src/generated/api.d.ts`. The SPA client imports that snapshot, not
+ * `typeof` this module.
  */
 export const app = new Hono<AppEnv>()
   .onError(appErrorHandler)

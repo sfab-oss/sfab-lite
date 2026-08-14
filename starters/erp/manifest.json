@@ -21,7 +21,7 @@
   },
   "source": {
     "dirs": ["src", "migrations"],
-    "extensions": [".ts", ".tsx", ".css", ".sql", ".json"],
+    "extensions": [".ts", ".tsx", ".css", ".sql", ".json", ".hash"],
     "files": [
       "safelist.txt",
       "package.json",

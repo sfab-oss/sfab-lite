@@ -1,10 +1,10 @@
 import { hc } from "hono/client";
-import type { ApiType } from "../../hono";
+import type { ApiType } from "../../generated/api";
 import { publicBase } from "./public-base";
 
 /**
- * Typed client for this app's own API, inferred from the Hono tree under
- * `/api`. Change a route and the call sites here stop compiling.
+ * Typed client for this app's own API, inferred from the generated snapshot
+ * (`src/generated/api.d.ts`) rather than `typeof` the live server.
  *
  *   const res = await client.protected.entities.$get();
  *   const { data } = await res.json();

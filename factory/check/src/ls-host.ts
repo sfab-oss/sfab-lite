@@ -35,7 +35,7 @@ const LIB_ROOT_FILES: readonly string[] = Object.keys(TYPES_VFS)
   .filter((k) => k.startsWith("/libs/lib.") && k.endsWith(".d.ts"))
   .sort();
 
-const AMBIENT_ROOT_FILES: readonly string[] = [
+export const AMBIENT_ROOT_FILES: readonly string[] = [
   "/types/cloudflare-ambient.d.ts",
   ...LIB_ROOT_FILES,
 ];
@@ -89,7 +89,7 @@ function rootFilesFor(overlay: Map<string, string>): string[] {
     : [...AMBIENT_ROOT_FILES];
 }
 
-export function rootsForState(st: AppLsState): string[] {
+function rootsForState(st: AppLsState): string[] {
   if (st.rootFiles) {
     return st.rootFiles;
   }

@@ -12,11 +12,7 @@
 
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import {
-  createAppLsState,
-  getLanguageService,
-  rootsForState,
-} from "../src/ls-host.ts";
+import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
 
 const files: Record<string, string> = {};
 for (const [path, text] of Object.entries(
@@ -34,7 +30,7 @@ for (const [rel, text] of Object.entries(files)) {
 }
 
 const ls = getLanguageService(st);
-const roots = rootsForState(st).filter((f) => f.startsWith("/app/"));
+const roots = (st.rootFiles ?? []).filter((f) => f.startsWith("/app/"));
 // Force the full semantic pass, which is what pulls the closure in.
 for (const f of roots) {
   ls.getSemanticDiagnostics(f);

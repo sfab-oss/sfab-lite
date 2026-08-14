@@ -24,6 +24,8 @@ export type {
   CheckRequest,
   CheckResponse,
   CheckResult,
+  CheckUnitName,
+  CheckUnitResult,
 } from "./check.js";
 export type {
   LintDiagnostic,

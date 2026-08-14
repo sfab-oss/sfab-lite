@@ -12,7 +12,12 @@ const baseFiles: Record<string, string> = {};
 for (const [path, text] of Object.entries(
   seed.sourceFiles as Record<string, string>
 )) {
-  if (path.endsWith(".ts") || path.endsWith(".tsx") || path.endsWith(".css")) {
+  if (
+    path.endsWith(".ts") ||
+    path.endsWith(".tsx") ||
+    path.endsWith(".css") ||
+    path.endsWith(".hash")
+  ) {
     baseFiles[path] = text;
   }
 }

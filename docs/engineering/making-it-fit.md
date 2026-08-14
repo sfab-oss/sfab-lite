@@ -84,6 +84,12 @@ still resident, and the isolate died.
 
 Evicting on entry took heap growth across six apps from **+1,605 MB to +8 MB**.
 
+A check run is now three ordered units (server → emit → client). The
+LanguageService is disposed between them, so the store-bound gate is "at most
+one app in the store, and **zero** live programs after a run returns." The
+sync invariant is unchanged: an `await` between construct and dispose would
+let two programs coexist.
+
 This works only because `runCheck` is **synchronous**. JavaScript is
 single-threaded and a synchronous function cannot yield, so two requests in one
 isolate cannot interleave and the earlier program is always unreferenced before
@@ -350,6 +356,27 @@ behind one settles on the next poll. That closes the gap where the console
   same-session vs parent `9d51e65`: overBaseline **305.5 MB** (parent
   **339.6 MB**); total heap 394.4 vs 431.9. Local indicator; prod
   re-tail stays post-PR6.
+
+- **Check units shipped (PR 6).** `runCheck` is three ordered sync units
+  (server → emit → client) with the LanguageService disposed between them.
+  Snapshot I/O is in-memory; the host persists `src/generated/api.d.ts` +
+  `api.hash`. Stale hash is a hard fail (`LITE-SNAPSHOT`, code 9001). Client
+  edge cut is the starter importing that snapshot, not `typeof` the live
+  server. `measure:units` 2026-08-14 (Node, heap sampled while the unit's
+  LanguageService is live):
+
+  | unit | experiment (isolated) | product path |
+  | --- | --- | --- |
+  | server | 93 MB | **244 MB** (87 roots: all non-client `src/`) |
+  | emit, cold full-tree | 146 MB | **250 MB** |
+  | emit, warm leaf | 92 MB | not heap-sampled; 0.8 s vs cold 1.8 s |
+  | client vs snapshot | 147–175 MB | **372 MB** |
+
+  After dispose, retained ~98 MB; `check:check-memory` is flat across six
+  apps (−0.5 MB, store size 1, zero live services). The product server unit
+  is not the experiment's entry-closure program. Local peaks do not close a
+  memory claim; checkpoint 3 is the live re-tail vs the 0/8 baseline
+  ([`../notes/2026-08-14-live-factory-baseline.md`](../notes/2026-08-14-live-factory-baseline.md)).
 
 ## Three lessons that keep recurring
 

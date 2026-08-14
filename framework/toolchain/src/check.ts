@@ -5,11 +5,22 @@
  * shape without either importing the other. Sibling of `LintResult`.
  */
 
+export type CheckUnitName = "server" | "emit" | "client";
+
 export interface CheckRequest {
   appId: string;
   files: Record<string, string>;
   /** Drop the per-app LanguageService and rehydrate from scratch. */
   forceCold?: boolean;
+}
+
+export interface CheckUnitResult {
+  unit: CheckUnitName;
+  diagnosticCount: number;
+  checkMs: number;
+  rootFileCount: number;
+  /** True when the unit did not construct a program (server failed, skip, …). */
+  skipped?: boolean;
 }
 
 export interface CheckDiagnostic {
@@ -49,6 +60,16 @@ export interface CheckResult {
   /** True when the per-appId LanguageService instance was kept. */
   lsReused: boolean;
   vfsFileCount: number;
+  /**
+   * Snapshot files produced by the emit unit (`src/generated/api.d.ts` +
+   * `api.hash`). The host persists these onto the app tree after the run;
+   * the check worker has no storage bindings.
+   */
+  emittedFiles?: Record<string, string>;
+  /** Per-unit timings and diagnostic counts, in run order. */
+  units?: CheckUnitResult[];
+  /** `sha256:` of the server-tree import closure this run hashed. */
+  serverTreeHash?: string;
 }
 
 /** A check that could not run. Carries no diagnostics — nothing was checked. */

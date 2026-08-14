@@ -59,6 +59,25 @@ export interface ShellCommandDeps {
   workspaceId: string;
 }
 
+async function persistEmittedFiles(
+  ctx: CommandContext,
+  emitted: Record<string, string> | undefined
+): Promise<string[]> {
+  if (!emitted) {
+    return [];
+  }
+  const wrote: string[] = [];
+  for (const [path, content] of Object.entries(emitted)) {
+    if (isPlatformReadonlyPath(path)) {
+      continue;
+    }
+    const abs = path.startsWith("/") ? path : `/${path}`;
+    await ctx.fs.writeFile(abs, content);
+    wrote.push(path);
+  }
+  return wrote;
+}
+
 async function runTypecheck(
   deps: ShellCommandDeps,
   ctx: CommandContext
@@ -66,6 +85,9 @@ async function runTypecheck(
   const files = await collectWorkspaceSourceFiles(ctx);
   try {
     const check = await callCheck(deps.env, deps.appId, files);
+    if (check.body?.ok) {
+      await persistEmittedFiles(ctx, check.body.emittedFiles);
+    }
     const text = renderCheckText(check.body);
     if (check.http >= 500 || !check.body?.ok) {
       return fail(text || `typecheck: check worker HTTP ${check.http}\n`, 1);
