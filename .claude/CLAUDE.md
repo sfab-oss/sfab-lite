@@ -20,8 +20,9 @@ vs app plane, reserved words):
 
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
-`pnpm check:cycles`, `pnpm check:direction`, `pnpm check:pins`,
-`pnpm check:dead-code`, `pnpm check:seed`, `pnpm check:check-memory`.
+`pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
+`pnpm check:pins`, `pnpm check:dead-code`, `pnpm check:seed`,
+`pnpm check:check-memory`.
 
 `check:app-lint` is the odd one: it checks `starters/erp/app/src` —
 the seed payload — against `framework/toolchain/app-biome.json`, the config the
@@ -81,14 +82,15 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 | `factory/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
 | `starters/erp` | Starter-lite seed in `app/` (independently runnable) |
 | `framework/runtime` | Frozen universe + prebuild (owns universe pins) |
-| `framework/toolchain` | Shared contracts (check/lint wire types, app-biome) |
+| `framework/toolchain` | Shared contracts (app-format schema, check/lint wire types, app-biome) |
 | `framework/tsconfig` | Shared TS configs |
 | `framework/biome-config` | Shared Biome presets |
 | `registry/` | Future recipes repo (empty README in this milestone) |
 
 ## Where things live
 
-- Docs (architecture, ADRs, notes) → [`docs/`](docs/)
+- Docs (architecture, ADRs, notes) → [`docs/`](docs/). App format:
+  [`docs/architecture/APP-FORMAT.md`](docs/architecture/APP-FORMAT.md)
 - Skills (on demand) → [`.agents/skills/`](.agents/skills/) — `wrangler`,
   `cloudflare`, `durable-objects`, `workers-best-practices`, `ai-sdk`,
   `agent-browser`, `shadcn`, `tanstack-start-best-practices`, `find-skills`

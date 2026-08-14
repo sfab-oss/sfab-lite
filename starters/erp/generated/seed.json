@@ -1,5 +1,9 @@
 {
   "manifest": {
+    "format": 0,
+    "name": "erp",
+    "runtime": "^0",
+    "adapter": "cloudflare",
     "root": "app",
     "server": {
       "entry": "src/hono/index.ts",
@@ -9,6 +13,7 @@
       "entry": "src/ui/main.tsx",
       "styles": "src/ui/styles.css"
     },
+    "html": "index.html",
     "safelist": "safelist.txt",
     "migrations": "migrations",
     "schema": "src/db/schema/index.ts",
@@ -37,7 +42,10 @@
       "exclude": [
         "src/worker.ts"
       ]
-    }
+    },
+    "capabilities": [],
+    "modules": [],
+    "recipes": {}
   },
   "sourceFiles": {
     "src/auth/index.ts": "import { betterAuth } from \"better-auth\";\nimport { drizzleAdapter } from \"better-auth/adapters/drizzle\";\nimport { organization } from \"better-auth/plugins\";\nimport { eq } from \"drizzle-orm\";\nimport { createDb } from \"../db\";\n// biome-ignore lint/performance/noNamespaceImport: better-auth's drizzle adapter takes the whole schema module.\nimport * as schema from \"../db/schema\";\nimport { member } from \"../db/schema\";\nimport type { Env } from \"../env\";\n\n/**\n * Origins allowed to drive the auth base URL when it is not configured.\n * Standalone dev only: Vite serves the SPA on 5173 and proxies `/api` to\n * wrangler on 8787, so cookies must land on the origin the browser is on.\n * In the factory `BETTER_AUTH_URL` is always set and this list is unused.\n */\nconst DEV_ORIGINS = [\n  \"http://127.0.0.1:5173\",\n  \"http://localhost:5173\",\n  \"http://127.0.0.1:8787\",\n  \"http://localhost:8787\",\n];\n\n/** Must differ from the factory console's prefix — they share an origin. */\nconst APP_COOKIE_PREFIX = \"sfab-app\";\n\n/**\n * Where this app believes it is mounted.\n *\n * `BETTER_AUTH_URL` wins — the factory sets it per app. Otherwise an\n * `Origin` header is honoured only if it is one of the known dev origins;\n * an arbitrary caller must not get to choose the auth base URL. Falling\n * back to the request's own origin keeps direct `wrangler dev` working.\n */\nexport function resolveBaseUrl(env: Env, request: Request): string {\n  const configured = env.BETTER_AUTH_URL?.trim();\n  if (configured) {\n    return configured;\n  }\n\n  const origin = request.headers.get(\"origin\");\n  if (origin && DEV_ORIGINS.includes(origin)) {\n    return origin;\n  }\n\n  return new URL(request.url).origin;\n}\n\n/**\n * Path this app's cookies are scoped to.\n *\n * Every app the factory hosts shares one origin, so a cookie at `Path=/`\n * belongs to whichever app wrote it last. `APP_BASE_PATH` is the app's public\n * mount (`/a/<appId>`), which `BETTER_AUTH_URL` cannot supply: the loader\n * strips that prefix before the app sees the request, so the app is told its\n * own origin and nothing more.\n *\n * Unset means standalone `wrangler dev`, where the app *is* the whole origin.\n */\nfunction resolveCookiePath(env: Env): string {\n  const configured = env.APP_BASE_PATH?.trim();\n  return configured?.startsWith(\"/\") ? configured : \"/\";\n}\n\n/**\n * Better Auth for the lite template.\n * - No framework cookie plugin — Hono/Workers cookie handling is enough.\n * - Invitation and password-reset emails are console stubs (no mail\n *   provider in the seed; wire one up in your own app).\n */\nexport function createAuth(env: Env, baseURL: string) {\n  const secret = env.BETTER_AUTH_SECRET;\n  if (!secret || secret.length < 32) {\n    throw new Error(\n      \"BETTER_AUTH_SECRET missing or too short (need ≥32 chars). Copy .dev.vars.example → .dev.vars\"\n    );\n  }\n\n  const db = createDb(env);\n\n  return betterAuth({\n    baseURL,\n    basePath: \"/api/auth\",\n    secret,\n    // Distinct from the factory console's `sfab-factory`, and scoped to this\n    // app's own path — the two together are what stop apps and the console\n    // from evicting each other's sessions on the shared origin. The name alone\n    // is not enough: two apps would still both hold `Path=/` cookies under one\n    // name, and the browser would send both with no way to tell them apart.\n    advanced: {\n      cookiePrefix: APP_COOKIE_PREFIX,\n      defaultCookieAttributes: { path: resolveCookiePath(env) },\n    },\n    database: drizzleAdapter(db, {\n      provider: \"sqlite\",\n      schema,\n    }),\n    emailAndPassword: {\n      enabled: true,\n      // Stubs return a resolved promise rather than being `async`: there is\n      // nothing to await until a real mail provider is wired in.\n      sendResetPassword: ({ user, url }) => {\n        console.info(\"[auth stub] password-reset\", user.email, url);\n        return Promise.resolve();\n      },\n    },\n    trustedOrigins: [...DEV_ORIGINS, baseURL],\n    plugins: [\n      organization({\n        allowUserToCreateOrganization: true,\n        sendInvitationEmail(data) {\n          console.info(\n            \"[auth stub] org-invite\",\n            data.email,\n            data.organization.name,\n            data.id\n          );\n          return Promise.resolve();\n        },\n      }),\n    ],\n    databaseHooks: {\n      session: {\n        create: {\n          before: async (session) => {\n            const membership = await db.query.member.findFirst({\n              where: eq(member.userId, session.userId),\n            });\n            return {\n              data: {\n                ...session,\n                activeOrganizationId: membership?.organizationId ?? null,\n              },\n            };\n          },\n        },\n      },\n    },\n  });\n}\n\nexport type Auth = ReturnType<typeof createAuth>;\n",

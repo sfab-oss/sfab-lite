@@ -1,6 +1,6 @@
 {
   "format": 0,
-  "name": "erp",
+  "name": "${APP_NAME}",
   "runtime": "^0",
   "adapter": "cloudflare",
   "root": "app",

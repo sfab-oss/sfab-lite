@@ -93,5 +93,6 @@ canvases are a non-goal. Naming:
 
 - [ADR-0001](../decisions/0001-edge-native-lite-architecture.md)
 - [ADR-0002](../decisions/0002-monorepo-tooling-not-product-lite.md)
+- [`APP-FORMAT.md`](APP-FORMAT.md) — app layout, manifest v0, check units
 - [`../engineering/terminology.md`](../engineering/terminology.md)
 - [`../engineering/agent-surfaces.md`](../engineering/agent-surfaces.md)
