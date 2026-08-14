@@ -439,6 +439,9 @@ red fixture is the gate lesson from
 ask what the gate would still pass if the thing it protects were
 broken.
 
+Implementation trail (non-authoritative):
+[`../notes/2026-08-14-app-format-rfc.md`](../notes/2026-08-14-app-format-rfc.md).
+
 ## 9. Out of scope (later PRs)
 
 - Closed-resolve diagnostics (unknown imports).
