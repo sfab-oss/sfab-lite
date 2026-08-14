@@ -1,0 +1,18 @@
+{
+  "name": "lite/label",
+  "type": "registry:ui",
+  "title": "Label",
+  "description": "Form label primitive. Use next to inputs; Field composes it. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "label.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/label.tsx"
+    }
+  ]
+}

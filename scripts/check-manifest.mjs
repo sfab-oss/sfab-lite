@@ -10,6 +10,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateManifest } from "../framework/toolchain/src/validate-manifest.ts";
+import { CATALOG } from "../registry/src/catalog.ts";
+import { catalogNames, planAdd } from "../registry/src/lite.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const starterPath = join(repoRoot, "starters/erp/manifest.json");
@@ -58,4 +60,25 @@ if (!interpolation) {
 
 console.log(
   `manifest ok: starters/erp format ${starterResult.manifest.format} ${starterResult.manifest.runtime} + red fixture`
+);
+
+const assembled = structuredClone(starter);
+assembled.recipes = {};
+for (const name of catalogNames(CATALOG)) {
+  const planned = planAdd(name, CATALOG, {});
+  if (!planned.ok) {
+    console.error(`check:manifest — add ${name} failed: ${planned.error}`);
+    process.exit(1);
+  }
+  Object.assign(assembled.recipes, planned.provenance);
+}
+const assembledResult = validateManifest(assembled);
+if (!assembledResult.ok) {
+  console.error(
+    `check:manifest — starter + all recipes provenance failed v0:\n${formatIssues(assembledResult.issues)}`
+  );
+  process.exit(1);
+}
+console.log(
+  `manifest ok: ${Object.keys(assembled.recipes).length} recipes via add`
 );

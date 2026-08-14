@@ -107,6 +107,10 @@ const config: KnipConfig = {
       entry: ["src/index.ts", "src/**/*.test.ts"],
       project: ["src/**/*.ts"],
     },
+    registry: {
+      entry: ["src/index.ts", "src/**/*.test.ts", "scripts/*.mjs"],
+      project: ["src/**/*.ts", "scripts/**/*.mjs"],
+    },
   },
 };
 

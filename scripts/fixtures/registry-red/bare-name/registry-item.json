@@ -1,0 +1,18 @@
+{
+  "name": "lite/uses-bare",
+  "type": "registry:ui",
+  "title": "Bare dep",
+  "description": "Red fixture: a bare registryDependencies name hard-fails.",
+  "registryDependencies": ["button"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "x.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/x.tsx"
+    }
+  ]
+}

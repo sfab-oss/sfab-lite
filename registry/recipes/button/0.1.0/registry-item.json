@@ -1,0 +1,18 @@
+{
+  "name": "lite/button",
+  "type": "registry:ui",
+  "title": "Button",
+  "description": "Base-ui button primitive with variant and size. Use for primary actions on forms and lists. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "button.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/button.tsx"
+    }
+  ]
+}

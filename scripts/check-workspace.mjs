@@ -18,6 +18,7 @@ const products = [
   ["starters/erp", "@sfab-lite/template"],
   ["framework/runtime", "@sfab-lite/kernel"],
   ["framework/toolchain", "@sfab-lite/core"],
+  ["registry", "@sfab-lite/registry"],
 ];
 
 const tooling = [
@@ -62,12 +63,13 @@ const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
 if (
   !(
     workspace.includes("framework/*") &&
+    workspace.includes("registry") &&
     workspace.includes("starters/*") &&
     workspace.includes("factory/*")
   )
 ) {
   console.error(
-    "pnpm-workspace.yaml must include framework/*, starters/*, factory/*"
+    "pnpm-workspace.yaml must include framework/*, registry, starters/*, factory/*"
   );
   failed = true;
 }

@@ -210,6 +210,16 @@ behind one settles on the next poll. That closes the gap where the console
   ([`../notes/2026-08-13-thin-seed.md`](../notes/2026-08-13-thin-seed.md)).
   That is not the cap.
 
+- **Recipes grow checked surface.** First recipes (PR 7) are extracts of
+  starter UI retargeted at the RFC tree. Local starter vs
+  starter-plus-all-recipes: server **244.6 → 263.0 MB** (+7 roots),
+  client **371.5 → 371.8 MB** (unchanged graph — recipes are unused
+  RFC-path copies), 0 diagnostics. Full trail:
+  [`../notes/2026-08-14-assembled-recipes-check.md`](../notes/2026-08-14-assembled-recipes-check.md).
+  Production ceiling stays the units 0/8 re-tail; the next live re-tail
+  is when the starter is rebuilt from recipes (PR 8). The production
+  gate is deferred (needs a live assembled app).
+
 - **Runtime bundle diet.** Full write-up:
   [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md).
   `factory/lint` is at 95.4% of the upload limit (Biome WASM). `factory` at
@@ -448,6 +458,8 @@ it.
   — live `sfab-lite-check` create OOM baseline (0/8)
 - [`../notes/2026-08-14-units-retail.md`](../notes/2026-08-14-units-retail.md)
   — units re-tail after PR #134 (0/8 OOM, 0 retries; wall ~+60%)
+- [`../notes/2026-08-14-assembled-recipes-check.md`](../notes/2026-08-14-assembled-recipes-check.md)
+  — starter + first recipes local check (PR 7; production gate deferred)
 - [`../notes/2026-08-14-evidence-audit.md`](../notes/2026-08-14-evidence-audit.md)
   — grades for standing rejections (CheckDO, `@base-ui`, gzip, aged 1-in-4)
 - [`../notes/2026-08-14-generator-spike.md`](../notes/2026-08-14-generator-spike.md)

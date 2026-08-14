@@ -44,9 +44,9 @@ const RECIPE_KEYS = new Set(["version", "files"]);
 const MODULE_KEYS = new Set(["name", "version"]);
 
 const LINE_PIN = /^\^\d+$/;
-const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-const SHA256 = /^sha256:[a-f0-9]{64}$/;
-const RECIPE_NAME =
+const EXACT_VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const SHA256_RE = /^sha256:[a-f0-9]{64}$/;
+const RECIPE_NAME_RE =
   /^lite\/[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*)*$/;
 const INTERPOLATION = /\$\{|\{\{/;
 
@@ -122,7 +122,7 @@ function requireExactVersion(
   if (s === null) {
     return null;
   }
-  if (!EXACT_VERSION.test(s)) {
+  if (!EXACT_VERSION_RE.test(s)) {
     add(issues, path, "expected an exact version (no ranges)");
     return null;
   }
@@ -275,7 +275,7 @@ function validateRecipeFiles(
     const s = requireString(issues, filePath, hash);
     if (s === null) {
       ok = false;
-    } else if (SHA256.test(s)) {
+    } else if (SHA256_RE.test(s)) {
       out[file] = s;
     } else {
       add(issues, filePath, "expected sha256:<64 lowercase hex>");
@@ -296,7 +296,7 @@ function validateRecipes(
   const out: ManifestV0["recipes"] = {};
   let ok = true;
   for (const [name, rec] of Object.entries(value)) {
-    if (!RECIPE_NAME.test(name)) {
+    if (!RECIPE_NAME_RE.test(name)) {
       add(
         issues,
         `recipes.${name}`,

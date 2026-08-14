@@ -411,7 +411,7 @@ call sites keep working; later PRs retarget them onto these names.
 | `app.sql` | `POST /apps/:id/sql` | App-database probe; not schema introspection (ADR-0005). |
 | `app.migrate` | CD apply-by-id-and-hash | Applied migrations immutable. |
 | `app.generate` | host `db:generate` — offline schema vs `migrations/meta` | Ordinary drizzle loop. |
-| `app.add` | — | Registry MVP. Provenance → `manifest.recipes`. |
+| `app.add` | `POST /api/protected/apps/:id/add`, MCP `apps_add` | Copies `lite/` recipes into the think-workspace; provenance → `manifest.recipes`. Collision refusal. |
 | `workspace.list` / `ls` / `read` / `write` / `rm` / `glob` | MCP `workspaces_*` / `workspace_*` | Think-workspace FS, not a console screen. |
 | `workspace.bash` | MCP `bash` | |
 | `forge.pr` / `forge.merge` / `forge.checks` / `forge.runs` | protected `/prs`, `/runs` | Ship via PR, not snapshot publish. |
@@ -448,8 +448,7 @@ Implementation trail (non-authoritative):
 
 - Snapshot emit, hash store, per-module regen, check-unit wiring.
 - Vendor-surface generation pipeline and the agreement gate.
-- Registry, `add`, provenance writes.
-- Starter rebuild onto §2's tree.
+- Starter rebuild onto §2's tree (assembled from the registry).
 - Image v0 on every serve path; generated `package.json` / `tsconfig`
   / `index.html` with a drift gate.
 - A second adapter; eject-in-CI.
@@ -472,3 +471,8 @@ Left open by the plan, drafted here:
 6. **Snapshot paths** — `src/generated/api.d.ts` + `src/generated/api.hash`.
 7. **Check-run shape** — three ordered sync units, dispose between,
    in-memory snapshot I/O, host persists after return.
+8. **Recipe targeting (draft — owner ratification)** — recipes may
+   copy schema source under `src/db/` and ordinary `src/` files; they
+   must not target `migrations/` or `migrations/meta/`. Schema lands
+   via `add`; `db:generate` writes SQL. Collision if a schema target
+   exists with a different hash. Full write-up: `registry/README.md`.

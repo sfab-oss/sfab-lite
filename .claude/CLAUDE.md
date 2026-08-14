@@ -21,8 +21,13 @@ vs app plane, reserved words):
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
-`pnpm check:pins`, `pnpm check:dead-code`, `pnpm check:seed`,
-`pnpm check:check-memory`, `pnpm check:drizzle-agreement`.
+`pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
+`pnpm check:seed`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`.
+
+`check:registry` validates every published recipe against the lite
+profile, fails closed on committed red fixtures (`dependencies` key,
+unknown types, bare names), and refuses mutation of published version
+hashes.
 
 `check:app-lint` is the odd one: it checks `starters/erp/app/src` —
 the seed payload — against `framework/toolchain/app-biome.json`, the config the
@@ -97,7 +102,7 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 | `framework/toolchain` | Shared contracts (app-format schema, check/lint wire types, app-biome) |
 | `framework/tsconfig` | Shared TS configs |
 | `framework/biome-config` | Shared Biome presets |
-| `registry/` | Future recipes repo (empty README in this milestone) |
+| `registry/` | Recipes: pinned schema, lite resolver, published versions |
 
 ## Where things live
 

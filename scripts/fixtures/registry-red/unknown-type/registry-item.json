@@ -1,0 +1,17 @@
+{
+  "name": "lite/theme",
+  "type": "registry:theme",
+  "title": "Theme",
+  "description": "Red fixture: unknown item types are rejected.",
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "x.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/x.tsx"
+    }
+  ]
+}

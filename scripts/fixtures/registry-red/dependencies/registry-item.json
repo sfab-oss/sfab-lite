@@ -1,0 +1,18 @@
+{
+  "name": "lite/evil",
+  "type": "registry:ui",
+  "title": "Evil",
+  "description": "Red fixture: npm dependencies must be absent.",
+  "dependencies": ["lodash"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "x.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/x.tsx"
+    }
+  ]
+}

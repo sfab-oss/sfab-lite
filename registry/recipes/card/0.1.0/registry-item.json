@@ -1,0 +1,18 @@
+{
+  "name": "lite/card",
+  "type": "registry:ui",
+  "title": "Card",
+  "description": "Surface container (header, title, description, content). Use on detail pages and summary tiles such as a party's running balance. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "card.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/card.tsx"
+    }
+  ]
+}
