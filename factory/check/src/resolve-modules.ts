@@ -7,7 +7,11 @@
  * union gate. One LanguageService / one VFS — classification only changes
  * which specifiers resolve, not how many programs are built.
  */
-import { CLIENT_IMPORT_MAP, SERVER_IMPORT_MAP } from "@sfab-lite/kernel";
+import {
+  CLIENT_IMPORT_MAP,
+  SERVER_IMPORT_MAP,
+  TYPES_VFS,
+} from "@sfab-lite/kernel";
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import { joinPath, normalizePath, readVfs } from "./vfs.js";
 
@@ -35,6 +39,39 @@ const CLIENT_SERVED: ReadonlySet<string> = new Set(
 const SERVER_SERVED: ReadonlySet<string> = new Set(
   Object.keys(SERVER_IMPORT_MAP)
 );
+
+function packageRoot(specifier: string): string {
+  if (specifier.startsWith("@")) {
+    const parts = specifier.split("/");
+    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : specifier;
+  }
+  const slash = specifier.indexOf("/");
+  return slash === -1 ? specifier : specifier.slice(0, slash);
+}
+
+/** Package names whose `.d.ts` ride in the types VFS (served + transitive). */
+const VFS_PACKAGES: ReadonlySet<string> = (() => {
+  const pkgs = new Set<string>();
+  for (const key of Object.keys(TYPES_VFS)) {
+    if (!key.startsWith("/node_modules/")) {
+      continue;
+    }
+    pkgs.add(packageRoot(key.slice("/node_modules/".length)));
+  }
+  return pkgs;
+})();
+
+/** Package roots the runtime actually serves — derived from the import maps. */
+const SERVED_PACKAGE_ROOTS: ReadonlySet<string> = new Set(
+  [...KERNEL_SERVED].map(packageRoot)
+);
+
+const SERVED_SURFACE =
+  `An app may import the base runtime (${[...SERVED_PACKAGE_ROOTS].sort().join(", ")}), ` +
+  "registry-copied source under src/, and its own files.";
+
+const CLOSED_RESOLVE_FIX =
+  "Fix: write it in-tree, or use a registry recipe. npm packages cannot be added to a lite app.";
 
 const LEADING_SLASHES = /^\/+/;
 
@@ -377,4 +414,51 @@ export function sideAwareUnresolvedMessage(
       "client (hono/client), or use a client-safe package from the client import map."
     );
   }
+}
+
+/**
+ * Agent-facing message when app source imports a bare specifier the runtime
+ * does not serve. Vendor `.d.ts` in the VFS still resolve unrestricted
+ * (`isVfsInternal`); this is only the app-source gate.
+ *
+ * Returns undefined when the failure is not a closed-resolve miss (relative
+ * import, already-served specifier whose types path is missing, side-aware
+ * client/server miss — those have their own messages).
+ */
+export function closedResolveUnresolvedMessage(
+  moduleName: string,
+  containingFile: string | undefined
+): string | undefined {
+  if (
+    containingFile == null ||
+    isVfsInternal(containingFile) ||
+    moduleName.startsWith(".") ||
+    KERNEL_SERVED.has(moduleName)
+  ) {
+    return;
+  }
+  if (
+    isClientAppPath(containingFile) &&
+    SERVER_SERVED.has(moduleName) &&
+    !CLIENT_SERVED.has(moduleName)
+  ) {
+    return;
+  }
+
+  const pkg = packageRoot(moduleName);
+  let why: string;
+  if (SERVED_PACKAGE_ROOTS.has(pkg)) {
+    why = `the kernel serves "${pkg}", but not the specifier "${moduleName}"`;
+  } else if (VFS_PACKAGES.has(pkg)) {
+    why =
+      "it is transitive-only: present so vendor types can resolve, not served to apps";
+  } else {
+    why = "not part of the app surface";
+  }
+
+  return [
+    `LITE-RESOLVE: Cannot import "${moduleName}" — ${why}.`,
+    SERVED_SURFACE,
+    CLOSED_RESOLVE_FIX,
+  ].join("\n");
 }

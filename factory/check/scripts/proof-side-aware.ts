@@ -1,7 +1,8 @@
 /**
- * Behavioural proof for side-aware client resolution.
- *
- * Bundled by the companion .mjs runner so Node can load workspace TS.
+ * Behavioural proof for check-time module resolution: side-aware client
+ * gating, closed resolve (transitive-only + unknown), and planted-error
+ * detection. Bundled by the companion .mjs runner so Node can load
+ * workspace TS.
  */
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
@@ -224,7 +225,67 @@ if (!importTypeResult.clean) {
   failed = true;
 }
 
+const kyselyFiles = {
+  ...baseFiles,
+  "src/hono/routes/bad-kysely.ts": `import { Kysely } from "kysely";\nexport const x = Kysely;\n`,
+};
+const kyselyResult = check("10-kysely-closed-resolve", kyselyFiles);
+const kyselyHit = kyselyResult.diagnostics.some(
+  (d) =>
+    d.message.includes("LITE-RESOLVE") &&
+    d.message.includes('"kysely"') &&
+    d.message.includes("transitive-only") &&
+    d.message.includes("not served to apps") &&
+    (d.file?.includes("bad-kysely.ts") ?? false)
+);
+if (kyselyResult.clean || !kyselyHit) {
+  console.error(
+    "FAIL: importing kysely must fail with the LITE-RESOLVE transitive-only diagnostic",
+    kyselyResult.diagnostics
+  );
+  failed = true;
+}
+
+const dateFnsFiles = {
+  ...baseFiles,
+  "src/hono/routes/bad-date-fns.ts": `import { format } from "date-fns";\nexport const x = format;\n`,
+};
+const dateFnsResult = check("11-unknown-closed-resolve", dateFnsFiles);
+const dateFnsHit = dateFnsResult.diagnostics.some(
+  (d) =>
+    d.message.includes("LITE-RESOLVE") &&
+    d.message.includes('"date-fns"') &&
+    d.message.includes("not part of the app surface") &&
+    (d.file?.includes("bad-date-fns.ts") ?? false)
+);
+if (dateFnsResult.clean || !dateFnsHit) {
+  console.error(
+    "FAIL: importing date-fns must fail with the LITE-RESOLVE unknown-module diagnostic",
+    dateFnsResult.diagnostics
+  );
+  failed = true;
+}
+
+const plantedFiles = {
+  ...baseFiles,
+  "src/hono/routes/planted-type-error.ts": `export const n: number = "nope";\n`,
+};
+const plantedResult = check("12-planted-type-error", plantedFiles);
+const plantedHit = plantedResult.diagnostics.some(
+  (d) =>
+    d.code === 2322 &&
+    d.message.includes("not assignable") &&
+    (d.file?.includes("planted-type-error.ts") ?? false)
+);
+if (plantedResult.clean || !plantedHit) {
+  console.error(
+    "FAIL: planted type error must still be reported as TS2322",
+    plantedResult.diagnostics
+  );
+  failed = true;
+}
+
 if (failed) {
   process.exit(1);
 }
-console.log("PASS: side-aware resolution behavioural proof");
+console.log("PASS: side-aware + closed-resolve behavioural proof");

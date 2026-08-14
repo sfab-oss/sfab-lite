@@ -12,6 +12,7 @@
     "deploy": "wrangler deploy",
     "test:regression": "node scripts/regression-delete-readd-inprocess.mjs",
     "test:store-bound": "node scripts/regression-store-bound-inprocess.mjs",
+    "test": "node scripts/proof-side-aware.mjs",
     "test:side-aware": "node scripts/proof-side-aware.mjs",
     "measure:memory": "node scripts/measure-memory.mjs",
     "measure:program": "node scripts/measure-program.mjs",

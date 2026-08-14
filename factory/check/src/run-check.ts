@@ -13,7 +13,10 @@ import {
   getLanguageService,
   rootsForState,
 } from "./ls-host.js";
-import { sideAwareUnresolvedMessage } from "./resolve-modules.js";
+import {
+  closedResolveUnresolvedMessage,
+  sideAwareUnresolvedMessage,
+} from "./resolve-modules.js";
 import {
   type Diagnostic,
   flattenDiagnosticMessageText,
@@ -100,8 +103,14 @@ function summarize(
         mod == null
           ? undefined
           : sideAwareUnresolvedMessage(mod, d.file?.fileName, overlay);
+      const closedMsg =
+        mod == null
+          ? undefined
+          : closedResolveUnresolvedMessage(mod, d.file?.fileName);
       if (sideMsg) {
         message = sideMsg;
+      } else if (closedMsg) {
+        message = closedMsg;
       }
     }
     let line: number | undefined;
