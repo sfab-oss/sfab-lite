@@ -701,7 +701,9 @@ units the original list did not name.)
 6. **Check plumbing** — the snapshot artifact (emit, hash-keyed store,
    per-module regen + prefix merge) and **check units** wired into the
    worker loop (prod tail closed the single-program fork: cheap-union
-   4/50 OOM). Consumes PRs 3 and 5. In flight.
+   4/50 OOM). Consumes PRs 3 and 5. **Done** (PR #134). Re-tail vs the
+   0/8 baseline: **0/8 OOM, 0 retries, 8/8 ready**; wall per check
+   ~+60% ([`2026-08-14-units-retail.md`](2026-08-14-units-retail.md)).
 7. **Registry** — the package, pinned vendored schema, CI gates,
    resolver, hosted `add` with provenance and collision refusal.
 8. **Starter** — the rebuild on the new tree, assembled from the
