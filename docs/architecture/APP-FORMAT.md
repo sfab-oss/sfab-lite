@@ -6,9 +6,10 @@ adapter shape. Not a claim that those members are already emitted.
 
 This file lives in `docs/architecture/` because it is the format
 contract, not a working note. Implementations: schema/validation in
-this PR; snapshot emit and check units in the check-plumbing PR;
-generated `package.json` / `tsconfig` / `index.html` in the image PR;
-the starter rebuild on this tree in the starter PR.
+the format PR; closed-resolve diagnostics at check; snapshot emit and
+check units in the check-plumbing PR; generated `package.json` /
+`tsconfig` / `index.html` in the image PR; the starter rebuild on this
+tree in the starter PR.
 
 Direction:
 [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
@@ -25,6 +26,11 @@ Code enters an app four ways, and only four: the **base runtime**
 (platform-resolved; today the frozen kernel), **registry recipes**
 (source copied into the tree), **catalog modules** (none yet), and
 **agent-written source**. There is no `npm install` in the happy path.
+
+Check enforces that closed import surface. A bare specifier the base
+runtime does not serve fails with a named `LITE-RESOLVE` diagnostic.
+Types for transitive packages may still sit in the types VFS so served
+packages' `.d.ts` can resolve; they are not an app import surface.
 
 ## 2. App directory layout
 
@@ -440,7 +446,6 @@ Implementation trail (non-authoritative):
 
 ## 9. Out of scope (later PRs)
 
-- Closed-resolve diagnostics (unknown imports).
 - Snapshot emit, hash store, per-module regen, check-unit wiring.
 - Vendor-surface generation pipeline and the agreement gate.
 - Registry, `add`, provenance writes.

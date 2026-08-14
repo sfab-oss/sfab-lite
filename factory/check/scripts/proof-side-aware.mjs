@@ -1,5 +1,6 @@
 /**
- * Bundle + run the side-aware resolution behavioural proof.
+ * Bundle + run the check-resolution behavioural proof (side-aware +
+ * closed resolve).
  *
  *   node scripts/proof-side-aware.mjs
  */
