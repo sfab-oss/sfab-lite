@@ -64,6 +64,24 @@ Forge restored **PR / branch / merge / deploy** as ordinary product words for
 the GitHub-like loop. Do not re-ban them; do not invent a parallel vocabulary
 for the same ideas.
 
+## App format (RFC)
+
+Settled in [`../architecture/APP-FORMAT.md`](../architecture/APP-FORMAT.md).
+Use those names in new code and docs. Gradual rename only — existing code
+still says **kernel** for the frozen universe; the RFC's **base runtime**
+is the successor term.
+
+| Term | Meaning |
+| --- | --- |
+| **Base runtime** | Versioned, platform-resolved dependency universe (`framework/runtime/`). Successor term for kernel. |
+| **Toolchain** | App format, check/lint/pack engines, serve adapters (`framework/toolchain/`). Apps pin the runtime; they never reference the toolchain. |
+| **App format** | Layout conventions + declarative manifest that make a tree seedable, checkable, packable, servable. |
+| **Manifest** | Typed, data-only app descriptor. Never executable. |
+| **App image** | Content-addressed pack output: app source build + manifest + base-runtime *reference*. |
+| **Recipe** | A registry unit copied as source into the app tree. |
+| **Adapter** | Per-platform serve plug-in. Framework-owned; apps only name a target. |
+| **Snapshot** | Generated `src/generated/api.d.ts` — the client's `ApiType`. Not `typeof` the live server. |
+
 ## Why Thread and not Session
 
 Settled 2026-07-24: adopt the chat-next block's **thread** for a chat so

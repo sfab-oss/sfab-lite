@@ -19,7 +19,9 @@ import manifest from "../manifest.json" with { type: "json" };
  * and the factory both read them, and `scripts/check-workspace.mjs` fails CI
  * if a declared path stops existing.
  *
- * All paths are relative to `root`.
+ * All paths are relative to `root`. Manifest v0 fields (`format`, `runtime`,
+ * `adapter`, `html`, `capabilities`, `modules`, `recipes`) are defined in
+ * `docs/architecture/APP-FORMAT.md` and validated by `pnpm check:manifest`.
  */
 export const TEMPLATE_MANIFEST = manifest;
 

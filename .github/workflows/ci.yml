@@ -79,6 +79,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:direction
 
+      - name: manifest
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:manifest
+
       - name: pins
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:pins

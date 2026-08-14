@@ -98,6 +98,7 @@ const declared = [
   manifest.server.entry,
   manifest.client.entry,
   manifest.client.styles,
+  manifest.html,
   manifest.safelist,
   manifest.migrations,
   manifest.schema,

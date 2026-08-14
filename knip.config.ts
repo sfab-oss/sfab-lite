@@ -91,6 +91,7 @@ const config: KnipConfig = {
       ],
     },
     "framework/toolchain": {
+      entry: ["src/index.ts", "src/**/*.test.ts"],
       project: ["src/**/*.ts"],
     },
   },

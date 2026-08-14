@@ -6,6 +6,7 @@ pnpm check:app-lint
 pnpm typecheck
 pnpm check:cycles
 pnpm check:direction
+pnpm check:manifest
 pnpm check:pins
 pnpm check:dead-code
 pnpm check:kernel

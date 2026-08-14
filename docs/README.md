@@ -12,6 +12,7 @@ architecture, decisions, and measured constraints — not operator manuals.
 | Path | Authority | Purpose |
 | --- | --- | --- |
 | [`architecture/`](architecture/) | Authoritative | Settled system shape (do not relitigate without an ADR) |
+| [`architecture/APP-FORMAT.md`](architecture/APP-FORMAT.md) | Authoritative (RFC) | App layout, manifest v0, generated members, check units, adapter shape |
 | [`decisions/`](decisions/) | Authoritative | ADRs — costly, cross-cutting choices among real alternatives |
 | [`engineering/`](engineering/) | Authoritative | Living technique guides — how we work within the platform's limits |
 | [`engineering/DEPLOY.md`](engineering/DEPLOY.md) | Authoritative | Deploy prerequisites — secrets, the shared `ADMIN_TOKEN`, the health check that proves them |

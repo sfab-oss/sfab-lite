@@ -19,6 +19,7 @@
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "check:cycles": "node scripts/check-cycles.mjs",
     "check:direction": "node scripts/check-direction.mjs",
+    "check:manifest": "node --experimental-strip-types scripts/check-manifest.mjs",
     "check:pins": "node scripts/check-pins-independence.mjs",
     "check:dead-code": "knip",
     "prepare": "husky",
