@@ -30,8 +30,11 @@ const mutated = JSON.parse(original);
 mutated.dependencies = { ...mutated.dependencies, react: "0.0.0-MUTATED" };
 writeFileSync(starterPkgPath, `${JSON.stringify(mutated, null, 2)}\n`);
 
+// Restore before any exit path: process.exit() would skip a finally, and a
+// failing run must not leave the mutated starter on disk mid-pre-commit.
+let child;
 try {
-  const child = spawnSync(
+  child = spawnSync(
     process.execPath,
     [
       "--input-type=module",
@@ -41,25 +44,26 @@ try {
     ],
     { encoding: "utf8", cwd: repoRoot }
   );
-  if (child.status !== 0) {
-    console.error(`check:pins — child failed\n${child.stderr}${child.stdout}`);
-    process.exit(1);
-  }
-  const got = child.stdout.trim();
-  if (got === "0.0.0-MUTATED") {
-    console.error(
-      "check:pins — starter package.json edit changed runtime pin for react"
-    );
-    process.exit(1);
-  }
-  if (got !== PINS.react) {
-    console.error(
-      `check:pins — expected runtime react ${PINS.react}, got ${got}`
-    );
-    process.exit(1);
-  }
 } finally {
   writeFileSync(starterPkgPath, original);
+}
+
+if (child.status !== 0) {
+  console.error(`check:pins — child failed\n${child.stderr}${child.stdout}`);
+  process.exit(1);
+}
+const got = child.stdout.trim();
+if (got === "0.0.0-MUTATED") {
+  console.error(
+    "check:pins — starter package.json edit changed runtime pin for react"
+  );
+  process.exit(1);
+}
+if (got !== PINS.react) {
+  console.error(
+    `check:pins — expected runtime react ${PINS.react}, got ${got}`
+  );
+  process.exit(1);
 }
 
 console.log(
