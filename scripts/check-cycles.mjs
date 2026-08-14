@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Circular-import gate. Madge walks packages/ + apps/.
+ * Circular-import gate. Madge walks framework/ + starters/ + factory/.
  *
  * Exclude the AppAgent ↔ AppThread pair: the root must name its facet class
  * for subAgent/deleteSubAgent, and the facet must name its parent for
@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const exclude =
-  "generated|vendor|results|\\.shims|universe|routeTree\\.gen|apps/factory/src/agent/app-agent\\.ts|apps/factory/src/agent/app-thread\\.ts";
+  "generated|vendor|results|\\.shims|universe|routeTree\\.gen|factory/host/src/agent/app-agent\\.ts|factory/host/src/agent/app-thread\\.ts";
 
 const result = spawnSync(
   "pnpm",
@@ -31,8 +31,9 @@ const result = spawnSync(
     "ts,tsx",
     "--exclude",
     exclude,
-    "packages",
-    "apps",
+    "framework",
+    "starters",
+    "factory",
   ],
   { cwd: root, stdio: "inherit", shell: false }
 );

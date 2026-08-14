@@ -1,0 +1,137 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "sfab-lite-factory",
+  "main": "src/server.ts",
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "worker_loaders": [{ "binding": "LOADER" }],
+  // The factory answers on `lite.sfab.dev` and on nothing else. Its origin is
+  // never configured — better-auth's baseURL, the OAuth issuer, the RFC 9728
+  // resource identifier, and the `__SFAB_PUBLIC_BASE__` injected into every
+  // served app are all derived from the request's own origin. A second
+  // reachable hostname is therefore a second identity: session cookies do not
+  // carry across, and a token minted with one hostname's audience 401s against
+  // the other. Hence this flag.
+  //
+  // The custom domain itself is deliberately NOT declared here. Attaching one
+  // writes a DNS record, so a `routes` entry would force the deploy token to
+  // carry zone-level DNS edit — a permanent widening of a CI credential to
+  // buy a one-time setup step. Cloudflare's documented alternative is exactly
+  // this: no `routes` key, `workers_dev` off, domain attached from the
+  // dashboard. Wrangler leaves unlisted domains alone (only an explicit
+  // `routes: []` clears them). See `docs/engineering/DEPLOY.md`.
+  "workers_dev": false,
+  // A commit awaits check (10-24s measured in production) and lint. The 30s
+  // default left almost no margin and correlated with intermittent 1101s.
+  "limits": {
+    "cpu_ms": 300000
+  },
+  // The factory's own D1 — auth, organizations, app registry. Exists because
+  // Durable Objects cannot be enumerated (`src/env.d.ts`). No app data here.
+  //
+  // Real database, created 2026-07-25 on the account that deploys this worker.
+  // A D1 id is not a secret — it identifies the database, it does not grant
+  // access; reaching it still requires account credentials. Local
+  // `wrangler dev` ignores this id entirely and uses `.wrangler/state`.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "sfab-lite-factory",
+      "database_id": "9423c453-5a42-437e-abd0-50842d44f3d7",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Historical client kernel chunks, keyed by KERNEL_VERSION. The in-bundle
+  // path still serves the current version; R2 is only consulted for older
+  // versions so a kernel bump does not 409 the fleet. Create the remote
+  // bucket once (`wrangler r2 bucket create sfab-lite-kernel`) before the
+  // first deploy that includes this binding — local `wrangler dev` simulates
+  // it for free.
+  "r2_buckets": [
+    {
+      "binding": "KERNEL_R2",
+      "bucket_name": "sfab-lite-kernel"
+    },
+    // Bare repos (`repos/{appId}/`) + immutable builds (`builds/{appId}/{sha}.json`).
+    // Create once: `wrangler r2 bucket create sfab-lite-code`. Local wrangler
+    // simulates the binding; see docs/notes/2026-07-29-code-host-greenfield.md.
+    {
+      "binding": "CODE_R2",
+      "bucket_name": "sfab-lite-code"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "APP_DATA_DO",
+        "class_name": "AppDataDO"
+      },
+      {
+        "name": "APP_CREATE_DO",
+        "class_name": "AppCreateDO"
+      },
+      // Binding name = class name so routeAgentRequest maps
+      // `/agents/app-agent/<appId>` → this namespace. AppThread is a facet
+      // of AppAgent (resolved via ctx.exports.AppThread) — no top-level
+      // binding.
+      {
+        "name": "AppAgent",
+        "class_name": "AppAgent"
+      },
+      {
+        "name": "ORG_EVENTS",
+        "class_name": "OrgEvents"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AppDO"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["AppThread"]
+    },
+    // AppThread keeps its v2 entry and is deliberately NOT in deleted_classes:
+    // the class is still exported, now as a facet of AppAgent. Deleting it
+    // would declare a class the Worker still defines. Dropping the binding is
+    // enough to strand the old top-level namespace; its data is disposable.
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["AppAgent"]
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": ["OrgEvents"]
+    },
+    // Greenfield cutover: wipe AppDO, split into AppDataDO + AppCreateDO.
+    // Local: rm -rf factory/host/.wrangler after deploy/pull.
+    {
+      "tag": "v5",
+      "deleted_classes": ["AppDO"],
+      "new_sqlite_classes": ["AppDataDO", "AppCreateDO"]
+    }
+  ],
+  "services": [
+    {
+      "binding": "CHECK",
+      "service": "sfab-lite-check"
+    },
+    {
+      "binding": "LINT",
+      "service": "sfab-lite-lint"
+    },
+    // Loopback, so the agent's shell can reach a served app through the same
+    // path a browser takes. Serving an app needs Worker Loader + an AppDataDO
+    // stub as `env.DB`, which only exists on a real fetch — a Durable Object
+    // cannot build the loader worker itself.
+    {
+      "binding": "SELF",
+      "service": "sfab-lite-factory"
+    }
+  ]
+  // Console assets are bundled by @cloudflare/vite-plugin + TanStack Start
+  // (no separate `assets` binding). Host routes still win in `src/server.ts`
+  // before falling through to the Start handler.
+}

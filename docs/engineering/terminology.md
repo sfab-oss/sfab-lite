@@ -33,7 +33,7 @@ data.
 
 | Term | Meaning |
 | --- | --- |
-| **Template** | Seed source for a new app (`packages/template/app/`). |
+| **Template** | Seed source for a new app (`starters/erp/app/`). |
 | **App** | Unit the factory creates and runs. Served at `/a/:appId`. |
 | **Repo** | Per-app Git repository via the **code host**. Code source of truth. |
 | **Code host** | Port over Cloudflare Artifacts (R2 stand-in today). |

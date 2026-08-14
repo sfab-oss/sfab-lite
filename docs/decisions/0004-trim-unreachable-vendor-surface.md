@@ -89,7 +89,7 @@ an ordinary application, where a dependency's full API is genuinely reachable.
 
 ## Implementation notes
 
-`packages/kernel/scripts/trim-drizzle-dialects.mjs` is the reference
+`framework/runtime/scripts/trim-drizzle-dialects.mjs` is the reference
 implementation and the shape to copy. Two properties are worth preserving:
 
 - It runs as a **read filter during the types-VFS closure build**, not as a
@@ -111,13 +111,13 @@ pulls in SIWE, passkey, two-factor, phone-number, OIDC provider, one-tap,
 device-authorization, magic-link and more. Measured on the type side: deep
 importing `better-auth/plugins/organization` drops 157 → 141 files, worth only
 **2 MB of heap** — not worth it for the check worker alone. But the *runtime*
-vendor bundle `better-auth.js` is **2.1 MB** and lands in `apps/factory`,
+vendor bundle `better-auth.js` is **2.1 MB** and lands in `factory`,
 currently 5.48 MiB gzip / 57.5% of the 10 MB Worker limit. That saving is
 unmeasured and is the number to get. Note this trim also needs a kernel
 import-map and vendor-entry change, because `resolve-modules.ts` refuses
 specifiers the kernel does not serve.
 
-(`apps/lint` is the app actually near the ceiling, at 9.09 MiB / 95.4% — but
+(`factory/lint` is the app actually near the ceiling, at 9.09 MiB / 95.4% — but
 its weight is the Biome WASM binary, unrelated to vendored app dependencies and
 not addressable by this technique.)
 

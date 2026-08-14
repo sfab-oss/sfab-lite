@@ -19,7 +19,7 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(repoRoot, "package.json"));
 const ts = require("typescript");
 
-const kernelGen = join(repoRoot, "packages/kernel/src/generated");
+const kernelGen = join(repoRoot, "framework/runtime/src/generated");
 
 const { TYPES_VFS, TYPES_VFS_MANIFEST } = await import(
   pathToFileURL(join(kernelGen, "types-vfs.js")).href
@@ -30,7 +30,7 @@ const { CLIENT_IMPORT_MAP, CLIENT_BAILOUTS } = await import(
 const { CLIENT_RUNTIME_EXPORTS, SERVER_RUNTIME_EXPORTS, SERVER_IMPORT_MAP } =
   await import(pathToFileURL(join(kernelGen, "runtime-exports.js")).href);
 const { PINS, UNIVERSE_EXTRA_PINS } = await import(
-  pathToFileURL(join(repoRoot, "packages/kernel/scripts/pins.mjs")).href
+  pathToFileURL(join(repoRoot, "framework/runtime/scripts/pins.mjs")).href
 );
 
 const D_TS_EXT_RE = /\.d\.[cm]?ts$/;

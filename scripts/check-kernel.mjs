@@ -18,7 +18,7 @@
  * different zlib builds can compress the same bytes to a different-size
  * (and different-hash) stream — so those fields are scrubbed to a fixed
  * placeholder before anything is hashed or compared here. They stay in the
- * committed artifacts (apps/check reads one at runtime for its health
+ * committed artifacts (factory/check reads one at runtime for its health
  * endpoint) and are printed below on every run; they just never gate this
  * check. rawBytes and every hash in these files are plain byte lengths /
  * sha256 of deterministic build output, so they assert as before.
@@ -30,12 +30,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const kernelJsonPath = "packages/kernel/kernel.json";
+const kernelJsonPath = "framework/runtime/kernel.json";
 
 const trackedRoots = [
-  "packages/kernel/vendor",
+  "framework/runtime/vendor",
   kernelJsonPath,
-  "packages/kernel/src/generated",
+  "framework/runtime/src/generated",
 ];
 
 const GZIP_SCALAR_FIELDS = [
@@ -242,10 +242,10 @@ if (drifted.length) {
     console.error(`  ${f}`);
   }
   console.error(
-    "\n`git add` the regenerated files under packages/kernel/vendor,"
+    "\n`git add` the regenerated files under framework/runtime/vendor,"
   );
   console.error(
-    "packages/kernel/kernel.json, and packages/kernel/src/generated,"
+    "framework/runtime/kernel.json, and framework/runtime/src/generated,"
   );
   console.error(
     "or fix the universe pins/lockfile if the change is unintended."

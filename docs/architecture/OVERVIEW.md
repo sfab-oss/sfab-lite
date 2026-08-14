@@ -7,19 +7,19 @@ ADRs under [`../decisions/`](../decisions/).
 
 ## Hard distinction
 
-1. **Factory is ordinary software.** `apps/factory` (and shared packages it
+1. **Factory is ordinary software.** `factory` (and shared packages it
    uses for UI) may use the full registry / UI stack. It is fixed software
    for the experiment — not a product surface seeking users.
 2. **Sub-apps are data.** Hosted lite apps run inside a **frozen kernel**
-   (`packages/kernel`): pinned deps, prebuild (types VFS + client chunks).
-   The template (`packages/template`) is the seed + closure source and must
+   (`framework/runtime`): pinned deps, prebuild (types VFS + client chunks).
+   The template (`starters/erp`) is the seed + closure source and must
    stay independently runnable.
 
 ## Runtime shape
 
 ```text
                     ┌─────────────────────────┐
-                    │  apps/factory (host)    │
+                    │  factory/host           │
                     │  protected /api + UI    │
                     │  AppDataDO + AppCreateDO│
                     └───────────┬─────────────┘
@@ -27,7 +27,7 @@ ADRs under [`../decisions/`](../decisions/).
           ┌─────────────────────┼─────────────────────┐
           │                     │                     │
           ▼                     ▼                     ▼
-   LOADER isolates      apps/check (async)     apps/lint (sync)
+   LOADER isolates      factory/check (async)     factory/lint (sync)
    (serve)              TS check ~13s honest   Biome on edit
                         publish gated on pass
 ```
@@ -49,7 +49,7 @@ ADRs under [`../decisions/`](../decisions/).
   Debounced compile on workspace writes (not full CD per edit).
 - **The seed is a snapshot, not a link.** `TEMPLATE_SEED.sourceFiles` becomes
   the initial commit on `main` at create; later work is normal Git. A fix to
-  `packages/template` reaches *new* apps only — existing repos never pick it
+  `starters/erp` reaches *new* apps only — existing repos never pick it
   up. Changing behaviour for apps already out there needs a source migration
   or a host-side workaround, and that cost belongs in the design, not the
   rollout.
@@ -59,7 +59,7 @@ ADRs under [`../decisions/`](../decisions/).
   template checks never stay warm).
 - **Stateless Biome lint worker** — sync on edit.
 
-Shared contracts live in `packages/core`.
+Shared contracts live in `framework/toolchain`.
 
 ## Related primitives (compose these)
 

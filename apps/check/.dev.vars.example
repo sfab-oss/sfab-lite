@@ -1,5 +1,0 @@
-# Local-only. Copy to `.dev.vars` (gitignored). Never commit secrets.
-# Must match `ADMIN_TOKEN` in apps/factory and apps/lint — the factory presents
-# it over the service binding and this worker compares it. Unset means every
-# request 401s: a missing secret denies rather than grants. See docs/engineering/DEPLOY.md.
-ADMIN_TOKEN=dev-admin-token

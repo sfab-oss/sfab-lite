@@ -4,21 +4,25 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  PINS,
+  UNIVERSE_EXTRA_PINS,
+} from "../framework/runtime/scripts/pins.mjs";
 
 const root = new URL("..", import.meta.url).pathname;
 
 const products = [
-  ["apps/factory", "@sfab-lite/factory"],
-  ["apps/check", "@sfab-lite/check"],
-  ["apps/lint", "@sfab-lite/lint"],
-  ["packages/template", "@sfab-lite/template"],
-  ["packages/kernel", "@sfab-lite/kernel"],
-  ["packages/core", "@sfab-lite/core"],
+  ["factory/host", "@sfab-lite/factory"],
+  ["factory/check", "@sfab-lite/check"],
+  ["factory/lint", "@sfab-lite/lint"],
+  ["starters/erp", "@sfab-lite/template"],
+  ["framework/runtime", "@sfab-lite/kernel"],
+  ["framework/toolchain", "@sfab-lite/core"],
 ];
 
 const tooling = [
-  ["packages/tsconfig", "@sfab-lite/tsconfig"],
-  ["packages/biome-config", "@sfab-lite/biome-config"],
+  ["framework/tsconfig", "@sfab-lite/tsconfig"],
+  ["framework/biome-config", "@sfab-lite/biome-config"],
 ];
 
 let failed = false;
@@ -55,8 +59,16 @@ for (const [dir, name] of tooling) {
 }
 
 const workspace = readFileSync(join(root, "pnpm-workspace.yaml"), "utf8");
-if (!(workspace.includes("apps/*") && workspace.includes("packages/*"))) {
-  console.error("pnpm-workspace.yaml must include apps/* and packages/*");
+if (
+  !(
+    workspace.includes("framework/*") &&
+    workspace.includes("starters/*") &&
+    workspace.includes("factory/*")
+  )
+) {
+  console.error(
+    "pnpm-workspace.yaml must include framework/*, starters/*, factory/*"
+  );
   failed = true;
 }
 
@@ -77,7 +89,7 @@ if (!existsSync(join(root, "biome.jsonc"))) {
 // a declared path stops existing, the failure otherwise surfaces as a broken
 // build — or, in the exploration's case, a silent fallback — long after the
 // rename that caused it.
-const templateRoot = join(root, "packages/template");
+const templateRoot = join(root, "starters/erp");
 const manifest = JSON.parse(
   readFileSync(join(templateRoot, "manifest.json"), "utf8")
 );
@@ -109,13 +121,13 @@ for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
 }
 
 // One TypeScript across the repo, and it is the kernel's. The kernel ships
-// a specific compiler's lib/*.d.ts inside TYPES_VFS, so apps/check must match
+// a specific compiler's lib/*.d.ts inside TYPES_VFS, so factory/check must match
 // it exactly or the check worker typechecks apps against libs it did not
 // build. Letting the rest of the repo drift to a different major is what
 // produced five different pins across seven packages. TypeScript 7 is not
 // used in this repo.
 const universePkg = JSON.parse(
-  readFileSync(join(root, "packages/kernel/universe/package.json"), "utf8")
+  readFileSync(join(root, "framework/runtime/universe/package.json"), "utf8")
 );
 const KERNEL_TS =
   universePkg.dependencies?.typescript ??
@@ -140,8 +152,35 @@ if (KERNEL_TS) {
     }
   }
 } else {
-  console.error("packages/kernel/universe must pin typescript");
+  console.error("framework/runtime/universe must pin typescript");
   failed = true;
+}
+
+// Starter conforms to the runtime's pins — never the reverse.
+const starterPkg = JSON.parse(
+  readFileSync(join(templateRoot, "package.json"), "utf8")
+);
+const starterPins = {
+  ...starterPkg.dependencies,
+  ...starterPkg.devDependencies,
+};
+const runtimePins = { ...PINS, ...UNIVERSE_EXTRA_PINS };
+for (const [name, version] of Object.entries(runtimePins)) {
+  if (name === "esbuild") {
+    continue;
+  }
+  const got = starterPins[name];
+  if (got == null) {
+    console.error(
+      `starters/erp/package.json missing runtime pin ${name}@${version}`
+    );
+    failed = true;
+  } else if (got !== version) {
+    console.error(
+      `starters/erp/package.json pins ${name}@${got}; runtime owns ${version}`
+    );
+    failed = true;
+  }
 }
 
 if (failed) {

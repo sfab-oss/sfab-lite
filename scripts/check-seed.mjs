@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Fail if `packages/template/generated/seed.json` has drifted from the template
+ * Fail if `starters/erp/generated/seed.json` has drifted from the template
  * source it is baked from.
  *
  * The seed is a committed build artifact: the factory Worker has no
  * filesystem, so the source tree a new app starts as ships as a bundle
  * constant. Nothing else in the repo compares the two, which means editing
- * `packages/template/app/src` and forgetting `pnpm --filter @sfab-lite/template
+ * `starters/erp/app/src` and forgetting `pnpm --filter @sfab-lite/template
  * bake-seed` leaves every gate green while the factory keeps seeding the old
  * source. That happened: commit 8a39d9d changed `public-base.ts` and the
  * committed seed still carried the pre-change text.
@@ -20,8 +20,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
-const packScript = join(repoRoot, "packages/template/scripts/pack.mjs");
-const committedPath = join(repoRoot, "packages/template/generated/seed.json");
+const packScript = join(repoRoot, "starters/erp/scripts/pack.mjs");
+const committedPath = join(repoRoot, "starters/erp/generated/seed.json");
 
 const packed = spawnSync(process.execPath, [packScript], {
   cwd: repoRoot,
@@ -62,7 +62,7 @@ function stateOf(path) {
   return "modified";
 }
 
-console.error("check:seed — packages/template/generated/seed.json is stale.");
+console.error("check:seed — starters/erp/generated/seed.json is stale.");
 if (changed.length > 0) {
   console.error(`  ${changed.length} source file(s) differ:`);
   for (const p of changed.sort()) {

@@ -5,6 +5,8 @@ pnpm check:workspace
 pnpm check:app-lint
 pnpm typecheck
 pnpm check:cycles
+pnpm check:direction
+pnpm check:pins
 pnpm check:dead-code
 pnpm check:kernel
 pnpm check:seed

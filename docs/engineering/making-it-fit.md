@@ -24,7 +24,7 @@ already refuted with numbers, and re-deriving them is expensive.
 | Limit | Value | Where it bites |
 | --- | --- | --- |
 | Isolate memory | **128 MB**, every plan, no knob | The TypeScript check worker |
-| Worker upload | **10 MB gzip** | `apps/lint` / `apps/check` (CI hard-fail). Factory is warn-only — host console is ordinary software. |
+| Worker upload | **10 MB gzip** | `factory/lint` / `factory/check` (CI hard-fail). Factory is warn-only — host console is ordinary software. |
 | `ctx.waitUntil` | killed at **~30s** | Async app-create attempts |
 | Isolate affinity | **none** | Any warm in-memory cache |
 | DO idle retention | **~30s** | Any DO-based warm cache |
@@ -49,8 +49,8 @@ is why ADR-0001 records **CheckDO as rejected**.
 ### 1. Bundle constants instead of a filesystem
 
 Workers have no filesystem, so the template seed
-(`packages/template/generated/seed.json`) and the entire TypeScript types
-universe (`packages/kernel/src/generated/types-vfs.js`) are baked into the
+(`starters/erp/generated/seed.json`) and the entire TypeScript types
+universe (`framework/runtime/src/generated/types-vfs.js`) are baked into the
 bundle at build time.
 
 The trap this creates is real and we hit it: editing the template without
@@ -62,7 +62,7 @@ regenerating and diffing against the committed artifact.
 
 The types VFS ships only the `.d.ts` closure the template's own TypeScript
 program reaches, resolved against an isolated install
-(`packages/kernel/universe`) so workspace peers cannot leak in. Whole-package
+(`framework/runtime/universe`) so workspace peers cannot leak in. Whole-package
 dumps would be several times larger.
 
 One deliberate exception: `@base-ui/react` ships whole, because the client
@@ -206,7 +206,7 @@ behind one settles on the next poll. That closes the gap where the console
 
 - **Runtime bundle diet.** Full write-up:
   [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md).
-  `apps/lint` is at 95.4% of the upload limit (Biome WASM). `apps/factory` at
+  `factory/lint` is at 95.4% of the upload limit (Biome WASM). `factory` at
   57.5% carries the vendor bundles. `better-auth.js` is 2.2 MB raw / 346 KB
   gzip because **`betterAuth` core** is that large — the vendor entry already
   re-exports only `betterAuth` + drizzle adapter + organization, and swapping
@@ -225,7 +225,7 @@ behind one settles on the next poll. That closes the gap where the console
 - **Per-slice checking against today's VFS does not fit locally.** Full
   write-up:
   [`../notes/2026-08-13-zone-check-memory.md`](../notes/2026-08-13-zone-check-memory.md).
-  Measured 2026-08-13 with `apps/check/scripts/measure-zones.ts` (same overlay-all /
+  Measured 2026-08-13 with `factory/check/scripts/measure-zones.ts` (same overlay-all /
   seed-roots harness as `measure-split.mjs`):
 
   | program | files loaded | retained heap |
@@ -257,7 +257,7 @@ behind one settles on the next poll. That closes the gap where the console
 - **Eject copy-out is not real today.** Full write-up:
   [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md).
   Unpacked the committed seed
-  (`packages/template/generated/seed.json`, 81 files — what a live app
+  (`starters/erp/generated/seed.json`, 81 files — what a live app
   actually is) into a fresh tree and ran `pnpm install && vite build`.
   `pnpm install` is a no-op: the seeded `package.json` has **no
   dependencies**. `vite build` then fails resolving `@tailwindcss/vite`,

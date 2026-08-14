@@ -13,7 +13,7 @@
 dist
 node_modules
 
-# Written and removed by apps/factory/src/schema-probe-source.test.ts
+# Written and removed by factory/host/src/schema/schema-probe-source.test.ts
 __sfab_probe_check.ts
 
 # Local-only credential notes (never commit)
