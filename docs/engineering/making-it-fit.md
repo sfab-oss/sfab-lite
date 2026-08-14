@@ -403,5 +403,7 @@ it.
   — serve / upload diet (not check-cap)
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
   — direction note
+- [`../notes/2026-08-14-evidence-audit.md`](../notes/2026-08-14-evidence-audit.md)
+  — grades for standing rejections (CheckDO, `@base-ui`, gzip, aged 1-in-4)
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and
   the resolution gate
