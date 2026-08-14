@@ -16,17 +16,19 @@ no stability promise. Shape and constraints live under
 ## Layout
 
 ```
-apps/
-  factory/   # host worker + factory UI
-  check/     # TypeScript check worker
-  lint/      # Biome lint worker
-packages/
-  template/      # starter-lite seed (independently runnable)
-  kernel/        # frozen dependency universe + prebuild
-  core/          # shared contracts
-  ui/            # shared console UI
+framework/
+  runtime/       # frozen universe + prebuild (owns pins)
+  toolchain/     # shared contracts, app-biome
   tsconfig/
   biome-config/
+registry/        # future recipes repo (empty for now)
+starters/
+  erp/           # starter seed (independently runnable)
+factory/
+  host/          # host worker + console
+  check/         # TypeScript check worker
+  lint/          # Biome lint worker
+  ui/            # shared console UI
 ```
 
 ## License

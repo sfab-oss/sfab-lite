@@ -13,15 +13,17 @@
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:kernel": "node scripts/check-kernel.mjs",
     "check:seed": "node scripts/check-seed.mjs",
-    "check:check-memory": "node apps/check/scripts/regression-store-bound-inprocess.mjs",
+    "check:check-memory": "node factory/check/scripts/regression-store-bound-inprocess.mjs",
     "check:export-agreement": "node scripts/check-export-agreement.mjs",
     "upload-kernel-r2": "pnpm --filter @sfab-lite/factory upload-kernel-r2",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "check:cycles": "node scripts/check-cycles.mjs",
+    "check:direction": "node scripts/check-direction.mjs",
+    "check:pins": "node scripts/check-pins-independence.mjs",
     "check:dead-code": "knip",
     "prepare": "husky",
-    "check:app-lint": "biome check --config-path=packages/core/app-biome.json packages/template/app/src",
-    "check:template-snapshot": "node --experimental-strip-types apps/factory/scripts/bake-template-snapshot.mjs --check"
+    "check:app-lint": "biome check --config-path=framework/toolchain/app-biome.json starters/erp/app/src",
+    "check:template-snapshot": "node --experimental-strip-types factory/host/scripts/bake-template-snapshot.mjs --check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.2",

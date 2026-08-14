@@ -15,7 +15,7 @@ const config: KnipConfig = {
       // real dependency. Declaring it at the root would be the wrong fix.
       ignoreBinaries: ["wrangler"],
     },
-    "apps/factory": {
+    "factory/host": {
       // Worker/Start entry + console under `src/`.
       entry: [
         "src/server.ts",
@@ -32,25 +32,25 @@ const config: KnipConfig = {
       // Vite plugin; keep it pinned for Start alignment even if unused directly.
       ignoreDependencies: ["cloudflare", "@tanstack/router-plugin"],
     },
-    "packages/ui": {
+    "factory/ui": {
       // Primitive barrel is the library surface; shadcn CLI config is not code.
       entry: ["src/components/shadcn/index.ts"],
       project: ["src/**/*.{ts,tsx}"],
       // Pulled only via `@import` in globals.css / scanned by Tailwind.
       ignoreDependencies: ["tailwindcss", "tw-animate-css"],
     },
-    "apps/check": {
+    "factory/check": {
       entry: ["src/index.ts", "src/exp/index.ts"],
       project: ["src/**/*.ts"],
     },
-    "apps/lint": {
+    "factory/lint": {
       project: ["src/**/*.{ts,tsx}"],
     },
     // Two trees with different rules. `src` is the package the factory
     // imports; `app` is the seed payload, whose reachability roots are its
     // own entry points — anything unreachable from those would ship as dead
     // code inside every app created from the template.
-    "packages/template": {
+    "starters/erp": {
       // The payload's own entries (`app/src/worker.ts` from wrangler.jsonc,
       // `app/src/ui/main.tsx` from index.html) are detected; only the pack
       // script has to be declared.
@@ -62,10 +62,10 @@ const config: KnipConfig = {
       // transitive dep.
       ignoreDependencies: ["tailwindcss"],
     },
-    "packages/kernel": {
+    "framework/runtime": {
       // Prebuild CLI + vendor entry modules are the reachability roots.
       // Generated megabyte blobs stay out of project so knip never parses them.
-      // Universe deps live in packages/kernel/universe (not this package.json).
+      // Universe deps live in framework/runtime/universe (not this package.json).
       entry: [
         "src/index.ts",
         "scripts/prebuild.mjs!",
@@ -78,7 +78,7 @@ const config: KnipConfig = {
         "scripts/vendor-entries/*.mjs!",
       ],
       project: ["src/index.ts", "src/generated/*.d.ts", "scripts/**/*.mjs"],
-      // Resolved at prebuild from packages/kernel/universe, not package.json.
+      // Resolved at prebuild from framework/runtime/universe, not package.json.
       ignoreDependencies: [
         "esbuild",
         "react",
@@ -90,7 +90,7 @@ const config: KnipConfig = {
         "zod",
       ],
     },
-    "packages/core": {
+    "framework/toolchain": {
       project: ["src/**/*.ts"],
     },
   },

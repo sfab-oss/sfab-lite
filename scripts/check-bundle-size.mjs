@@ -2,7 +2,7 @@
 /**
  * Guard aux Worker upload size against Cloudflare's plan ceiling.
  *
- * Originally added because `apps/lint` sat at ~9.09 MiB gzip against a 10 MB
+ * Originally added because `factory/lint` sat at ~9.09 MiB gzip against a 10 MB
  * Worker limit — a Biome bump could make it undeployable with the first
  * signal a failed production deploy.
  *
@@ -23,7 +23,6 @@
  * pass there.
  */
 import { execFileSync } from "node:child_process";
-import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,18 +33,16 @@ const CEILING_BYTES = 10_000_000;
 const FAIL_RATIO = 0.97;
 const WARN_RATIO = 0.85;
 
-/** Host console — measure + warn, never fail this gate. */
-const WARN_ONLY = new Set(["factory"]);
-
-const apps = readdirSync(join(root, "apps"), { withFileTypes: true })
-  .filter((e) => e.isDirectory())
-  .map((e) => e.name)
-  .sort();
+const workers = [
+  { name: "factory", cwd: "factory/host", warnOnly: true },
+  { name: "check", cwd: "factory/check", warnOnly: false },
+  { name: "lint", cwd: "factory/lint", warnOnly: false },
+];
 
 let failed = false;
 
-for (const app of apps) {
-  const cwd = join(root, "apps", app);
+for (const app of workers) {
+  const cwd = join(root, app.cwd);
   let out;
   try {
     out = execFileSync(
@@ -62,7 +59,7 @@ for (const app of apps) {
     );
   } catch (e) {
     console.error(
-      `apps/${app}: dry-run build failed\n${e.stdout ?? ""}${e.stderr ?? ""}`
+      `${app.cwd}: dry-run build failed\n${e.stdout ?? ""}${e.stderr ?? ""}`
     );
     failed = true;
     continue;
@@ -71,7 +68,7 @@ for (const app of apps) {
   const m = out.match(/gzip:\s*([\d.]+)\s*KiB/);
   if (!m) {
     console.error(
-      `apps/${app}: could not parse a gzip size from wrangler output`
+      `${app.cwd}: could not parse a gzip size from wrangler output`
     );
     failed = true;
     continue;
@@ -81,11 +78,10 @@ for (const app of apps) {
   const ratio = bytes / CEILING_BYTES;
   const pct = (ratio * 100).toFixed(1);
   const mib = (bytes / 1024 / 1024).toFixed(2);
-  const warnOnly = WARN_ONLY.has(app);
 
   if (ratio > FAIL_RATIO) {
-    const line = `apps/${app}: ${mib} MiB gzip — ${pct}% of the 10 MB Worker limit. Too close to deploy safely.`;
-    if (warnOnly) {
+    const line = `${app.cwd}: ${mib} MiB gzip — ${pct}% of the 10 MB Worker limit. Too close to deploy safely.`;
+    if (app.warnOnly) {
       console.warn(`${line} (factory: warn-only)`);
     } else {
       console.error(line);
@@ -93,10 +89,10 @@ for (const app of apps) {
     }
   } else if (ratio > WARN_RATIO) {
     console.warn(
-      `apps/${app}: ${mib} MiB gzip — ${pct}% of the 10 MB Worker limit.`
+      `${app.cwd}: ${mib} MiB gzip — ${pct}% of the 10 MB Worker limit.`
     );
   } else {
-    console.log(`apps/${app}: ${mib} MiB gzip — ${pct}%`);
+    console.log(`${app.cwd}: ${mib} MiB gzip — ${pct}%`);
   }
 }
 

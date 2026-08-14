@@ -1,6 +1,7 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - "framework/*"
+  - "starters/*"
+  - "factory/*"
 
 # Release-age gate — supply-chain hardening (Shai-Hulud class of npm worms,
 # whose compromised versions are live for only hours before takedown). Refuses

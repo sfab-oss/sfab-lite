@@ -1,0 +1,10 @@
+{
+  "extends": "@sfab-lite/tsconfig/react-library-bundler.json",
+  "compilerOptions": {
+    "paths": {
+      "@sfab-lite/ui/*": ["./src/*"]
+    }
+  },
+  "include": [".", "../../framework/tsconfig/css-modules.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

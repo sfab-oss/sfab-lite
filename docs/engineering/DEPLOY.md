@@ -73,7 +73,7 @@ leaving it on.
 
 ### The domain is dashboard state, on purpose
 
-`apps/factory/wrangler.jsonc` has **no `routes` key**, and adding one would be a
+`factory/wrangler.jsonc` has **no `routes` key**, and adding one would be a
 regression. A Worker custom domain is not a DNS record you point somewhere —
 there is no origin address — it is an attachment binding hostname to Worker,
 and creating it writes the DNS record as a side effect. Declaring it in

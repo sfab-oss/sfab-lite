@@ -75,11 +75,19 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:cycles
 
+      - name: direction
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:direction
+
+      - name: pins
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:pins
+
       - name: dead-code
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:dead-code
 
-      # Rebuilds from packages/kernel/universe (isolated lockfile) and fails
+      # Rebuilds from framework/runtime/universe (isolated lockfile) and fails
       # if any committed vendor / generated / kernel.json byte changed.
       - name: kernel
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
@@ -186,7 +194,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/factory
+          workingDirectory: factory/host
           command: d1 migrations apply sfab-lite-factory --remote
 
       # Order is load-bearing: factory service-binds check and lint, so they
@@ -196,7 +204,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/check
+          workingDirectory: factory/check
           command: deploy
 
       - name: Deploy lint
@@ -204,7 +212,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/lint
+          workingDirectory: factory/lint
           command: deploy
 
       - name: Deploy factory
@@ -212,5 +220,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/factory
+          workingDirectory: factory/host
           command: deploy

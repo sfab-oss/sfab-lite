@@ -20,23 +20,23 @@ vs app plane, reserved words):
 
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
-`pnpm check:cycles`, `pnpm check:dead-code`, `pnpm check:seed`,
-`pnpm check:check-memory`.
+`pnpm check:cycles`, `pnpm check:direction`, `pnpm check:pins`,
+`pnpm check:dead-code`, `pnpm check:seed`, `pnpm check:check-memory`.
 
-`check:app-lint` is the odd one: it checks `packages/template/app/src` —
-the seed payload — against `packages/core/app-biome.json`, the config the
+`check:app-lint` is the odd one: it checks `starters/erp/app/src` —
+the seed payload — against `framework/toolchain/app-biome.json`, the config the
 factory's lint worker applies to app sources. That config cannot `extends`
 the shared preset (the worker runs Biome in WASM, which has no package
 resolution), so this gate is what keeps the two from drifting and a
 freshly seeded app from lighting up on code its owner never touched.
 
 `check:kernel` rebuilds `@sfab-lite/kernel` from its isolated
-`packages/kernel/universe` install and fails if committed vendor /
+`framework/runtime/universe` install and fails if committed vendor /
 generated / `kernel.json` artifacts drift.
 
-`check:seed` is the same idea for `packages/template/generated/seed.json`:
+`check:seed` is the same idea for `starters/erp/generated/seed.json`:
 re-runs the template pack and fails if the committed seed no longer matches
-`packages/template/app/src`. The seed lives in the template package; the factory
+`starters/erp/app/src`. The seed lives in the template package; the factory
 imports it at build time because the host Worker has no filesystem. Editing the
 template without re-baking would leave every other gate green while the factory
 kept seeding the old source.
@@ -46,12 +46,12 @@ process and fails if its LanguageService store holds more than one app or if
 the heap grows. **One TS program over the types VFS retains ~263 MB and a
 Worker isolate gets 128 MB on every plan**, so the check worker can afford
 state for exactly one app at a time. Treat that as a standing budget when
-touching `apps/check/src`: anything cached per app, and anything that grows the
-types VFS, spends against it. `apps/check/scripts/measure-memory.mjs` is the
+touching `factory/check/src`: anything cached per app, and anything that grows the
+types VFS, spends against it. `factory/check/scripts/measure-memory.mjs` is the
 diagnostic that produced these numbers and re-derives them on demand.
 
 Part of that budget is bought by
-`packages/kernel/scripts/trim-drizzle-dialects.mjs`, which drops drizzle's pg /
+`framework/runtime/scripts/trim-drizzle-dialects.mjs`, which drops drizzle's pg /
 mysql / gel / singlestore dialects from the types VFS during the closure build.
 Sub-apps run on D1, so those dialects are unreachable — but TypeScript still
 loaded all four to resolve conditional-type branches it would never take, at a
@@ -75,15 +75,16 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 
 | Path | Role |
 | --- | --- |
-| `apps/factory` | Host worker + factory UI |
-| `apps/check` | TypeScript check worker |
-| `apps/lint` | Biome lint worker |
-| `packages/template` | Starter-lite seed in `app/` (independently runnable) |
-| `packages/kernel` | Frozen universe + prebuild |
-| `packages/core` | Shared contracts |
-| `packages/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
-| `packages/tsconfig` | Shared TS configs |
-| `packages/biome-config` | Shared Biome presets |
+| `factory/host` | Host worker + factory UI |
+| `factory/check` | TypeScript check worker (thin shell; engines extract later) |
+| `factory/lint` | Biome lint worker (thin shell; engines extract later) |
+| `factory/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
+| `starters/erp` | Starter-lite seed in `app/` (independently runnable) |
+| `framework/runtime` | Frozen universe + prebuild (owns universe pins) |
+| `framework/toolchain` | Shared contracts (check/lint wire types, app-biome) |
+| `framework/tsconfig` | Shared TS configs |
+| `framework/biome-config` | Shared Biome presets |
+| `registry/` | Future recipes repo (empty README in this milestone) |
 
 ## Where things live
 
@@ -93,7 +94,7 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
   `agent-browser`, `shadcn`, `tanstack-start-best-practices`, `find-skills`
   (symlinked under `.claude/skills/`; locked in `skills-lock.json`)
 - Factory console UI tokens / primitives →
-  [`apps/factory/AGENTS.md`](apps/factory/AGENTS.md) (shadcn semantic
+  [`factory/host/AGENTS.md`](factory/host/AGENTS.md) (shadcn semantic
   tokens are canonical for new UI)
 
 ## Hard boundaries
