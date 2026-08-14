@@ -233,13 +233,9 @@ Fixed paths — apps do not choose them:
 | --- | --- |
 | `package.json` | Exact runtime pins so a copied tree `pnpm install`s. |
 | `tsconfig.json` | Same regime. |
-| `index.html` | Document shell. The eject test never reached a missing-HTML
-error because install already failed; the seed still omits this file.
-Pricing it absent from the format is an eject regression. |
-| `src/generated/api.d.ts` | Client API snapshot. Standalone types; no
-vendor leakage (`drizzle`, `hono/index`, `AppEnv`). |
-| `src/generated/api.hash` | `sha256:` of the server tree the snapshot
-was emitted from. |
+| `index.html` | Document shell. The eject test never reached a missing-HTML error because install already failed; the seed still omits this file. Pricing it absent from the format is an eject regression. |
+| `src/generated/api.d.ts` | Client API snapshot. Standalone types; no vendor leakage (`drizzle`, `hono/index`, `AppEnv`). |
+| `src/generated/api.hash` | `sha256:` of the server tree the snapshot was emitted from. |
 
 Emit, hash store, and drift gates are later PRs. This RFC only names
 the members and the invariants they carry.
