@@ -337,6 +337,15 @@ behind one settles on the next poll. That closes the gap where the console
   [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md).
   See the rejected-table row. Pin stays 6.0.3.
 
+- **Generated cheap drizzle works with curated seams.** Full write-up:
+  [`../notes/2026-08-14-generator-spike.md`](../notes/2026-08-14-generator-spike.md).
+  Usage scan + universe existence check emit a sqlite/D1 overlay that
+  agrees with the real VFS on template server files (0=0), catches
+  planted `eq(entity.id, 0)` / `name: 123`, and stays at **100 MB** on
+  the server-entities closure (handwritten 101). Real signatures
+  (`BinaryOperator`, `SQLiteTableFn`, dialect builders) cannot be
+  copied. Gates PR 5; not a VFS we ship from this spike.
+
 ## Three lessons that keep recurring
 
 **Local verification of a platform limit is worthless.** Local workerd applies
@@ -403,5 +412,7 @@ it.
   — serve / upload diet (not check-cap)
 - [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
   — direction note
+- [`../notes/2026-08-14-generator-spike.md`](../notes/2026-08-14-generator-spike.md)
+  — generated cheap drizzle (works-with-seams; gates PR 5)
 - [`../architecture/OVERVIEW.md`](../architecture/OVERVIEW.md) — import maps and
   the resolution gate
