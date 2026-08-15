@@ -1,4 +1,10 @@
 {
+  "lite/alert@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:a67594c9a6eb7701fc4b2388c3761058be2086e06a0c46a92a51350575ab4220",
+      "alert.tsx": "sha256:9e432612d54adb582badc08abb386d867cb125e6eb7bc225a2bac1fe1289caae"
+    }
+  },
   "lite/button@0.1.0": {
     "files": {
       "registry-item.json": "sha256:6f7db96a7227440e69f16981eb62dd3c398bdb9369160a66d34e2a44654b49ec",
@@ -9,6 +15,12 @@
     "files": {
       "registry-item.json": "sha256:6792e39adb9441f3c4a348882b908491ea5baccafdac039a64cd81f55953ee22",
       "card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
+    }
+  },
+  "lite/empty-state@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:d7035d516c61acf077b6b9094b4252d87e3082c33a73241639d1c288b678a92a",
+      "empty-state.tsx": "sha256:8f445050a5d80cf514dc00df7c770930604292b6459bdffb48dbc690586cd806"
     }
   },
   "lite/field@0.1.0": {
@@ -27,6 +39,12 @@
     "files": {
       "registry-item.json": "sha256:0a15383ebc25561f14d05dc0b1cd1cec8303d4202c876ed4e4c13302cc44b536",
       "label.tsx": "sha256:1287d61955d50681c37640d7534f3dd2341ebe3053e9385dd7979cdfb838305a"
+    }
+  },
+  "lite/select@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:09653be5407b9e57cc24288ee987f486f4031378da39716dcd2dd2662572f92c",
+      "select.tsx": "sha256:d49d61dc00a0a5eaabefca09ead0adb557fc538b1dad5d1d54669d682e37dbe0"
     }
   },
   "lite/table@0.1.0": {

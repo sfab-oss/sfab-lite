@@ -1,0 +1,18 @@
+{
+  "name": "lite/select",
+  "type": "registry:ui",
+  "title": "Select",
+  "description": "Base-ui select. Use for enumerated fields such as party kind. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "select.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/select.tsx"
+    }
+  ]
+}

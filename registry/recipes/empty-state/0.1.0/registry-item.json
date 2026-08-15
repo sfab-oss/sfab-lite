@@ -1,0 +1,18 @@
+{
+  "name": "lite/empty-state",
+  "type": "registry:ui",
+  "title": "Empty state",
+  "description": "Placeholder for an empty list or panel. Title, optional description, optional action slot. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "empty-state.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/empty-state.tsx"
+    }
+  ]
+}

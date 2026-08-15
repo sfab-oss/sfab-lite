@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { AppShell } from "../components/layout/app-shell";
 import { Card, CardContent } from "../components/ui/card";
+import { EmptyState } from "../components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -23,9 +24,10 @@ export function BalancesPage() {
       ) : null}
 
       {!balances.isLoading && balances.data?.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No open balances. Everyone is settled.
-        </p>
+        <EmptyState
+          description="Everyone is settled."
+          title="No open balances"
+        />
       ) : null}
 
       {balances.data && balances.data.length > 0 ? (

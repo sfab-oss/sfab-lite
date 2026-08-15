@@ -41,6 +41,12 @@
         "src/lib/utils.ts": "sha256:4acbc7165a8d54738ff62b51414e772c08fe78434e524e6d8770180d3ba2925f"
       }
     },
+    "lite/alert": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/alert.tsx": "sha256:9e432612d54adb582badc08abb386d867cb125e6eb7bc225a2bac1fe1289caae"
+      }
+    },
     "lite/button": {
       "version": "0.1.0",
       "files": {
@@ -51,6 +57,12 @@
       "version": "0.1.0",
       "files": {
         "src/components/ui/card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
+      }
+    },
+    "lite/empty-state": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/empty-state.tsx": "sha256:8f445050a5d80cf514dc00df7c770930604292b6459bdffb48dbc690586cd806"
       }
     },
     "lite/label": {
@@ -69,6 +81,12 @@
       "version": "0.1.0",
       "files": {
         "src/components/ui/input.tsx": "sha256:39fadb9d6916a7c6dda9c4bc0e3f7454ef02df0a50ff6b137e64b09b82b019b8"
+      }
+    },
+    "lite/select": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/select.tsx": "sha256:d49d61dc00a0a5eaabefca09ead0adb557fc538b1dad5d1d54669d682e37dbe0"
       }
     },
     "lite/table": {

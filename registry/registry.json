@@ -4,6 +4,26 @@
   "homepage": "https://lite.sfab.dev",
   "items": [
     {
+      "name": "alert",
+      "type": "registry:ui",
+      "title": "Alert",
+      "description": "Inline alert with title and description. Variants default and destructive. Use for form and mutation errors. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/alert/0.1.0/alert.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/alert.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "button",
       "type": "registry:ui",
       "title": "Button",
@@ -36,6 +56,26 @@
           "path": "recipes/card/0.1.0/card.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/card.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "empty-state",
+      "type": "registry:ui",
+      "title": "Empty state",
+      "description": "Placeholder for an empty list or panel. Title, optional description, optional action slot. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/empty-state/0.1.0/empty-state.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/empty-state.tsx"
         }
       ],
       "meta": {
@@ -97,6 +137,26 @@
           "path": "recipes/label/0.1.0/label.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/label.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "select",
+      "type": "registry:ui",
+      "title": "Select",
+      "description": "Base-ui select. Use for enumerated fields such as party kind. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/select/0.1.0/select.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/select.tsx"
         }
       ],
       "meta": {

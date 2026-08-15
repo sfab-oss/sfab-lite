@@ -101,3 +101,6 @@ from the registry. Targets are the RFC §2 tree (`src/components/ui/`,
 | `lite/field` | form layout the plan's party-form assumes |
 | `lite/card` | detail / balance tiles |
 | `lite/table` | party list, open balances, ledger lines |
+| `lite/select` | party kind; replaces the native `<select>` |
+| `lite/alert` | form and mutation errors |
+| `lite/empty-state` | empty parties, balances, and ledger |
