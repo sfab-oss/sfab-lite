@@ -32,7 +32,7 @@ export function OverviewPage() {
           Welcome to {orgName}
         </h2>
         <p className="text-muted-foreground text-sm">
-          You are working in {orgName}.
+          Parties and their ledgers live here.
         </p>
       </div>
 

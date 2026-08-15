@@ -19,19 +19,15 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import type { PartyKind } from "../contract/parties";
 import {
-  type PartyKind,
   useCreateParty,
   useDeleteParty,
   useParties,
 } from "../hooks/use-parties";
 import { formatCents } from "../lib/money";
+import { PARTY_KIND_LABEL, PARTY_KINDS } from "../lib/party-kind";
 import { cn } from "../lib/utils";
-
-const PARTY_KIND_LABEL: Record<PartyKind, string> = {
-  customer: "Customer",
-  vendor: "Vendor",
-};
 
 const BLANK = {
   name: "",
@@ -99,10 +95,11 @@ export function PartiesPage() {
                     }
                     value={form.kind}
                   >
-                    <option value="customer">
-                      {PARTY_KIND_LABEL.customer}
-                    </option>
-                    <option value="vendor">{PARTY_KIND_LABEL.vendor}</option>
+                    {PARTY_KINDS.map((kind) => (
+                      <option key={kind} value={kind}>
+                        {PARTY_KIND_LABEL[kind]}
+                      </option>
+                    ))}
                   </select>
                 </Field>
               </div>

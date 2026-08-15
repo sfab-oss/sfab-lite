@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const kindSchema = z.enum(["customer", "vendor"]);
+export type PartyKind = z.infer<typeof kindSchema>;
 
 export const partyCreateSchema = z.object({
   name: z.string().min(1).max(200),

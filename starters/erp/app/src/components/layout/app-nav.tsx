@@ -27,12 +27,9 @@ export function AppNav() {
       return;
     }
     setSigningOut(true);
-    try {
-      await authClient.signOut();
-    } finally {
-      queryClient.clear();
-      await navigate({ to: "/sign-in" });
-    }
+    await authClient.signOut().catch(() => undefined);
+    queryClient.clear();
+    await navigate({ to: "/sign-in" });
   }
 
   return (

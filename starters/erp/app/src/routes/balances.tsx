@@ -11,6 +11,7 @@ import {
 } from "../components/ui/table";
 import { useOpenBalances } from "../hooks/use-parties";
 import { formatCents } from "../lib/money";
+import { PARTY_KIND_LABEL } from "../lib/party-kind";
 
 export function BalancesPage() {
   const balances = useOpenBalances();
@@ -51,7 +52,7 @@ export function BalancesPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {row.kind}
+                      {PARTY_KIND_LABEL[row.kind]}
                     </TableCell>
                     <TableCell>{formatCents(row.balanceCents)}</TableCell>
                   </TableRow>
