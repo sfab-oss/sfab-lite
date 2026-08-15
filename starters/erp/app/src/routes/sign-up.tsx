@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { AuthShell } from "../components/layout/auth-shell";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -94,9 +95,9 @@ export function SignUpPage() {
               </Field>
             </FieldGroup>
             {error ? (
-              <p className="text-destructive text-sm" role="alert">
-                {error}
-              </p>
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             ) : null}
             <Button disabled={pending} type="submit">
               {pending ? "Creating…" : "Create account"}

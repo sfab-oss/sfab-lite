@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { AppShell } from "../components/layout/app-shell";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -9,8 +10,16 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { EmptyState } from "../components/ui/empty-state";
 import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import {
   Table,
   TableBody,
@@ -27,7 +36,6 @@ import {
 } from "../hooks/use-parties";
 import { formatCents } from "../lib/money";
 import { PARTY_KIND_LABEL, PARTY_KINDS } from "../lib/party-kind";
-import { cn } from "../lib/utils";
 
 const BLANK = {
   name: "",
@@ -36,10 +44,10 @@ const BLANK = {
   taxId: "",
 };
 
-const selectClass = cn(
-  "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none",
-  "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-);
+const PARTY_KIND_ITEMS = PARTY_KINDS.map((kind) => ({
+  value: kind,
+  label: PARTY_KIND_LABEL[kind],
+}));
 
 export function PartiesPage() {
   const parties = useParties();
@@ -84,23 +92,29 @@ export function PartiesPage() {
                 </Field>
                 <Field className="sm:w-40">
                   <FieldLabel htmlFor="party-kind">Kind</FieldLabel>
-                  <select
-                    className={selectClass}
+                  <Select
                     id="party-kind"
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        kind: event.target.value as PartyKind,
-                      })
-                    }
+                    items={PARTY_KIND_ITEMS}
+                    onValueChange={(kind) => {
+                      if (kind == null) {
+                        return;
+                      }
+                      setForm({ ...form, kind });
+                    }}
+                    required
                     value={form.kind}
                   >
-                    {PARTY_KINDS.map((kind) => (
-                      <option key={kind} value={kind}>
-                        {PARTY_KIND_LABEL[kind]}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PARTY_KIND_ITEMS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </Field>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -138,9 +152,9 @@ export function PartiesPage() {
       </Card>
 
       {remove.error ? (
-        <p className="text-destructive text-sm" role="alert">
-          {remove.error.message}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{remove.error.message}</AlertDescription>
+        </Alert>
       ) : null}
 
       {parties.isLoading ? (
@@ -148,9 +162,10 @@ export function PartiesPage() {
       ) : null}
 
       {!parties.isLoading && parties.data?.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          No parties yet. Add a customer above, then record a charge.
-        </p>
+        <EmptyState
+          description="Add a customer above, then record a charge."
+          title="No parties yet"
+        />
       ) : null}
 
       {parties.data && parties.data.length > 0 ? (

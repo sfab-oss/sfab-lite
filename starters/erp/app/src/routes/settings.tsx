@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { AppShell } from "../components/layout/app-shell";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -87,9 +88,9 @@ export function SettingsPage() {
               </Field>
             </FieldGroup>
             {error ? (
-              <p className="text-destructive text-sm" role="alert">
-                {error}
-              </p>
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             ) : null}
             <div className="flex items-center gap-3">
               <Button disabled={pending || !organization} type="submit">

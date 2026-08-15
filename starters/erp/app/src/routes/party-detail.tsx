@@ -1,6 +1,7 @@
 import { Link, useParams } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { AppShell } from "../components/layout/app-shell";
+import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { EmptyState } from "../components/ui/empty-state";
 import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import {
@@ -104,9 +106,9 @@ export function PartyDetailPage() {
         <p className="text-muted-foreground text-sm">Loading…</p>
       ) : null}
       {detail.error ? (
-        <p className="text-destructive text-sm" role="alert">
-          {detail.error.message}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{detail.error.message}</AlertDescription>
+        </Alert>
       ) : null}
 
       {party ? (
@@ -160,7 +162,7 @@ export function PartyDetailPage() {
             </CardHeader>
             <CardContent>
               {entries.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No lines yet.</p>
+                <EmptyState title="No lines yet" />
               ) : (
                 <Table>
                   <TableHeader>

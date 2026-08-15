@@ -62,10 +62,9 @@ const config: KnipConfig = {
       entry: ["scripts/*.mjs"],
       project: ["src/**/*.ts", "scripts/**/*.mjs", "app/src/**/*.{ts,tsx}"],
       // Loaded by @tailwindcss/vite and by `@import "tailwindcss"` in
-      // styles.css, neither of which knip follows. `@radix-ui/react-icons`
-      // is a kernel pin the agent may import; this slice happens not to.
-      // Versions must stay explicit here rather than float as transitives.
-      ignoreDependencies: ["tailwindcss", "@radix-ui/react-icons"],
+      // styles.css, neither of which knip follows. Versions must stay
+      // explicit here rather than float as transitives.
+      ignoreDependencies: ["tailwindcss"],
       ignoreIssues: {
         // Emit walks this alias by name (`findApiTypeAlias`); the SPA client
         // imports `src/generated/api` instead of `typeof` the live server.
@@ -73,6 +72,8 @@ const config: KnipConfig = {
         // Registry recipes are copied verbatim; unused exports stay so
         // provenance hashes match the catalog.
         "app/src/components/ui/table.tsx": ["exports"],
+        "app/src/components/ui/alert.tsx": ["exports"],
+        "app/src/components/ui/select.tsx": ["exports"],
       },
     },
     "framework/runtime": {
