@@ -138,8 +138,10 @@ planner), and each file is provenance-recorded in `manifest.recipes`:
 `lite/card`, `lite/table` (all `@0.1.0`).
 
 `pnpm --filter @sfab-lite/registry assemble-erp-starter` re-runs that
-assembly. Do not hand-copy a recipe into `src/components/ui/` — add it
-to the catalog, then assemble.
+assembly (the starter is the whole catalog). `pnpm check:manifest`
+fails when the tree or `manifest.recipes` drifts from it, so do not
+hand-edit a recipe file or hand-copy one into `src/components/ui/` —
+add it to the catalog, then assemble.
 
 Errors surface as `<p role="alert">`. Kind is a native `<select>` styled
 with `cn()`. There is no sidebar; navigation is a top bar in

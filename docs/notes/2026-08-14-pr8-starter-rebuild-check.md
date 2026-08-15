@@ -8,6 +8,9 @@ Non-authoritative (see [`README.md`](README.md)). Catalogue:
 imports the seven published recipes. Unused sidebar/widget UI is gone.
 `isClientAppPath` classifies RFC client dirs plus `src/router.tsx` and
 `src/styles.css`, so `src/hono/` / `src/db/` / `src/auth/` stay server.
+Review fixup: balance logic lives once in `src/db/balances.ts`;
+`check:manifest` fails when the starter drifts from the catalog
+assembly (tree or provenance).
 
 ## How to re-run
 

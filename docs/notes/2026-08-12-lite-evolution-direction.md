@@ -692,17 +692,19 @@ units the original list did not name.)
 2. **Restructure** — the mechanical `git mv` to the future-repo map,
    workspace/CI paths, the runtime's own universe pins (the inversion
    fix), and the direction gate with its red test. Large but low-risk;
-   review is "did behavior change?" (it must not).
+   review is "did behavior change?" (it must not). **Done** (PR #130).
 3. **App format** — the RFC plus the manifest schema and validation of
-   a starter-shaped app.
+   a starter-shaped app. **Done** (PR #131).
 4. **Closed resolve** — transitive types pruned or resolver-gated in
-   check, the agent-grade diagnostic, the `kysely` red test.
+   check, the agent-grade diagnostic, the `kysely` red test. **Done**
+   (PR #132).
 5. **Types pack** — the generation pipeline for the runtime-owned
    vendor surfaces (decision 8): generator, the agreement gate
    (cheap-vs-real verdict parity over template + recipes), planted-
    error red tests. Replaces the handwritten experiment overlays.
    Design input: the seam table in
    [`2026-08-14-generator-spike.md`](2026-08-14-generator-spike.md).
+   **Done** (PR #133).
 6. **Check plumbing** — the snapshot artifact (emit, hash-keyed store,
    per-module regen + prefix merge) and **check units** wired into the
    worker loop (prod tail closed the single-program fork: cheap-union
@@ -715,7 +717,12 @@ units the original list did not name.)
    `/r/{name}.json`, `@lite` namespace lock, CLI agreement gate.
 8. **Starter** — the rebuild on the new tree, assembled from the
    registry, recipes extracted as they emerge (splits into two PRs if
-   the diff gets large: skeleton, then the slice).
+   the diff gets large: skeleton, then the slice). **Done** (PR #138,
+   one PR): RFC §2 tree, parties + credit ledger within the bound,
+   seven recipes assembled with provenance, `check:manifest` fails on
+   drift from the catalog. Checkpoint 4 (owner product feel + owner-
+   gated re-tail) follows the merge
+   ([`2026-08-14-pr8-starter-rebuild-check.md`](2026-08-14-pr8-starter-rebuild-check.md)).
 9. **Image + generated files** — image v0 on every serve path, plus
    the generated `package.json`/`tsconfig`/`api.d.ts` (and
    `index.html`) with their drift gate.
