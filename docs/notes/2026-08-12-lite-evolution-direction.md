@@ -642,7 +642,7 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
 7. **In-app agent design doc** — per decision 5. *Done when:* the doc
    answers tenancy, state location, agent↔app tool transport, and
    memory posture, each with its making-it-fit citation.
-   **Done** (PR #TBD):
+   **Done** (PR #144):
    [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md).
 8. **The two experiments, before the RFC hardens.**
 
@@ -736,7 +736,7 @@ units the original list did not name.)
    build carries `image: 0` + resolved runtime + manifest snapshot;
    `check:generated` gates the four root files; host regenerates on
    create/add. Legacy builds read with `image: null` (no backfill).
-10. **Agent design doc** — doc-only. **Done** (PR #TBD):
+10. **Agent design doc** — doc-only. **Done** (PR #144):
     [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md).
 
 ### Milestone 1 exit criteria
