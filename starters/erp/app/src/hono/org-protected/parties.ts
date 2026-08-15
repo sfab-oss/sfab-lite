@@ -1,10 +1,12 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
+import type { z } from "zod";
 import {
   ledgerLineSchema,
   partyCreateSchema,
   partyUpdateSchema,
 } from "../../contract/parties";
+import { balancesByParty, runningBalance } from "../../db/balances";
 import { ledgerEntry, party } from "../../db/schema";
 import { createId } from "../../db/utils";
 import type { AppEnv } from "../types";
@@ -13,14 +15,38 @@ import { jsonBody } from "../validate";
 const owned = (id: string, orgId: string) =>
   and(eq(party.id, id), eq(party.organizationId, orgId));
 
-function runningBalance(
-  lines: { kind: "charge" | "payment"; amountCents: number }[]
-): number {
-  let balance = 0;
-  for (const line of lines) {
-    balance += line.kind === "charge" ? line.amountCents : -line.amountCents;
+async function recordLine(
+  c: Context<AppEnv>,
+  id: string,
+  kind: "charge" | "payment",
+  input: z.infer<typeof ledgerLineSchema>
+) {
+  const orgId = c.get("orgId");
+  const db = c.get("db");
+
+  const [row] = await db
+    .select({ id: party.id })
+    .from(party)
+    .where(owned(id, orgId))
+    .limit(1);
+
+  if (!row) {
+    return c.json({ error: "not_found" as const }, 404);
   }
-  return balance;
+
+  const [created] = await db
+    .insert(ledgerEntry)
+    .values({
+      id: createId(),
+      organizationId: orgId,
+      partyId: id,
+      kind,
+      amountCents: input.amountCents,
+      memo: input.memo ?? null,
+    })
+    .returning();
+
+  return c.json({ entry: created }, 201);
 }
 
 export const partyRoutes = new Hono<AppEnv>()
@@ -34,26 +60,12 @@ export const partyRoutes = new Hono<AppEnv>()
       .where(eq(party.organizationId, orgId))
       .orderBy(asc(party.name));
 
-    const lines = await db
-      .select({
-        partyId: ledgerEntry.partyId,
-        kind: ledgerEntry.kind,
-        amountCents: ledgerEntry.amountCents,
-      })
-      .from(ledgerEntry)
-      .where(eq(ledgerEntry.organizationId, orgId));
-
-    const byParty = new Map<string, typeof lines>();
-    for (const line of lines) {
-      const list = byParty.get(line.partyId) ?? [];
-      list.push(line);
-      byParty.set(line.partyId, list);
-    }
+    const balances = await balancesByParty(db, orgId);
 
     return c.json({
       data: rows.map((row) => ({
         ...row,
-        balanceCents: runningBalance(byParty.get(row.id) ?? []),
+        balanceCents: balances.get(row.id) ?? 0,
       })),
     });
   })
@@ -152,63 +164,9 @@ export const partyRoutes = new Hono<AppEnv>()
     }
     return c.json({ ok: true as const });
   })
-  .post("/:id/charges", jsonBody(ledgerLineSchema), async (c) => {
-    const orgId = c.get("orgId");
-    const id = c.req.param("id");
-    const input = c.req.valid("json");
-    const db = c.get("db");
-
-    const [row] = await db
-      .select({ id: party.id })
-      .from(party)
-      .where(owned(id, orgId))
-      .limit(1);
-
-    if (!row) {
-      return c.json({ error: "not_found" as const }, 404);
-    }
-
-    const [created] = await db
-      .insert(ledgerEntry)
-      .values({
-        id: createId(),
-        organizationId: orgId,
-        partyId: id,
-        kind: "charge",
-        amountCents: input.amountCents,
-        memo: input.memo ?? null,
-      })
-      .returning();
-
-    return c.json({ entry: created }, 201);
-  })
-  .post("/:id/payments", jsonBody(ledgerLineSchema), async (c) => {
-    const orgId = c.get("orgId");
-    const id = c.req.param("id");
-    const input = c.req.valid("json");
-    const db = c.get("db");
-
-    const [row] = await db
-      .select({ id: party.id })
-      .from(party)
-      .where(owned(id, orgId))
-      .limit(1);
-
-    if (!row) {
-      return c.json({ error: "not_found" as const }, 404);
-    }
-
-    const [created] = await db
-      .insert(ledgerEntry)
-      .values({
-        id: createId(),
-        organizationId: orgId,
-        partyId: id,
-        kind: "payment",
-        amountCents: input.amountCents,
-        memo: input.memo ?? null,
-      })
-      .returning();
-
-    return c.json({ entry: created }, 201);
-  });
+  .post("/:id/charges", jsonBody(ledgerLineSchema), (c) =>
+    recordLine(c, c.req.param("id"), "charge", c.req.valid("json"))
+  )
+  .post("/:id/payments", jsonBody(ledgerLineSchema), (c) =>
+    recordLine(c, c.req.param("id"), "payment", c.req.valid("json"))
+  );

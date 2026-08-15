@@ -76,49 +76,24 @@ const CLOSED_RESOLVE_FIX =
 const LEADING_SLASHES = /^\/+/;
 
 /**
- * RFC client subtrees when the client entry lives at `src/` (not a nested
- * `src/ui/` tree). Dirname of `src/router.tsx` is `src/` and would swallow
- * the server tree — so classification uses these prefixes plus the entry file.
+ * RFC §2 client tree: the client entry, its stylesheet, and
+ * `src/{routes,components,hooks,lib}/`. Everything else under `src/` is
+ * server-side. `dirname(client.entry)` is `src/`, so a dirname prefix would
+ * swallow hono/db/auth — the tree is named, not derived.
  */
 const RFC_CLIENT_DIRS = ["routes", "components", "hooks", "lib"] as const;
 
-/**
- * Client compile tree, derived from TEMPLATE_MANIFEST.client.entry.
- * Nested entries (`src/ui/main.tsx`) keep the dirname prefix. An entry at
- * `src/<file>` uses the RFC client dirs so hono/db/auth stay server-side.
- */
-function clientTreeFromManifest(): {
-  relDir: string;
-  prefixes: string[];
-  label: string;
-} {
-  const entry = TEMPLATE_MANIFEST.client.entry.replace(LEADING_SLASHES, "");
-  const slash = entry.lastIndexOf("/");
-  const relDir = slash >= 0 ? entry.slice(0, slash) : "";
-  const entryFile = normalizePath(`/app/${entry}`);
-  const styles = TEMPLATE_MANIFEST.client.styles.replace(LEADING_SLASHES, "");
-  const stylesFile = normalizePath(`/app/${styles}`);
-  if (relDir === "src") {
-    const prefixes = [
-      entryFile,
-      stylesFile,
-      ...RFC_CLIENT_DIRS.map((dir) => `${normalizePath(`/app/src/${dir}`)}/`),
-    ];
-    return {
-      relDir,
-      prefixes,
-      label: "src/{routes,components,hooks,lib}",
-    };
-  }
-  return {
-    relDir,
-    prefixes: [`${normalizePath(`/app/${relDir}`)}/`],
-    label: relDir,
-  };
-}
+const CLIENT_TREE_REL = "src/{routes,components,hooks,lib}";
 
-const { prefixes: CLIENT_PREFIXES, label: CLIENT_TREE_REL } =
-  clientTreeFromManifest();
+const CLIENT_PREFIXES: readonly string[] = [
+  normalizePath(
+    `/app/${TEMPLATE_MANIFEST.client.entry.replace(LEADING_SLASHES, "")}`
+  ),
+  normalizePath(
+    `/app/${TEMPLATE_MANIFEST.client.styles.replace(LEADING_SLASHES, "")}`
+  ),
+  ...RFC_CLIENT_DIRS.map((dir) => `${normalizePath(`/app/src/${dir}`)}/`),
+];
 
 export function isClientAppPath(path: string | undefined): boolean {
   if (path == null) {
