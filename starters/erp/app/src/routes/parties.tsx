@@ -28,6 +28,11 @@ import {
 import { formatCents } from "../lib/money";
 import { cn } from "../lib/utils";
 
+const PARTY_KIND_LABEL: Record<PartyKind, string> = {
+  customer: "Customer",
+  vendor: "Vendor",
+};
+
 const BLANK = {
   name: "",
   kind: "customer" as PartyKind,
@@ -94,8 +99,10 @@ export function PartiesPage() {
                     }
                     value={form.kind}
                   >
-                    <option value="customer">Customer</option>
-                    <option value="vendor">Vendor</option>
+                    <option value="customer">
+                      {PARTY_KIND_LABEL.customer}
+                    </option>
+                    <option value="vendor">{PARTY_KIND_LABEL.vendor}</option>
                   </select>
                 </Field>
               </div>
@@ -174,7 +181,7 @@ export function PartiesPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {row.kind}
+                      {PARTY_KIND_LABEL[row.kind]}
                     </TableCell>
                     <TableCell>{formatCents(row.balanceCents)}</TableCell>
                     <TableCell className="text-right">

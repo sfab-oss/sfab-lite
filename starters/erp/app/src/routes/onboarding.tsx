@@ -50,7 +50,7 @@ export function OnboardingPage() {
 
     await invalidateSession();
     setPending(false);
-    await navigate({ to: "/parties" });
+    await navigate({ to: "/overview" });
   }
 
   return (

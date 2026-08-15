@@ -28,7 +28,9 @@ export function OverviewPage() {
   return (
     <AppShell title="Overview">
       <div className="flex flex-col gap-1">
-        <h2 className="font-semibold text-2xl tracking-tight">Welcome back</h2>
+        <h2 className="font-semibold text-2xl tracking-tight">
+          Welcome to {orgName}
+        </h2>
         <p className="text-muted-foreground text-sm">
           You are working in {orgName}.
         </p>
