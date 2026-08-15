@@ -21,6 +21,7 @@ import {
 } from "../components/ui/table";
 import { useAddCharge, useAddPayment, useParty } from "../hooks/use-parties";
 import { formatCents, parseCents } from "../lib/money";
+import { PARTY_KIND_LABEL } from "../lib/party-kind";
 
 function LineForm({
   label,
@@ -114,7 +115,7 @@ export function PartyDetailPage() {
             <CardHeader>
               <CardTitle>Running balance</CardTitle>
               <CardDescription>
-                {party.kind} · {party.email ?? "no email"}
+                {PARTY_KIND_LABEL[party.kind]} · {party.email ?? "no email"}
               </CardDescription>
             </CardHeader>
             <CardContent>

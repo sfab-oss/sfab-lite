@@ -19,13 +19,14 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import type { PartyKind } from "../contract/parties";
 import {
-  type PartyKind,
   useCreateParty,
   useDeleteParty,
   useParties,
 } from "../hooks/use-parties";
 import { formatCents } from "../lib/money";
+import { PARTY_KIND_LABEL, PARTY_KINDS } from "../lib/party-kind";
 import { cn } from "../lib/utils";
 
 const BLANK = {
@@ -94,8 +95,11 @@ export function PartiesPage() {
                     }
                     value={form.kind}
                   >
-                    <option value="customer">Customer</option>
-                    <option value="vendor">Vendor</option>
+                    {PARTY_KINDS.map((kind) => (
+                      <option key={kind} value={kind}>
+                        {PARTY_KIND_LABEL[kind]}
+                      </option>
+                    ))}
                   </select>
                 </Field>
               </div>
@@ -174,7 +178,7 @@ export function PartiesPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {row.kind}
+                      {PARTY_KIND_LABEL[row.kind]}
                     </TableCell>
                     <TableCell>{formatCents(row.balanceCents)}</TableCell>
                     <TableCell className="text-right">

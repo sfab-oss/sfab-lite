@@ -1,13 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { InferRequestType, InferResponseType } from "hono/client";
+import type { InferRequestType } from "hono/client";
 import { client } from "../lib/client";
-
-type PartiesList = InferResponseType<
-  (typeof client.protected.parties)["$get"],
-  200
->;
-type PartyRow = PartiesList["data"][number];
-export type PartyKind = PartyRow["kind"];
 
 const partiesKey = () => ["parties"] as const;
 const partyKey = (id: string) => ["parties", id] as const;

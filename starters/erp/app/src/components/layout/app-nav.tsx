@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useState } from "react";
 import { useSession } from "../../hooks/use-session";
 import { authClient } from "../../lib/auth-client";
 import { Button } from "../ui/button";
@@ -15,13 +16,18 @@ export function AppNav() {
   const session = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [signingOut, setSigningOut] = useState(false);
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
   const orgName = session.data?.organization?.name ?? "sfab-lite";
 
   async function signOut() {
-    await authClient.signOut();
+    if (signingOut) {
+      return;
+    }
+    setSigningOut(true);
+    await authClient.signOut().catch(() => undefined);
     queryClient.clear();
     await navigate({ to: "/sign-in" });
   }
@@ -47,14 +53,13 @@ export function AppNav() {
         })}
       </div>
       <Button
-        onClick={() => {
-          signOut();
-        }}
+        disabled={signingOut}
+        onClick={signOut}
         size="sm"
         type="button"
         variant="ghost"
       >
-        Sign out
+        {signingOut ? "Signing out…" : "Sign out"}
       </Button>
     </nav>
   );
