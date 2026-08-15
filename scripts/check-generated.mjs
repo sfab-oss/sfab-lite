@@ -9,10 +9,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  PINS,
-  UNIVERSE_EXTRA_PINS,
-} from "../framework/runtime/scripts/pins.mjs";
+import { FORMAT_PINS } from "../framework/runtime/scripts/pins.mjs";
 import { generateFormatFiles } from "../framework/toolchain/src/generate-format-files.ts";
 import { validateManifest } from "../framework/toolchain/src/validate-manifest.ts";
 
@@ -38,8 +35,7 @@ if (!validated.ok) {
   process.exit(1);
 }
 
-const pins = { ...PINS, ...UNIVERSE_EXTRA_PINS };
-const expected = generateFormatFiles(validated.manifest, pins);
+const expected = generateFormatFiles(validated.manifest, FORMAT_PINS);
 const failures = [];
 for (const [rel, want] of Object.entries(expected)) {
   let got;

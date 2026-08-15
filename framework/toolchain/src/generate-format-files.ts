@@ -7,7 +7,10 @@
 
 import type { ManifestV0 } from "./manifest.js";
 
-export type FormatPins = Record<string, string>;
+export interface FormatPins {
+  dependencies: Readonly<Record<string, string>>;
+  devDependencies: Readonly<Record<string, string>>;
+}
 
 const LITE_REGISTRY_URL = "https://lite.sfab.dev/r/{name}.json";
 const LEADING_SLASHES = /^\/+/;
@@ -100,7 +103,9 @@ ${extraBlock}  </head>
 `;
 }
 
-function sortedPins(pins: FormatPins): Record<string, string> {
+function sortedPins(
+  pins: Readonly<Record<string, string>>
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const key of Object.keys(pins).sort()) {
     const version = pins[key];
@@ -127,7 +132,8 @@ export function generateFormatFiles(
       dev: "vite",
       build: "vite build",
     },
-    dependencies: sortedPins(pins),
+    dependencies: sortedPins(pins.dependencies),
+    devDependencies: sortedPins(pins.devDependencies),
   };
   return {
     "package.json": `${JSON.stringify(packageJson, null, 2)}\n`,

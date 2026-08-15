@@ -11,7 +11,12 @@ rollout 9. RFC:
 
 One generator in `framework/toolchain` (`generateFormatFiles`) emits
 `package.json`, `tsconfig.json`, `index.html`, and `components.json`.
-The starter commits that output. `pnpm check:generated` fails if the
+`package.json` splits the runtime-served packages (`dependencies`) from
+the compiler, CSS build, type packages and standalone Vite tooling
+(`devDependencies`); both lists come from one export, `FORMAT_PINS` in
+the runtime's `pins.mjs`, and `check:workspace` holds the starter's
+own `package.json` to the same versions. The starter commits that
+output. `pnpm check:generated` fails if the
 bytes drift. The host regenerates the four files on create, on `add`,
 and when a tree is materialised for CD (not on every serve). Agent
 writes to those paths and to `src/generated/**` are refused;
@@ -48,6 +53,25 @@ keep serving until their next CD.
 Generated files sit at the tree root, outside the check units.
 `src/generated` was already a unit member. Server/client root sets did
 not change in 9a — no local heap re-measure.
+
+## Eject copy-out — re-run of the 2026-08-13 protocol
+
+Same commands as
+[`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md) on the
+committed `starters/erp/app` tree at this PR (copy out, `pnpm install
+--ignore-workspace`, `vite build`), 2026-08-15, this host:
+
+- `pnpm install` resolved every pin; pnpm 11 stopped at its
+  build-scripts approval prompt for `esbuild` / `@tailwindcss/oxide`
+  (pnpm policy, not a missing package).
+- `vite build`: 350 modules, `dist/index.html` + one CSS + one JS
+  chunk, ~2.4 s.
+
+**Copy-out builds.** That flips the 2026-08-13 verdict for the *build*
+step. Not measured: `wrangler deploy` of the copied tree (no
+`wrangler.jsonc` in the app tree — the standalone loop uses the
+`starters/erp` package for that), and running the copied app against
+a database. Eject-in-CI stays in the deferred backlog.
 
 ## Re-tail
 

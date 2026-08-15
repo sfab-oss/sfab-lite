@@ -17,7 +17,10 @@ import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { compileAll } from "../compile/compile-all.js";
 import { createDb } from "../db/index.js";
 import { app as appTable } from "../db/schema.js";
-import { overlayFormatFiles } from "../format/overlay-format-files.js";
+import {
+  type OverlaidTree,
+  overlayFormatFiles,
+} from "../format/overlay-format-files.js";
 import { publishOrgEvent } from "../org-events.js";
 import { prDataId } from "../registry/app-data-ids.js";
 import { collectMigrations } from "../registry/app-migrations.js";
@@ -319,7 +322,7 @@ async function cdBuildArtifacts(
   | {
       ok: true;
       compiled: Awaited<ReturnType<typeof compileAll>>;
-      files: Record<string, string>;
+      tree: OverlaidTree;
     }
   | { ok: false; error: string; detail?: unknown }
 > {
@@ -328,7 +331,8 @@ async function cdBuildArtifacts(
     return { ok: false, error: "cd_aborted" };
   }
 
-  const files = overlayFormatFiles(sourceFiles);
+  const tree = overlayFormatFiles(sourceFiles);
+  const files = tree.files;
   const lint = await callLint(env, appId, files);
   if (aborted(signal)) {
     return { ok: false, error: "cd_aborted" };
@@ -398,7 +402,7 @@ async function cdBuildArtifacts(
     };
   }
 
-  return { ok: true, compiled, files };
+  return { ok: true, compiled, tree };
 }
 
 /**
@@ -445,7 +449,7 @@ export async function runCdForSha(
     const builds = createR2BuildStore(env);
     await builds.putBuild(
       appId,
-      appBuildFromCompile(sha, built.files, built.compiled)
+      appBuildFromCompile(sha, built.tree, built.compiled)
     );
 
     if (!advanceLive) {

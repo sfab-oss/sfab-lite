@@ -80,4 +80,6 @@ eject regression. The RFC must not claim eject.
 
 - App-format RFC lists generated pins + `index.html` as eject prerequisites.
 - Re-run this note's commands the day those files exist; new dated file if
-  the result changes, do not silently edit this verdict.
+  the result changes, do not silently edit this verdict. **Re-run
+  2026-08-15** with the generated files in place — the build step passes;
+  see [`2026-08-15-pr9-image-generated.md`](2026-08-15-pr9-image-generated.md).

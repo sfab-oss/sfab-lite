@@ -40,9 +40,9 @@ async function handleRunCreate(
 
   try {
     await host.ensureRepo(appId);
-    const sourceFiles = overlayFormatFiles({
-      ...(TEMPLATE_SEED.sourceFiles as Record<string, string>),
-    });
+    const sourceFiles = overlayFormatFiles(
+      TEMPLATE_SEED.sourceFiles as Record<string, string>
+    ).files;
     const { sha } = await host.commitTree(
       appId,
       sourceFiles,

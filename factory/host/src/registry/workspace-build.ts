@@ -28,9 +28,9 @@ export async function compileWorkspaceFiles(
   files: Record<string, string>,
   sha: string
 ): Promise<AppBuild> {
-  const overlaid = overlayFormatFiles(files);
-  const compiled = await compileAll(overlaid);
-  return appBuildFromCompile(sha, overlaid, compiled);
+  const tree = overlayFormatFiles(files);
+  const compiled = await compileAll(tree.files);
+  return appBuildFromCompile(sha, tree, compiled);
 }
 
 export function workspaceBuildSha(generation: number): string {

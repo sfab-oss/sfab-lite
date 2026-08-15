@@ -6,10 +6,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  PINS,
-  UNIVERSE_EXTRA_PINS,
-} from "../../../framework/runtime/scripts/pins.mjs";
+import { FORMAT_PINS } from "../../../framework/runtime/scripts/pins.mjs";
 import { generateFormatFiles } from "../../../framework/toolchain/src/generate-format-files.ts";
 import { validateManifest } from "../../../framework/toolchain/src/validate-manifest.ts";
 
@@ -28,10 +25,7 @@ if (!validated.ok) {
   process.exit(1);
 }
 
-const files = generateFormatFiles(validated.manifest, {
-  ...PINS,
-  ...UNIVERSE_EXTRA_PINS,
-});
+const files = generateFormatFiles(validated.manifest, FORMAT_PINS);
 for (const [rel, content] of Object.entries(files)) {
   writeFileSync(join(appRoot, rel), content);
 }

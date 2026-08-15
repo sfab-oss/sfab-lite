@@ -6,6 +6,8 @@ import {
 } from "./generate-format-files.ts";
 import { GENERATED_ARTIFACTS, MANIFEST_FORMAT } from "./manifest.ts";
 
+const NO_PINS = { dependencies: {}, devDependencies: {} };
+
 function validManifest() {
   return {
     format: MANIFEST_FORMAT,
@@ -33,10 +35,7 @@ function validManifest() {
 }
 
 test("generateFormatFiles emits the four RFC paths", () => {
-  const files = generateFormatFiles(validManifest(), {
-    react: "19.2.8",
-    hono: "4.12.31",
-  });
+  const files = generateFormatFiles(validManifest(), NO_PINS);
   assert.deepEqual(Object.keys(files).sort(), [
     GENERATED_ARTIFACTS.componentsJson,
     GENERATED_ARTIFACTS.indexHtml,
@@ -47,8 +46,8 @@ test("generateFormatFiles emits the four RFC paths", () => {
 
 test("package.json takes name and exact pins, no ranges", () => {
   const files = generateFormatFiles(validManifest(), {
-    react: "19.2.8",
-    "react-dom": "19.2.8",
+    dependencies: { "react-dom": "19.2.8", react: "19.2.8" },
+    devDependencies: { vite: "7.0.6", typescript: "6.0.3" },
   });
   const pkg = JSON.parse(files[GENERATED_ARTIFACTS.packageJson] ?? "{}");
   assert.equal(pkg.name, "erp");
@@ -64,20 +63,24 @@ test("package.json takes name and exact pins, no ranges", () => {
     react: "19.2.8",
     "react-dom": "19.2.8",
   });
+  assert.deepEqual(pkg.devDependencies, {
+    typescript: "6.0.3",
+    vite: "7.0.6",
+  });
   const text = files[GENERATED_ARTIFACTS.packageJson] ?? "";
   assert.equal(text.includes("^"), false);
   assert.equal(text.includes("~"), false);
 });
 
 test("tsconfig keeps types: [] and include: src", () => {
-  const files = generateFormatFiles(validManifest(), {});
+  const files = generateFormatFiles(validManifest(), NO_PINS);
   const tsconfig = JSON.parse(files[GENERATED_ARTIFACTS.tsconfig] ?? "{}");
   assert.deepEqual(tsconfig.compilerOptions.types, []);
   assert.deepEqual(tsconfig.include, ["src"]);
 });
 
 test("index.html is the shared shell without the host import map", () => {
-  const files = generateFormatFiles(validManifest(), {});
+  const files = generateFormatFiles(validManifest(), NO_PINS);
   const html = files[GENERATED_ARTIFACTS.indexHtml] ?? "";
   assert.ok(html.includes("<title>erp</title>"));
   assert.ok(html.includes('<link rel="icon" href="data:,">'));
@@ -89,7 +92,7 @@ test("index.html is the shared shell without the host import map", () => {
 });
 
 test("components.json locks @lite as the only registry", () => {
-  const files = generateFormatFiles(validManifest(), {});
+  const files = generateFormatFiles(validManifest(), NO_PINS);
   const components = JSON.parse(
     files[GENERATED_ARTIFACTS.componentsJson] ?? "{}"
   );
