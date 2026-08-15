@@ -77,7 +77,7 @@ is mostly formalization and restructuring, not construction:
 | Repo boundaries | Monorepo grown by experiment | Framework / host / registry / starters / shell not yet distinct |
 | Runtime type surface | Derived from the template's program (VFS closure + pins read from its package.json) | Independence from any one app — decision 8, measured in item 8 |
 | Registry | — | Everything |
-| In-app agent | Factory-side workspace agent only | No per-app agent primitive (design first) |
+| In-app agent | Design: [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md) | Build in a later milestone |
 | Serve adapters / eject | — | Interface shape defined in M1; implementations deferred |
 
 ## The plan in shapes
@@ -419,6 +419,11 @@ today's equivalent failure is a bare resolution error.
    is the stack's most novel missing primitive — but structure comes
    first. Milestone 1 produces its design (DO shape, tool transport,
    memory posture); the build lands in a later milestone.
+   **2026-08-15:** design is
+   [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md).
+   The dedicated per-app Durable Object was the hypothesis; the design
+   deletes it (in-process in the LOADER child, threads in AppDataDO).
+   Build still later.
 
 6. **Registry: reuse the shadcn *data format*; serve it in the standard
    form; lock the namespace.** Do not invent a recipe format — use the
@@ -637,6 +642,8 @@ diagnostics as it grows. Items 6 and 7 close the milestone.
 7. **In-app agent design doc** — per decision 5. *Done when:* the doc
    answers tenancy, state location, agent↔app tool transport, and
    memory posture, each with its making-it-fit citation.
+   **Done** (PR #TBD):
+   [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md).
 8. **The two experiments, before the RFC hardens.**
 
    (a) *Memory — can per-slice checking fit the cap?* Two stages,
@@ -729,7 +736,8 @@ units the original list did not name.)
    build carries `image: 0` + resolved runtime + manifest snapshot;
    `check:generated` gates the four root files; host regenerates on
    create/add. Legacy builds read with `image: null` (no backfill).
-10. **Agent design doc** — doc-only.
+10. **Agent design doc** — doc-only. **Done** (PR #TBD):
+    [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md).
 
 ### Milestone 1 exit criteria
 
@@ -740,6 +748,18 @@ with numbers in `making-it-fit.md`. The repo's top level is the
 future-repo map with the direction gate green. Anything less and the
 milestone is not done; anything more is the next milestone arriving
 early.
+
+**Met by (honest):** "an agent" here is the **develop-plane**
+workspace agent / MCP, not the in-app agent (design only, not built).
+
+| Criterion | Met by |
+| --- | --- |
+| Create an app in the new format | **Proven live.** Checkpoint 4 walkthrough (create→ready 89 s) and both re-tails (8/8 ready). RFC tree from PR #138; image v0 on new builds from PR #141. |
+| `add` a recipe and see provenance | **Proven in gates and factory tests**, not in the checkpoint 4 walkthrough. Hosted `add` (PRs #136 / #137); starter ships assembled with provenance; `check:manifest` fails on drift. Walkthrough did not run `add` on a live app after create. |
+| Hit closed resolve with an actionable failure | **Proven in factory tests** (PR #132: `kysely` red test, `LITE-RESOLVE`). Not exercised in the live walkthrough. |
+| Ship an image the host serves | **Proven live** after PRs #141 / #142. New CD writes `image: 0`; host serves from the image. Legacy live apps still serve with `image: null` until their next CD (no backfill). |
+| Experiments answered in `making-it-fit.md` | **Met.** Numbers and adopt/reject in the catalogue and dated notes (PRs #122–#126). |
+| Future-repo map + direction gate | **Met.** PR #130; `check:direction` in CI. |
 
 ## Non-goals for this phase
 
@@ -818,8 +838,10 @@ on; the mechanism itself is deferred — deliberately, and in writing.
   bundle constant in a worker near the 10 MB gzip cap); decided by item
   8's measurements, and by the VFS-out-of-bundle backlog item if N must
   exceed ~2. (The window *policy* itself is settled in decision 2.)
-- Agent↔app tool transport (in-process vs RPC) — decided in the agent
-  design doc (item 7).
+- Agent↔app tool transport — **resolved** in
+  [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md):
+  in-process (`app.request` in the LOADER child). Flips only if a
+  serve-plane heap tail OOMs.
 - Naming (`lite`, `add`, verb set) — placeholder until the CLI ships.
 - Cost per app. The premise of the whole experiment is "cheaper than
   containers," and no document states a target. Once the M1 develop

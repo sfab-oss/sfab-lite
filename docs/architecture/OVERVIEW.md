@@ -85,7 +85,7 @@ canvases are a non-goal. Naming:
 | --- | --- |
 | Template, frozen kernel, host, check, lint | Tasks-lite |
 | Auth, organizations, app registry | Diffs, quotas, schema evolution, eject |
-| Factory console + in-console agent loop | Agent over the protected `/api` |
+| Factory console + in-console agent loop | Agent over the protected `/api`; in-app (served-app) agent — [design](IN-APP-AGENT.md), not built |
 | Isolated org-auth PR previews | Design board |
 | Agent Browser workspace WIP serve | |
 
@@ -94,5 +94,6 @@ canvases are a non-goal. Naming:
 - [ADR-0001](../decisions/0001-edge-native-lite-architecture.md)
 - [ADR-0002](../decisions/0002-monorepo-tooling-not-product-lite.md)
 - [`APP-FORMAT.md`](APP-FORMAT.md) — app layout, manifest v0, check units
+- [`IN-APP-AGENT.md`](IN-APP-AGENT.md) — served-app agent design (not built)
 - [`../engineering/terminology.md`](../engineering/terminology.md)
 - [`../engineering/agent-surfaces.md`](../engineering/agent-surfaces.md)

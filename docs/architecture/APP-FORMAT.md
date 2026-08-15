@@ -427,10 +427,12 @@ develop-plane API of its own. Check and lint workers are the
 Cloudflare `app.check` / `app.lint` implementations; their engines
 extract into `framework/toolchain` gradually.
 
-In-app agent (console thread, code-mode `execute`) is a different
+The develop-plane console agent (code-mode `execute`) is a different
 surface from MCP; see
 [`../engineering/agent-surfaces.md`](../engineering/agent-surfaces.md).
-It is not a develop-plane verb in v0.
+It is not a develop-plane verb in v0. The **in-app** agent (end users
+of a served app) is a serve-plane design in
+[`IN-APP-AGENT.md`](IN-APP-AGENT.md) — not built, not a v0 verb.
 
 ## 8. Schema and validation (this PR)
 

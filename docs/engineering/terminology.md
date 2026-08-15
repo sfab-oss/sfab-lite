@@ -24,6 +24,7 @@ manager packet glossary (2026-07-24) and aligned with the forge model
 | database | **app** database |
 | schema, migration | **app** schema, **app** migration |
 | route | **app** route |
+| thread | **app** thread |
 
 Signing up for the factory auto-creates *an organization*. An app's own
 better-auth org plugin creates *an app organization*. Same shape, no shared
@@ -45,6 +46,8 @@ data.
 | **Preview** / **preview deployment** | Serve a PR head (`/a/:appId/preview/:prNumber`). |
 | **Checks** / **runs** | Platform CI on commits / PRs. |
 | **Thread** | A chat against one workspace. **The unit of work** — lite has no tasks. |
+| **App thread** | A chat between an **app user** and the in-app agent. Not a factory Thread. |
+| **In-app agent** | End-user agent *inside a served app*. Design: [`../architecture/IN-APP-AGENT.md`](../architecture/IN-APP-AGENT.md). Not the `AppAgent` Durable Object. |
 | **Session** | An *auth* session. Nothing else. |
 | **Kernel** | Frozen dependency universe apps build and run against. |
 | **AppDataDO** | Runtime SQLite Durable Object — not a code store. |
