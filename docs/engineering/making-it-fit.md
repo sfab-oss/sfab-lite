@@ -222,8 +222,9 @@ behind one settles on the next poll. That closes the gap where the console
   Re-adding the catalog onto the rebuilt seed is a no-op (already assembled):
   server 243.4 / 245.5 MB, client 318.7 / 319.0 MB.
   [`../notes/2026-08-14-pr8-starter-rebuild-check.md`](../notes/2026-08-14-pr8-starter-rebuild-check.md).
-  Production ceiling stays the units 0/8 re-tail; live re-tail is
-  owner-gated (prepare only).
+  Production ceiling after the rebuild: still **0/8** OOM (checkpoint 4
+  re-tail, 8/8 ready, 0 retries; wall 12.7–13.9 s, one 20.9 s).
+  [`../notes/2026-08-15-cp4-retail.md`](../notes/2026-08-15-cp4-retail.md).
 
 - **Runtime bundle diet.** Full write-up:
   [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md).
@@ -467,7 +468,9 @@ it.
 - [`../notes/2026-08-14-assembled-recipes-check.md`](../notes/2026-08-14-assembled-recipes-check.md)
   — starter + first recipes local check (PR 7; production gate deferred)
 - [`../notes/2026-08-14-pr8-starter-rebuild-check.md`](../notes/2026-08-14-pr8-starter-rebuild-check.md)
-  — starter rebuilt from recipes (PR 8; local heaps; live re-tail owner-gated)
+  — starter rebuilt from recipes (PR 8; local heaps)
+- [`../notes/2026-08-15-cp4-retail.md`](../notes/2026-08-15-cp4-retail.md)
+  — checkpoint 4 re-tail after PR #138 (0/8 OOM, 0 retries; wall ~13 s)
 - [`../notes/2026-08-14-evidence-audit.md`](../notes/2026-08-14-evidence-audit.md)
   — grades for standing rejections (CheckDO, `@base-ui`, gzip, aged 1-in-4)
 - [`../notes/2026-08-14-generator-spike.md`](../notes/2026-08-14-generator-spike.md)
