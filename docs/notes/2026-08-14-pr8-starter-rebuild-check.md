@@ -3,7 +3,8 @@
 Non-authoritative (see [`README.md`](README.md)). Catalogue:
 [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md).
 
-**Status:** local done; **live re-tail owner-gated** (prepare only).
+**Status:** local done; **live re-tail done** —
+[`2026-08-15-cp4-retail.md`](2026-08-15-cp4-retail.md) (0/8 OOM, 8/8 ready).
 **What changed:** the ERP starter now lives on the RFC §2 tree and
 imports the seven published recipes. Unused sidebar/widget UI is gone.
 `isClientAppPath` classifies RFC client dirs plus `src/router.tsx` and
@@ -49,5 +50,6 @@ that tree. Server roots fell (no products/documents). Re-adding the
 catalog does not grow roots.
 
 Live re-tail: same protocol as
-[`2026-08-14-units-retail.md`](2026-08-14-units-retail.md). Do not run
-live creates without owner go.
+[`2026-08-14-units-retail.md`](2026-08-14-units-retail.md). Ran
+2026-08-15 — trail in
+[`2026-08-15-cp4-retail.md`](2026-08-15-cp4-retail.md).
