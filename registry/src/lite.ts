@@ -545,3 +545,33 @@ export function planAdd(
   }
   return { ok: true, writes, skipped, overwrote, provenance };
 }
+
+export interface AssembleOk {
+  ok: true;
+  writes: Record<string, string>;
+  provenance: Record<string, RecipeProvenance>;
+}
+
+export interface AssembleErr {
+  ok: false;
+  name: string;
+  error: string;
+}
+
+/**
+ * Plan every catalog recipe into one tree. This is what the ERP starter is
+ * (starter = whole catalog) and what `check:manifest` compares it against.
+ */
+export function assembleAll(catalog: Catalog): AssembleOk | AssembleErr {
+  const writes: Record<string, string> = {};
+  const provenance: Record<string, RecipeProvenance> = {};
+  for (const name of catalogNames(catalog)) {
+    const planned = planAdd(name, catalog, writes);
+    if (!planned.ok) {
+      return { ok: false, name, error: planned.error };
+    }
+    Object.assign(writes, planned.writes);
+    Object.assign(provenance, planned.provenance);
+  }
+  return { ok: true, writes, provenance };
+}

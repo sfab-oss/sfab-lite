@@ -4,12 +4,10 @@ import { createMiddleware } from "hono/factory";
 import { seedSchema } from "../contract/dev";
 import {
   account,
-  document,
-  documentLine,
-  entity,
+  ledgerEntry,
   member,
   organization,
-  product,
+  party,
   session,
   user,
 } from "../db/schema";
@@ -56,12 +54,7 @@ const PARTIES = [
   },
 ];
 
-const PRODUCTS = [
-  { sku: "WID-001", name: "Widget", unitPriceCents: 1999 },
-  { sku: "GAD-002", name: "Gadget", unitPriceCents: 4950 },
-];
-
-const ISSUED_QUANTITY = 3;
+const CHARGE_CENTS = 1999 * 3;
 
 /**
  * Seeding is not a public capability. `SEED_TOKEN` is injected per app by the
@@ -113,24 +106,15 @@ async function insertSeedGraph(
   userId: string,
   organizationId: string
 ): Promise<"ok" | "empty"> {
-  const parties = PARTIES.map((party) => ({
+  const parties = PARTIES.map((row) => ({
     id: crypto.randomUUID(),
     organizationId,
-    ...party,
+    ...row,
   }));
-  const catalog = PRODUCTS.map((item) => ({
-    id: crypto.randomUUID(),
-    organizationId,
-    ...item,
-  }));
-
   const customer = parties[0];
-  const widget = catalog[0];
-  if (!(customer && widget)) {
+  if (!customer) {
     return "empty";
   }
-
-  const documentId = crypto.randomUUID();
 
   await db.insert(organization).values({
     id: organizationId,
@@ -143,26 +127,25 @@ async function insertSeedGraph(
     userId,
     role: "owner",
   });
-  await db.insert(entity).values(parties);
-  await db.insert(product).values(catalog);
-  await db.insert(document).values({
-    id: documentId,
-    organizationId,
-    entityId: customer.id,
-    entityNameSnapshot: customer.name,
-    status: "finalized",
-    number: 1,
-    totalCents: ISSUED_QUANTITY * widget.unitPriceCents,
-    issuedAt: new Date(),
-  });
-  await db.insert(documentLine).values({
-    id: crypto.randomUUID(),
-    documentId,
-    productId: widget.id,
-    nameSnapshot: widget.name,
-    quantity: ISSUED_QUANTITY,
-    unitPriceCents: widget.unitPriceCents,
-  });
+  await db.insert(party).values(parties);
+  await db.insert(ledgerEntry).values([
+    {
+      id: crypto.randomUUID(),
+      organizationId,
+      partyId: customer.id,
+      kind: "charge",
+      amountCents: CHARGE_CENTS,
+      memo: "Opening charge",
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationId,
+      partyId: customer.id,
+      kind: "payment",
+      amountCents: 2000,
+      memo: "Partial payment",
+    },
+  ]);
   return "ok";
 }
 

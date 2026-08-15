@@ -57,19 +57,22 @@ const config: KnipConfig = {
     // code inside every app created from the template.
     "starters/erp": {
       // The payload's own entries (`app/src/worker.ts` from wrangler.jsonc,
-      // `app/src/ui/main.tsx` from index.html) are detected; only the pack
+      // `app/src/router.tsx` from index.html) are detected; only the pack
       // script has to be declared.
       entry: ["scripts/*.mjs"],
       project: ["src/**/*.ts", "scripts/**/*.mjs", "app/src/**/*.{ts,tsx}"],
       // Loaded by @tailwindcss/vite and by `@import "tailwindcss"` in
-      // styles.css, neither of which knip follows. The version is also a
-      // kernel pin, so it must stay explicit here rather than float as a
-      // transitive dep.
-      ignoreDependencies: ["tailwindcss"],
+      // styles.css, neither of which knip follows. `@radix-ui/react-icons`
+      // is a kernel pin the agent may import; this slice happens not to.
+      // Versions must stay explicit here rather than float as transitives.
+      ignoreDependencies: ["tailwindcss", "@radix-ui/react-icons"],
       ignoreIssues: {
         // Emit walks this alias by name (`findApiTypeAlias`); the SPA client
         // imports `src/generated/api` instead of `typeof` the live server.
-        "app/src/hono/index.ts": ["exports", "types"],
+        "app/src/server.ts": ["exports", "types"],
+        // Registry recipes are copied verbatim; unused exports stay so
+        // provenance hashes match the catalog.
+        "app/src/components/ui/table.tsx": ["exports"],
       },
     },
     "framework/runtime": {

@@ -213,12 +213,17 @@ behind one settles on the next poll. That closes the gap where the console
 - **Recipes grow checked surface.** First recipes (PR 7) are extracts of
   starter UI retargeted at the RFC tree. Local starter vs
   starter-plus-all-recipes: server **244.6 → 263.0 MB** (+7 roots),
-  client **371.5 → 371.8 MB** (unchanged graph — recipes are unused
+  client **371.5 → 371.8 MB** (unchanged graph — recipes were unused
   RFC-path copies), 0 diagnostics. Full trail:
   [`../notes/2026-08-14-assembled-recipes-check.md`](../notes/2026-08-14-assembled-recipes-check.md).
-  Production ceiling stays the units 0/8 re-tail; the next live re-tail
-  is when the starter is rebuilt from recipes (PR 8). The production
-  gate is deferred (needs a live assembled app).
+  **PR 8 rebuilt the starter from those recipes** and dropped the unused
+  sidebar/widget tree. Product-path `measure:units` 2026-08-14: server
+  **243.2 MB** (83 roots), client **318.6 MB** (90 roots), emit **248.4 MB**.
+  Re-adding the catalog onto the rebuilt seed is a no-op (already assembled):
+  server 243.4 / 245.5 MB, client 318.7 / 319.0 MB.
+  [`../notes/2026-08-14-pr8-starter-rebuild-check.md`](../notes/2026-08-14-pr8-starter-rebuild-check.md).
+  Production ceiling stays the units 0/8 re-tail; live re-tail is
+  owner-gated (prepare only).
 
 - **Runtime bundle diet.** Full write-up:
   [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md).
@@ -373,14 +378,15 @@ behind one settles on the next poll. That closes the gap where the console
   `api.hash`. Stale hash is a hard fail (`LITE-SNAPSHOT`, code 9001). Client
   edge cut is the starter importing that snapshot, not `typeof` the live
   server. `measure:units` 2026-08-14 (Node, heap sampled while the unit's
-  LanguageService is live):
+  LanguageService is live; product-path column is the rebuilt starter
+  after PR 8 — PR 6 measured 244 / 250 / 372 MB on the old tree):
 
   | unit | experiment (isolated) | product path |
   | --- | --- | --- |
-  | server | 93 MB | **244 MB** (87 roots: all non-client `src/`) |
-  | emit, cold full-tree | 146 MB | **250 MB** |
-  | emit, warm leaf | 92 MB | not heap-sampled; 0.8 s vs cold 1.8 s |
-  | client vs snapshot | 147–175 MB | **372 MB** |
+  | server | 93 MB | **243 MB** (83 roots: all non-client `src/`) |
+  | emit, cold full-tree | 146 MB | **248 MB** |
+  | emit, warm leaf | 92 MB | not heap-sampled; 0.8 s vs cold 1.7 s |
+  | client vs snapshot | 147–175 MB | **319 MB** |
 
   After dispose, retained ~98 MB; `check:check-memory` is flat across six
   apps (−0.5 MB, store size 1, zero live services). The product server unit
@@ -460,6 +466,8 @@ it.
   — units re-tail after PR #134 (0/8 OOM, 0 retries; wall ~+60%)
 - [`../notes/2026-08-14-assembled-recipes-check.md`](../notes/2026-08-14-assembled-recipes-check.md)
   — starter + first recipes local check (PR 7; production gate deferred)
+- [`../notes/2026-08-14-pr8-starter-rebuild-check.md`](../notes/2026-08-14-pr8-starter-rebuild-check.md)
+  — starter rebuilt from recipes (PR 8; local heaps; live re-tail owner-gated)
 - [`../notes/2026-08-14-evidence-audit.md`](../notes/2026-08-14-evidence-audit.md)
   — grades for standing rejections (CheckDO, `@base-ui`, gzip, aged 1-in-4)
 - [`../notes/2026-08-14-generator-spike.md`](../notes/2026-08-14-generator-spike.md)

@@ -1,11 +1,11 @@
 /**
  * Module resolution against the types VFS (+ per-app overlay).
  *
- * Side-aware for app sources: client files under the directory of
- * TEMPLATE_MANIFEST.client.entry resolve against CLIENT_IMPORT_MAP only, and
- * may not value-import app modules outside that tree. Server files keep the
- * union gate. One LanguageService / one VFS — classification only changes
- * which specifiers resolve, not how many programs are built.
+ * Side-aware for app sources: client files (see isClientAppPath) resolve
+ * against CLIENT_IMPORT_MAP only, and may not value-import app modules
+ * outside that tree. Server files keep the union gate. One LanguageService
+ * / one VFS — classification only changes which specifiers resolve, not how
+ * many programs are built.
  */
 import {
   CLIENT_IMPORT_MAP,
@@ -76,22 +76,33 @@ const CLOSED_RESOLVE_FIX =
 const LEADING_SLASHES = /^\/+/;
 
 /**
- * Client compile tree = dirname(TEMPLATE_MANIFEST.client.entry) under `/app/`.
- * Derived at module load so relocating the client entry moves classification
- * with it (same source compile-client.ts reads).
+ * RFC §2 client tree: the client entry, its stylesheet, and
+ * `src/{routes,components,hooks,lib}/`. Everything else under `src/` is
+ * server-side. `dirname(client.entry)` is `src/`, so a dirname prefix would
+ * swallow hono/db/auth — the tree is named, not derived.
  */
-function clientTreeFromManifest(): { relDir: string; prefix: string } {
-  const entry = TEMPLATE_MANIFEST.client.entry.replace(LEADING_SLASHES, "");
-  const slash = entry.lastIndexOf("/");
-  const relDir = slash >= 0 ? entry.slice(0, slash) : "";
-  return { relDir, prefix: `${normalizePath(`/app/${relDir}`)}/` };
-}
+const RFC_CLIENT_DIRS = ["routes", "components", "hooks", "lib"] as const;
 
-const { relDir: CLIENT_TREE_REL, prefix: CLIENT_APP_PREFIX } =
-  clientTreeFromManifest();
+const CLIENT_TREE_REL = "src/{routes,components,hooks,lib}";
+
+const CLIENT_PREFIXES: readonly string[] = [
+  normalizePath(
+    `/app/${TEMPLATE_MANIFEST.client.entry.replace(LEADING_SLASHES, "")}`
+  ),
+  normalizePath(
+    `/app/${TEMPLATE_MANIFEST.client.styles.replace(LEADING_SLASHES, "")}`
+  ),
+  ...RFC_CLIENT_DIRS.map((dir) => `${normalizePath(`/app/src/${dir}`)}/`),
+];
 
 export function isClientAppPath(path: string | undefined): boolean {
-  return path != null && normalizePath(path).startsWith(CLIENT_APP_PREFIX);
+  if (path == null) {
+    return false;
+  }
+  const n = normalizePath(path);
+  return CLIENT_PREFIXES.some((prefix) =>
+    prefix.endsWith("/") ? n.startsWith(prefix) : n === prefix
+  );
 }
 
 function isAppSourcePath(path: string): boolean {

@@ -13,7 +13,7 @@ import manifest from "../manifest.json" with { type: "json" };
  * ## Why a manifest
  *
  * In the exploration the factory hardcoded template paths in six places,
- * including a regex over the literal string `src/ui/main.tsx` and a silent
+ * including a regex over the literal string `src/router.tsx` and a silent
  * `?? ""` fallback for the styles entry, so renaming a template file broke
  * the factory quietly. Here the paths are declared once; `scripts/pack.mjs`
  * and the factory both read them, and `scripts/check-workspace.mjs` fails CI

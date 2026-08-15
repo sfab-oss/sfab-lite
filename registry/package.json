@@ -11,7 +11,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node --test --experimental-strip-types src/names.test.ts src/validate-item.test.ts src/resolve.test.ts src/plan-add.test.ts",
-    "bake": "node --experimental-strip-types scripts/bake-catalog.mjs"
+    "bake": "node --experimental-strip-types scripts/bake-catalog.mjs",
+    "assemble-erp-starter": "node --experimental-strip-types scripts/assemble-erp-starter.mjs"
   },
   "dependencies": {
     "@sfab-lite/core": "workspace:*"

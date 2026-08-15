@@ -105,20 +105,24 @@ if (
   failed = true;
 }
 
+const dbSpecifier = `${clientDir
+  .split("/")
+  .map(() => "..")
+  .join("/")}/db`;
 const dbFiles = {
   ...baseFiles,
-  [`${clientDir}/lib/bad-db.tsx`]: `import { createDb } from "../../db";\nexport const x = createDb;\n`,
+  [`${clientDir}/lib/bad-db.tsx`]: `import { createDb } from "${dbSpecifier}";\nexport const x = createDb;\n`,
 };
 const dbResult = check("3-client-relative-db", dbFiles);
 const dbHit = dbResult.diagnostics.some(
   (d) =>
-    d.message.includes("../../db") &&
+    d.message.includes(dbSpecifier) &&
     d.message.includes("client tree") &&
     (d.file?.includes("bad-db.tsx") ?? false)
 );
 if (dbResult.clean || !dbHit) {
   console.error(
-    "FAIL: client importing ../../db must diagnose outside client tree"
+    `FAIL: client importing ${dbSpecifier} must diagnose outside client tree`
   );
   failed = true;
 }
@@ -140,8 +144,8 @@ if (!serverResult.clean) {
   failed = true;
 }
 
-// Classification follows dirname(manifest.client.entry): a sibling tree is
-// not client-gated, so the same bare server import resolves (union gate).
+// A sibling of the RFC client dirs (or of dirname(client.entry) on a nested
+// tree) is not client-gated, so the same bare server import resolves.
 const outsideClientFiles = {
   ...baseFiles,
   "src/spa/not-client.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
@@ -157,15 +161,19 @@ if (outsideResult.clean) {
   );
 } else {
   console.error(
-    "FAIL: file outside dirname(client.entry) must not get client-side gate",
+    "FAIL: file outside the client tree must not get client-side gate",
     outsideResult.diagnostics
   );
   failed = true;
 }
 
+const slashyRel =
+  clientDir === "src"
+    ? "lib/slashy.tsx"
+    : `${clientDir.slice("src/".length)}/lib/slashy.tsx`;
 const slashFiles = {
   ...baseFiles,
-  "src//ui/lib/slashy.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
+  [`src//${slashyRel}`]: `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
 };
 const slashResult = check("6-double-slash-key", slashFiles);
 if (
@@ -182,7 +190,7 @@ if (
 
 const dotdotFiles = {
   ...baseFiles,
-  "src/ui/lib/../routes/dotdot.tsx": `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
+  [`${clientDir}/lib/../routes/dotdot.tsx`]: `import { drizzle } from "drizzle-orm/d1";\nexport const x = drizzle;\n`,
 };
 const dotdotResult = check("7-dotdot-key", dotdotFiles);
 if (
@@ -217,9 +225,13 @@ if (sideEffectResult.clean || !sideEffectHit) {
   failed = true;
 }
 
+const serverSpecifier = `${clientDir
+  .split("/")
+  .map(() => "..")
+  .join("/")}/server`;
 const importTypeFiles = {
   ...baseFiles,
-  [`${clientDir}/lib/type-cross.tsx`]: `import type { ApiType } from "../../hono";\nexport type X = ApiType;\n`,
+  [`${clientDir}/lib/type-cross.tsx`]: `import type { ApiType } from "${serverSpecifier}";\nexport type X = ApiType;\n`,
 };
 const importTypeResult = check("9-import-type-crosses", importTypeFiles);
 if (!importTypeResult.clean) {

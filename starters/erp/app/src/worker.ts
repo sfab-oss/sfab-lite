@@ -2,11 +2,11 @@
  * Standalone entry: `/api` → Hono, everything else → the SPA assets.
  *
  * The factory does not use this file. There the host serves the client
- * bundle and builds its own entry around `app` from `./hono`; this exists
+ * bundle and builds its own entry around `app` from `./server`; this exists
  * so the template runs on its own under `wrangler dev`.
  */
 import type { Env } from "./env";
-import { app } from "./hono";
+import { app } from "./server";
 
 export default {
   fetch(

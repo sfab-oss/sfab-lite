@@ -5,7 +5,7 @@ import { buildSystemPrompt } from "./system-prompt.ts";
 const prompt = buildSystemPrompt({
   appId: "app_01TEST",
   repoHint: "example",
-  sourceFiles: ["src/hono/index.ts"],
+  sourceFiles: ["src/server.ts"],
 });
 
 test("the prompt states the closed import surface", () => {

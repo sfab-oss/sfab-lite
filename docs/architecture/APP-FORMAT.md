@@ -9,7 +9,7 @@ contract, not a working note. Implementations: schema/validation in
 the format PR; closed-resolve diagnostics at check; snapshot emit and
 check units in the check-plumbing PR; generated `package.json` /
 `tsconfig` / `index.html` in the image PR; the starter rebuild on this
-tree in the starter PR.
+tree in the starter-rebuild PR.
 
 Direction:
 [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
@@ -66,9 +66,9 @@ TanStack-Start-shaped. Feature scope is a subdirectory under
     auth/
 ```
 
-The starter in this repo still uses `src/ui/*` and `src/hono/index.ts`.
-Those paths are valid v0 strings; this tree is the format the starter
-rebuild lands on. Schema validation does not require the target paths.
+The starter in this repo uses this tree. Older `src/ui/*` /
+`src/hono/index.ts` strings remain valid v0 paths; schema validation
+does not require the RFC names.
 
 ### Owner-editable vs generated
 
@@ -122,18 +122,18 @@ before the starter rebuild is churn. New fields wrap that core.
   "adapter": "cloudflare",         // names a target; supplies no code
   "root": "app",                   // starter-package only (see §2)
   "server": {
-    "entry": "src/hono/index.ts",
+    "entry": "src/server.ts",
     "exportName": "app"
   },
   "client": {
-    "entry": "src/ui/main.tsx",
-    "styles": "src/ui/styles.css"
+    "entry": "src/router.tsx",
+    "styles": "src/styles.css"
   },
   "html": "index.html",            // eject-load-bearing; named even while
                                    //   the seed still omits the file
   "safelist": "safelist.txt",
   "migrations": "migrations",
-  "schema": "src/db/schema/index.ts",
+  "schema": "src/db/schema.ts",
   "inject": {
     "biome.json": "../../framework/toolchain/app-biome.json"
   },
@@ -149,10 +149,9 @@ before the starter rebuild is churn. New fields wrap that core.
 }
 ```
 
-The starter today still points at `src/ui/*` / `src/hono/index.ts`.
-After the starter rebuild those strings move to `src/router.tsx` /
-`src/server.ts` / `src/styles.css` / `src/db/schema.ts` — a data
-change, not a schema change.
+The starter points at `src/router.tsx` / `src/server.ts` /
+`src/styles.css` / `src/db/schema.ts`. Those are data, not a schema
+change; other trees remain valid v0 strings.
 
 ### Fields
 
@@ -436,8 +435,11 @@ direction gate forbids `framework/` from importing `factory/` or
 `starters/`.
 
 `pnpm check:manifest` validates `starters/erp/manifest.json` against
-v0 and fails closed if a committed invalid fixture validates. That
-red fixture is the gate lesson from
+v0, fails closed if a committed invalid fixture validates, and fails
+when the starter drifts from the registry: committed `recipes` must
+equal `assembleAll(CATALOG)` and every recipe file under
+`starters/erp/app/` must hash to the catalog. Provenance is a gate,
+not a claim. That red fixture is the gate lesson from
 [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md):
 ask what the gate would still pass if the thing it protects were
 broken.

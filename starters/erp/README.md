@@ -25,14 +25,17 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `biome.json` | Injected at pack from `framework/toolchain/app-biome.json` (not stored as `app/biome.json` — that would nest-root the monorepo Biome). Same rules the factory lint worker applies. |
 | `components.json` | Host-generated: `@lite` → `https://lite.sfab.dev/r/{name}.json` is the only registry. |
 | `vite.config.ts` | Vite chrome (standalone package still uses the package-root Vite config with `root: "app"`). |
-| `src/db/` | Schema under `schema/{auth,catalog,transactions}.ts`. |
+| `src/db/` | Schema barrel `schema.ts` re-exports `auth.ts` + `ledger.ts`. |
 | `migrations/` | Applied SQL migrations (root of the app tree). |
+| `src/server.ts` | Hono export `app` (factory server entry). |
 | `src/hono/` | API tiers: `public/` / `protected/` / `org-protected/`. |
 | `src/contract/` | Shared Zod schemas for Hono + hooks. |
-| `src/ui/components/` | `ui/` (shadcn), `layout/`, `providers/`. |
-| `src/ui/hooks/` | Data hooks (`use-entities`, `use-session`, …). |
-| `src/ui/lib/` | Client, auth client, money helpers. |
-| `src/ui/routes/` | SPA pages (code-based router in `src/ui/router.tsx`). |
+| `src/router.tsx` | Client entry: route tree and `createRoot` mount. |
+| `src/routes/` | Page modules, registered in `router.tsx`. |
+| `src/components/layout/` | App shell, top nav, auth shell. |
+| `src/components/ui/` | Registry recipes (`button`, `card`, `field`, `input`, `label`, `table`). |
+| `src/hooks/` | Data hooks (`use-parties`, `use-session`). |
+| `src/lib/` | Client, auth client, money helpers, `utils` (`cn`). |
 
 `wrangler` config is **not** seeded this pass.
 
@@ -116,7 +119,7 @@ standalone-only and must not be seeded.
 
 It exists because the exploration hardcoded those paths in six places
 across the host — including a regex over the literal string
-`src/ui/main.tsx` and a `?? ""` fallback that silently produced the wrong
+`src/router.tsx` and a `?? ""` fallback that silently produced the wrong
 CSS when the styles entry moved. Now `pack.mjs` and the factory both read
 the manifest, and `scripts/check-workspace.mjs` fails CI the moment a
 declared path stops existing. `inject` adds pack-only files (today:
@@ -125,56 +128,24 @@ declared path stops existing. `inject` adds pack-only files (today:
 Renaming a payload entry point is therefore a two-line change: move the
 file, update `manifest.json`.
 
-## The shadcn subset, and why it is a subset
+## Shared UI comes from the registry
 
-The seed carries a slice of the starter's shadcn layer: `alert`, `avatar`,
-`badge`, `button`, `card`, `dropdown-menu`, `empty`, `field`, `input`,
-`label`, `native-select`, `sheet`, `sidebar`, `skeleton`, `spinner`,
-`table`, `tooltip`.
+The seed does not carry a parallel shadcn tree. Shared primitives are
+**assembled from the published catalog** via `planAdd` (the hosted `add`
+planner), and each file is provenance-recorded in `manifest.recipes`:
 
-`separator` left with the flat header the sidebar replaced — the same rule
-that took `textarea` out with the notes form. Port it back with the first
-route that needs it.
+`lite/utils`, `lite/button`, `lite/label`, `lite/input`, `lite/field`,
+`lite/card`, `lite/table` (all `@0.1.0`).
 
-Two different reasons keep the rest out, and it is worth not confusing them,
-because only one of them is a real constraint:
+`pnpm --filter @sfab-lite/registry assemble-erp-starter` re-runs that
+assembly (the starter is the whole catalog). `pnpm check:manifest`
+fails when the tree or `manifest.recipes` drifts from it, so do not
+hand-edit a recipe file or hand-copy one into `src/components/ui/` —
+add it to the catalog, then assemble.
 
-- **Genuinely blocked** — the upstream shadcn source needs a third-party
-  package the kernel does not serve: `command` (cmdk), `sonner`, `chart`
-  (recharts), `carousel` (embla), `calendar` (react-day-picker), `drawer`
-  (vaul), `resizable`, `markdown` (streamdown). These need a kernel decision
-  before they can be ported at all.
-- **Merely not ported yet** — `tabs`, `switch`, `popover`, `progress`,
-  `slider`, `toggle`, `radio-group`, `collapsible`, `hover-card`,
-  `aspect-ratio` and friends need only `@base-ui/react` and `cn`, both of
-  which the kernel already serves. So do the rest of the overlay/menu/select
-  family — `dialog`, `select`, and the like: `dropdown-menu`, `sheet`,
-  `tooltip`, and `sidebar` from that family already ship, and porting another
-  means swapping its `lucide-react` import for the matching Radix icon.
-  `command` is the exception: it is built on `cmdk`, which no icon set makes
-  available. They are absent because **every file here ships into every app**,
-  and `knip` rejects a seed file nothing imports. Add one the moment a route
-  actually uses it.
-
-That rule cuts the other way too, and the ERP port is where it bit:
-`textarea` left with the notes form, and `CardAction` and `EmptyMedia` left
-with the page that used them. Deleting an unused part of a ported component
-is the house move, not a regrettable one — `field` was already only four of
-the starter's ten pieces. Port the rest back with the first route that needs
-them.
-
-That second list is the useful one: it is not a wishlist, it is a set of
-components already known to work under the frozen kernel.
-
-The same rule explains the partial ports. `field` exports four of the
-starter's ten pieces, and `FieldError` is not among them — the seed's forms
-surface errors through `Alert`, which already carries `role="alert"`, so a
-per-field error component would be an unused file. Port the rest of `Field`
-together with the first form that needs inline validation, not before.
-
-`spinner` and `native-select` are the two hand-written divergences, and both
-now draw a real icon: `UpdateIcon` and `ChevronDownIcon`. `native-select`
-stays native because shadcn's `Select` is a popover the seed does not carry.
+Errors surface as `<p role="alert">`. Kind is a native `<select>` styled
+with `cn()`. There is no sidebar; navigation is a top bar in
+`src/components/layout/app-nav.tsx`.
 
 ## Icons
 
@@ -199,31 +170,25 @@ Enough to prove the stack end to end, and no more: email/password auth
 (better-auth) with organizations, an onboarding step that creates the first
 org, and a small per-organization ERP.
 
-- **Parties** (`entity`) — the customers and vendors the org trades with.
-- **Catalog** (`product`) — SKU, name, unit price in minor units.
-- **Documents** (`document`, `document_line`) — invoices, built as drafts and
-  then issued.
+- **Parties** (`party`) — the customers and vendors the org trades with.
+- **Ledger** (`ledger_entry`) — charges and payments; amounts are always
+  stored positive, and the kind is the sign.
+- **Open balances** — parties whose running balance (charges − payments)
+  is not zero.
 
-Three things in there are the parts worth copying, and each is a rule the
+Two things in there are the parts worth copying, and each is a rule the
 starter learned the expensive way:
 
 1. **Every query is scoped by the session's active organization**, taken from
    `requireOrg` and never from the request. Writes match on id *and*
    organization in a single statement, so an empty `returning()` is the 404
    and there is no window between checking ownership and acting on it.
-2. **A draft is working state; a finalized document is a record.** Lines,
-   pricing, and deletion are all draft-only, and finalize draws the
-   organization's next number inside the same statement that writes it —
-   two documents finalizing at once cannot read the same highest number and
-   both keep it.
-3. **Lines carry snapshots.** `entity_name_snapshot`, `name_snapshot`, and
-   the line's own `unit_price_cents` mean renaming a customer or re-pricing a
-   product never rewrites an invoice already sent.
+2. **Balance is computed in the app**, from builder `select`s, not from a
+   stored column and not from drizzle's relational `db.query.*` API. The
+   query seam stays on auth/session; the ERP slice does not use it.
 
-What it deliberately does *not* have is the rest of the starter's document
-model: document families and their CHECK constraints, payment projections,
-settlement status, immutable-successor lineage. This is a seed every
-generated app starts from, so weight here is paid by every app that has
-nothing to do with invoicing.
+What it deliberately does *not* have is aging, statements, documents, or
+inventory. This is a seed every generated app starts from, so weight here
+is paid by every app that has nothing to do with invoicing.
 
 Swap the resource, keep the shape.

@@ -20,6 +20,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import { canonicalizeSnapshot } from "../src/schema/schema-ddl.ts";
 import { probeEntrySource } from "../src/schema/schema-probe-source.ts";
 import { serializeSnapshot } from "../src/schema/schema-snapshots.ts";
@@ -44,7 +45,7 @@ function latestMigrationId() {
 }
 
 async function probe() {
-  writeFileSync(scratch, probeEntrySource("src/db/schema/index.ts"));
+  writeFileSync(scratch, probeEntrySource(TEMPLATE_MANIFEST.schema));
   try {
     const mod = await import(`${scratch}?t=${Date.now()}`);
     const body = await mod.default.fetch().json();

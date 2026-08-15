@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { after, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
+import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
   canonicalizeSnapshot,
@@ -33,7 +34,7 @@ after(() => rmSync(SCRATCH, { force: true }));
 
 async function runProbe(): Promise<SchemaSnapshot> {
   mkdirSync(dirname(SCRATCH), { recursive: true });
-  writeFileSync(SCRATCH, probeEntrySource("src/db/schema/index.ts"));
+  writeFileSync(SCRATCH, probeEntrySource(TEMPLATE_MANIFEST.schema));
   const mod = (await import(`${SCRATCH}?t=${seed.migrations.length}`)) as {
     default: { fetch: () => Response };
   };
@@ -60,64 +61,43 @@ describe("probeEntrySource", () => {
     const snapshot = await runProbe();
     assert.deepEqual(snapshot.tables.map((t) => t.name).sort(), [
       "account",
-      "document",
-      "document_line",
-      "entity",
       "invitation",
+      "ledger_entry",
       "member",
       "organization",
-      "product",
+      "party",
       "session",
       "user",
       "verification",
     ]);
   });
 
-  it("reads defaults, keys, indexes, and foreign keys off the document table", async () => {
-    const document = (await runProbe()).tables.find(
-      (t) => t.name === "document"
-    );
-    assert.ok(document);
-    assert.deepEqual(document.primaryKey, ["id"]);
+  it("reads defaults, keys, indexes, and foreign keys off the party table", async () => {
+    const party = (await runProbe()).tables.find((t) => t.name === "party");
+    assert.ok(party);
+    assert.deepEqual(party.primaryKey, ["id"]);
     assert.equal(
-      document.columns.find((c) => c.name === "status")?.defaultSql,
-      "'draft'"
+      party.columns.find((c) => c.name === "kind")?.defaultSql,
+      "'customer'"
     );
     assert.equal(
-      document.columns.find((c) => c.name === "created_at")?.defaultSql,
+      party.columns.find((c) => c.name === "created_at")?.defaultSql,
       "(cast(unixepoch('subsecond') * 1000 as integer))"
     );
-    assert.deepEqual(document.indexes, [
+    assert.deepEqual(party.indexes, [
       {
-        name: "document_organizationId_idx",
+        name: "party_organizationId_idx",
         columns: ["organization_id"],
         unique: false,
       },
-      {
-        name: "document_entityId_idx",
-        columns: ["entity_id"],
-        unique: false,
-      },
-      {
-        name: "document_organizationId_number_unique",
-        columns: ["organization_id", "number"],
-        unique: true,
-      },
     ]);
-    assert.deepEqual(document.foreignKeys, [
+    assert.deepEqual(party.foreignKeys, [
       {
         columns: ["organization_id"],
         refTable: "organization",
         refColumns: ["id"],
         onUpdate: "no action",
         onDelete: "cascade",
-      },
-      {
-        columns: ["entity_id"],
-        refTable: "entity",
-        refColumns: ["id"],
-        onUpdate: "no action",
-        onDelete: "restrict",
       },
     ]);
   });
