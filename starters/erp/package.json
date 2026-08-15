@@ -17,6 +17,7 @@
     "db:reset": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate",
     "pack": "node scripts/pack.mjs",
     "bake-seed": "node scripts/pack.mjs --out=generated/seed.json",
+    "generate": "node --experimental-strip-types scripts/generate-format-files.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {

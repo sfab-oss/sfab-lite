@@ -725,7 +725,10 @@ units the original list did not name.)
    ([`2026-08-14-pr8-starter-rebuild-check.md`](2026-08-14-pr8-starter-rebuild-check.md)).
 9. **Image + generated files** — image v0 on every serve path, plus
    the generated `package.json`/`tsconfig`/`api.d.ts` (and
-   `index.html`) with their drift gate.
+   `index.html`) with their drift gate. **Done** (this PR): every new
+   build carries `image: 0` + resolved runtime + manifest snapshot;
+   `check:generated` gates the four root files; host regenerates on
+   create/add. Legacy builds read with `image: null` (no backfill).
 10. **Agent design doc** — doc-only.
 
 ### Milestone 1 exit criteria

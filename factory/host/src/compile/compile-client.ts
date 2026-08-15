@@ -3,6 +3,7 @@
  * Client entry comes from TEMPLATE_MANIFEST — never a hardcoded path.
  */
 import { createWorker } from "@cloudflare/worker-bundler";
+import { formatIndexHtml } from "@sfab-lite/core";
 import {
   CLIENT_BAILOUTS,
   CLIENT_IMPORT_MAP,
@@ -146,22 +147,10 @@ export function buildIndexHtml(opts: {
   kernelVersion: string;
   title?: string;
 }): string {
-  const importMap = buildImportMap(opts.kernelVersion);
-  const title = opts.title ?? "sfab-lite";
-  return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${title}</title>
-    <link rel="icon" href="data:," />
-    <link rel="stylesheet" href="./assets/app.css" />
-    <script type="importmap">${JSON.stringify({ imports: importMap })}</script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="./assets/app.js"></script>
-  </body>
-</html>
-`;
+  return formatIndexHtml({
+    title: opts.title ?? "sfab-lite",
+    scriptSrc: "./assets/app.js",
+    stylesheetHref: "./assets/app.css",
+    importMap: buildImportMap(opts.kernelVersion),
+  });
 }

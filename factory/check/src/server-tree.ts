@@ -11,7 +11,7 @@ import { sha256Utf8Hex } from "./sha256.js";
 import { normalizePath } from "./vfs.js";
 
 const LEADING_SLASH = /^\//;
-const RELATIVE_FROM = /(?:from\s+|import\s*\()\s*['"](\.[^'"]+)['"]/g;
+const RELATIVE_FROM = /(?:from\s+|import\s*\(\s*|import\s+)['"](\.[^'"]+)['"]/g;
 const ROUTE_CALL = /\.route\(\s*['"]([^'"]+)['"]\s*,\s*([A-Za-z_$][\w$]*)/g;
 const HONO_EXPORT = /export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*new\s+Hono/;
 const HTTP_METHOD = /\.(get|post|patch|delete)\s*\(/;

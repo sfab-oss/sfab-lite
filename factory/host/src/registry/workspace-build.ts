@@ -4,8 +4,11 @@
  * so serve bootstraps the same generation it serves.
  */
 
+import { appBuildFromCompile } from "../code-host/app-image.js";
 import type { AppBuild } from "../code-host/build-store.js";
+import { parseStoredBuild } from "../code-host/build-store.js";
 import { compileAll } from "../compile/compile-all.js";
+import { overlayFormatFiles } from "../format/overlay-format-files.js";
 import type { AppMigration } from "./app-migrations.js";
 
 const WORKSPACE_BUILD_SHA_PREFIX = "ws:";
@@ -22,15 +25,12 @@ function workspaceBuildKey(workspaceId: string): string {
 }
 
 export async function compileWorkspaceFiles(
-  files: Record<string, string>
-): Promise<Omit<AppBuild, "sha">> {
-  const { compiled, assets } = await compileAll(files);
-  return {
-    serverBundle: compiled.serverBundle,
-    assets,
-    kernelVersion: compiled.kernelVersion,
-    serverSurfaceHash: compiled.serverSurfaceHash,
-  };
+  files: Record<string, string>,
+  sha: string
+): Promise<AppBuild> {
+  const overlaid = overlayFormatFiles(files);
+  const compiled = await compileAll(overlaid);
+  return appBuildFromCompile(sha, overlaid, compiled);
 }
 
 export function workspaceBuildSha(generation: number): string {
@@ -77,7 +77,11 @@ export async function getWorkspaceBuild(
   if (!isWorkspaceBuildRecord(parsed)) {
     return null;
   }
-  return parsed;
+  const build = parseStoredBuild(parsed.build);
+  if (!build) {
+    return null;
+  }
+  return { ...parsed, build };
 }
 
 export async function deleteWorkspaceBuild(

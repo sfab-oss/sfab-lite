@@ -1,4 +1,5 @@
 import type { AppBuild, BuildStore } from "./build-store.js";
+import { assertPutBuild, parseStoredBuild } from "./build-store.js";
 
 function buildKey(appId: string, sha: string): string {
   return `builds/${appId}/${sha}.json`;
@@ -9,6 +10,7 @@ export function createR2BuildStore(env: Env): BuildStore {
 
   return {
     async putBuild(appId: string, build: AppBuild): Promise<void> {
+      assertPutBuild(build);
       await bucket.put(buildKey(appId, build.sha), JSON.stringify(build), {
         httpMetadata: { contentType: "application/json" },
       });
@@ -19,7 +21,7 @@ export function createR2BuildStore(env: Env): BuildStore {
       if (!obj) {
         return null;
       }
-      return (await obj.json()) as AppBuild;
+      return parseStoredBuild(await obj.json());
     },
   };
 }

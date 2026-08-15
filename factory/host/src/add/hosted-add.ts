@@ -1,6 +1,7 @@
 import catalogJson from "@sfab-lite/registry/catalog" with { type: "json" };
 import { type Catalog, resolveAdd } from "@sfab-lite/registry/lite";
 import { getAgentByName } from "agents";
+import { isHostGeneratedPath } from "../agent/platform-readonly.js";
 import { createDb } from "../db/index.js";
 import {
   getDefaultWorkspaceForApp,
@@ -64,7 +65,12 @@ export async function addRecipeToWorkspace(
     return result;
   }
   for (const [path, content] of Object.entries(result.files)) {
-    await agent.writeFile(abs(path), content);
+    const dest = abs(path);
+    if (isHostGeneratedPath(path)) {
+      await agent.writeGenerated(dest, content);
+    } else {
+      await agent.writeFile(dest, content);
+    }
   }
   return result;
 }

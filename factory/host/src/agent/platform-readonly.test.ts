@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  assertHostGeneratedPath,
   assertWritableWorkspacePath,
+  GeneratedPathError,
+  isHostGeneratedPath,
   isPlatformReadonlyPath,
   normalizeWorkspaceRelPath,
   PlatformReadonlyError,
@@ -15,6 +18,8 @@ describe("platform-readonly", () => {
     assert.deepEqual(platformReadonlyPaths(), [
       "biome.json",
       "components.json",
+      "index.html",
+      "package.json",
       "tsconfig.json",
       "vite.config.ts",
     ]);
@@ -34,8 +39,17 @@ describe("platform-readonly", () => {
     );
     assert.equal(isPlatformReadonlyPath("../biome.json"), true);
     assert.equal(isPlatformReadonlyPath("x/../vite.config.ts"), true);
-    assert.equal(isPlatformReadonlyPath("package.json"), false);
+    assert.equal(isPlatformReadonlyPath("package.json"), true);
+    assert.equal(isPlatformReadonlyPath("index.html"), true);
     assert.equal(isPlatformReadonlyPath("/src/db/schema.ts"), false);
+  });
+
+  it("treats src/generated as a prefix, not an exact path", () => {
+    assert.equal(isPlatformReadonlyPath("src/generated"), true);
+    assert.equal(isPlatformReadonlyPath("/src/generated/api.d.ts"), true);
+    assert.equal(isPlatformReadonlyPath("src/generated/api.hash"), true);
+    assert.equal(isPlatformReadonlyPath("src/generated-elsewhere.ts"), false);
+    assert.equal(isPlatformReadonlyPath("src/routes/overview.tsx"), false);
   });
 
   it("throws PlatformReadonlyError on assert", () => {
@@ -46,6 +60,25 @@ describe("platform-readonly", () => {
         err.path === "vite.config.ts" &&
         READ_ONLY_MSG.test(err.message)
     );
+    assert.throws(
+      () => assertWritableWorkspacePath("/src/generated/api.d.ts"),
+      PlatformReadonlyError
+    );
     assert.doesNotThrow(() => assertWritableWorkspacePath("/src/router.tsx"));
+  });
+
+  it("writeGenerated is only for generated format members", () => {
+    assert.equal(isHostGeneratedPath("package.json"), true);
+    assert.equal(isHostGeneratedPath("src/generated/api.d.ts"), true);
+    assert.equal(isHostGeneratedPath("biome.json"), false);
+    assert.equal(isHostGeneratedPath("vite.config.ts"), false);
+    assert.equal(isHostGeneratedPath("src/router.tsx"), false);
+    assert.doesNotThrow(() =>
+      assertHostGeneratedPath("/src/generated/api.hash")
+    );
+    assert.throws(
+      () => assertHostGeneratedPath("/src/router.tsx"),
+      GeneratedPathError
+    );
   });
 });

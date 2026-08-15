@@ -11,6 +11,7 @@ import {
   liveLanguageServices,
   runCheck,
 } from "../src/run-check.ts";
+import { overlayAppPath, serverImportClosure } from "../src/server-tree.ts";
 import { snapshotFreshnessDiagnostic } from "../src/snapshot-freshness.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -60,6 +61,20 @@ function check(label: string, files: Record<string, string>) {
 function fail(msg: string): void {
   console.error(`FAIL: ${msg}`);
   failed = true;
+}
+
+{
+  const overlay = new Map<string, string>([
+    [
+      overlayAppPath("src/server.ts"),
+      'import "./side";\nexport const app = 1;\n',
+    ],
+    [overlayAppPath("src/side.ts"), "export const n = 1;\n"],
+  ]);
+  const closure = serverImportClosure(overlay, "src/server.ts");
+  if (!closure.includes(overlayAppPath("src/side.ts"))) {
+    fail("bare side-effect import must be in the server-tree hash closure");
+  }
 }
 
 const named = snapshotFreshnessDiagnostic("sha256:expected", "sha256:got");

@@ -27,6 +27,7 @@
       "package.json",
       "tsconfig.json",
       "components.json",
+      "index.html",
       "vite.config.ts"
     ],
     "exclude": ["src/worker.ts"]

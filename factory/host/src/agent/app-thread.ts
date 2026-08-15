@@ -61,6 +61,7 @@ export class AppThread extends Think<Env> {
         env: this.env,
         appId,
         workspaceId: parent.name,
+        writeGenerated: (path, content) => parent.writeGenerated(path, content),
       }),
     };
   }

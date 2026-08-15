@@ -24,7 +24,13 @@ test("add lite/field copies deps and writes sha256 provenance", () => {
     SHA256
   );
   assert.deepEqual(result.recipes, ["lite/field", "lite/label", "lite/utils"]);
-  assert.deepEqual(result.overwrote, []);
+  assert.ok(result.files["package.json"]);
+  assert.ok(result.files["tsconfig.json"]);
+  assert.ok(result.files["index.html"]);
+  assert.ok(result.files["components.json"]);
+  const pkg = JSON.parse(result.files["package.json"] ?? "{}");
+  assert.equal(pkg.name, "erp");
+  assert.equal(typeof pkg.dependencies?.react, "string");
 });
 
 test("bare names never copy files", () => {

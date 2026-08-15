@@ -2,16 +2,25 @@
  * Factory-owned write policy for seeded platform chrome.
  *
  * The template ships ordinary root files (tsconfig, biome, components.json,
- * vite.config). This module — not the template manifest — decides they are
- * not writable on the host FS (GatedWorkspace, MCP workspace_write/rm, lint
- * format write-back, bash sync via the same surface).
+ * vite.config, package.json, index.html). This module — not the template
+ * manifest — decides they are not writable on the host FS (GatedWorkspace,
+ * MCP workspace_write/rm, lint format write-back, bash sync via the same
+ * surface). `src/generated/**` is prefix-readonly for the same reason.
+ *
+ * Host persist of generated members uses `writeGenerated`, which does not
+ * consult this policy. That is a bypass for the host, not a hole agents can
+ * walk through.
  */
 const PLATFORM_READONLY_PATHS = [
   "tsconfig.json",
   "biome.json",
   "components.json",
   "vite.config.ts",
+  "package.json",
+  "index.html",
 ] as const;
+
+const GENERATED_PREFIX = "src/generated";
 
 const READONLY = new Set<string>(PLATFORM_READONLY_PATHS);
 const LEADING_SLASHES = /^\/+/;
@@ -42,8 +51,26 @@ export function platformReadonlyPaths(): readonly string[] {
   return [...PLATFORM_READONLY_PATHS].sort();
 }
 
+function isGeneratedPrefixPath(path: string): boolean {
+  const rel = normalizeWorkspaceRelPath(path);
+  return rel === GENERATED_PREFIX || rel.startsWith(`${GENERATED_PREFIX}/`);
+}
+
+const HOST_GENERATED_ROOTS = new Set([
+  "package.json",
+  "tsconfig.json",
+  "index.html",
+  "components.json",
+]);
+
+export function isHostGeneratedPath(path: string): boolean {
+  const rel = normalizeWorkspaceRelPath(path);
+  return HOST_GENERATED_ROOTS.has(rel) || isGeneratedPrefixPath(rel);
+}
+
 export function isPlatformReadonlyPath(path: string): boolean {
-  return READONLY.has(normalizeWorkspaceRelPath(path));
+  const rel = normalizeWorkspaceRelPath(path);
+  return READONLY.has(rel) || isGeneratedPrefixPath(rel);
 }
 
 export class PlatformReadonlyError extends Error {
@@ -60,5 +87,22 @@ export class PlatformReadonlyError extends Error {
 export function assertWritableWorkspacePath(path: string): void {
   if (isPlatformReadonlyPath(path)) {
     throw new PlatformReadonlyError(path);
+  }
+}
+
+export class GeneratedPathError extends Error {
+  readonly path: string;
+
+  constructor(path: string) {
+    const rel = normalizeWorkspaceRelPath(path);
+    super(`writeGenerated: ${rel} is not a generated format member`);
+    this.name = "GeneratedPathError";
+    this.path = rel;
+  }
+}
+
+export function assertHostGeneratedPath(path: string): void {
+  if (!isHostGeneratedPath(path)) {
+    throw new GeneratedPathError(path);
   }
 }

@@ -21,9 +21,14 @@ vs app plane, reserved words):
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
-`pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
+`pnpm check:generated`, `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
 `pnpm check:seed`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
 `pnpm check:registry-agreement`.
+
+`check:generated` fails when the four generated format files under
+`starters/erp/app/` (`package.json`, `tsconfig.json`, `index.html`,
+`components.json`) drift from `generateFormatFiles`. Regenerate with
+`pnpm --filter @sfab-lite/template generate`; do not hand-edit.
 
 `check:registry` validates every published recipe against the lite
 profile, fails closed on committed red fixtures (`dependencies` key,

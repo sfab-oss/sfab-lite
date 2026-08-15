@@ -73,9 +73,9 @@ for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
   }
   sourceFiles[dest] = text;
 }
-// Standalone-only scaffolding (the `wrangler dev` entry, the Vite HTML
-// shell): the factory builds its own, and shipping ours would leave dead
-// files in every app's source tree.
+// Standalone-only scaffolding (the `wrangler dev` entry): the factory
+// builds its own worker wrapper. index.html is a generated format member
+// and is seeded so eject / standalone Vite have a document shell.
 for (const file of manifest.source.exclude) {
   delete sourceFiles[file];
 }
@@ -95,6 +95,7 @@ const required = [
   manifest.client.entry,
   manifest.client.styles,
   manifest.safelist,
+  manifest.html,
 ];
 const missing = required.filter((path) => !(path in sourceFiles));
 if (missing.length > 0) {
