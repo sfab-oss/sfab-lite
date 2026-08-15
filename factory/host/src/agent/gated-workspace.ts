@@ -1,5 +1,8 @@
 import type { WorkspaceFsLike } from "@cloudflare/shell";
-import { assertWritableWorkspacePath } from "./platform-readonly.js";
+import {
+  assertHostGeneratedPath,
+  assertWritableWorkspacePath,
+} from "./platform-readonly.js";
 
 /**
  * Every FS op awaits `ensureReady` before hitting the underlying workspace.
@@ -34,6 +37,19 @@ export class GatedWorkspace implements WorkspaceFsLike {
     mimeType?: Parameters<WorkspaceFsLike["writeFile"]>[2]
   ) {
     assertWritableWorkspacePath(path);
+    return (await this.#fs()).writeFile(path, content, mimeType);
+  }
+
+  /**
+   * Host persist of generated format members. Does not consult the agent
+   * write policy — those files are agent-readonly, host-writable.
+   */
+  async writeGenerated(
+    path: string,
+    content: string,
+    mimeType?: Parameters<WorkspaceFsLike["writeFile"]>[2]
+  ) {
+    assertHostGeneratedPath(path);
     return (await this.#fs()).writeFile(path, content, mimeType);
   }
 

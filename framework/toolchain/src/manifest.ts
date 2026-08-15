@@ -29,8 +29,9 @@ export const HOST_AUTHORITATIVE_FIELDS = [
 ] as const;
 
 /**
- * Fixed paths — apps do not choose them. Emit/drift land in later PRs;
- * the format names the members now.
+ * Fixed paths — apps do not choose them. Root files are emitted by
+ * `generateFormatFiles` and drift-gated by `check:generated`. Snapshot
+ * files are the check emit unit.
  */
 export const GENERATED_ARTIFACTS = {
   packageJson: "package.json",

@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./pins": {
+      "types": "./scripts/pins.d.ts",
+      "default": "./scripts/pins.mjs"
+    }
   },
   "scripts": {
     "install-universe": "node scripts/ensure-universe.mjs",

@@ -14,7 +14,10 @@ test("the prompt states the closed import surface", () => {
   assert.ok(prompt.includes("kysely"));
 });
 
-test("the prompt no longer admits that transitive imports pass typecheck", () => {
-  assert.equal(prompt.includes("Typecheck alone will not always catch"), false);
-  assert.equal(prompt.includes("importing one can pass"), false);
+test("the prompt names generated files as host-owned", () => {
+  assert.ok(
+    prompt.includes("Those files are generated. Edit manifest.json, not them.")
+  );
+  assert.ok(prompt.includes("src/generated/**"));
+  assert.equal(prompt.includes("package.json is writable."), false);
 });

@@ -30,7 +30,10 @@ import {
 } from "../schema/schema-snapshots.js";
 import { createGhCommand } from "./gh-commands.js";
 import { commitAllAndPushMain, runGitCommand } from "./git-commands.js";
-import { isPlatformReadonlyPath } from "./platform-readonly.js";
+import {
+  isHostGeneratedPath,
+  isPlatformReadonlyPath,
+} from "./platform-readonly.js";
 import { renderCheckText, renderLintText } from "./render-diagnostics.js";
 import { collectWorkspaceSourceFiles } from "./workspace-files.js";
 
@@ -57,9 +60,12 @@ export interface ShellCommandDeps {
   appId: string;
   /** AppAgent DO name — computer pair for default `pnpm seed`. */
   workspaceId: string;
+  /** Host bypass for generated format members (does not consult agent policy). */
+  writeGenerated?: (path: string, content: string) => Promise<void>;
 }
 
 async function persistEmittedFiles(
+  deps: ShellCommandDeps,
   ctx: CommandContext,
   emitted: Record<string, string> | undefined
 ): Promise<string[]> {
@@ -68,10 +74,15 @@ async function persistEmittedFiles(
   }
   const wrote: string[] = [];
   for (const [path, content] of Object.entries(emitted)) {
+    const abs = path.startsWith("/") ? path : `/${path}`;
+    if (isHostGeneratedPath(path) && deps.writeGenerated) {
+      await deps.writeGenerated(abs, content);
+      wrote.push(path);
+      continue;
+    }
     if (isPlatformReadonlyPath(path)) {
       continue;
     }
-    const abs = path.startsWith("/") ? path : `/${path}`;
     await ctx.fs.writeFile(abs, content);
     wrote.push(path);
   }
@@ -86,7 +97,7 @@ async function runTypecheck(
   try {
     const check = await callCheck(deps.env, deps.appId, files);
     if (check.body?.ok) {
-      await persistEmittedFiles(ctx, check.body.emittedFiles);
+      await persistEmittedFiles(deps, ctx, check.body.emittedFiles);
     }
     const text = renderCheckText(check.body);
     if (check.http >= 500 || !check.body?.ok) {
@@ -208,12 +219,15 @@ async function ensureWorkspaceBuildForSeed(
   }
   try {
     const files = await collectWorkspaceSourceFiles(ctx);
-    const compiled = await compileWorkspaceFiles(files);
-    const migrations = collectMigrations(files);
     const generation = Date.now();
+    const compiled = await compileWorkspaceFiles(
+      files,
+      workspaceBuildSha(generation)
+    );
+    const migrations = collectMigrations(files);
     await putWorkspaceBuild(deps.env, deps.workspaceId, {
       generation,
-      build: { ...compiled, sha: workspaceBuildSha(generation) },
+      build: compiled,
       migrations,
       at: Date.now(),
     });

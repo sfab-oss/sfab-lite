@@ -5,11 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./validate-manifest": "./src/validate-manifest.ts"
+    "./validate-manifest": "./src/validate-manifest.ts",
+    "./generate-format-files": "./src/generate-format-files.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test --experimental-strip-types src/validate-manifest.test.ts"
+    "test": "node --test --experimental-strip-types src/validate-manifest.test.ts src/generate-format-files.test.ts"
   },
   "devDependencies": {
     "typescript": "6.0.3"

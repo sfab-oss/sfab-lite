@@ -1,5 +1,7 @@
 import type { ManifestV0 } from "@sfab-lite/core";
+import { generateFormatFiles } from "@sfab-lite/core/generate-format-files";
 import { validateManifest } from "@sfab-lite/core/validate-manifest";
+import { FORMAT_PINS } from "@sfab-lite/kernel/pins";
 import catalogJson from "@sfab-lite/registry/catalog" with { type: "json" };
 import { type Catalog, planAdd } from "@sfab-lite/registry/lite";
 import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
@@ -87,6 +89,7 @@ export function applyAdd(
     next[path] = content;
   }
   next["manifest.json"] = `${JSON.stringify(validated.manifest, null, 2)}\n`;
+  Object.assign(next, generateFormatFiles(validated.manifest, FORMAT_PINS));
   const overwrote = new Set(planned.overwrote);
   return {
     ok: true,

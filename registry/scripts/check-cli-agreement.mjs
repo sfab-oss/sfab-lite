@@ -8,10 +8,13 @@
  */
 import { spawn, spawnSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:http";
@@ -25,6 +28,26 @@ import {
   serveSlug,
   toBuiltRegistryItem,
 } from "../src/lite.ts";
+
+function snapshotTree(root, prefix = "") {
+  const out = {};
+  if (!existsSync(root)) {
+    return out;
+  }
+  for (const name of readdirSync(root).sort()) {
+    if (name === "node_modules") {
+      continue;
+    }
+    const abs = join(root, name);
+    const rel = prefix ? `${prefix}/${name}` : name;
+    if (statSync(abs).isDirectory()) {
+      Object.assign(out, snapshotTree(abs, rel));
+    } else {
+      out[rel] = readFileSync(abs, "utf8");
+    }
+  }
+  return out;
+}
 
 const PINNED_CLI = "4.17.0";
 const RE_SERVED_ITEM = /^\/r\/(.+)\.json$/;
@@ -178,6 +201,7 @@ try {
     const slug = serveSlug(name);
     rmSync(join(scratch, "src/components"), { recursive: true, force: true });
     rmSync(join(scratch, "src/lib"), { recursive: true, force: true });
+    const before = snapshotTree(scratch);
     const added = await shadcn([
       "add",
       `@lite/${slug}`,
@@ -203,6 +227,16 @@ try {
       if (onDisk !== content) {
         failures.push(`${name}: ${path} differs from planAdd`);
       }
+    }
+    const after = snapshotTree(scratch);
+    for (const [path, content] of Object.entries(after)) {
+      if (before[path] === content) {
+        continue;
+      }
+      if (Object.hasOwn(planned.writes, path)) {
+        continue;
+      }
+      failures.push(`${name}: CLI wrote extra ${path}`);
     }
   }
 } finally {

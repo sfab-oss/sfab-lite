@@ -349,15 +349,14 @@ export class AppAgent extends Think<Env> {
 
     try {
       const files = await collectAgentWorkspaceFiles(this.#fs);
-      const compiled = await compileWorkspaceFiles(files);
       const migrations = collectMigrations(files);
       const prev =
         (await this.ctx.storage.get<number>(WORKSPACE_BUILD_GEN_KEY)) ?? 0;
       const generation = prev + 1;
-      const build = {
-        ...compiled,
-        sha: workspaceBuildSha(generation),
-      };
+      const build = await compileWorkspaceFiles(
+        files,
+        workspaceBuildSha(generation)
+      );
       await putWorkspaceBuild(this.env, this.name, {
         generation,
         build,
@@ -486,6 +485,8 @@ export class AppAgent extends Think<Env> {
           env: this.env,
           appId,
           workspaceId: this.name,
+          writeGenerated: (path, content) =>
+            this.#fs.writeGenerated(path, content),
         }),
       },
     });
@@ -522,6 +523,14 @@ export class AppAgent extends Think<Env> {
     mimeType?: Parameters<Workspace["writeFile"]>[2]
   ) {
     return this.#fs.writeFile(path, content, mimeType);
+  }
+
+  writeGenerated(
+    path: string,
+    content: string,
+    mimeType?: Parameters<Workspace["writeFile"]>[2]
+  ) {
+    return this.#fs.writeGenerated(path, content, mimeType);
   }
 
   writeFileBytes(

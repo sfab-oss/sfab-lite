@@ -9,7 +9,7 @@ This package wears two hats, and the directory split is the whole design:
 | `app/`       | **the payload** — the source tree seeded into a new app. Also runs standalone from right here. |
 | `generated/` | `seed.json` — the baked pack output the factory imports as a bundle constant.                  |
 | `src/`       | the package the factory imports. Today: `TEMPLATE_MANIFEST`.                                    |
-| `scripts/`   | `pack.mjs` / `bake-seed`, which bake `app/` into `generated/seed.json`.                      |
+| `scripts/`   | `pack.mjs` / `bake-seed` / `generate-format-files.mjs`.                      |
 
 Everything outside `app/` is scaffolding for us. Everything inside `app/`
 is the ordinary single-project tree a new app starts as.
@@ -20,10 +20,11 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 
 | Path | Role |
 | --- | --- |
-| `package.json` | Describes the frozen kernel surface the app runs on. |
-| `tsconfig.json` | TypeScript chrome (mirrors the host check surface). |
+| `package.json` | **Generated** — exact runtime pins from `generateFormatFiles`. Drift-gated by `pnpm check:generated`. Do not hand-edit. |
+| `tsconfig.json` | **Generated** — same regime (`types: []`, `include: ["src"]`). |
 | `biome.json` | Injected at pack from `framework/toolchain/app-biome.json` (not stored as `app/biome.json` — that would nest-root the monorepo Biome). Same rules the factory lint worker applies. |
-| `components.json` | Host-generated: `@lite` → `https://lite.sfab.dev/r/{name}.json` is the only registry. |
+| `components.json` | **Generated** — `@lite` → `https://lite.sfab.dev/r/{name}.json` is the only registry. |
+| `index.html` | **Generated** — document shell (title, favicon, `#root`, module script). Host injects the import map at pack. |
 | `vite.config.ts` | Vite chrome (standalone package still uses the package-root Vite config with `root: "app"`). |
 | `src/db/` | Schema barrel `schema.ts` re-exports `auth.ts` + `ledger.ts`. |
 | `migrations/` | Applied SQL migrations (root of the app tree). |
@@ -59,6 +60,10 @@ Useful:
 
 - `pnpm db:reset` — drop the local D1 and re-migrate.
 - `pnpm typecheck` — both configs (see below).
+- `pnpm generate` — rewrite the four generated format files under `app/`
+  (`package.json`, `tsconfig.json`, `index.html`, `components.json`) from
+  the manifest + current runtime pins. `pnpm check:generated` (repo root)
+  fails if they drift; do not hand-edit them.
 - `pnpm pack` — print the seed payload to stdout.
 - `pnpm bake-seed` — write `generated/seed.json` (what `check:seed` verifies).
 

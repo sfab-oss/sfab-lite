@@ -21,6 +21,7 @@
     "check:cycles": "node scripts/check-cycles.mjs",
     "check:direction": "node scripts/check-direction.mjs",
     "check:manifest": "node --experimental-strip-types scripts/check-manifest.mjs",
+    "check:generated": "node --experimental-strip-types scripts/check-generated.mjs",
     "check:registry": "node --experimental-strip-types scripts/check-registry.mjs",
     "check:registry-agreement": "node --experimental-strip-types registry/scripts/check-cli-agreement.mjs",
     "check:pins": "node scripts/check-pins-independence.mjs",

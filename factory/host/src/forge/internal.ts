@@ -8,6 +8,7 @@
 import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { createDb } from "../db/index.js";
+import { overlayFormatFiles } from "../format/overlay-format-files.js";
 import { publishOrgEvent } from "../org-events.js";
 import { settleCreateApp } from "../registry/app-registry.js";
 import { appCreateStub } from "../registry/app-stub.js";
@@ -39,18 +40,17 @@ async function handleRunCreate(
 
   try {
     await host.ensureRepo(appId);
+    const sourceFiles = overlayFormatFiles(
+      TEMPLATE_SEED.sourceFiles as Record<string, string>
+    ).files;
     const { sha } = await host.commitTree(
       appId,
-      TEMPLATE_SEED.sourceFiles,
+      sourceFiles,
       "chore: initial template seed"
     );
-    const cd = await runCdForSha(
-      rc.env,
-      appId,
-      sha,
-      TEMPLATE_SEED.sourceFiles,
-      { forceColdCheck: true }
-    );
+    const cd = await runCdForSha(rc.env, appId, sha, sourceFiles, {
+      forceColdCheck: true,
+    });
     if (!cd.ok) {
       await stub.failCreateJob(jobId, "fail", cd);
       const record = await settleCreateApp(createDb(rc.env), appId, "fail");

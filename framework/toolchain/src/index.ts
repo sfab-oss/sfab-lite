@@ -27,6 +27,11 @@ export type {
   CheckUnitName,
   CheckUnitResult,
 } from "./check.js";
+export type { FormatPins } from "./generate-format-files.js";
+export {
+  formatIndexHtml,
+  generateFormatFiles,
+} from "./generate-format-files.js";
 export type {
   LintDiagnostic,
   LintFileResult,

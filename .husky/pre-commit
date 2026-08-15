@@ -7,6 +7,7 @@ pnpm typecheck
 pnpm check:cycles
 pnpm check:direction
 pnpm check:manifest
+pnpm check:generated
 pnpm check:registry
 pnpm check:pins
 pnpm check:dead-code

@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   PINS,
+  STANDALONE_TOOL_PINS,
   UNIVERSE_EXTRA_PINS,
 } from "../framework/runtime/scripts/pins.mjs";
 
@@ -167,7 +168,11 @@ const starterPins = {
   ...starterPkg.dependencies,
   ...starterPkg.devDependencies,
 };
-const runtimePins = { ...PINS, ...UNIVERSE_EXTRA_PINS };
+const runtimePins = {
+  ...PINS,
+  ...UNIVERSE_EXTRA_PINS,
+  ...STANDALONE_TOOL_PINS,
+};
 for (const [name, version] of Object.entries(runtimePins)) {
   if (name === "esbuild") {
     continue;

@@ -11,11 +11,16 @@ import {
   lintPasses,
 } from "@sfab-lite/core";
 import { eq } from "drizzle-orm";
+import { appBuildFromCompile } from "../code-host/app-image.js";
 import { createR2BuildStore } from "../code-host/r2-build-store.js";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { compileAll } from "../compile/compile-all.js";
 import { createDb } from "../db/index.js";
 import { app as appTable } from "../db/schema.js";
+import {
+  type OverlaidTree,
+  overlayFormatFiles,
+} from "../format/overlay-format-files.js";
 import { publishOrgEvent } from "../org-events.js";
 import { prDataId } from "../registry/app-data-ids.js";
 import { collectMigrations } from "../registry/app-migrations.js";
@@ -314,7 +319,11 @@ async function cdBuildArtifacts(
     applyMigrations?: boolean;
   }
 ): Promise<
-  | { ok: true; compiled: Awaited<ReturnType<typeof compileAll>> }
+  | {
+      ok: true;
+      compiled: Awaited<ReturnType<typeof compileAll>>;
+      tree: OverlaidTree;
+    }
   | { ok: false; error: string; detail?: unknown }
 > {
   const signal = opts?.signal;
@@ -322,7 +331,9 @@ async function cdBuildArtifacts(
     return { ok: false, error: "cd_aborted" };
   }
 
-  const lint = await callLint(env, appId, sourceFiles);
+  const tree = overlayFormatFiles(sourceFiles);
+  const files = tree.files;
+  const lint = await callLint(env, appId, files);
   if (aborted(signal)) {
     return { ok: false, error: "cd_aborted" };
   }
@@ -343,7 +354,7 @@ async function cdBuildArtifacts(
 
   let compiled: Awaited<ReturnType<typeof compileAll>>;
   try {
-    compiled = await compileAll(sourceFiles);
+    compiled = await compileAll(files);
   } catch (e) {
     return {
       ok: false,
@@ -361,7 +372,7 @@ async function cdBuildArtifacts(
   const check = await callCheck(
     env,
     appId,
-    sourceFiles,
+    files,
     opts?.forceColdCheck ?? false
   );
   if (!(check.http < 500 && checkPasses(check.body))) {
@@ -380,7 +391,7 @@ async function cdBuildArtifacts(
     return { ok: false, error: "cd_aborted" };
   }
 
-  const schemaFailure = await gateSchema(env, appId, sourceFiles, {
+  const schemaFailure = await gateSchema(env, appId, files, {
     applyMigrations: opts?.applyMigrations,
   });
   if (schemaFailure) {
@@ -391,7 +402,7 @@ async function cdBuildArtifacts(
     };
   }
 
-  return { ok: true, compiled };
+  return { ok: true, compiled, tree };
 }
 
 /**
@@ -436,13 +447,10 @@ export async function runCdForSha(
     }
 
     const builds = createR2BuildStore(env);
-    await builds.putBuild(appId, {
-      sha,
-      serverBundle: built.compiled.compiled.serverBundle,
-      assets: built.compiled.assets,
-      kernelVersion: built.compiled.compiled.kernelVersion,
-      serverSurfaceHash: built.compiled.compiled.serverSurfaceHash,
-    });
+    await builds.putBuild(
+      appId,
+      appBuildFromCompile(sha, built.tree, built.compiled)
+    );
 
     if (!advanceLive) {
       return { ok: true, sha, liveSha: null };

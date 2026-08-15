@@ -44,3 +44,41 @@ export const UNIVERSE_EXTRA_PINS = {
   "class-variance-authority": "0.7.1",
   "tailwind-merge": "3.3.1",
 };
+
+/**
+ * Standalone / eject tooling the generated package.json needs so a copied
+ * tree runs `pnpm install && vite build`. Not installed into the universe;
+ * the runtime never serves these.
+ */
+export const STANDALONE_TOOL_PINS = {
+  vite: "7.0.6",
+  "@vitejs/plugin-react": "4.7.0",
+  "@tailwindcss/vite": "4.1.11",
+};
+
+function without(pins, names) {
+  return Object.fromEntries(
+    Object.entries(pins).filter(([name]) => !names.includes(name))
+  );
+}
+
+const TYPE_ONLY_PINS = ["@types/react", "@types/react-dom"];
+
+/**
+ * What the generated package.json declares. Runtime-served packages are
+ * dependencies; compiler, CSS build, type packages and standalone tooling
+ * are devDependencies. One source for the generator, its gate, and the host.
+ */
+export const FORMAT_PINS = {
+  dependencies: {
+    ...without(PINS, ["esbuild", "typescript", "tailwindcss"]),
+    ...without(UNIVERSE_EXTRA_PINS, TYPE_ONLY_PINS),
+  },
+  devDependencies: {
+    typescript: PINS.typescript,
+    tailwindcss: PINS.tailwindcss,
+    "@types/react": UNIVERSE_EXTRA_PINS["@types/react"],
+    "@types/react-dom": UNIVERSE_EXTRA_PINS["@types/react-dom"],
+    ...STANDALONE_TOOL_PINS,
+  },
+};

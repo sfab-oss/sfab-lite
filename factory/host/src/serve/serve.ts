@@ -11,6 +11,7 @@
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { getAgentByName } from "agents";
 import type { AppBuild } from "../code-host/build-store.js";
+import { imageServeHeaders } from "../code-host/build-store.js";
 import { createR2BuildStore } from "../code-host/r2-build-store.js";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import type { AppDataDO } from "../durable-objects/app-data-do.js";
@@ -484,6 +485,9 @@ export async function serveSubApp(
     const headers = new Headers(res.headers);
     headers.set("X-Sfab-Live-Sha", build.sha);
     headers.set("X-Sfab-Serve", target.mode);
+    for (const [key, value] of Object.entries(imageServeHeaders(build))) {
+      headers.set(key, value);
+    }
     if (target.mode === "preview") {
       headers.set("X-Sfab-Preview-Pr", String(target.prNumber));
     }

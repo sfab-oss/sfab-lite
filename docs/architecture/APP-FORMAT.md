@@ -2,14 +2,15 @@
 
 **Status:** RFC — the contract later PRs implement. Authoritative for
 layout, manifest v0, generated members, check-unit ordering, and the
-adapter shape. Not a claim that those members are already emitted.
+adapter shape. Snapshot emit, image v0, and the four root generated
+files are built; a second adapter is not.
 
 This file lives in `docs/architecture/` because it is the format
 contract, not a working note. Implementations: schema/validation in
 the format PR; closed-resolve diagnostics at check; snapshot emit and
 check units in the check-plumbing PR; generated `package.json` /
-`tsconfig` / `index.html` in the image PR; the starter rebuild on this
-tree in the starter-rebuild PR.
+`tsconfig` / `index.html` / `components.json` and image v0 in the
+image PR; the starter rebuild on this tree in the starter-rebuild PR.
 
 Direction:
 [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
@@ -239,12 +240,16 @@ Fixed paths — apps do not choose them:
 | --- | --- |
 | `package.json` | Exact runtime pins so a copied tree `pnpm install`s. |
 | `tsconfig.json` | Same regime. |
-| `index.html` | Document shell. The eject test never reached a missing-HTML error because install already failed; the seed still omits this file. Pricing it absent from the format is an eject regression. |
+| `index.html` | Document shell. Standalone Vite and the host pack path share `formatIndexHtml`; the host injects the import map at pack. |
 | `src/generated/api.d.ts` | Client API snapshot. Standalone types; no vendor leakage (`drizzle`, `hono/index`, `AppEnv`). |
 | `src/generated/api.hash` | `sha256:` of the server tree the snapshot was emitted from. |
 
-Emit, hash store, and drift gates are later PRs. This RFC only names
-the members and the invariants they carry.
+Emit, hash store, and drift gates: snapshot emit + `check:generated` for
+the four root files (`package.json`, `tsconfig.json`, `index.html`,
+`components.json`) are in place. One generator in `framework/toolchain`
+(`generateFormatFiles`); the host regenerates on create/add and at CD
+materialise. `src/generated/api.d.ts` / `api.hash` remain the check emit
+unit.
 
 ### Snapshot freshness is structural (invariant 6)
 
@@ -404,7 +409,7 @@ call sites keep working; later PRs retarget them onto these names.
 | `app.get` / `app.list` / `app.delete` | protected `/apps`, MCP `apps_get` / `apps_list` / `apps_delete` | |
 | `app.check` | `POST` check worker `/check`; host `POST /apps/:id/check`; CD publish gate | Becomes the check *run* of §5. Wire types already in `framework/toolchain` (`CheckRequest` / `CheckResult`). |
 | `app.lint` | `POST` lint worker `/lint`; CD before check | Sync, stateless Biome WASM. Wire types in toolchain. |
-| `app.pack` | `compileAll` (server + client + css + host-built `index.html`) | Not yet an image; no runtime record inside the build. |
+| `app.pack` | `compileAll` (server + client + css + host-built `index.html`) | Image v0: `putBuild` stores `image: 0`, resolved `runtime`, manifest snapshot, asset keys, migration names. `getBuild` fills `image: null` on legacy records so existing live apps keep serving; the next CD writes an image. No backfill. |
 | `app.preview` | PR preview `/a/:appId/preview/:n`; workspace WIP `/a/:workspaceId/workspace` | Org-auth; empty+migrations SQLite, never a live clone. |
 | `app.serve` | LOADER child isolate, `live_sha` → immutable build | The serve-plane half of the adapter. |
 | `app.live` / `app.attempts` | `GET /apps/:id/live`, attempts; MCP `apps_live` / `apps_attempts` | Thin pointer + create-job status. |
@@ -449,11 +454,7 @@ Implementation trail (non-authoritative):
 
 ## 9. Out of scope (later PRs)
 
-- Snapshot emit, hash store, per-module regen, check-unit wiring.
 - Vendor-surface generation pipeline and the agreement gate.
-- Starter rebuild onto §2's tree (assembled from the registry).
-- Image v0 on every serve path; generated `package.json` / `tsconfig`
-  / `index.html` with a drift gate.
 - A second adapter; eject-in-CI.
 
 ## 10. Decisions this RFC settles
@@ -480,3 +481,7 @@ Left open by the plan, drafted here:
    via `add`; `db:generate` writes SQL. Overwrite `add` does not
    extend to those targets — the validator still refuses them.
    Full write-up: `registry/README.md`.
+9. **Generated files** — one generator in `framework/toolchain`
+   (`generateFormatFiles`), `pnpm check:generated` drift-gates the
+   starter, and the host regenerates on create/add (and at CD
+   materialise). Agent edits of those paths are overwritten.
