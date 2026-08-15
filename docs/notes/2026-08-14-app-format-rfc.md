@@ -3,7 +3,7 @@
 Non-authoritative (see [`README.md`](README.md)). The contract is
 [`../architecture/APP-FORMAT.md`](../architecture/APP-FORMAT.md).
 Direction: milestone item 2 in
-[`2026-08-12-lite-evolution-direction.md`](2026-08-12-lite-evolution-direction.md).
+[`2026-08-15-milestone-1-closeout.md`](2026-08-15-milestone-1-closeout.md) (was the 2026-08-12 direction note, graduated 2026-08-15).
 
 **Status:** drafted (PR #131). Schema + gate landed; snapshot emit /
 check units / generated pins are specified, not built.

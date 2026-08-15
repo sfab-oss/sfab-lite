@@ -1,7 +1,7 @@
 # 2026-08-13 — Zone-check memory (today's VFS)
 
 Non-authoritative (see [`README.md`](README.md)). Direction:
-[`2026-08-12-lite-evolution-direction.md`](2026-08-12-lite-evolution-direction.md)
+[ADR-0010](../decisions/0010-runtime-type-surface-independent-and-checked-in-units.md) (was the 2026-08-12 direction note, graduated 2026-08-15)
 item 8a. Catalogue:
 [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md).
 Sibling: [`2026-08-13-eject-copy-out.md`](2026-08-13-eject-copy-out.md).

@@ -1,7 +1,7 @@
 # 2026-08-13 — Eject copy-out
 
 Non-authoritative (see [`README.md`](README.md)). Direction:
-[`2026-08-12-lite-evolution-direction.md`](2026-08-12-lite-evolution-direction.md)
+[ADR-0011](../decisions/0011-eject-rule.md) (was the 2026-08-12 direction note, graduated 2026-08-15)
 item 8b / decision 9. Catalogue:
 [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md).
 Sibling: [`2026-08-13-zone-check-memory.md`](2026-08-13-zone-check-memory.md).

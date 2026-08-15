@@ -276,7 +276,7 @@ behind one settles on the next poll. That closes the gap where the console
   template* still stands; this experiment only falsifies "split today's
   program into zones and the cap is fine."
 
-- **Eject copy-out is not real today.** Full write-up:
+- **Eject copy-out was not real on 2026-08-13; it builds since 2026-08-15.** Full write-up:
   [`../notes/2026-08-13-eject-copy-out.md`](../notes/2026-08-13-eject-copy-out.md).
   Unpacked the committed seed
   (`starters/erp/generated/seed.json`, 81 files — what a live app
@@ -287,7 +287,10 @@ behind one settles on the next poll. That closes the gap where the console
   also has **no `index.html`**. Recorded so the app-format RFC cannot claim
   eject. Generated `package.json` / `tsconfig` with real pins (decision 9)
   are load-bearing, not polish; price their absence as an eject regression
-  if they do not ship with the format.
+  if they do not ship with the format. **Re-run 2026-08-15** after the
+  generated files landed (#141): `pnpm install` + `vite build` pass on the
+  copied tree ([`../notes/2026-08-15-pr9-image-generated.md`](../notes/2026-08-15-pr9-image-generated.md)).
+  Eject is a bound on lock-in, not a feature ([ADR-0011](../decisions/0011-eject-rule.md)).
 
 - **Entities-only / one-file check does not fit as a cap solution.** Full
   write-up:
@@ -459,8 +462,11 @@ it.
   — per-module snapshot fragments
 - [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md)
   — serve / upload diet (not check-cap)
-- [`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
-  — direction note
+- [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md)
+  — Milestone 1 close-out (PR map, exit criteria met-by, carried-forward
+  backlog); the 2026-08-12 direction note graduated into
+  [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0011](../decisions/0011-eject-rule.md)
+  and was deleted
 - [`../notes/2026-08-14-live-factory-baseline.md`](../notes/2026-08-14-live-factory-baseline.md)
   — live `sfab-lite-check` create OOM baseline (0/8)
 - [`../notes/2026-08-14-units-retail.md`](../notes/2026-08-14-units-retail.md)
