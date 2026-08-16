@@ -47,6 +47,11 @@ Anything more than this is the next milestone arriving early.
 
 ## Carried forward (not built, not forgotten)
 
+Re-labelled 2026-08-16 by
+[ADR-0013](../decisions/0013-templates-and-registry-are-inert.md): fleet upgrade, unmanaged fraction, per-file modes are
+harness concerns; the source-upgrade *mechanism* is not a framework
+item.
+
 **Deferred by the owner, to be worked out directly:** the in-app agent
 design — tenancy, state location, agent↔app tool transport (in-process
 vs RPC — the plan's one explicitly open transport question), memory
