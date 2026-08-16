@@ -30,6 +30,12 @@ import {
 import { diffSchema } from "../schema/schema-ddl.js";
 import { probeSchema } from "../schema/schema-probe.js";
 import { latestSnapshot } from "../schema/schema-snapshots.js";
+import {
+  type CdStages,
+  type CdStageTimings,
+  cdStagesLogLine,
+  finishCdStages,
+} from "./cd-stages.js";
 
 export function checkPasses(body: CheckResponse | null): body is CheckResult {
   if (!body?.ok) {
@@ -231,8 +237,8 @@ async function gateSchema(
 }
 
 export type CdResult =
-  | { ok: true; sha: string; liveSha: string | null }
-  | { ok: false; error: string; detail?: unknown };
+  | { ok: true; sha: string; liveSha: string | null; stages: CdStages }
+  | { ok: false; error: string; detail?: unknown; stages?: CdStages };
 
 async function setLiveSha(env: Env, appId: string, sha: string): Promise<void> {
   const db = createDb(env);
@@ -286,29 +292,49 @@ async function promoteExistingBuild(
   appId: string,
   sha: string,
   sourceFiles: Record<string, string>,
-  opts?: { signal?: AbortSignal }
+  opts?: { signal?: AbortSignal; startedAt?: number }
 ): Promise<CdResult> {
+  const startedAt = opts?.startedAt ?? Date.now();
+  const timings: CdStageTimings = {};
+  const finish = (extra?: CdStageTimings): CdStages =>
+    finishCdStages(startedAt, { ...timings, ...extra });
+  const log = (stages: CdStages) => {
+    console.log(cdStagesLogLine(appId, sha, stages));
+  };
+
   if (aborted(opts?.signal)) {
-    return { ok: false, error: "cd_aborted" };
+    const stages = finish();
+    log(stages);
+    return { ok: false, error: "cd_aborted", stages };
   }
+  const schemaStarted = Date.now();
   const schemaFailure = await applyLiveSchemaMigrations(
     env,
     appId,
     sourceFiles
   );
+  timings.schemaMs = Date.now() - schemaStarted;
   if (schemaFailure) {
+    const stages = finish();
+    log(stages);
     return {
       ok: false,
       error: schemaFailure.error,
       detail: schemaFailure,
+      stages,
     };
   }
   if (aborted(opts?.signal)) {
-    return { ok: false, error: "cd_aborted" };
+    const stages = finish();
+    log(stages);
+    return { ok: false, error: "cd_aborted", stages };
   }
+  const writeStarted = Date.now();
   await setLiveSha(env, appId, sha);
   await publishLiveChanged(env, appId, sha);
-  return { ok: true, sha, liveSha: sha };
+  const stages = finish({ writeMs: Date.now() - writeStarted });
+  log(stages);
+  return { ok: true, sha, liveSha: sha, stages };
 }
 
 async function cdBuildArtifacts(
@@ -325,25 +351,29 @@ async function cdBuildArtifacts(
       ok: true;
       compiled: Awaited<ReturnType<typeof build>>;
       tree: OverlaidTree;
+      timings: CdStageTimings;
     }
-  | { ok: false; error: string; detail?: unknown }
+  | { ok: false; error: string; detail?: unknown; timings: CdStageTimings }
 > {
   const signal = opts?.signal;
+  const timings: CdStageTimings = {};
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted" };
+    return { ok: false, error: "cd_aborted", timings };
   }
 
   const tree = overlayFormatFiles(sourceFiles);
   const files = tree.files;
   const lint = await callLint(env, appId, files);
+  timings.lintMs = lint.wallMs;
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted" };
+    return { ok: false, error: "cd_aborted", timings };
   }
   if (lint.http >= 500 || lint.body?.ok === false || lint.body == null) {
     return {
       ok: false,
       error: "lint_failed",
       detail: { lintHttp: lint.http, lint: lint.body },
+      timings,
     };
   }
   if (!lintPasses(lint.body)) {
@@ -351,24 +381,29 @@ async function cdBuildArtifacts(
       ok: false,
       error: "lint_failed",
       detail: { lint: lint.body },
+      timings,
     };
   }
 
   let compiled: Awaited<ReturnType<typeof build>>;
+  const buildStarted = Date.now();
   try {
     compiled = await build(tree);
   } catch (e) {
+    timings.buildMs = Date.now() - buildStarted;
     return {
       ok: false,
       error: "compile_failed",
       detail: {
         message: e instanceof Error ? e.message : String(e),
       },
+      timings,
     };
   }
+  timings.buildMs = Date.now() - buildStarted;
 
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted" };
+    return { ok: false, error: "cd_aborted", timings };
   }
 
   const check = await callCheck(
@@ -377,6 +412,8 @@ async function cdBuildArtifacts(
     files,
     opts?.forceColdCheck ?? false
   );
+  timings.checkMs = check.wallMs;
+  timings.checkAttempts = check.attempts;
   if (!(check.http < 500 && checkPasses(check.body))) {
     return {
       ok: false,
@@ -386,25 +423,29 @@ async function cdBuildArtifacts(
         check: check.body,
         checkAttempts: check.attempts,
       },
+      timings,
     };
   }
 
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted" };
+    return { ok: false, error: "cd_aborted", timings };
   }
 
+  const schemaStarted = Date.now();
   const schemaFailure = await gateSchema(env, appId, files, {
     applyMigrations: opts?.applyMigrations,
   });
+  timings.schemaMs = Date.now() - schemaStarted;
   if (schemaFailure) {
     return {
       ok: false,
       error: schemaFailure.error,
       detail: schemaFailure,
+      timings,
     };
   }
 
-  return { ok: true, compiled, tree };
+  return { ok: true, compiled, tree, timings };
 }
 
 /**
@@ -429,6 +470,13 @@ export async function runCdForSha(
 ): Promise<CdResult> {
   const signal = opts?.signal;
   const advanceLive = opts?.advanceLive !== false;
+  const startedAt = Date.now();
+  const finish = (timings: CdStageTimings): CdStages =>
+    finishCdStages(startedAt, timings);
+  const log = (stages: CdStages) => {
+    console.log(cdStagesLogLine(appId, sha, stages));
+  };
+  let timings: CdStageTimings = {};
 
   try {
     if (advanceLive && !opts?.forceColdCheck) {
@@ -436,6 +484,7 @@ export async function runCdForSha(
       if (existing) {
         return await promoteExistingBuild(env, appId, sha, sourceFiles, {
           signal,
+          startedAt,
         });
       }
     }
@@ -444,10 +493,19 @@ export async function runCdForSha(
       ...opts,
       applyMigrations: advanceLive,
     });
+    timings = built.timings;
     if (!built.ok) {
-      return { ok: false, error: built.error, detail: built.detail };
+      const stages = finish(timings);
+      log(stages);
+      return {
+        ok: false,
+        error: built.error,
+        detail: built.detail,
+        stages,
+      };
     }
 
+    const writeStarted = Date.now();
     const builds = createR2BuildStore(env);
     await builds.putBuild(
       appId,
@@ -455,20 +513,33 @@ export async function runCdForSha(
     );
 
     if (!advanceLive) {
-      return { ok: true, sha, liveSha: null };
+      const stages = finish({
+        ...timings,
+        writeMs: Date.now() - writeStarted,
+      });
+      log(stages);
+      return { ok: true, sha, liveSha: null, stages };
     }
 
     await setLiveSha(env, appId, sha);
     await publishLiveChanged(env, appId, sha);
-    return { ok: true, sha, liveSha: sha };
+    const stages = finish({
+      ...timings,
+      writeMs: Date.now() - writeStarted,
+    });
+    log(stages);
+    return { ok: true, sha, liveSha: sha, stages };
   } catch (e) {
+    const stages = finish(timings);
+    log(stages);
     if (aborted(signal)) {
-      return { ok: false, error: "cd_aborted" };
+      return { ok: false, error: "cd_aborted", stages };
     }
     return {
       ok: false,
       error: "cd_crashed",
       detail: { message: e instanceof Error ? e.message : String(e) },
+      stages,
     };
   }
 }
