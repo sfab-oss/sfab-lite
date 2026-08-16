@@ -213,22 +213,32 @@ has not been exercised, because it needs real credentials.
 2. Upload the current kernel's client chunks (idempotent — no-ops when the
    version manifest already exists):
    `pnpm upload-kernel-r2 -- --remote`
-3. `wrangler deploy` all three workers.
-4. Set the secrets above. `ADMIN_TOKEN` three times, same value.
-5. `curl .../api/protected/health` and confirm `adminToken.agree` is `true`.
-6. Confirm `passwordAuth` / `githubAuth` / `githubSecrets` describe what you
+3. Upload the schema-probe drizzle-kit module map (idempotent on the
+   kit+orm version manifest; not in the Worker script):
+   `pnpm upload-drizzle-kit-r2 -- --remote`
+4. `wrangler deploy` all three workers.
+5. Set the secrets above. `ADMIN_TOKEN` three times, same value.
+6. `curl .../api/protected/health` and confirm `adminToken.agree` is `true`.
+7. Confirm `passwordAuth` / `githubAuth` / `githubSecrets` describe what you
    intended — `githubSecrets` reports the two separately because exactly one
    set is the plausible mistake and is otherwise indistinguishable from
    "GitHub off on purpose".
-7. Create an app and let it reach `ready`. That exercises check, lint, the
+8. Create an app and let it reach `ready`. That exercises check, lint, the
    loader, and D1 in one pass; nothing shorter proves the set is wired.
 
 Upload **before** deploy so a freshly bumped `KERNEL_VERSION` is already in
 R2 when the new Worker starts serving — older apps keep resolving their
-pinned `/kernel/<old>/…` import maps. Re-running the upload for an unchanged
-version exits 0 without rewriting; a version bump uploads only the new key
-prefix. Do not pass `--remote` from a laptop unless you mean to touch the
-production bucket.
+pinned `/kernel/<old>/…` import maps. The drizzle-kit map is the same
+shape: `tools/drizzle-kit/<kit>-<orm>/`, manifest last, so `db:generate`
+does not 500 on a missing object after a pin bump. Re-running either
+upload for an unchanged version exits 0 without rewriting. Do not pass
+`--remote` from a laptop unless you mean to touch the production bucket.
+
+Local Miniflare: `pnpm upload-kernel-r2` and
+`pnpm upload-drizzle-kit-r2` default to `--local`. Factory `dev` runs the
+drizzle-kit upload first so the schema-probe Loader child can fetch the
+map; a missing object fails the probe with
+`drizzle-kit modules not uploaded for <version> — run upload`.
 
 **Anything memory-related must be verified here, not locally** — local workerd
 applies no memory limit at all, so `wrangler dev` cannot observe an OOM. Use

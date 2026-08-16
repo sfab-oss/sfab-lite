@@ -17,6 +17,7 @@
     "check:export-agreement": "node scripts/check-export-agreement.mjs",
     "check:drizzle-agreement": "NODE_OPTIONS=--max-old-space-size=8192 node factory/check/scripts/run-measure.mjs check-drizzle-agreement.ts",
     "upload-kernel-r2": "pnpm --filter @sfab-lite/factory upload-kernel-r2",
+    "upload-drizzle-kit-r2": "pnpm --filter @sfab-lite/factory upload-drizzle-kit-r2",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
     "check:cycles": "node scripts/check-cycles.mjs",
     "check:direction": "node scripts/check-direction.mjs",

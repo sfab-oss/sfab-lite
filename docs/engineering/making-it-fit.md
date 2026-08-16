@@ -185,9 +185,12 @@ A naive esbuild/vite bundle of `drizzle-kit/api` does not boot on workerd
 (eager dialect init; `createRequire(import.meta.url)` with `url` undefined).
 The 2026-08-16 probe ran a patched `api.mjs` as its own ES module under
 `nodejs_compat` (~0.44–0.64 MiB gzip; import-closure ~0.56 MiB gzip). The
-host passes those sources into the existing schema-probe Worker Loader child
-so Vite never flattens or executes `api.mjs`. Not the check worker — that
-isolate is the 128 MB budget. See
+host fetches that map from `KERNEL_R2`
+(`tools/drizzle-kit/<kit>-<orm>/`) on first use per isolate and passes
+the sources into the existing schema-probe Worker Loader child so Vite
+never flattens or executes `api.mjs`. Shipping the map inside the host
+script pushed `factory/host` to 9.84 MiB gzip (103% of the 10 MB Worker
+limit). Not the check worker — that isolate is the 128 MB budget. See
 [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md).
 
 ## Measured and rejected — do not re-derive these

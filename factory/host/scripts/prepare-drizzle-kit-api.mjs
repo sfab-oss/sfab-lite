@@ -6,9 +6,13 @@
  * never hits hanji rename prompts: rewrite `drizzle-orm/*` to relative paths,
  * `createRequire("file:///probe/api.mjs")`, silent create/delete resolvers.
  *
- * Writes `src/generated/drizzle-kit-modules.js` (module path → source).
+ * Writes `.tmp/drizzle-kit/modules.json` (module path → source) for
+ * `upload-drizzle-kit-r2.mjs`. Not imported by the Worker — that would put
+ * 3.56 MiB into the script and blow the 10 MB gzip limit.
+ *
  * Re-run when the pinned drizzle-kit / drizzle-orm versions change.
  */
+
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -24,12 +28,11 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const scriptPath = fileURLToPath(import.meta.url);
 const hostRoot = join(dirname(scriptPath), "..");
-const outPath = join(hostRoot, "src/generated/drizzle-kit-modules.js");
-const dtsPath = join(hostRoot, "src/generated/drizzle-kit-modules.d.ts");
-const stampPath = join(
-  hostRoot,
-  "src/generated/drizzle-kit-modules.stamp.json"
-);
+const tmpDir = join(hostRoot, ".tmp/drizzle-kit");
+const outPath = join(tmpDir, "modules.json");
+const stampPath = join(tmpDir, "stamp.json");
+const PINNED_KIT = "0.31.10";
+const PINNED_ORM = "0.45.2";
 
 const ORM_SPEC = "drizzle-orm";
 
@@ -194,18 +197,23 @@ const ormRoot = dirname(ormIndex);
 const kitPkg = JSON.parse(
   readFileSync(join(dirname(kitApiPath), "package.json"), "utf8")
 );
-if (kitPkg.version !== "0.31.10") {
+if (kitPkg.version !== PINNED_KIT) {
   throw new Error(
-    `prepare-drizzle-kit-api: expected drizzle-kit 0.31.10, got ${kitPkg.version}`
+    `prepare-drizzle-kit-api: expected drizzle-kit ${PINNED_KIT}, got ${kitPkg.version}`
   );
 }
 const ormPkg = JSON.parse(readFileSync(join(ormRoot, "package.json"), "utf8"));
+if (ormPkg.version !== PINNED_ORM) {
+  throw new Error(
+    `prepare-drizzle-kit-api: expected drizzle-orm ${PINNED_ORM}, got ${ormPkg.version}`
+  );
+}
 const stamp = {
   drizzleKit: kitPkg.version,
   drizzleOrm: ormPkg.version,
   script: createHash("sha256").update(readFileSync(scriptPath)).digest("hex"),
 };
-if (existsSync(outPath) && existsSync(dtsPath) && existsSync(stampPath)) {
+if (existsSync(outPath) && existsSync(stampPath)) {
   try {
     const previous = JSON.parse(readFileSync(stampPath, "utf8"));
     if (
@@ -231,15 +239,8 @@ for (const [abs, source] of ormFiles) {
   modules[`vendor/drizzle-orm/${rel}`] = source;
 }
 
-mkdirSync(dirname(outPath), { recursive: true });
-writeFileSync(
-  outPath,
-  `export const DRIZZLE_KIT_MODULES = ${JSON.stringify(modules)};\n`
-);
-writeFileSync(
-  dtsPath,
-  "export declare const DRIZZLE_KIT_MODULES: Record<string, string>;\n"
-);
+mkdirSync(tmpDir, { recursive: true });
+writeFileSync(outPath, `${JSON.stringify(modules)}\n`);
 writeFileSync(stampPath, `${JSON.stringify(stamp, null, 2)}\n`);
 const bytes = Buffer.byteLength(JSON.stringify(modules));
 console.log(

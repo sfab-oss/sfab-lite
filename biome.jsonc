@@ -17,7 +17,6 @@
       "!!**/framework/runtime/results",
       "!!**/framework/runtime/scripts/.shims",
       "!!**/framework/runtime/scripts/.shims-client",
-      "!!**/factory/host/src/generated/drizzle-kit-modules.js",
       // Baked by bake-template-snapshot.mjs and compared byte-for-byte by
       // check:template-snapshot. Formatting it here would desync the two.
       "!!**/starters/erp/app/migrations/meta",

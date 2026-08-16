@@ -1,11 +1,7 @@
 {
   "extends": "@sfab-lite/tsconfig/tanstack-start.json",
   "include": ["src", "vite.config.ts"],
-  "exclude": [
-    "src/**/*.test.ts",
-    "dist",
-    "src/generated/drizzle-kit-modules.js"
-  ],
+  "exclude": ["src/**/*.test.ts", "dist"],
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]

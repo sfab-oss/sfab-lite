@@ -72,6 +72,11 @@ export async function probeSchema(
     };
   }
 
+  const kit = await drizzleKitLoaderModules(env);
+  if (!kit.ok) {
+    return { ok: false, error: kit.error, ms: Date.now() - t0 };
+  }
+
   try {
     const key = `schema-probe:${await schemaKey(schemaSource)}`;
     const worker = env.LOADER.get(key, () => ({
@@ -80,7 +85,7 @@ export async function probeSchema(
       mainModule: "index.js",
       modules: {
         ...kernelModules(),
-        ...drizzleKitLoaderModules(),
+        ...kit.modules,
         "index.js": bundle,
       },
       env: {},

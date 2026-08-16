@@ -7,17 +7,18 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "node scripts/prepare-drizzle-kit-api.mjs && tsc --noEmit -p tsconfig.json",
-    "test": "node scripts/prepare-drizzle-kit-api.mjs && node --test --experimental-strip-types \"src/**/*.test.ts\"",
-    "build": "node scripts/prepare-drizzle-kit-api.mjs && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "build": "vite build",
     "build:ui": "vite build",
-    "dev": "node scripts/prepare-drizzle-kit-api.mjs && vite dev --port ${FACTORY_PORT:-8790}",
+    "dev": "node scripts/upload-drizzle-kit-r2.mjs && vite dev --port ${FACTORY_PORT:-8790}",
     "dev:ui": "vite dev --port ${FACTORY_PORT:-8790}",
     "preview": "pnpm run build && vite preview",
     "deploy": "pnpm run build && wrangler deploy",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply sfab-lite-factory --local",
     "upload-kernel-r2": "node scripts/upload-kernel-r2.mjs",
+    "upload-drizzle-kit-r2": "node scripts/upload-drizzle-kit-r2.mjs",
     "bake-template-snapshot": "node --experimental-strip-types scripts/bake-template-snapshot.mjs"
   },
   "dependencies": {
