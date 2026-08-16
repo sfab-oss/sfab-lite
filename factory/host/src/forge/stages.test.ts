@@ -4,12 +4,13 @@ import { detailWithCdStages, finishStages, stagesLogLine } from "./stages.ts";
 
 describe("finishStages", () => {
   it("sets totalMs and ISO bounds from the elapsed window", () => {
-    const stages = finishStages(1000, { lintMs: 12 }, 1450);
-    assert.equal(stages.lintMs, 12);
+    const stages = finishStages(1000, { buildMs: 12 }, 1450);
+    assert.equal(stages.buildMs, 12);
     assert.equal(stages.totalMs, 450);
     assert.equal(stages.startedAt, new Date(1000).toISOString());
     assert.equal(stages.finishedAt, new Date(1450).toISOString());
-    assert.equal("buildMs" in stages, false);
+    assert.equal("schemaMs" in stages, false);
+    assert.equal("lintMs" in stages, false);
     assert.equal("checkMs" in stages, false);
   });
 
@@ -17,9 +18,7 @@ describe("finishStages", () => {
     const stages = finishStages(
       0,
       {
-        lintMs: 80,
         buildMs: 200,
-        checkMs: 13_000,
         checkAttempts: 1,
         schemaMs: 40,
         writeMs: 15,
@@ -27,9 +26,7 @@ describe("finishStages", () => {
       13_335
     );
     assert.deepEqual(stages, {
-      lintMs: 80,
       buildMs: 200,
-      checkMs: 13_000,
       checkAttempts: 1,
       schemaMs: 40,
       writeMs: 15,
@@ -42,14 +39,13 @@ describe("finishStages", () => {
 
 describe("stagesLogLine", () => {
   it("emits a cd JSON object wrangler tail can pick up", () => {
-    const stages = finishStages(0, { lintMs: 10, checkAttempts: 2 }, 20);
+    const stages = finishStages(0, { checkAttempts: 2 }, 20);
     const parsed = JSON.parse(
       stagesLogLine("cd", "app_1", { sha: "abc", ...stages })
     ) as {
       cd: string;
       appId: string;
       sha: string;
-      lintMs: number;
       checkAttempts: number;
       totalMs: number;
       startedAt: string;
@@ -58,10 +54,11 @@ describe("stagesLogLine", () => {
     assert.equal(parsed.cd, "stages");
     assert.equal(parsed.appId, "app_1");
     assert.equal(parsed.sha, "abc");
-    assert.equal(parsed.lintMs, 10);
     assert.equal(parsed.checkAttempts, 2);
     assert.equal(parsed.totalMs, 20);
     assert.equal("buildMs" in parsed, false);
+    assert.equal("lintMs" in parsed, false);
+    assert.equal("checkMs" in parsed, false);
     assert.equal(typeof parsed.startedAt, "string");
     assert.equal(typeof parsed.finishedAt, "string");
   });
@@ -87,7 +84,7 @@ describe("stagesLogLine", () => {
 
 describe("detailWithCdStages", () => {
   it("merges stages onto an existing check-run detail", () => {
-    const stages = finishStages(0, { lintMs: 9 }, 9);
+    const stages = finishStages(0, { schemaMs: 9 }, 9);
     const detail = detailWithCdStages(
       { error: "lint_failed", detail: { lintHttp: 200 } },
       stages

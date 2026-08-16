@@ -55,10 +55,11 @@ off-host. Eject stays a bound, not a feature
 ([ADR-0011](0011-eject-rule.md)); shipping that `scripts` block is a
 follow-up, not this PR.
 
-CD records stage timings (`lintMs`, `buildMs`, `checkMs`,
-`checkAttempts`, `schemaMs`, `writeMs`, `totalMs`) on every completed
-check-run, success and failure, so the next re-tail can attribute
-create→ready without new instrumentation.
+CD records stage timings (`buildMs`, `checkAttempts`, `schemaMs`,
+`writeMs`, `totalMs`) on every completed check-run, success and failure,
+so the next re-tail can attribute create→ready without new
+instrumentation. Check and lint durations are observed from the tail's
+`wallTime`, by design.
 
 ## Consequences
 
