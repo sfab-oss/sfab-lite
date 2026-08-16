@@ -23,10 +23,12 @@ import {
   workspaceBuildSha,
 } from "../registry/workspace-build.js";
 import { classifySql, describeBlockingSql } from "../schema/classify-sql.js";
-import { KIT_SQL_BREAKPOINT } from "../schema/schema-kit.js";
+import { EMPTY_SNAPSHOT, KIT_SQL_BREAKPOINT } from "../schema/schema-kit.js";
 import { probeSchema } from "../schema/schema-probe.js";
 import {
   appendJournalEntry,
+  convertLegacyMeta,
+  isLegacySchemaMeta,
   journalPath,
   latestSnapshot,
   serializeJournal,
@@ -183,6 +185,35 @@ async function runDbGenerate(
   const files = await collectWorkspaceSourceFiles(ctx);
   try {
     const tree = overlayFormatFiles(files);
+    if (isLegacySchemaMeta(tree.files, tree.manifest)) {
+      const probe = await probeSchema(
+        deps.env,
+        tree.files,
+        tree.manifest,
+        EMPTY_SNAPSHOT
+      );
+      if (!probe.ok) {
+        return fail(`db:generate: ${probe.error}\n`, 1);
+      }
+      const conversion = convertLegacyMeta(
+        tree.files,
+        tree.manifest,
+        Date.now()
+      );
+      for (const path of conversion.deletePaths) {
+        await ctx.fs.rm(`/${path}`);
+      }
+      await ctx.fs.writeFile(
+        `/${conversion.snapshotPath}`,
+        serializeSnapshot(probe.snapshot)
+      );
+      await ctx.fs.writeFile(
+        `/${conversion.journalPath}`,
+        serializeJournal(conversion.journal)
+      );
+      return ok(conversion.message);
+    }
+
     const prev = latestSnapshot(tree.files, tree.manifest);
     const probe = await probeSchema(deps.env, tree.files, tree.manifest, prev);
     if (!probe.ok) {

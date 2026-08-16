@@ -31,7 +31,10 @@ import {
 import { classifySql } from "../schema/classify-sql.js";
 import type { KitSnapshot } from "../schema/schema-kit.js";
 import { probeSchema } from "../schema/schema-probe.js";
-import { latestSnapshot } from "../schema/schema-snapshots.js";
+import {
+  latestSnapshot,
+  legacySchemaGateFailure,
+} from "../schema/schema-snapshots.js";
 import {
   type CdStages,
   type CdStageTimings,
@@ -128,7 +131,8 @@ interface SchemaGateFailure {
     | "schema_unsafe"
     | "schema_probe_failed"
     | "schema_snapshot_unreadable"
-    | "schema_history_changed";
+    | "schema_history_changed"
+    | "schema_meta_legacy";
   message: string;
   detail: unknown;
 }
@@ -138,6 +142,11 @@ async function validateSchema(
   files: Record<string, string>,
   manifest: ManifestV0
 ): Promise<SchemaGateFailure | null> {
+  const legacy = legacySchemaGateFailure(files, manifest);
+  if (legacy) {
+    return { ...legacy, detail: null };
+  }
+
   let prev: KitSnapshot;
   try {
     prev = latestSnapshot(files, manifest);
