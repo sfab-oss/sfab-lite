@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Drift gate for the four generated format files under starters/erp/app/.
+ * Drift gate for generated format files under starters/erp/app/.
  *
  * Committed bytes must equal generateFormatFiles(starter manifest, current
  * pins). Failure names the file and says to regenerate, not hand-edit.

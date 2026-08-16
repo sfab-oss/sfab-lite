@@ -43,6 +43,7 @@ export type {
 export { lintPasses } from "./lint.js";
 export type {
   AdapterTarget,
+  ManifestCapability,
   ManifestClient,
   ManifestModule,
   ManifestServer,
@@ -55,10 +56,19 @@ export {
   EXACT_VERSION_RE,
   GENERATED_ARTIFACTS,
   HOST_AUTHORITATIVE_FIELDS,
+  MANIFEST_CAPABILITIES,
   MANIFEST_FORMAT,
   RECIPE_NAME_RE,
   SHA256_RE,
 } from "./manifest.js";
 export { mergeSources } from "./merge-sources.js";
+export type {
+  Storage,
+  StorageHead,
+  StorageListItem,
+  StorageListResult,
+  StorageObject,
+  StoragePutOptions,
+} from "./storage.js";
 export type { ManifestIssue, ManifestValidation } from "./validate-manifest.js";
 export { validateManifest } from "./validate-manifest.js";

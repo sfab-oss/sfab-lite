@@ -25,10 +25,12 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:seed`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
 `pnpm check:registry-agreement`.
 
-`check:generated` fails when the four generated format files under
+`check:generated` fails when the generated format files under
 `starters/erp/app/` (`package.json`, `tsconfig.json`, `index.html`,
-`components.json`) drift from `generateFormatFiles`. Regenerate with
-`pnpm --filter @sfab-lite/template generate`; do not hand-edit.
+`components.json`, `src/db/index.ts`, and `src/storage/index.ts` when
+the manifest declares storage) drift from `generateFormatFiles`.
+Regenerate with `pnpm --filter @sfab-lite/template generate`; do not
+hand-edit.
 
 `check:registry` validates every published recipe against the lite
 profile, fails closed on committed red fixtures (`dependencies` key,

@@ -21,6 +21,10 @@ export const ADAPTER_TARGETS = [
   "cloudflare",
 ] as const satisfies readonly AdapterTarget[];
 
+export const MANIFEST_CAPABILITIES = ["storage"] as const;
+
+export type ManifestCapability = (typeof MANIFEST_CAPABILITIES)[number];
+
 /** Host overwrites these; agents do not edit them. */
 export const HOST_AUTHORITATIVE_FIELDS = [
   "format",
@@ -38,6 +42,8 @@ export const GENERATED_ARTIFACTS = {
   tsconfig: "tsconfig.json",
   indexHtml: "index.html",
   componentsJson: "components.json",
+  dbIndex: "src/db/index.ts",
+  storageIndex: "src/storage/index.ts",
   apiDts: "src/generated/api.d.ts",
   apiHash: "src/generated/api.hash",
 } as const;
@@ -83,7 +89,7 @@ export interface ManifestV0 {
   schema: string;
   inject: Record<string, string>;
   source: ManifestSource;
-  capabilities: string[];
+  capabilities: ManifestCapability[];
   modules: ManifestModule[];
   recipes: Record<string, RecipeProvenance>;
 }

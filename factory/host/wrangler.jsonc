@@ -52,9 +52,9 @@
       "binding": "KERNEL_R2",
       "bucket_name": "sfab-lite-kernel"
     },
-    // Bare repos (`repos/{appId}/`) + immutable builds (`builds/{appId}/{sha}.json`).
-    // Create once: `wrangler r2 bucket create sfab-lite-code`. Local wrangler
-    // simulates the binding; see docs/notes/2026-07-29-code-host-greenfield.md.
+    // Bare repos (`repos/{appId}/`) + immutable builds (`builds/{appId}/{sha}.json`)
+    // + opt-in app object storage (`apps/{appId}/{generation}/`). Prefixes do
+    // not overlap. Create once: `wrangler r2 bucket create sfab-lite-code`.
     {
       "binding": "CODE_R2",
       "bucket_name": "sfab-lite-code"

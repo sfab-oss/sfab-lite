@@ -8,6 +8,7 @@
  * AppDataDO is runtime SQLite only (seed credentials + SQL), keyed by
  * `${appId}:live`, `${appId}:pr:N`, or `${workspaceId}:ws`.
  */
+import { RpcTarget } from "cloudflare:workers";
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { getAgentByName } from "agents";
 import type { AppBuild } from "../code-host/build-store.js";
@@ -29,11 +30,49 @@ import {
   serveId,
 } from "../registry/serve-target.js";
 import { getWorkspaceBuild } from "../registry/workspace-build.js";
+import {
+  manifestHasStorage,
+  PrefixedR2Bucket,
+  storagePrefixForTarget,
+} from "./app-storage.js";
 import { kernelModules } from "./kernel-modules.js";
 
 export type { ServeTarget } from "../registry/serve-target.js";
 
 const LEADING_SLASHES_RE = /^\/+/;
+
+class PrefixedR2Binding extends RpcTarget {
+  readonly #view: PrefixedR2Bucket;
+
+  constructor(bucket: R2Bucket, prefix: string) {
+    super();
+    this.#view = new PrefixedR2Bucket(bucket, prefix);
+  }
+
+  put(
+    key: string,
+    value: Parameters<R2Bucket["put"]>[1],
+    options?: R2PutOptions
+  ) {
+    return this.#view.put(key, value, options);
+  }
+
+  get(key: string) {
+    return this.#view.get(key);
+  }
+
+  head(key: string) {
+    return this.#view.head(key);
+  }
+
+  delete(keys: string | string[]) {
+    return this.#view.delete(keys);
+  }
+
+  list(options?: R2ListOptions) {
+    return this.#view.list(options);
+  }
+}
 
 function contentType(path: string): string {
   if (path.endsWith(".html")) {
@@ -263,6 +302,20 @@ async function serveApiRoute(
       ? `ws:${id}:workspace:${generation ?? build.sha}`
       : `app:${id}:${target.mode}:${target.mode === "preview" ? target.prNumber : "live"}:${build.sha}`;
 
+  const loaderEnv: Record<string, unknown> = {
+    DB: stub,
+    BETTER_AUTH_SECRET: secret,
+    BETTER_AUTH_URL: new URL(publicBase).origin,
+    APP_BASE_PATH: pathPrefixForTarget(target),
+    SEED_TOKEN: (await stub.seedCredentials()).token,
+  };
+  if (manifestHasStorage(build.manifest)) {
+    loaderEnv.STORAGE = new PrefixedR2Binding(
+      env.CODE_R2,
+      storagePrefixForTarget(target)
+    );
+  }
+
   const worker = env.LOADER.get(workerKey, async () => ({
     compatibilityDate: "2026-07-23",
     compatibilityFlags: ["nodejs_compat"],
@@ -271,13 +324,7 @@ async function serveApiRoute(
       ...kernelModules(),
       "index.js": build.serverBundle,
     },
-    env: {
-      DB: stub,
-      BETTER_AUTH_SECRET: secret,
-      BETTER_AUTH_URL: new URL(publicBase).origin,
-      APP_BASE_PATH: pathPrefixForTarget(target),
-      SEED_TOKEN: (await stub.seedCredentials()).token,
-    },
+    env: loaderEnv,
     globalOutbound: null,
   }));
 

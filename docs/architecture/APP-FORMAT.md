@@ -11,7 +11,7 @@ check units in the check-plumbing PR; generated `package.json` /
 `tsconfig` / `index.html` / `components.json` and image v0 in the
 image PR; the starter rebuild on this tree in the starter-rebuild PR.
 
-Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0011](../decisions/0011-eject-rule.md);
+Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md);
 close-out: [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md).
 Names:
 [`../engineering/terminology.md`](../engineering/terminology.md).
@@ -61,7 +61,11 @@ TanStack-Start-shaped. Feature scope is a subdirectory under
     components/<feature>/
     hooks/
     lib/<feature>/
-    db/                         # schema + queries
+    db/
+      index.ts                  # GENERATED — adapter db shim (createDb / Db)
+      schema.ts                 # owner schema
+    storage/
+      index.ts                  # GENERATED when capabilities includes "storage"
     hono/                       # api routes: public / protected
     auth/
 ```
@@ -75,12 +79,14 @@ does not require the RFC names.
 | Path | Who writes it | Drift |
 | --- | --- | --- |
 | `manifest.json` | Owner + host (`runtime`, `recipes`) | schema-validated |
-| `src/**` except `src/generated/` | Owner / agent / `add` | lint + check |
+| `src/**` except `src/generated/` and adapter shims | Owner / agent / `add` | lint + check |
 | `migrations/*.sql` | `db:generate` (offline) | CI drift vs `meta/` |
 | `package.json` | Host, from the manifest + runtime pins | exact pins; owner edits are overwritten |
 | `tsconfig.json` | Host | same |
 | `index.html` | Host | same; eject-load-bearing |
 | `components.json` | Host | `@lite` → served `/r/{name}.json` is the only registry |
+| `src/db/index.ts` | Host (`generateFormatFiles`) | `check:generated`; app never sees a driver |
+| `src/storage/index.ts` | Host, only when `capabilities` includes `"storage"` | same; absent otherwise |
 | `src/generated/api.d.ts` | Check emit unit | keyed to `api.hash` |
 | `src/generated/api.hash` | Check emit unit | must match the current server tree |
 | `biome.json` | Seed inject | not owner-authored |
@@ -143,7 +149,7 @@ before the starter rebuild is churn. New fields wrap that core.
     "files": ["safelist.txt", "package.json", "tsconfig.json", "components.json", "vite.config.ts"],
     "exclude": ["src/worker.ts"]
   },
-  "capabilities": [],              // external services; empty in M1
+  "capabilities": [],              // closed list; known: "storage"
   "modules": [],                   // catalog modules; none exist
   "recipes": {}                    // provenance, written by `add`
 }
@@ -172,7 +178,7 @@ change; other trees remain valid v0 strings.
 | `schema` | yes | owner | Drizzle schema entry (`db:generate`). |
 | `inject` | yes | host at seed | Dest (app-tree path) → source (package-relative). |
 | `source` | yes | host / owner | What the packer walks. |
-| `capabilities` | yes | owner | `string[]`. Empty is the M1 value, not "omit the key". |
+| `capabilities` | yes | owner | Closed list. Known value: `"storage"`. Empty is valid (ERP starter). Unknown values fail validation. |
 | `modules` | yes | owner | `{ name, version }[]` with **exact** versions. Empty in M1. |
 | `recipes` | yes | **host (`add`)** | Map of `lite/…` → `{ version, files }`. Empty object is valid. |
 
@@ -240,15 +246,20 @@ Fixed paths — apps do not choose them:
 | `package.json` | Exact runtime pins so a copied tree `pnpm install`s. |
 | `tsconfig.json` | Same regime. |
 | `index.html` | Document shell. Standalone Vite and the host pack path share `formatIndexHtml`; the host injects the import map at pack. |
+| `src/db/index.ts` | Adapter db shim (`createDb` / `Db`). Cloudflare: `drizzle-orm/d1` over `env.DB`. |
+| `src/storage/index.ts` | Adapter storage shim wrapping `env.STORAGE`. Emitted only when `capabilities` includes `"storage"`. |
 | `src/generated/api.d.ts` | Client API snapshot. Standalone types; no vendor leakage (`drizzle`, `hono/index`, `AppEnv`). |
 | `src/generated/api.hash` | `sha256:` of the server tree the snapshot was emitted from. |
 
 Emit, hash store, and drift gates: snapshot emit + `check:generated` for
-the four root files (`package.json`, `tsconfig.json`, `index.html`,
-`components.json`) are in place. One generator in `framework/toolchain`
+the generated format files (`package.json`, `tsconfig.json`, `index.html`,
+`components.json`, `src/db/index.ts`, and `src/storage/index.ts` when
+declared) are in place. One generator in `framework/toolchain`
 (`generateFormatFiles`); the host regenerates on create/add and at CD
 materialise. `src/generated/api.d.ts` / `api.hash` remain the check emit
-unit.
+unit. Eject provisions a wrangler `r2_buckets` binding named `STORAGE`
+when storage is declared; this format does not generate `wrangler.jsonc`.
+Quota and maximum object size are host policy, TBD.
 
 ### Snapshot freshness is structural (invariant 6)
 
@@ -353,6 +364,23 @@ Plugin-*shaped*, framework-owned, platform-level. An app names
 ships the type; Cloudflare is the only target. Portability stays
 unproven until a second adapter exists.
 
+The contract is [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md):
+the app sees a generic model; the adapter chooses the engine.
+
+- **Database** is always on. Generated `src/db/index.ts` is the only
+  place a driver appears (Cloudflare: `drizzle-orm/d1` over `env.DB`).
+  App code imports `createDb` / `Db` from `./db`. The capability floor
+  is D1's: `db.batch` yes, interactive `db.transaction` no. The check
+  verb flags `.transaction(` in app sources with `LITE-TX` (code 9002).
+- **Storage** is opt-in (`capabilities: ["storage"]`). The generator
+  emits `src/storage/index.ts` only when declared; the host binds
+  `env.STORAGE` to a prefixed view of `CODE_R2`
+  (`apps/<appId|workspaceId>/<generation>/`, generation matching
+  AppDataDO: `live`, `pr:N`, `ws`). Previews start empty. Eject
+  provisions a wrangler `r2_buckets` binding named `STORAGE` when
+  declared; this format does not generate `wrangler.jsonc`. Quota and
+  maximum object size are host policy, TBD.
+
 ```ts
 type AdapterTarget = "cloudflare";
 
@@ -360,8 +388,8 @@ interface ServeAdapter {
   readonly target: AdapterTarget;
   pack: (image: AppImage) => Promise<PackOutput>;
   bindings: () => {
-    db: SqliteDriver;       // D1 / DO SQLite / libsql-shaped
-    storage: BlobStore;
+    db: SqliteDriver;       // dialect marker; the shim is generated
+    storage?: BlobStore;    // bound only when capabilities includes "storage"
     secrets: SecretsSource;
   };
 }
@@ -371,7 +399,7 @@ interface ServeAdapter {
 | --- | --- |
 | `target` | Discriminator. v0 allowlist is `"cloudflare"`. |
 | `pack` | App image → platform bundle (server module, client assets, HTML, migrations). |
-| `bindings` | What a packed app resolves at serve: SQLite-shaped DB, blob store, secrets. |
+| `bindings` | What a packed app resolves at serve: SQLite dialect, optional blob store, secrets. |
 
 HTTP entry is implied by the target (Cloudflare: a LOADER child
 isolate mounting the packed server). It is not an app-level hook.
@@ -483,4 +511,6 @@ Left open by the plan, drafted here:
 9. **Generated files** — one generator in `framework/toolchain`
    (`generateFormatFiles`), `pnpm check:generated` drift-gates the
    starter, and the host regenerates on create/add (and at CD
-   materialise). Agent edits of those paths are overwritten.
+   materialise). Agent edits of those paths are overwritten. The set
+   includes `src/db/index.ts` always and `src/storage/index.ts` when
+   declared ([ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md)).

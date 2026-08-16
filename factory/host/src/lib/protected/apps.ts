@@ -35,6 +35,8 @@ import {
   createConflict,
 } from "../../registry/create-job.js";
 import { reconcileCreatingApps } from "../../registry/create-reconcile.js";
+import { listWorkspacesForApp } from "../../registry/workspace-registry.js";
+import { deleteAppObjectStorage } from "../../serve/app-storage.js";
 import type { AppCtx, OrgCtx } from "../../serve/routes.js";
 
 export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
@@ -152,6 +154,7 @@ export async function handleDeleteApp(
   const { appId } = rc;
   const db = createDb(rc.env);
   const organizationId = await getAppOrganizationId(db, appId);
+  const workspaces = await listWorkspacesForApp(db, appId);
   const destroyed = await liveAppDataStub(rc.env, appId).destroy();
   await appCreateStub(rc.env, appId)
     .destroy()
@@ -164,6 +167,11 @@ export async function handleDeleteApp(
         .catch(() => undefined)
     )
   );
+  await deleteAppObjectStorage(
+    rc.env.CODE_R2,
+    appId,
+    workspaces.map((ws) => ws.id)
+  ).catch(() => undefined);
   const removed = await deleteAppUnscoped(db, appId);
   if (organizationId) {
     publishOrgEvent(

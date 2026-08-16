@@ -34,14 +34,40 @@ function validManifest() {
   };
 }
 
-test("generateFormatFiles emits the four RFC paths", () => {
+test("generateFormatFiles emits the RFC paths including the db shim", () => {
   const files = generateFormatFiles(validManifest(), NO_PINS);
   assert.deepEqual(Object.keys(files).sort(), [
     GENERATED_ARTIFACTS.componentsJson,
     GENERATED_ARTIFACTS.indexHtml,
     GENERATED_ARTIFACTS.packageJson,
+    GENERATED_ARTIFACTS.dbIndex,
     GENERATED_ARTIFACTS.tsconfig,
   ]);
+});
+
+test("the cloudflare db shim exports createDb and Db over drizzle-orm/d1", () => {
+  const files = generateFormatFiles(validManifest(), NO_PINS);
+  const shim = files[GENERATED_ARTIFACTS.dbIndex] ?? "";
+  assert.ok(shim.includes('from "drizzle-orm/d1"'));
+  assert.ok(shim.includes("export function createDb"));
+  assert.ok(shim.includes("export type Db"));
+  assert.ok(shim.includes("drizzle(env.DB, { schema })"));
+});
+
+test("storage shim is omitted unless capabilities includes storage", () => {
+  const files = generateFormatFiles(validManifest(), NO_PINS);
+  assert.equal(files[GENERATED_ARTIFACTS.storageIndex], undefined);
+});
+
+test("storage shim is emitted when capabilities includes storage", () => {
+  const files = generateFormatFiles(
+    { ...validManifest(), capabilities: ["storage"] },
+    NO_PINS
+  );
+  const shim = files[GENERATED_ARTIFACTS.storageIndex] ?? "";
+  assert.ok(shim.includes("export function createStorage"));
+  assert.ok(shim.includes("export interface Storage"));
+  assert.ok(shim.includes("env.STORAGE"));
 });
 
 test("package.json takes name and exact pins, no ranges", () => {
