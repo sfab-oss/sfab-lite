@@ -43,6 +43,7 @@ export const GENERATED_ARTIFACTS = {
   indexHtml: "index.html",
   componentsJson: "components.json",
   dbIndex: "src/db/index.ts",
+  storageIndex: "src/storage/index.ts",
   apiDts: "src/generated/api.d.ts",
   apiHash: "src/generated/api.hash",
 } as const;

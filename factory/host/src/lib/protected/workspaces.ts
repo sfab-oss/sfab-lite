@@ -21,6 +21,10 @@ import {
   WORKSPACE_NAME_MAX_LENGTH,
   workspaceBelongsToApp,
 } from "../../registry/workspace-registry.js";
+import {
+  deleteStoragePrefix,
+  storageWorkspacePrefix,
+} from "../../serve/app-storage.js";
 import type { AppCtx } from "../../serve/routes.js";
 
 export async function handleListWorkspaces(rc: AppCtx) {
@@ -178,6 +182,10 @@ export async function handleDeleteWorkspace(
   }
 
   await deleteWorkspaceBuild(rc.env, workspaceId).catch(() => undefined);
+  await deleteStoragePrefix(
+    rc.env.CODE_R2,
+    storageWorkspacePrefix(workspaceId)
+  ).catch(() => undefined);
 
   return {
     status: 200 as const,

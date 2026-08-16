@@ -37,8 +37,10 @@ declare global {
     KERNEL_R2: R2Bucket;
     /**
      * Code host stand-in: bare repos under `repos/{appId}/` and immutable
-     * builds under `builds/{appId}/{sha}.json`. Separate from KERNEL_R2.
-     * Remote bucket name: `sfab-lite-code`.
+     * builds under `builds/{appId}/{sha}.json`. App object storage (opt-in
+     * `capabilities: ["storage"]`) lives under `apps/{appId}/{generation}/`
+     * on this same bucket — prefixes do not overlap. Remote bucket name:
+     * `sfab-lite-code`.
      */
     CODE_R2: R2Bucket;
     /** Service binding → sfab-lite-check */

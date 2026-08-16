@@ -19,17 +19,48 @@ function toBytes(
   throw new Error("fake R2: unsupported put body");
 }
 
-class FakeR2Object {
+function etagFor(bytes: Uint8Array): string {
+  let hash = 0;
+  for (const byte of bytes) {
+    hash = (hash * 33 + byte) % 4_294_967_296;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+export class FakeR2Object {
   readonly key: string;
   readonly size: number;
   readonly uploaded: Date;
+  readonly etag: string;
+  readonly httpMetadata?: { contentType?: string };
+  readonly customMetadata?: Record<string, string>;
   readonly #bytes: Uint8Array;
 
-  constructor(key: string, bytes: Uint8Array, uploaded: Date) {
+  constructor(
+    key: string,
+    bytes: Uint8Array,
+    uploaded: Date,
+    etag: string,
+    httpMetadata?: { contentType?: string },
+    customMetadata?: Record<string, string>
+  ) {
     this.key = key;
     this.size = bytes.byteLength;
     this.uploaded = uploaded;
+    this.etag = etag;
+    this.httpMetadata = httpMetadata;
+    this.customMetadata = customMetadata;
     this.#bytes = bytes;
+  }
+
+  get body(): ReadableStream<Uint8Array> {
+    const bytes = this.#bytes;
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    });
   }
 
   arrayBuffer(): Promise<ArrayBuffer> {
@@ -46,6 +77,14 @@ class FakeR2Object {
 interface Stored {
   bytes: Uint8Array;
   uploaded: Date;
+  etag: string;
+  httpMetadata?: { contentType?: string };
+  customMetadata?: Record<string, string>;
+}
+
+export interface FakeR2PutOptions {
+  httpMetadata?: { contentType?: string };
+  customMetadata?: Record<string, string>;
 }
 
 export class FakeR2Bucket {
@@ -55,13 +94,28 @@ export class FakeR2Bucket {
 
   put(
     key: string,
-    value: ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob
+    value:
+      | ReadableStream
+      | ArrayBuffer
+      | ArrayBufferView
+      | string
+      | null
+      | Blob,
+    options?: FakeR2PutOptions
   ): Promise<FakeR2Object> {
     const bytes = toBytes(value);
     const uploaded = new Date();
-    this.#store.set(key, { bytes, uploaded });
+    const etag = etagFor(bytes);
+    const stored: Stored = {
+      bytes,
+      uploaded,
+      etag,
+      httpMetadata: options?.httpMetadata,
+      customMetadata: options?.customMetadata,
+    };
+    this.#store.set(key, stored);
     this.puts.push(key);
-    return Promise.resolve(new FakeR2Object(key, bytes, uploaded));
+    return Promise.resolve(this.#object(key, stored));
   }
 
   get(key: string): Promise<FakeR2Object | null> {
@@ -69,9 +123,7 @@ export class FakeR2Bucket {
     if (!stored) {
       return Promise.resolve(null);
     }
-    return Promise.resolve(
-      new FakeR2Object(key, stored.bytes, stored.uploaded)
-    );
+    return Promise.resolve(this.#object(key, stored));
   }
 
   head(key: string): Promise<FakeR2Object | null> {
@@ -132,7 +184,7 @@ export class FakeR2Bucket {
       }
       const stored = this.#store.get(key);
       if (stored) {
-        objects.push(new FakeR2Object(key, stored.bytes, stored.uploaded));
+        objects.push(this.#object(key, stored));
         lastKey = key;
       }
     }
@@ -146,5 +198,16 @@ export class FakeR2Bucket {
 
   keys(): string[] {
     return [...this.#store.keys()].sort();
+  }
+
+  #object(key: string, stored: Stored): FakeR2Object {
+    return new FakeR2Object(
+      key,
+      stored.bytes,
+      stored.uploaded,
+      stored.etag,
+      stored.httpMetadata,
+      stored.customMetadata
+    );
   }
 }

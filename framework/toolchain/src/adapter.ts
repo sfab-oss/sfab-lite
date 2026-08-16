@@ -13,7 +13,7 @@ export interface SqliteDriver {
   readonly dialect: "sqlite";
 }
 
-export type BlobStore = object;
+export type BlobStore = import("./storage.js").Storage;
 
 export type SecretsSource = object;
 

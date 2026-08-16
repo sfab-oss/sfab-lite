@@ -54,6 +54,22 @@ test("the cloudflare db shim exports createDb and Db over drizzle-orm/d1", () =>
   assert.ok(shim.includes("drizzle(env.DB, { schema })"));
 });
 
+test("storage shim is omitted unless capabilities includes storage", () => {
+  const files = generateFormatFiles(validManifest(), NO_PINS);
+  assert.equal(files[GENERATED_ARTIFACTS.storageIndex], undefined);
+});
+
+test("storage shim is emitted when capabilities includes storage", () => {
+  const files = generateFormatFiles(
+    { ...validManifest(), capabilities: ["storage"] },
+    NO_PINS
+  );
+  const shim = files[GENERATED_ARTIFACTS.storageIndex] ?? "";
+  assert.ok(shim.includes("export function createStorage"));
+  assert.ok(shim.includes("export interface Storage"));
+  assert.ok(shim.includes("env.STORAGE"));
+});
+
 test("package.json takes name and exact pins, no ranges", () => {
   const files = generateFormatFiles(validManifest(), {
     dependencies: { "react-dom": "19.2.8", react: "19.2.8" },

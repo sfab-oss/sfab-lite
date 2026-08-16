@@ -21,6 +21,7 @@ describe("platform-readonly", () => {
       "index.html",
       "package.json",
       "src/db/index.ts",
+      "src/storage/index.ts",
       "tsconfig.json",
       "vite.config.ts",
     ]);
@@ -71,6 +72,7 @@ describe("platform-readonly", () => {
   it("writeGenerated is only for generated format members", () => {
     assert.equal(isHostGeneratedPath("package.json"), true);
     assert.equal(isHostGeneratedPath("src/db/index.ts"), true);
+    assert.equal(isHostGeneratedPath("src/storage/index.ts"), true);
     assert.equal(isHostGeneratedPath("src/db/schema.ts"), false);
     assert.equal(isHostGeneratedPath("src/generated/api.d.ts"), true);
     assert.equal(isHostGeneratedPath("biome.json"), false);

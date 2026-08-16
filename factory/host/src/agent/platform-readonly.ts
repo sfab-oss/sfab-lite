@@ -19,6 +19,7 @@ const PLATFORM_READONLY_PATHS = [
   "package.json",
   "index.html",
   "src/db/index.ts",
+  "src/storage/index.ts",
 ] as const;
 
 const GENERATED_PREFIX = "src/generated";
@@ -63,6 +64,7 @@ const HOST_GENERATED_ROOTS = new Set([
   "index.html",
   "components.json",
   "src/db/index.ts",
+  "src/storage/index.ts",
 ]);
 
 export function isHostGeneratedPath(path: string): boolean {

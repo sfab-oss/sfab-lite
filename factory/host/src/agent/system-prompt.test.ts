@@ -20,5 +20,6 @@ test("the prompt names generated files as host-owned", () => {
   );
   assert.ok(prompt.includes("src/generated/**"));
   assert.ok(prompt.includes("src/db/index.ts"));
+  assert.ok(prompt.includes("src/storage/index.ts"));
   assert.equal(prompt.includes("package.json is writable."), false);
 });

@@ -1,6 +1,7 @@
 /**
  * Host-generated format members: package.json, tsconfig.json, index.html,
- * components.json, src/db/index.ts. One function; starter and host both
+ * components.json, src/db/index.ts, and src/storage/index.ts when
+ * `capabilities` includes `"storage"`. One function; starter and host both
  * consume it.
  *
  * See `docs/architecture/APP-FORMAT.md` §4.
@@ -25,10 +26,154 @@ export function createDb(env: Env) {
 export type Db = ReturnType<typeof createDb>;
 `;
 
-export interface FormatPins {
-  dependencies: Readonly<Record<string, string>>;
-  devDependencies: Readonly<Record<string, string>>;
+const CLOUDFLARE_STORAGE_SHIM = `export interface StoragePutOptions {
+  contentType?: string;
+  metadata?: Record<string, string>;
 }
+
+export interface StorageObject {
+  body: ReadableStream;
+  size: number;
+  etag: string;
+  contentType?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface StorageHead {
+  size: number;
+  etag: string;
+  contentType?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface StorageListItem {
+  key: string;
+  size: number;
+  etag: string;
+  uploaded: Date;
+}
+
+export interface StorageListResult {
+  objects: StorageListItem[];
+  cursor?: string;
+  truncated: boolean;
+}
+
+export interface Storage {
+  put: (
+    key: string,
+    body: ReadableStream | ArrayBuffer | string,
+    options?: StoragePutOptions
+  ) => Promise<void>;
+  get: (key: string) => Promise<StorageObject | null>;
+  head: (key: string) => Promise<StorageHead | null>;
+  delete: (key: string | string[]) => Promise<void>;
+  list: (options?: {
+    prefix?: string;
+    cursor?: string;
+    limit?: number;
+  }) => Promise<StorageListResult>;
+}
+
+interface StorageR2Object {
+  body: ReadableStream;
+  size: number;
+  etag: string;
+  uploaded: Date;
+  httpMetadata?: { contentType?: string };
+  customMetadata?: Record<string, string>;
+}
+
+interface StorageR2Listed {
+  key: string;
+  size: number;
+  etag: string;
+  uploaded: Date;
+}
+
+interface StorageR2 {
+  put: (
+    key: string,
+    value: ReadableStream | ArrayBuffer | string,
+    options?: {
+      httpMetadata?: { contentType?: string };
+      customMetadata?: Record<string, string>;
+    }
+  ) => Promise<unknown>;
+  get: (key: string) => Promise<StorageR2Object | null>;
+  head: (key: string) => Promise<Omit<StorageR2Object, "body"> | null>;
+  delete: (keys: string | string[]) => Promise<void>;
+  list: (options?: {
+    prefix?: string;
+    cursor?: string;
+    limit?: number;
+  }) => Promise<{
+    objects: StorageR2Listed[];
+    truncated: boolean;
+    cursor?: string;
+  }>;
+}
+
+export function createStorage(env: { STORAGE: StorageR2 }): Storage {
+  const bucket = env.STORAGE;
+  return {
+    async put(key, body, options) {
+      await bucket.put(key, body, {
+        httpMetadata:
+          options?.contentType == null
+            ? undefined
+            : { contentType: options.contentType },
+        customMetadata: options?.metadata,
+      });
+    },
+    async get(key) {
+      const obj = await bucket.get(key);
+      if (obj == null) {
+        return null;
+      }
+      return {
+        body: obj.body,
+        size: obj.size,
+        etag: obj.etag,
+        contentType: obj.httpMetadata?.contentType,
+        metadata: obj.customMetadata,
+      };
+    },
+    async head(key) {
+      const obj = await bucket.head(key);
+      if (obj == null) {
+        return null;
+      }
+      return {
+        size: obj.size,
+        etag: obj.etag,
+        contentType: obj.httpMetadata?.contentType,
+        metadata: obj.customMetadata,
+      };
+    },
+    delete(key) {
+      return bucket.delete(key);
+    },
+    async list(options) {
+      const listed = await bucket.list({
+        prefix: options?.prefix,
+        cursor: options?.cursor,
+        limit: options?.limit,
+      });
+      return {
+        objects: listed.objects.map((obj) => ({
+          key: obj.key,
+          size: obj.size,
+          etag: obj.etag,
+          uploaded: obj.uploaded,
+        })),
+        cursor: listed.truncated ? listed.cursor : undefined,
+        truncated: listed.truncated,
+      };
+    },
+  };
+}
+`;
 
 const LITE_REGISTRY_URL = "https://lite.sfab.dev/r/{name}.json";
 const LEADING_SLASHES = /^\/+/;
@@ -153,7 +298,7 @@ export function generateFormatFiles(
     dependencies: sortedPins(pins.dependencies),
     devDependencies: sortedPins(pins.devDependencies),
   };
-  return {
+  const files: Record<string, string> = {
     "package.json": `${JSON.stringify(packageJson, null, 2)}\n`,
     "tsconfig.json": TSCONFIG_JSON,
     "index.html": formatIndexHtml({
@@ -163,4 +308,8 @@ export function generateFormatFiles(
     "components.json": `${JSON.stringify(COMPONENTS_JSON, null, 2)}\n`,
     "src/db/index.ts": CLOUDFLARE_DB_SHIM,
   };
+  if (manifest.capabilities.includes("storage")) {
+    files["src/storage/index.ts"] = CLOUDFLARE_STORAGE_SHIM;
+  }
+  return files;
 }

@@ -62,5 +62,13 @@ export {
   SHA256_RE,
 } from "./manifest.js";
 export { mergeSources } from "./merge-sources.js";
+export type {
+  Storage,
+  StorageHead,
+  StorageListItem,
+  StorageListResult,
+  StorageObject,
+  StoragePutOptions,
+} from "./storage.js";
 export type { ManifestIssue, ManifestValidation } from "./validate-manifest.js";
 export { validateManifest } from "./validate-manifest.js";
