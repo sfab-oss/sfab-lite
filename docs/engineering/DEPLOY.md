@@ -1,7 +1,8 @@
 # Deploying sfab-lite
 
-Three workers, deployed independently, that only work as a set:
-`sfab-lite-factory` (host + console), `sfab-lite-check`, `sfab-lite-lint`.
+Four workers, deployed independently, that only work as a set:
+`sfab-lite-factory` (host + console), `sfab-lite-check`, `sfab-lite-lint`,
+`sfab-lite-build`.
 
 Merging to `main` deploys the platform. Treat a merge as a deploy gate.
 
@@ -46,16 +47,16 @@ Attached and serving look identical from the dashboard, and shipping
 `workers_dev: false` alongside removes the only way to tell them apart — or to
 reach the worker at all while finding out.
 
-### check and lint are a different case
+### check, lint, and build are a different case
 
-`check` and `lint` have no public hostname at all — `workers_dev` is off there,
+`check`, `lint`, and `build` have no public hostname at all — `workers_dev` is off there,
 unconditionally, and none of the above applies to them. The factory is their
 only caller and reaches them over service bindings, which dispatch
 worker-to-worker and never involve a hostname.
 
 The two cases are worth keeping apart, because the reasoning does not transfer.
 For the factory, a second hostname is a correctness problem: two identities for
-an origin-derived auth surface. For check and lint there was nothing on the
+an origin-derived auth surface. For the aux workers there was nothing on the
 other side of the trade at all, so the subdomain goes whatever the factory's
 domain is doing — and it should stay off even while the factory's is being
 debugged.
@@ -64,10 +65,10 @@ That is a deliberate narrowing, not tidiness. While they were on workers.dev,
 `/check` and `/lint` failed closed on a missing `ADMIN_TOKEN` but `/health`
 answered anyone who found the URL, and check's `/health` enumerates the entire
 types VFS: every dependency and version the build environment carries. The
-diagnostic still exists — the factory's `/api/protected/health` aggregates both over the
+diagnostic still exists — the factory's `/api/protected/health` aggregates the aux workers over the
 service bindings, which is the documented way to read it.
 
-The cost is that neither worker can be curled directly any more. If you need to,
+The cost is that none of the aux workers can be curled directly any more. If you need to,
 turn the subdomain back on for the length of the debugging session rather than
 leaving it on.
 
@@ -93,11 +94,11 @@ section is for.
 
 ## The prerequisite that bites
 
-**`ADMIN_TOKEN` must be byte-identical in all three workers.**
+**`ADMIN_TOKEN` must be byte-identical in all four workers.**
 
-The factory presents it over its service bindings; check and lint compare it
-against their own. There is no negotiation and no shared store — three copies
-of one string, set by hand, three times.
+The factory presents it over its service bindings; check, lint, and build compare it
+against their own. There is no negotiation and no shared store — four copies
+of one string, set by hand, four times.
 
 A mismatch does not announce itself. It surfaces in the middle of a commit as:
 
@@ -118,6 +119,7 @@ curl -s -H "X-Admin-Token: $ADMIN_TOKEN" https://<factory>/api/protected/health 
   "configured": true,
   "check": { "reachable": true, "configured": true, "matchesCaller": true },
   "lint":  { "reachable": true, "configured": true, "matchesCaller": true },
+  "build": { "reachable": true, "configured": true, "matchesCaller": true },
   "agree": true
 }
 ```
@@ -132,33 +134,34 @@ that look identical from the outside:
 | `configured: false` | that worker has no `ADMIN_TOKEN` at all |
 | `matchesCaller: false` | both have one and they differ — the classic case |
 
-An unset `ADMIN_TOKEN` **denies**. All three workers 401 without a matching
+An unset `ADMIN_TOKEN` **denies**. All four workers 401 without a matching
 credential; a missing secret never grants access. (Check and lint used to
 fail *open* here, which meant a forgotten secret quietly exposed `/check` —
 an expensive endpoint — to anyone who found the worker's URL.)
 
 ## Secrets, per worker
 
-| Secret | factory | check | lint | Notes |
-| --- | :-: | :-: | :-: | --- |
-| `ADMIN_TOKEN` | ● | ● | ● | **identical in all three** |
-| `BETTER_AUTH_SECRET` | ● | | | the factory's own sign-in, ≥32 chars |
-| `APP_BETTER_AUTH_SECRET` | ● | | | injected into every sub-app; without it no app serves |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | ● | | | both or neither — the provider registers only when both are non-blank |
-| `PASSWORD_AUTH` | ● | | | `"true"` enables email+password; default off |
-| `SIGNUP_OPEN` | ● | | | `"true"` allows **new accounts** from anyone; default off |
-| `SIGNUP_ALLOWLIST` | ● | | | addresses that may register, comma/space separated; only ever restricts |
+| Secret | factory | check | lint | build | Notes |
+| --- | :-: | :-: | :-: | :-: | --- |
+| `ADMIN_TOKEN` | ● | ● | ● | ● | **identical in all four** |
+| `BETTER_AUTH_SECRET` | ● | | | | the factory's own sign-in, ≥32 chars |
+| `APP_BETTER_AUTH_SECRET` | ● | | | | injected into every sub-app; without it no app serves |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | ● | | | | both or neither — the provider registers only when both are non-blank |
+| `PASSWORD_AUTH` | ● | | | | `"true"` enables email+password; default off |
+| `SIGNUP_OPEN` | ● | | | | `"true"` allows **new accounts** from anyone; default off |
+| `SIGNUP_ALLOWLIST` | ● | | | | addresses that may register, comma/space separated; only ever restricts |
 
 ```bash
 wrangler secret put ADMIN_TOKEN --name sfab-lite-factory
 wrangler secret put ADMIN_TOKEN --name sfab-lite-check
 wrangler secret put ADMIN_TOKEN --name sfab-lite-lint
+wrangler secret put ADMIN_TOKEN --name sfab-lite-build
 ```
 
 Beware trailing newlines: a here-doc or a copied line readily stores one, and
 the GitHub credentials are trimmed before use precisely because a
 whitespace-only value is truthy but cannot complete a token exchange.
-`ADMIN_TOKEN` is compared raw — a stray newline in one of the three is exactly
+`ADMIN_TOKEN` is compared raw — a stray newline in one of the four is exactly
 the mismatch above.
 
 ## Registration is closed by default
@@ -216,15 +219,21 @@ has not been exercised, because it needs real credentials.
 3. Upload the schema-probe drizzle-kit module map (idempotent on the
    kit+orm version manifest; not in the Worker script):
    `pnpm upload-drizzle-kit-r2 -- --remote`
-4. `wrangler deploy` all three workers.
-5. Set the secrets above. `ADMIN_TOKEN` three times, same value.
+4. `wrangler deploy` all four workers (aux workers — check, lint, build —
+   before the host, so the binding targets exist on first deploy).
+5. Set the secrets above. `ADMIN_TOKEN` four times, same value.
+   **Deploy precondition (once):** `wrangler secret put ADMIN_TOKEN --name
+   sfab-lite-build` with the identical value already on factory / check /
+   lint. Until that runs, CD and workspace compile 401 against the new
+   worker (`compile_failed`) and `/api/protected/health` reports
+   `adminToken.build.configured: false` / `agree: false`.
 6. `curl .../api/protected/health` and confirm `adminToken.agree` is `true`.
 7. Confirm `passwordAuth` / `githubAuth` / `githubSecrets` describe what you
    intended — `githubSecrets` reports the two separately because exactly one
    set is the plausible mistake and is otherwise indistinguishable from
    "GitHub off on purpose".
-8. Create an app and let it reach `ready`. That exercises check, lint, the
-   loader, and D1 in one pass; nothing shorter proves the set is wired.
+8. Create an app and let it reach `ready`. That exercises check, lint, build,
+   the loader, and D1 in one pass; nothing shorter proves the set is wired.
 
 Upload **before** deploy so a freshly bumped `KERNEL_VERSION` is already in
 R2 when the new Worker starts serving — older apps keep resolving their

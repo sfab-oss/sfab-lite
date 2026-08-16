@@ -16,6 +16,7 @@ const products = [
   ["factory/host", "@sfab-lite/factory"],
   ["factory/check", "@sfab-lite/check"],
   ["factory/lint", "@sfab-lite/lint"],
+  ["factory/build", "@sfab-lite/build"],
   ["framework/verbs", "@sfab-lite/verbs"],
   ["starters/erp", "@sfab-lite/template"],
   ["framework/runtime", "@sfab-lite/kernel"],

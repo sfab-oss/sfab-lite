@@ -24,7 +24,7 @@ already refuted with numbers, and re-deriving them is expensive.
 | Limit | Value | Where it bites |
 | --- | --- | --- |
 | Isolate memory | **128 MB**, every plan, no knob | The TypeScript check worker |
-| Worker upload | **10 MB gzip** | `factory/lint` / `factory/check` (CI hard-fail). Factory is warn-only — host console is ordinary software. |
+| Worker upload | **10 MB gzip** | Every worker in the app loop — host, check, lint, build — CI hard-fail at ≥97%. |
 | `ctx.waitUntil` | killed at **~30s** | Async app-create attempts |
 | Isolate affinity | **none** | Any warm in-memory cache |
 | DO idle retention | **~30s** | Any DO-based warm cache |
@@ -192,6 +192,20 @@ never flattens or executes `api.mjs`. Shipping the map inside the host
 script pushed `factory/host` to 9.84 MiB gzip (103% of the 10 MB Worker
 limit). Not the check worker — that isolate is the 128 MB budget. See
 [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md).
+
+### 9. One aux worker per framework verb (host is a composer)
+
+Wasm cannot be fetched from R2 and compiled at runtime in Workers, so
+the kernel / drizzle-kit R2 trick does not apply to `esbuild-wasm`.
+Measured 2026-08-16 on main (`76bae79`): host upload **9.28 MiB gzip =
+97.3%** of the 10 MB ceiling. Composition: `esbuild-wasm` **3.68 MiB
+(38%)** via `@cloudflare/worker-bundler` through the in-host build
+verb; server entry 3.50 MiB (36%); ~390 lazy chunks 2.45 MiB (25%,
+mostly shiki — parked). After moving build to `factory/build`
+(2026-08-16, this PR): host **5.47 MiB gzip (57.3%)**, build **4.46 MiB
+gzip (46.7%)**, check 2.90 / lint 9.09 (unchanged). `check:bundle-size`
+hard-fails all four workers at ≥97%. See
+[ADR-0015](../decisions/0015-one-worker-per-verb.md).
 
 ## Measured and rejected — do not re-derive these
 

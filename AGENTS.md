@@ -109,6 +109,7 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 | `factory/host` | Host worker + factory UI |
 | `factory/check` | TypeScript check worker (HTTP shell over `@sfab-lite/verbs/check`) |
 | `factory/lint` | Biome lint worker (HTTP shell over `@sfab-lite/verbs/lint`) |
+| `factory/build` | Compile worker (HTTP shell over `@sfab-lite/verbs/build`) |
 | `factory/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
 | `starters/erp` | Starter-lite seed in `app/` (independently runnable) |
 | `framework/runtime` | Frozen universe + prebuild (owns universe pins) |

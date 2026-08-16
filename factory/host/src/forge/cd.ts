@@ -11,7 +11,6 @@ import {
   lintPasses,
   type ManifestV0,
 } from "@sfab-lite/core";
-import { build } from "@sfab-lite/verbs/build";
 import { type OverlaidTree, overlayFormatFiles } from "@sfab-lite/verbs/format";
 import { eq } from "drizzle-orm";
 import { appBuildFromCompile } from "../code-host/app-image.js";
@@ -36,6 +35,11 @@ import {
   legacySchemaGateFailure,
 } from "../schema/schema-snapshots.js";
 import {
+  type AppCompileResult,
+  auxServiceHeaders,
+  callBuild,
+} from "./call-build.js";
+import {
   type CdStages,
   type CdStageTimings,
   finishStages,
@@ -49,14 +53,6 @@ export function checkPasses(body: CheckResponse | null): body is CheckResult {
   return body.diagnosticCount === 0;
 }
 
-function serviceHeaders(env: Env): Record<string, string> {
-  const h: Record<string, string> = { "content-type": "application/json" };
-  if (env.ADMIN_TOKEN) {
-    h["X-Admin-Token"] = env.ADMIN_TOKEN;
-  }
-  return h;
-}
-
 export async function callLint(
   env: Env,
   appId: string,
@@ -67,7 +63,7 @@ export async function callLint(
   const res = await env.LINT.fetch(
     new Request("https://lint-worker/lint", {
       method: "POST",
-      headers: serviceHeaders(env),
+      headers: auxServiceHeaders(env),
       body: JSON.stringify({ appId, files, mode }),
     })
   );
@@ -103,7 +99,7 @@ export async function callCheck(
       const res = await env.CHECK.fetch(
         new Request("https://check-worker/check", {
           method: "POST",
-          headers: serviceHeaders(env),
+          headers: auxServiceHeaders(env),
           body: payload,
         })
       );
@@ -365,7 +361,7 @@ async function cdBuildArtifacts(
 ): Promise<
   | {
       ok: true;
-      compiled: Awaited<ReturnType<typeof build>>;
+      compiled: AppCompileResult;
       tree: OverlaidTree;
     }
   | { ok: false; error: string; detail?: unknown }
@@ -396,10 +392,10 @@ async function cdBuildArtifacts(
     };
   }
 
-  let compiled: Awaited<ReturnType<typeof build>>;
+  let compiled: AppCompileResult;
   const buildStarted = Date.now();
   try {
-    compiled = await build(tree);
+    compiled = await callBuild(env, tree);
   } catch (e) {
     timings.buildMs = Date.now() - buildStarted;
     return {

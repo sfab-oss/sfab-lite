@@ -360,6 +360,7 @@ export class AppAgent extends Think<Env> {
         (await this.ctx.storage.get<number>(WORKSPACE_BUILD_GEN_KEY)) ?? 0;
       const generation = prev + 1;
       const { build, tree } = await compileWorkspaceFiles(
+        this.env,
         files,
         workspaceBuildSha(generation)
       );

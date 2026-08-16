@@ -1,0 +1,13 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "sfab-lite-build",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-23",
+  "compatibility_flags": ["nodejs_compat"],
+  // Same as factory/check: the factory is the only caller and reaches this over a
+  // service binding, so a public hostname bought nothing. See that config.
+  "workers_dev": false,
+  "limits": {
+    "cpu_ms": 300000
+  }
+}

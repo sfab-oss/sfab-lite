@@ -37,6 +37,10 @@ The harness composes:
 - agent workspace → build-on-save (no lint/check) plus on-demand
   `typecheck` / `lint`
 
+Each verb runs in its own aux worker (`factory/check`, `factory/lint`,
+`factory/build`); the host composes over service bindings
+([ADR-0015](0015-one-worker-per-verb.md)).
+
 **There is no preview verb.** Preview is a harness serve mode over
 `build()` of a working tree (`workspace-build.ts` already does this,
 debounced 1 s on write).
@@ -71,6 +75,10 @@ instrumentation. Check and lint durations are observed from the tail's
   already skips lint/check).
 - Verbs are testable without a worker isolate.
 
+Amended 2026-08-16 ([ADR-0015](0015-one-worker-per-verb.md)): each
+verb runs in its own aux worker; the host is a composer + console, not
+the process that loads esbuild-wasm.
+
 ### Negative
 
 - A fourth framework package (`@sfab-lite/verbs`) that must stay pinned
@@ -91,5 +99,6 @@ instrumentation. Check and lint durations are observed from the tail's
 - [ADR-0007](0007-harness-depends-on-framework-never-the-reverse.md),
   [ADR-0008](0008-declarative-manifest-no-app-plugin-system.md),
   [ADR-0010](0010-runtime-type-surface-independent-and-checked-in-units.md),
-  [ADR-0011](0011-eject-rule.md)
+  [ADR-0011](0011-eject-rule.md),
+  [ADR-0015](0015-one-worker-per-verb.md)
 - [`../architecture/APP-FORMAT.md`](../architecture/APP-FORMAT.md) §4, §7

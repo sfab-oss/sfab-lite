@@ -1,0 +1,23 @@
+{
+  "name": "@sfab-lite/build",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "wrangler dev --port 8804",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@sfab-lite/core": "workspace:*",
+    "@sfab-lite/verbs": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260721.1",
+    "typescript": "6.0.3",
+    "wrangler": "4.113.0"
+  }
+}
