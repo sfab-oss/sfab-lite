@@ -104,9 +104,7 @@ export class R2GitFs implements GitWorkFs {
   }
 
   async writeFileBytes(path: string, content: Uint8Array): Promise<void> {
-    const n = normalize(path);
-    await this.mkdir(parentOf(n), { recursive: true });
-    await this.#bucket.put(this.#objectKey(n), content);
+    await this.#bucket.put(this.#objectKey(path), content);
   }
 
   async appendFile(path: string, content: string | Uint8Array): Promise<void> {
