@@ -103,7 +103,9 @@ recipes, catalog modules (none yet), agent-written source — with no
 [ADR-0012](../decisions/0012-framework-owns-the-verbs.md)
 (framework owns the verbs; harness composes them),
 [ADR-0013](../decisions/0013-templates-and-registry-are-inert.md)
-(templates and registry are inert; the harness decides when).
+(templates and registry are inert; the harness decides when),
+[ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md)
+(adapter contract: generic model in the app, engine in the adapter).
 `AppBuild` is the image: exact runtime + manifest snapshot + asset keys;
 serve reads only through it.
 
@@ -120,7 +122,7 @@ serve reads only through it.
 
 ## Related
 
-- [ADR-0001](../decisions/0001-edge-native-lite-architecture.md) … [ADR-0013](../decisions/0013-templates-and-registry-are-inert.md)
+- [ADR-0001](../decisions/0001-edge-native-lite-architecture.md) … [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md)
 - [`APP-FORMAT.md`](APP-FORMAT.md) — app layout, manifest v0, generated members, check units, image
 - [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md) — what landed, what carried forward
 - [`../engineering/terminology.md`](../engineering/terminology.md)
