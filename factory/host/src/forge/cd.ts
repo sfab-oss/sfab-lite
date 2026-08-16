@@ -33,9 +33,9 @@ import { latestSnapshot } from "../schema/schema-snapshots.js";
 import {
   type CdStages,
   type CdStageTimings,
-  cdStagesLogLine,
-  finishCdStages,
-} from "./cd-stages.js";
+  finishStages,
+  stagesLogLine,
+} from "./stages.js";
 
 export function checkPasses(body: CheckResponse | null): body is CheckResult {
   if (!body?.ok) {
@@ -353,7 +353,7 @@ async function cdBuildArtifacts(
   const tree = overlayFormatFiles(sourceFiles);
   const files = tree.files;
   const lint = await callLint(env, appId, files);
-  timings.lintMs = lint.wallMs;
+  timings.lintMs = lint.body == null ? lint.wallMs : lint.body.totalMs;
   if (aborted(signal)) {
     return { ok: false, error: "cd_aborted" };
   }
@@ -398,7 +398,7 @@ async function cdBuildArtifacts(
     tree,
     opts?.forceColdCheck ?? false
   );
-  timings.checkMs = check.wallMs;
+  timings.checkMs = check.body?.ok === true ? check.body.wallMs : check.wallMs;
   timings.checkAttempts = check.attempts;
   if (!(check.http < 500 && checkPasses(check.body))) {
     return {
@@ -513,12 +513,12 @@ export async function runCdForSha(
       timings,
       opts
     );
-    const stages = finishCdStages(startedAt, timings);
-    console.log(cdStagesLogLine(appId, sha, stages));
+    const stages = finishStages(startedAt, timings);
+    console.log(stagesLogLine("cd", appId, { sha, ...stages }));
     return { ...result, stages };
   } catch (e) {
-    const stages = finishCdStages(startedAt, timings);
-    console.log(cdStagesLogLine(appId, sha, stages));
+    const stages = finishStages(startedAt, timings);
+    console.log(stagesLogLine("cd", appId, { sha, ...stages }));
     if (aborted(opts?.signal)) {
       return { ok: false, error: "cd_aborted", stages };
     }

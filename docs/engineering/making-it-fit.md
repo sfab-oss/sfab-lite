@@ -154,6 +154,21 @@ the AppDO for the truth — it just waited out `STALE_ATTEMPT_MS` first. A
 behind one settles on the next poll. That closes the gap where the console
 (120s) gave up three minutes before reconciliation (300s) ran.
 
+### 7. Fan-out R2 git-object I/O; do not mkdir ancestors of a PUT
+
+R2 is a flat keyspace. `lstat` already answers "directory" via children, so a
+file PUT implies its parent prefixes — walking ancestors to write `.gitkeep`
+on every blob was pure round-trips. Measured 2026-08-16 on Canary (n=3 live
+creates after #145): create→ready **104–107 s**, CD self-timed **21–24 s**,
+the internal run-create request **106.7 s** wall — about **84 s** of each
+create (and of every later push) was sequential `copyTree` of ~100 seed
+objects, each `writeFileBytes` doing exists/head/list + a marker PUT per
+ancestor (~5–8 R2 ops per blob). Fixed by one PUT per file and a bounded
+parallel copy (16). Re-measure pending (same 3-create protocol). Host
+`checkMs` that day was **0.25–0.7 s** while the check isolate's own wall was
+**13.6–14.7 s** — a Workers clock artefact around the service-binding wait;
+`schemaMs` (16–18 s) is not the target until that clock is re-read.
+
 ## Measured and rejected — do not re-derive these
 
 | Idea | Why it fails | Evidence |
