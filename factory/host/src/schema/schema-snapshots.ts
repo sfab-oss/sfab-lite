@@ -1,66 +1,106 @@
 /**
- * The schema each migration left behind, recorded beside it.
+ * Kit on-disk `migrations/meta/`: version-6 snapshots + `_journal.json`.
  *
- * `db:generate` needs to know what the database looks like before it can say
- * what to change. Reading that from the database costs a round trip, an
- * authorization surface, and a test suite that can only fake it. Recording it
- * instead — at the moment the migration is written, from the schema the
- * migration implements — makes generating a migration a pure function of the
- * workspace, which is both cheaper and the thing drizzle-kit's `meta/`
- * directory has always done.
- *
- * The trade is deliberate and stated in ADR-0005: a snapshot describes what
- * the SQL beside it was derived from, not what the database did with it.
+ * `db:generate` needs the last snapshot to diff against. Reading that from
+ * the database costs a round trip; recording it beside the SQL is what
+ * drizzle-kit's CLI does. The applied ledger (id + hash) is still ours.
  */
 import type { ManifestV0 } from "@sfab-lite/core";
-import type { SchemaSnapshot } from "./schema-ddl.js";
+import {
+  EMPTY_JOURNAL,
+  EMPTY_SNAPSHOT,
+  isKitJournal,
+  isKitSnapshot,
+  type KitJournal,
+  type KitSnapshot,
+} from "./schema-kit.ts";
 
-const SNAPSHOT_SUFFIX = "_snapshot.json";
+const SNAPSHOT_FILE = /^(\d{4})_snapshot\.json$/;
 const SQL_SUFFIX = /\.sql$/;
+const JOURNAL_NAME = "_journal.json";
 
 function metaPrefix(manifest: ManifestV0): string {
   return `${manifest.migrations}/meta/`;
 }
 
-/** An app before its first migration: no tables, so everything is new. */
-export const EMPTY_SNAPSHOT: SchemaSnapshot = { tables: [] };
+export function journalPath(manifest: ManifestV0): string {
+  return `${metaPrefix(manifest)}${JOURNAL_NAME}`;
+}
 
-/**
- * Where the snapshot for a migration lives.
- *
- * Named for the migration rather than numbered independently, so a pair that
- * has drifted apart is visible in a directory listing.
- */
+function snapshotIndex(migrationPath: string, manifest: ManifestV0): string {
+  const id = migrationPath
+    .slice(manifest.migrations.length + 1)
+    .replace(SQL_SUFFIX, "");
+  return id.slice(0, 4);
+}
+
 export function snapshotPathFor(
   migrationPath: string,
   manifest: ManifestV0
 ): string {
-  const id = migrationPath
-    .slice(manifest.migrations.length + 1)
-    .replace(SQL_SUFFIX, "");
-  return `${metaPrefix(manifest)}${id}${SNAPSHOT_SUFFIX}`;
+  return `${metaPrefix(manifest)}${snapshotIndex(migrationPath, manifest)}_snapshot.json`;
 }
 
-function isSnapshotPath(path: string, prefix: string): boolean {
-  return path.startsWith(prefix) && path.endsWith(SNAPSHOT_SUFFIX);
+function parseJournal(
+  files: Record<string, string>,
+  manifest: ManifestV0
+): KitJournal {
+  const path = journalPath(manifest);
+  const raw = files[path];
+  if (raw == null) {
+    return { ...EMPTY_JOURNAL, entries: [] };
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isKitJournal(parsed)) {
+      throw new Error("missing version, dialect, or entries");
+    }
+    return parsed;
+  } catch (cause) {
+    throw new Error(
+      `${path} is not a drizzle-kit journal. db:generate cannot proceed without it.`,
+      { cause }
+    );
+  }
 }
 
-/**
- * The most recent snapshot in the workspace, or an empty one.
- *
- * Highest filename wins, for the same reason migrations run in filename order:
- * the number is the history. An app with migrations but no snapshots reads as
- * empty, which would then propose creating tables that already exist — the
- * template ships its own snapshot so that a seeded app never sits in that
- * state, and `check:template-snapshot` is what keeps it shipping one.
- */
+function parseSnapshot(path: string, raw: string): KitSnapshot {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isKitSnapshot(parsed)) {
+      throw new Error("not a version-6 sqlite snapshot");
+    }
+    return parsed;
+  } catch (cause) {
+    throw new Error(
+      `${path} is not valid drizzle-kit snapshot JSON. It records the schema the migrations beside it produced, and db:generate cannot proceed without it.`,
+      { cause }
+    );
+  }
+}
+
 export function latestSnapshot(
   files: Record<string, string>,
   manifest: ManifestV0
-): SchemaSnapshot {
+): KitSnapshot {
   const prefix = metaPrefix(manifest);
+  const journal = parseJournal(files, manifest);
+  const last = journal.entries.at(-1);
+  if (last) {
+    const named = `${prefix}${String(last.idx).padStart(4, "0")}_snapshot.json`;
+    const raw = files[named];
+    if (raw != null) {
+      return parseSnapshot(named, raw);
+    }
+  }
+
   const paths = Object.keys(files)
-    .filter((path) => isSnapshotPath(path, prefix))
+    .filter((path) => {
+      if (!(path.startsWith(prefix) && path.endsWith("_snapshot.json"))) {
+        return false;
+      }
+      return SNAPSHOT_FILE.test(path.slice(prefix.length));
+    })
     .sort();
   const newest = paths.at(-1);
   if (!newest) {
@@ -70,21 +110,36 @@ export function latestSnapshot(
   if (!raw) {
     return EMPTY_SNAPSHOT;
   }
-  try {
-    const parsed = JSON.parse(raw) as Partial<SchemaSnapshot>;
-    return { tables: parsed.tables ?? [] };
-  } catch (cause) {
-    // A snapshot that will not parse is worse than one that is missing: it
-    // would be silently read as "no tables" and generate a migration
-    // recreating the whole schema. Refusing sends the agent to the file.
-    throw new Error(
-      `${newest} is not valid JSON. It records the schema the migrations beside it produced, and db:generate cannot proceed without it.`,
-      { cause }
-    );
-  }
+  return parseSnapshot(newest, raw);
 }
 
-/** Serialised the way the bake script writes it, so the two never differ. */
-export function serializeSnapshot(snapshot: SchemaSnapshot): string {
+export function serializeSnapshot(snapshot: KitSnapshot): string {
   return `${JSON.stringify(snapshot, null, 2)}\n`;
+}
+
+export function serializeJournal(journal: KitJournal): string {
+  return `${JSON.stringify(journal, null, 2)}\n`;
+}
+
+export function appendJournalEntry(
+  files: Record<string, string>,
+  manifest: ManifestV0,
+  tag: string,
+  when: number
+): KitJournal {
+  const journal = parseJournal(files, manifest);
+  const idx = Number.parseInt(tag.slice(0, 4), 10);
+  return {
+    ...journal,
+    entries: [
+      ...journal.entries,
+      {
+        idx: Number.isNaN(idx) ? journal.entries.length : idx,
+        version: "6",
+        when,
+        tag,
+        breakpoints: true,
+      },
+    ],
+  };
 }

@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ManifestV0 } from "@sfab-lite/core";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
+import { EMPTY_SNAPSHOT } from "./schema-kit.ts";
 import {
-  EMPTY_SNAPSHOT,
+  journalPath,
   latestSnapshot,
   serializeSnapshot,
   snapshotPathFor,
@@ -11,18 +12,31 @@ import {
 
 const MANIFEST = seed.manifest as ManifestV0;
 
-const BAD_JSON = /is not valid JSON/;
-const byName = (a: string, b: string) => a.localeCompare(b);
+const BAD_JSON = /is not valid drizzle-kit snapshot JSON/;
 
 function workspace(entries: Record<string, string>): Record<string, string> {
   return { "src/db/schema.ts": "// schema", ...entries };
 }
 
+function kitSnap(id: string, tables: Record<string, unknown>) {
+  return serializeSnapshot({
+    version: "6",
+    dialect: "sqlite",
+    id,
+    prevId: "00000000-0000-0000-0000-000000000000",
+    tables,
+    views: {},
+    enums: {},
+    _meta: { tables: {}, columns: {} },
+    internal: { indexes: {} },
+  });
+}
+
 describe("snapshotPathFor", () => {
-  it("names the snapshot after the migration it belongs to", () => {
+  it("names the snapshot after the migration index, kit-style", () => {
     assert.equal(
       snapshotPathFor("migrations/0003_water_delivery.sql", MANIFEST),
-      "migrations/meta/0003_water_delivery_snapshot.json"
+      "migrations/meta/0003_snapshot.json"
     );
   });
 });
@@ -32,24 +46,48 @@ describe("latestSnapshot", () => {
     assert.deepEqual(latestSnapshot(workspace({}), MANIFEST), EMPTY_SNAPSHOT);
   });
 
-  /**
-   * Highest filename wins for the same reason migrations run in filename
-   * order: the number is the history. Taking an arbitrary one would diff
-   * against a schema two migrations stale and re-propose what already ran.
-   */
-  it("takes the highest-numbered snapshot, not the first found", () => {
+  it("prefers the snapshot named by the journal's last entry", () => {
     const files = workspace({
-      "migrations/meta/0003_late_snapshot.json": JSON.stringify({
-        tables: [{ name: "late", columns: [], primaryKey: [], indexes: [] }],
+      "migrations/meta/_journal.json": JSON.stringify({
+        version: "7",
+        dialect: "sqlite",
+        entries: [
+          {
+            idx: 1,
+            version: "6",
+            when: 1,
+            tag: "0001_early",
+            breakpoints: true,
+          },
+          {
+            idx: 3,
+            version: "6",
+            when: 2,
+            tag: "0003_late",
+            breakpoints: true,
+          },
+        ],
       }),
-      "migrations/meta/0001_early_snapshot.json": JSON.stringify({
-        tables: [{ name: "early", columns: [], primaryKey: [], indexes: [] }],
+      "migrations/meta/0003_snapshot.json": kitSnap("late", {
+        late: { name: "late" },
+      }),
+      "migrations/meta/0001_snapshot.json": kitSnap("early", {
+        early: { name: "early" },
       }),
     });
-    assert.deepEqual(
-      latestSnapshot(files, MANIFEST).tables.map((t) => t.name),
-      ["late"]
-    );
+    assert.equal(latestSnapshot(files, MANIFEST).id, "late");
+  });
+
+  it("falls back to the highest-numbered snapshot without a journal", () => {
+    const files = workspace({
+      "migrations/meta/0003_snapshot.json": kitSnap("late", {
+        late: { name: "late" },
+      }),
+      "migrations/meta/0001_snapshot.json": kitSnap("early", {
+        early: { name: "early" },
+      }),
+    });
+    assert.equal(latestSnapshot(files, MANIFEST).id, "late");
   });
 
   it("ignores files under meta/ that are not snapshots", () => {
@@ -60,29 +98,21 @@ describe("latestSnapshot", () => {
     assert.deepEqual(latestSnapshot(files, MANIFEST), EMPTY_SNAPSHOT);
   });
 
-  /**
-   * Reading a corrupt snapshot as "no tables" would generate a migration
-   * recreating the entire schema, against a database that already has it.
-   * Refusing sends the agent to the file instead.
-   */
   it("refuses a snapshot that will not parse", () => {
     const files = workspace({
-      "migrations/meta/0001_auth_snapshot.json": "{ not json",
+      "migrations/meta/0001_snapshot.json": "{ not json",
     });
     assert.throws(() => latestSnapshot(files, MANIFEST), BAD_JSON);
   });
 });
 
-describe("the template ships its own snapshot", () => {
-  /**
-   * Without one, the first `db:generate` in a freshly seeded app reads the
-   * workspace as empty and proposes creating every table the seed migrations
-   * already created.
-   */
-  it("seeds a snapshot describing what the seed migrations produced", () => {
+describe("the template ships kit meta", () => {
+  it("seeds a version-6 snapshot describing the seed schema", () => {
     const snapshot = latestSnapshot(seed.sourceFiles, MANIFEST);
     assert.notDeepEqual(snapshot, EMPTY_SNAPSHOT);
-    assert.deepEqual(snapshot.tables.map((t) => t.name).toSorted(byName), [
+    assert.equal(snapshot.version, "6");
+    assert.equal(snapshot.dialect, "sqlite");
+    assert.deepEqual(Object.keys(snapshot.tables).toSorted(), [
       "account",
       "invitation",
       "ledger_entry",
@@ -95,7 +125,7 @@ describe("the template ships its own snapshot", () => {
     ]);
   });
 
-  it("pairs the snapshot with the last migration in the seed", () => {
+  it("pairs the snapshot with the last migration and ships a journal", () => {
     const last = seed.migrations.at(-1);
     assert.ok(last);
     assert.ok(
@@ -106,15 +136,8 @@ describe("the template ships its own snapshot", () => {
         ) as keyof typeof seed.sourceFiles
       ]
     );
-  });
-});
-
-describe("serializeSnapshot", () => {
-  it("round-trips through latestSnapshot", () => {
-    const snapshot = latestSnapshot(seed.sourceFiles, MANIFEST);
-    const files = workspace({
-      "migrations/meta/0002_erp_snapshot.json": serializeSnapshot(snapshot),
-    });
-    assert.deepEqual(latestSnapshot(files, MANIFEST), snapshot);
+    assert.ok(
+      seed.sourceFiles[journalPath(MANIFEST) as keyof typeof seed.sourceFiles]
+    );
   });
 });
