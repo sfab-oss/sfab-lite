@@ -164,10 +164,20 @@ the internal run-create request **106.7 s** wall — about **84 s** of each
 create (and of every later push) was sequential `copyTree` of ~100 seed
 objects, each `writeFileBytes` doing exists/head/list + a marker PUT per
 ancestor (~5–8 R2 ops per blob). Fixed by one PUT per file and a bounded
-parallel copy (16). Re-measure pending (same 3-create protocol). Host
-`checkMs` that day was **0.25–0.7 s** while the check isolate's own wall was
-**13.6–14.7 s** — a Workers clock artefact around the service-binding wait;
-`schemaMs` (16–18 s) is not the target until that clock is re-read.
+parallel copy (16), plus one flat prefix `list` when the source is R2 (#146).
+Re-measured 2026-08-16 after deploy, same protocol (n=3): create→ready
+**38–40 s** (was 104–107), run-create request **41.3–42.8 s** wall (was
+106.7–111.0). Create-run stages: ensureRepo **~5.0–5.3 s**, commitTree
+**3.9–4.0 s**, CD **21–24 s**, settle 0.1 s. Inside CD the check isolate is
+still **14–16 s** (tail); build 3.6–4.5 s.
+
+Two things the numbers say about themselves. In-isolate `checkMs`/`lintMs`
+read **0** in production (the check worker's own `wallMs` too): Workers
+freeze `Date.now()` during CPU work and around the service-binding wait, so
+`schemaMs` (14.6–18 s) is mostly the clock catching up on the check — check
+duration is only observable from the tail's `wallTime`. And the remaining
+seconds are now the check unit itself (cold LanguageService on every create,
+`forceColdCheck`), ensureRepo, and the ≤5 s create poll — not the code host.
 
 ## Measured and rejected — do not re-derive these
 
