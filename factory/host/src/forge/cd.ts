@@ -76,7 +76,7 @@ const CHECK_RETRY_DELAY_MS = 300;
 export async function callCheck(
   env: Env,
   appId: string,
-  files: Record<string, string>,
+  tree: OverlaidTree,
   forceCold = false
 ): Promise<{
   http: number;
@@ -86,6 +86,12 @@ export async function callCheck(
 }> {
   const t0 = Date.now();
   let lastError: unknown;
+  const payload = JSON.stringify({
+    appId,
+    files: tree.files,
+    manifest: tree.manifest,
+    forceCold,
+  });
 
   for (let attempt = 1; attempt <= CHECK_ATTEMPTS; attempt++) {
     try {
@@ -93,12 +99,7 @@ export async function callCheck(
         new Request("https://check-worker/check", {
           method: "POST",
           headers: serviceHeaders(env),
-          body: JSON.stringify({
-            appId,
-            files,
-            manifest: overlayFormatFiles(files).manifest,
-            forceCold,
-          }),
+          body: payload,
         })
       );
       const body = (await res.json().catch(() => null)) as CheckResponse | null;
@@ -282,6 +283,10 @@ async function publishLiveChanged(
   );
 }
 
+type CdInnerResult =
+  | { ok: true; sha: string; liveSha: string | null }
+  | { ok: false; error: string; detail?: unknown };
+
 /**
  * Point live at an existing build: AppDataDO(`${appId}:live`) migrations +
  * D1 live_sha + event. Skips lint/compile/check — callers must only use this
@@ -292,20 +297,11 @@ async function promoteExistingBuild(
   appId: string,
   sha: string,
   sourceFiles: Record<string, string>,
-  opts?: { signal?: AbortSignal; startedAt?: number }
-): Promise<CdResult> {
-  const startedAt = opts?.startedAt ?? Date.now();
-  const timings: CdStageTimings = {};
-  const finish = (extra?: CdStageTimings): CdStages =>
-    finishCdStages(startedAt, { ...timings, ...extra });
-  const log = (stages: CdStages) => {
-    console.log(cdStagesLogLine(appId, sha, stages));
-  };
-
+  timings: CdStageTimings,
+  opts?: { signal?: AbortSignal }
+): Promise<CdInnerResult> {
   if (aborted(opts?.signal)) {
-    const stages = finish();
-    log(stages);
-    return { ok: false, error: "cd_aborted", stages };
+    return { ok: false, error: "cd_aborted" };
   }
   const schemaStarted = Date.now();
   const schemaFailure = await applyLiveSchemaMigrations(
@@ -315,32 +311,27 @@ async function promoteExistingBuild(
   );
   timings.schemaMs = Date.now() - schemaStarted;
   if (schemaFailure) {
-    const stages = finish();
-    log(stages);
     return {
       ok: false,
       error: schemaFailure.error,
       detail: schemaFailure,
-      stages,
     };
   }
   if (aborted(opts?.signal)) {
-    const stages = finish();
-    log(stages);
-    return { ok: false, error: "cd_aborted", stages };
+    return { ok: false, error: "cd_aborted" };
   }
   const writeStarted = Date.now();
   await setLiveSha(env, appId, sha);
   await publishLiveChanged(env, appId, sha);
-  const stages = finish({ writeMs: Date.now() - writeStarted });
-  log(stages);
-  return { ok: true, sha, liveSha: sha, stages };
+  timings.writeMs = Date.now() - writeStarted;
+  return { ok: true, sha, liveSha: sha };
 }
 
 async function cdBuildArtifacts(
   env: Env,
   appId: string,
   sourceFiles: Record<string, string>,
+  timings: CdStageTimings,
   opts?: {
     forceColdCheck?: boolean;
     signal?: AbortSignal;
@@ -351,14 +342,12 @@ async function cdBuildArtifacts(
       ok: true;
       compiled: Awaited<ReturnType<typeof build>>;
       tree: OverlaidTree;
-      timings: CdStageTimings;
     }
-  | { ok: false; error: string; detail?: unknown; timings: CdStageTimings }
+  | { ok: false; error: string; detail?: unknown }
 > {
   const signal = opts?.signal;
-  const timings: CdStageTimings = {};
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted", timings };
+    return { ok: false, error: "cd_aborted" };
   }
 
   const tree = overlayFormatFiles(sourceFiles);
@@ -366,14 +355,13 @@ async function cdBuildArtifacts(
   const lint = await callLint(env, appId, files);
   timings.lintMs = lint.wallMs;
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted", timings };
+    return { ok: false, error: "cd_aborted" };
   }
   if (lint.http >= 500 || lint.body?.ok === false || lint.body == null) {
     return {
       ok: false,
       error: "lint_failed",
       detail: { lintHttp: lint.http, lint: lint.body },
-      timings,
     };
   }
   if (!lintPasses(lint.body)) {
@@ -381,7 +369,6 @@ async function cdBuildArtifacts(
       ok: false,
       error: "lint_failed",
       detail: { lint: lint.body },
-      timings,
     };
   }
 
@@ -397,19 +384,18 @@ async function cdBuildArtifacts(
       detail: {
         message: e instanceof Error ? e.message : String(e),
       },
-      timings,
     };
   }
   timings.buildMs = Date.now() - buildStarted;
 
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted", timings };
+    return { ok: false, error: "cd_aborted" };
   }
 
   const check = await callCheck(
     env,
     appId,
-    files,
+    tree,
     opts?.forceColdCheck ?? false
   );
   timings.checkMs = check.wallMs;
@@ -423,12 +409,11 @@ async function cdBuildArtifacts(
         check: check.body,
         checkAttempts: check.attempts,
       },
-      timings,
     };
   }
 
   if (aborted(signal)) {
-    return { ok: false, error: "cd_aborted", timings };
+    return { ok: false, error: "cd_aborted" };
   }
 
   const schemaStarted = Date.now();
@@ -441,11 +426,60 @@ async function cdBuildArtifacts(
       ok: false,
       error: schemaFailure.error,
       detail: schemaFailure,
-      timings,
     };
   }
 
-  return { ok: true, compiled, tree, timings };
+  return { ok: true, compiled, tree };
+}
+
+async function runCdInner(
+  env: Env,
+  appId: string,
+  sha: string,
+  sourceFiles: Record<string, string>,
+  timings: CdStageTimings,
+  opts?: {
+    forceColdCheck?: boolean;
+    signal?: AbortSignal;
+    advanceLive?: boolean;
+  }
+): Promise<CdInnerResult> {
+  const signal = opts?.signal;
+  const advanceLive = opts?.advanceLive !== false;
+
+  if (advanceLive && !opts?.forceColdCheck) {
+    const existing = await createR2BuildStore(env).getBuild(appId, sha);
+    if (existing) {
+      return await promoteExistingBuild(env, appId, sha, sourceFiles, timings, {
+        signal,
+      });
+    }
+  }
+
+  const built = await cdBuildArtifacts(env, appId, sourceFiles, timings, {
+    ...opts,
+    applyMigrations: advanceLive,
+  });
+  if (!built.ok) {
+    return { ok: false, error: built.error, detail: built.detail };
+  }
+
+  const writeStarted = Date.now();
+  const builds = createR2BuildStore(env);
+  await builds.putBuild(
+    appId,
+    appBuildFromCompile(sha, built.tree, built.compiled)
+  );
+
+  if (!advanceLive) {
+    timings.writeMs = Date.now() - writeStarted;
+    return { ok: true, sha, liveSha: null };
+  }
+
+  await setLiveSha(env, appId, sha);
+  await publishLiveChanged(env, appId, sha);
+  timings.writeMs = Date.now() - writeStarted;
+  return { ok: true, sha, liveSha: sha };
 }
 
 /**
@@ -468,71 +502,24 @@ export async function runCdForSha(
     advanceLive?: boolean;
   }
 ): Promise<CdResult> {
-  const signal = opts?.signal;
-  const advanceLive = opts?.advanceLive !== false;
   const startedAt = Date.now();
-  const finish = (timings: CdStageTimings): CdStages =>
-    finishCdStages(startedAt, timings);
-  const log = (stages: CdStages) => {
-    console.log(cdStagesLogLine(appId, sha, stages));
-  };
-  let timings: CdStageTimings = {};
-
+  const timings: CdStageTimings = {};
   try {
-    if (advanceLive && !opts?.forceColdCheck) {
-      const existing = await createR2BuildStore(env).getBuild(appId, sha);
-      if (existing) {
-        return await promoteExistingBuild(env, appId, sha, sourceFiles, {
-          signal,
-          startedAt,
-        });
-      }
-    }
-
-    const built = await cdBuildArtifacts(env, appId, sourceFiles, {
-      ...opts,
-      applyMigrations: advanceLive,
-    });
-    timings = built.timings;
-    if (!built.ok) {
-      const stages = finish(timings);
-      log(stages);
-      return {
-        ok: false,
-        error: built.error,
-        detail: built.detail,
-        stages,
-      };
-    }
-
-    const writeStarted = Date.now();
-    const builds = createR2BuildStore(env);
-    await builds.putBuild(
+    const result = await runCdInner(
+      env,
       appId,
-      appBuildFromCompile(sha, built.tree, built.compiled)
+      sha,
+      sourceFiles,
+      timings,
+      opts
     );
-
-    if (!advanceLive) {
-      const stages = finish({
-        ...timings,
-        writeMs: Date.now() - writeStarted,
-      });
-      log(stages);
-      return { ok: true, sha, liveSha: null, stages };
-    }
-
-    await setLiveSha(env, appId, sha);
-    await publishLiveChanged(env, appId, sha);
-    const stages = finish({
-      ...timings,
-      writeMs: Date.now() - writeStarted,
-    });
-    log(stages);
-    return { ok: true, sha, liveSha: sha, stages };
+    const stages = finishCdStages(startedAt, timings);
+    console.log(cdStagesLogLine(appId, sha, stages));
+    return { ...result, stages };
   } catch (e) {
-    const stages = finish(timings);
-    log(stages);
-    if (aborted(signal)) {
+    const stages = finishCdStages(startedAt, timings);
+    console.log(cdStagesLogLine(appId, sha, stages));
+    if (aborted(opts?.signal)) {
       return { ok: false, error: "cd_aborted", stages };
     }
     return {

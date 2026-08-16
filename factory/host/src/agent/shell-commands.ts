@@ -1,4 +1,5 @@
 import { lintPasses } from "@sfab-lite/core";
+import { overlayFormatFiles } from "@sfab-lite/verbs/format";
 import {
   type CommandContext,
   type CustomCommand,
@@ -95,7 +96,11 @@ async function runTypecheck(
 ): Promise<ExecResult> {
   const files = await collectWorkspaceSourceFiles(ctx);
   try {
-    const check = await callCheck(deps.env, deps.appId, files);
+    const check = await callCheck(
+      deps.env,
+      deps.appId,
+      overlayFormatFiles(files)
+    );
     if (check.body?.ok) {
       await persistEmittedFiles(deps, ctx, check.body.emittedFiles);
     }

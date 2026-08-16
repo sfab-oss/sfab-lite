@@ -406,8 +406,8 @@ call sites keep working; later PRs retarget them onto these names.
 | --- | --- | --- |
 | `app.create` | `POST /api/protected/apps`, MCP `apps_create`, `AppCreateDO` | Seed = `TEMPLATE_SEED` snapshot. Create alarm re-armed before the run (invariant 3). |
 | `app.get` / `app.list` / `app.delete` | protected `/apps`, MCP `apps_get` / `apps_list` / `apps_delete` | |
-| `app.check` | `POST` check worker `/check`; host `POST /apps/:id/check`; CD publish gate | Becomes the check *run* of §5. Wire types already in `framework/toolchain` (`CheckRequest` / `CheckResult`). |
-| `app.lint` | `POST` lint worker `/lint`; CD before check | Sync, stateless Biome WASM. Wire types in toolchain. |
+| `app.check` | `POST` check worker `/check`; host `POST /apps/:id/check`; CD publish gate | Becomes the check *run* of §5. Engine in `framework/verbs`; wire types in `framework/toolchain` (`CheckRequest` / `CheckResult`). |
+| `app.lint` | `POST` lint worker `/lint`; CD before check | Sync, stateless Biome WASM. Engine in `framework/verbs`; wire types in toolchain. |
 | `app.pack` | `compileAll` (server + client + css + host-built `index.html`) | Image v0: `putBuild` stores `image: 0`, resolved `runtime`, manifest snapshot, asset keys, migration names. `getBuild` fills `image: null` on legacy records so existing live apps keep serving; the next CD writes an image. No backfill. |
 | `app.preview` | PR preview `/a/:appId/preview/:n`; workspace WIP `/a/:workspaceId/workspace` | Org-auth; empty+migrations SQLite, never a live clone. |
 | `app.serve` | LOADER child isolate, `live_sha` → immutable build | The serve-plane half of the adapter. |
@@ -424,7 +424,7 @@ call sites keep working; later PRs retarget them onto these names.
 LOADER is the Cloudflare `app.serve` implementation, not a
 develop-plane API of its own. Check and lint workers are the
 Cloudflare `app.check` / `app.lint` implementations; their engines
-extract into `framework/toolchain` gradually.
+live in `framework/verbs`.
 
 In-app agent (console thread, code-mode `execute`) is a different
 surface from MCP; see

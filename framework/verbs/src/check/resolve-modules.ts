@@ -348,11 +348,11 @@ function resolveRelativePath(
 export function resolvePackage(
   name: string,
   overlay: Map<string, string>,
-  containingFile?: string,
-  opts?: ResolveOpts
+  containingFile: string | undefined,
+  opts: ResolveOpts
 ): string | undefined {
-  const typeOnly = opts?.typeOnly === true;
-  const clientPrefixes = opts?.clientPrefixes ?? [];
+  const typeOnly = opts.typeOnly === true;
+  const clientPrefixes = opts.clientPrefixes;
   if (!bareAllowed(name, containingFile, typeOnly, clientPrefixes)) {
     return;
   }
@@ -382,9 +382,9 @@ export function resolveRelative(
   name: string,
   containingFile: string,
   overlay: Map<string, string>,
-  opts?: ResolveOpts
+  opts: ResolveOpts
 ): string | undefined {
-  const clientPrefixes = opts?.clientPrefixes ?? [];
+  const clientPrefixes = opts.clientPrefixes;
   const resolved = resolveRelativePath(name, containingFile, overlay);
   if (!resolved) {
     return;
