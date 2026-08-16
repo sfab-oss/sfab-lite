@@ -33,9 +33,9 @@ import { latestSnapshot } from "../schema/schema-snapshots.js";
 import {
   type CdStages,
   type CdStageTimings,
-  cdStagesLogLine,
-  finishCdStages,
-} from "./cd-stages.js";
+  finishStages,
+  stagesLogLine,
+} from "./stages.js";
 
 export function checkPasses(body: CheckResponse | null): body is CheckResult {
   if (!body?.ok) {
@@ -513,12 +513,12 @@ export async function runCdForSha(
       timings,
       opts
     );
-    const stages = finishCdStages(startedAt, timings);
-    console.log(cdStagesLogLine(appId, sha, stages));
+    const stages = finishStages(startedAt, timings);
+    console.log(stagesLogLine("cd", appId, { sha, ...stages }));
     return { ...result, stages };
   } catch (e) {
-    const stages = finishCdStages(startedAt, timings);
-    console.log(cdStagesLogLine(appId, sha, stages));
+    const stages = finishStages(startedAt, timings);
+    console.log(stagesLogLine("cd", appId, { sha, ...stages }));
     if (aborted(opts?.signal)) {
       return { ok: false, error: "cd_aborted", stages };
     }

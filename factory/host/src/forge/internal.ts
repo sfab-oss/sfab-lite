@@ -20,10 +20,11 @@ import type { RequestCtx } from "../serve/routes.js";
 import { NOT_FOUND_BODY } from "../serve/routes.js";
 import { runCdForSha } from "./cd.js";
 import {
+  type CreateStages,
   type CreateStageTimings,
-  createStagesLogLine,
-  finishCreateStages,
-} from "./create-stages.js";
+  finishStages,
+  stagesLogLine,
+} from "./stages.js";
 
 const RE_RUN_CREATE =
   /^\/internal\/apps\/([^/]+)\/attempts\/([^/]+)\/run-create$/;
@@ -46,9 +47,8 @@ async function handleRunCreate(
   const timings: CreateStageTimings = {};
 
   const logStages = (): void => {
-    console.log(
-      createStagesLogLine(appId, finishCreateStages(startedAtMs, timings))
-    );
+    const stages: CreateStages = finishStages(startedAtMs, timings);
+    console.log(stagesLogLine("create", appId, stages));
   };
 
   try {

@@ -14,7 +14,7 @@ import {
   getLiveSha,
   runCdForSha,
 } from "./cd.js";
-import { detailWithCdStages } from "./cd-stages.js";
+import { detailWithCdStages } from "./stages.js";
 import type {
   CheckConclusion,
   CheckRunRecord,
