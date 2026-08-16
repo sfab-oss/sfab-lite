@@ -7,7 +7,7 @@
  * migrations too. The Durable Object applies them forward-only and records how
  * many it has run, so the file order *is* the schema history.
  */
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
+import type { ManifestV0 } from "@sfab-lite/core";
 
 export interface AppMigration {
   id: string;
@@ -177,11 +177,14 @@ export function applyPendingMigrations(
   };
 }
 
-const MIGRATION_PREFIX = `${TEMPLATE_MANIFEST.migrations}/`;
 const SQL_SUFFIX_RE = /\.sql$/;
 
-function isMigrationPath(path: string): boolean {
-  return path.startsWith(MIGRATION_PREFIX) && path.endsWith(".sql");
+function migrationPrefix(manifest: ManifestV0): string {
+  return `${manifest.migrations}/`;
+}
+
+function isMigrationPath(path: string, prefix: string): boolean {
+  return path.startsWith(prefix) && path.endsWith(".sql");
 }
 
 /**
@@ -193,13 +196,15 @@ function isMigrationPath(path: string): boolean {
  * its ordering is locale-dependent, and schema history must not be.
  */
 export function collectMigrations(
-  files: Record<string, string>
+  files: Record<string, string>,
+  manifest: ManifestV0
 ): AppMigration[] {
+  const prefix = migrationPrefix(manifest);
   return Object.keys(files)
-    .filter(isMigrationPath)
+    .filter((path) => isMigrationPath(path, prefix))
     .sort()
     .map((path) => ({
-      id: path.slice(MIGRATION_PREFIX.length).replace(SQL_SUFFIX_RE, ""),
+      id: path.slice(prefix.length).replace(SQL_SUFFIX_RE, ""),
       sql: files[path] ?? "",
     }));
 }
@@ -224,12 +229,16 @@ function slug(name: string): string {
  */
 export function nextMigrationPath(
   files: Record<string, string>,
+  manifest: ManifestV0,
   name: string
 ): string {
-  const highest = collectMigrations(files).reduce((max, migration) => {
-    const n = Number.parseInt(migration.id.slice(0, 4), 10);
-    return Number.isNaN(n) ? max : Math.max(max, n);
-  }, 0);
+  const highest = collectMigrations(files, manifest).reduce(
+    (max, migration) => {
+      const n = Number.parseInt(migration.id.slice(0, 4), 10);
+      return Number.isNaN(n) ? max : Math.max(max, n);
+    },
+    0
+  );
   const index = String(highest + 1).padStart(4, "0");
-  return `${MIGRATION_PREFIX}${index}_${slug(name)}.sql`;
+  return `${migrationPrefix(manifest)}${index}_${slug(name)}.sql`;
 }

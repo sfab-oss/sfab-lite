@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { describe, it } from "node:test";
+import type { ManifestV0 } from "@sfab-lite/core";
+import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
   type AppMigration,
   applyPendingMigrations,
@@ -10,6 +12,8 @@ import {
   nextMigrationPath,
   SCHEMA_VERSION_DDL,
 } from "./app-migrations.ts";
+
+const MANIFEST = seed.manifest as ManifestV0;
 
 function workspace(...paths: string[]): Record<string, string> {
   const files: Record<string, string> = {
@@ -29,7 +33,7 @@ describe("collectMigrations", () => {
       "src/migrations-helper.ts"
     );
     assert.deepEqual(
-      collectMigrations(files).map((m) => m.id),
+      collectMigrations(files, MANIFEST).map((m) => m.id),
       ["0001_auth"]
     );
   });
@@ -46,7 +50,7 @@ describe("collectMigrations", () => {
       "migrations/0001_auth.sql"
     );
     assert.deepEqual(
-      collectMigrations(files).map((m) => m.id),
+      collectMigrations(files, MANIFEST).map((m) => m.id),
       ["0001_auth", "0002_notes", "0010_late"]
     );
   });
@@ -55,7 +59,7 @@ describe("collectMigrations", () => {
 describe("nextMigrationPath", () => {
   it("starts at 0001 in an app with no migrations", () => {
     assert.equal(
-      nextMigrationPath(workspace(), "add expenses"),
+      nextMigrationPath(workspace(), MANIFEST, "add expenses"),
       "migrations/0001_add_expenses.sql"
     );
   });
@@ -66,7 +70,7 @@ describe("nextMigrationPath", () => {
       "migrations/0002_notes.sql"
     );
     assert.equal(
-      nextMigrationPath(files, "expenses"),
+      nextMigrationPath(files, MANIFEST, "expenses"),
       "migrations/0003_expenses.sql"
     );
   });
@@ -82,18 +86,18 @@ describe("nextMigrationPath", () => {
       "migrations/0003_notes.sql"
     );
     assert.equal(
-      nextMigrationPath(files, "expenses"),
+      nextMigrationPath(files, MANIFEST, "expenses"),
       "migrations/0004_expenses.sql"
     );
   });
 
   it("reduces a name to something safe for a filename", () => {
     assert.equal(
-      nextMigrationPath(workspace(), "Add Expenses (v2)!"),
+      nextMigrationPath(workspace(), MANIFEST, "Add Expenses (v2)!"),
       "migrations/0001_add_expenses_v2.sql"
     );
     assert.equal(
-      nextMigrationPath(workspace(), "///"),
+      nextMigrationPath(workspace(), MANIFEST, "///"),
       "migrations/0001_schema.sql"
     );
   });

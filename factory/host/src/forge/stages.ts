@@ -1,7 +1,5 @@
 export interface CdStageTimings {
-  lintMs?: number;
   buildMs?: number;
-  checkMs?: number;
   checkAttempts?: number;
   schemaMs?: number;
   writeMs?: number;

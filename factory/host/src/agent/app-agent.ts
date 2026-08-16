@@ -356,14 +356,14 @@ export class AppAgent extends Think<Env> {
     const compileStarted = Date.now();
     try {
       const files = await collectAgentWorkspaceFiles(this.#fs);
-      const migrations = collectMigrations(files);
       const prev =
         (await this.ctx.storage.get<number>(WORKSPACE_BUILD_GEN_KEY)) ?? 0;
       const generation = prev + 1;
-      const build = await compileWorkspaceFiles(
+      const { build, tree } = await compileWorkspaceFiles(
         files,
         workspaceBuildSha(generation)
       );
+      const migrations = collectMigrations(tree.files, tree.manifest);
       await putWorkspaceBuild(this.env, this.name, {
         generation,
         build,

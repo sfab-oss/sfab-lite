@@ -210,13 +210,16 @@ async function ensureDataMigrated(
   env: Env,
   appId: string,
   dataId: string,
-  sha: string
+  build: AppBuild
 ): Promise<void> {
-  const sourceFiles = await createR2CodeHost(env).readTreeAt(appId, sha);
+  if (build.manifest == null) {
+    throw new Error("ensureDataMigrated: missing manifest");
+  }
+  const sourceFiles = await createR2CodeHost(env).readTreeAt(appId, build.sha);
   if (!sourceFiles) {
     return;
   }
-  const migrations = collectMigrations(sourceFiles);
+  const migrations = collectMigrations(sourceFiles, build.manifest);
   if (migrations.length === 0) {
     return;
   }
@@ -369,7 +372,7 @@ async function bootstrapServeData(
 ): Promise<Response | null> {
   if (target.mode === "preview") {
     try {
-      await ensureDataMigrated(env, target.appId, dataId, build.sha);
+      await ensureDataMigrated(env, target.appId, dataId, build);
     } catch {
       return Response.json(
         {

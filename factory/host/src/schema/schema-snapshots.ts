@@ -12,12 +12,15 @@
  * The trade is deliberate and stated in ADR-0005: a snapshot describes what
  * the SQL beside it was derived from, not what the database did with it.
  */
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
+import type { ManifestV0 } from "@sfab-lite/core";
 import type { SchemaSnapshot } from "./schema-ddl.js";
 
-const META_PREFIX = `${TEMPLATE_MANIFEST.migrations}/meta/`;
 const SNAPSHOT_SUFFIX = "_snapshot.json";
 const SQL_SUFFIX = /\.sql$/;
+
+function metaPrefix(manifest: ManifestV0): string {
+  return `${manifest.migrations}/meta/`;
+}
 
 /** An app before its first migration: no tables, so everything is new. */
 export const EMPTY_SNAPSHOT: SchemaSnapshot = { tables: [] };
@@ -28,15 +31,18 @@ export const EMPTY_SNAPSHOT: SchemaSnapshot = { tables: [] };
  * Named for the migration rather than numbered independently, so a pair that
  * has drifted apart is visible in a directory listing.
  */
-export function snapshotPathFor(migrationPath: string): string {
+export function snapshotPathFor(
+  migrationPath: string,
+  manifest: ManifestV0
+): string {
   const id = migrationPath
-    .slice(TEMPLATE_MANIFEST.migrations.length + 1)
+    .slice(manifest.migrations.length + 1)
     .replace(SQL_SUFFIX, "");
-  return `${META_PREFIX}${id}${SNAPSHOT_SUFFIX}`;
+  return `${metaPrefix(manifest)}${id}${SNAPSHOT_SUFFIX}`;
 }
 
-function isSnapshotPath(path: string): boolean {
-  return path.startsWith(META_PREFIX) && path.endsWith(SNAPSHOT_SUFFIX);
+function isSnapshotPath(path: string, prefix: string): boolean {
+  return path.startsWith(prefix) && path.endsWith(SNAPSHOT_SUFFIX);
 }
 
 /**
@@ -48,8 +54,14 @@ function isSnapshotPath(path: string): boolean {
  * template ships its own snapshot so that a seeded app never sits in that
  * state, and `check:template-snapshot` is what keeps it shipping one.
  */
-export function latestSnapshot(files: Record<string, string>): SchemaSnapshot {
-  const paths = Object.keys(files).filter(isSnapshotPath).sort();
+export function latestSnapshot(
+  files: Record<string, string>,
+  manifest: ManifestV0
+): SchemaSnapshot {
+  const prefix = metaPrefix(manifest);
+  const paths = Object.keys(files)
+    .filter((path) => isSnapshotPath(path, prefix))
+    .sort();
   const newest = paths.at(-1);
   if (!newest) {
     return EMPTY_SNAPSHOT;

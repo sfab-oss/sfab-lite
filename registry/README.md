@@ -57,6 +57,8 @@ recomputes those hashes and, when `origin/main:registry/published.json`
 exists, refuses any change or deletion of an existing `name@version`
 key. Ship a new version by adding a new directory; never mutate `0.1.0`
 in place. No auto-update, ever.
+The harness decides when an app moves to a newer recipe version
+([ADR-0013](../docs/decisions/0013-templates-and-registry-are-inert.md)).
 
 ## What a recipe may target (ratified, owner 2026-08-14)
 

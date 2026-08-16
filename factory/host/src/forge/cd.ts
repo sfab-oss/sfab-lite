@@ -9,6 +9,7 @@ import {
   type LintMode,
   type LintResult,
   lintPasses,
+  type ManifestV0,
 } from "@sfab-lite/core";
 import { build } from "@sfab-lite/verbs/build";
 import { type OverlaidTree, overlayFormatFiles } from "@sfab-lite/verbs/format";
@@ -133,9 +134,10 @@ interface SchemaGateFailure {
 
 async function validateSchema(
   env: Env,
-  files: Record<string, string>
+  files: Record<string, string>,
+  manifest: ManifestV0
 ): Promise<SchemaGateFailure | null> {
-  const probe = await probeSchema(env, files);
+  const probe = await probeSchema(env, files, manifest);
   if (!probe.ok) {
     return {
       error: "schema_probe_failed",
@@ -146,7 +148,7 @@ async function validateSchema(
 
   let diff: ReturnType<typeof diffSchema>;
   try {
-    diff = diffSchema(latestSnapshot(files), probe.snapshot);
+    diff = diffSchema(latestSnapshot(files, manifest), probe.snapshot);
   } catch (cause) {
     return {
       error: "schema_snapshot_unreadable",
@@ -178,9 +180,10 @@ async function validateSchema(
 
 async function applySchemaMigrations(
   files: Record<string, string>,
+  manifest: ManifestV0,
   dataStub: AppDataStub
 ): Promise<SchemaGateFailure | null> {
-  const migrations = collectMigrations(files);
+  const migrations = collectMigrations(files, manifest);
   if (migrations.length === 0) {
     return null;
   }
@@ -199,9 +202,14 @@ async function applySchemaMigrations(
 async function applyLiveSchemaMigrations(
   env: Env,
   appId: string,
-  files: Record<string, string>
+  files: Record<string, string>,
+  manifest: ManifestV0
 ): Promise<SchemaGateFailure | null> {
-  return await applySchemaMigrations(files, liveAppDataStub(env, appId));
+  return await applySchemaMigrations(
+    files,
+    manifest,
+    liveAppDataStub(env, appId)
+  );
 }
 
 /** Bootstrap `${appId}:pr:N` from preview source — empty + migrations, no live clone. */
@@ -211,8 +219,10 @@ export async function applyPreviewSchemaMigrations(
   prNumber: number,
   files: Record<string, string>
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const tree = overlayFormatFiles(files);
   const result = await applySchemaMigrations(
-    files,
+    tree.files,
+    tree.manifest,
     appDataStub(env, prDataId(appId, prNumber))
   );
   if (result) {
@@ -225,16 +235,17 @@ async function gateSchema(
   env: Env,
   appId: string,
   files: Record<string, string>,
+  manifest: ManifestV0,
   opts?: { applyMigrations?: boolean }
 ): Promise<SchemaGateFailure | null> {
-  const validated = await validateSchema(env, files);
+  const validated = await validateSchema(env, files, manifest);
   if (validated) {
     return validated;
   }
   if (opts?.applyMigrations === false) {
     return null;
   }
-  return applyLiveSchemaMigrations(env, appId, files);
+  return applyLiveSchemaMigrations(env, appId, files, manifest);
 }
 
 export type CdResult =
@@ -303,11 +314,13 @@ async function promoteExistingBuild(
   if (aborted(opts?.signal)) {
     return { ok: false, error: "cd_aborted" };
   }
+  const tree = overlayFormatFiles(sourceFiles);
   const schemaStarted = Date.now();
   const schemaFailure = await applyLiveSchemaMigrations(
     env,
     appId,
-    sourceFiles
+    tree.files,
+    tree.manifest
   );
   timings.schemaMs = Date.now() - schemaStarted;
   if (schemaFailure) {
@@ -353,7 +366,6 @@ async function cdBuildArtifacts(
   const tree = overlayFormatFiles(sourceFiles);
   const files = tree.files;
   const lint = await callLint(env, appId, files);
-  timings.lintMs = lint.body == null ? lint.wallMs : lint.body.totalMs;
   if (aborted(signal)) {
     return { ok: false, error: "cd_aborted" };
   }
@@ -398,7 +410,6 @@ async function cdBuildArtifacts(
     tree,
     opts?.forceColdCheck ?? false
   );
-  timings.checkMs = check.body?.ok === true ? check.body.wallMs : check.wallMs;
   timings.checkAttempts = check.attempts;
   if (!(check.http < 500 && checkPasses(check.body))) {
     return {
@@ -417,7 +428,7 @@ async function cdBuildArtifacts(
   }
 
   const schemaStarted = Date.now();
-  const schemaFailure = await gateSchema(env, appId, files, {
+  const schemaFailure = await gateSchema(env, appId, files, tree.manifest, {
     applyMigrations: opts?.applyMigrations,
   });
   timings.schemaMs = Date.now() - schemaStarted;
