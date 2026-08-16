@@ -11,7 +11,7 @@ check units in the check-plumbing PR; generated `package.json` /
 `tsconfig` / `index.html` / `components.json` and image v0 in the
 image PR; the starter rebuild on this tree in the starter-rebuild PR.
 
-Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md);
+Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0015](../decisions/0015-one-worker-per-verb.md);
 close-out: [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md).
 Names:
 [`../engineering/terminology.md`](../engineering/terminology.md).

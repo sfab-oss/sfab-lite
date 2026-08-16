@@ -20,16 +20,16 @@ ADRs under [`../decisions/`](../decisions/).
 ```text
                     ┌─────────────────────────┐
                     │  factory/host           │
-                    │  protected /api + UI    │
+                    │  composer + console     │
                     │  AppDataDO + AppCreateDO│
                     └───────────┬─────────────┘
                                 │
-          ┌─────────────────────┼─────────────────────┐
-          │                     │                     │
-          ▼                     ▼                     ▼
-   LOADER isolates      factory/check (async)     factory/lint (sync)
-   (serve)              TS check ~13s honest   Biome on edit
-                        publish gated on pass
+     ┌──────────────┬───────────┼───────────┬──────────────┐
+     │              │           │           │              │
+     ▼              ▼           ▼           ▼              ▼
+LOADER isolates  factory/check  factory/lint  factory/build
+(serve)          TS ~13s        Biome         esbuild-wasm
+                 publish gate
 ```
 
 - **Code host** holds each app's Git repo (R2 stand-in now; Cloudflare
@@ -58,12 +58,15 @@ ADRs under [`../decisions/`](../decisions/).
   Object was measured and refuted (warmth lasts ~5s idle, not ~30s; full
   template checks never stay warm).
 - **Stateless Biome lint worker** — sync on edit.
+- **Build worker** — `esbuild-wasm` lives here, not in the host
+  ([ADR-0015](../decisions/0015-one-worker-per-verb.md)).
 
 Shared contracts live in `framework/toolchain`. The verbs (`check`,
 `lint`, `build`, format overlay) live in `framework/verbs`; factory
-check and lint workers are HTTP shells over them. The host composes
-those verbs into CD, PR checks, and workspace compile-on-save — there
-is no preview verb ([ADR-0012](../decisions/0012-framework-owns-the-verbs.md)).
+check, lint, and build workers are HTTP shells over them. The host
+composes those verbs into CD, PR checks, and workspace compile-on-save
+— there is no preview verb
+([ADR-0012](../decisions/0012-framework-owns-the-verbs.md)).
 
 ## Related primitives (compose these)
 
@@ -105,7 +108,9 @@ recipes, catalog modules (none yet), agent-written source — with no
 [ADR-0013](../decisions/0013-templates-and-registry-are-inert.md)
 (templates and registry are inert; the harness decides when),
 [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md)
-(adapter contract: generic model in the app, engine in the adapter).
+(adapter contract: generic model in the app, engine in the adapter),
+[ADR-0015](../decisions/0015-one-worker-per-verb.md)
+(one aux worker per verb; the host is a composer).
 `AppBuild` is the image: exact runtime + manifest snapshot + asset keys;
 serve reads only through it.
 
@@ -122,7 +127,7 @@ serve reads only through it.
 
 ## Related
 
-- [ADR-0001](../decisions/0001-edge-native-lite-architecture.md) … [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md)
+- [ADR-0001](../decisions/0001-edge-native-lite-architecture.md) … [ADR-0015](../decisions/0015-one-worker-per-verb.md)
 - [`APP-FORMAT.md`](APP-FORMAT.md) — app layout, manifest v0, generated members, check units, image
 - [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md) — what landed, what carried forward
 - [`../engineering/terminology.md`](../engineering/terminology.md)

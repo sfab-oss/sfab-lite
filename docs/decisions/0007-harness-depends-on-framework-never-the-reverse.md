@@ -24,7 +24,7 @@ Everything in this repo is one of two things:
 - **Framework-side** — `framework/{runtime,toolchain,verbs}`, `registry/`,
   `starters/` — what the future-repo map marks extractable.
 - **Harness** — the testing and reference surface around it: factory
-  console UI, chat/agent API, workspaces, check/lint workers'
+  console UI, chat/agent API, workspaces, check/lint/build workers'
   factory-specific wiring.
 
 **Harness depends on framework, never the reverse.** `check:direction`
