@@ -51,7 +51,7 @@ async function probePeerToken(
 
 /**
  * Health, including the one deploy prerequisite nothing else states out loud:
- * factory, check and lint must hold a byte-identical `ADMIN_TOKEN`.
+ * factory, check, lint and build must hold a byte-identical `ADMIN_TOKEN`.
  *
  * Before this, a mismatch first surfaced mid-commit as `lint_failed` with
  * `lintHttp: 401` — an error that names the lint worker when the fault is a
@@ -62,9 +62,10 @@ export async function handleHealth(
   rc: ProtectedCtx
 ): Promise<ProtectedReply<unknown>> {
   const token = rc.env.ADMIN_TOKEN;
-  const [check, lint] = await Promise.all([
+  const [check, lint, build] = await Promise.all([
     probePeerToken(rc.env.CHECK, token),
     probePeerToken(rc.env.LINT, token),
+    probePeerToken(rc.env.BUILD, token),
   ]);
   return {
     status: 200,
@@ -75,13 +76,19 @@ export async function handleHealth(
       bindings: {
         check: Boolean(rc.env.CHECK),
         lint: Boolean(rc.env.LINT),
+        build: Boolean(rc.env.BUILD),
         loader: Boolean(rc.env.LOADER),
       },
       adminToken: {
         configured: Boolean(token),
         check,
         lint,
-        agree: Boolean(token) && check.matchesCaller && lint.matchesCaller,
+        build,
+        agree:
+          Boolean(token) &&
+          check.matchesCaller &&
+          lint.matchesCaller &&
+          build.matchesCaller,
       },
       seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
       seedMigrations: TEMPLATE_SEED.migrations.length,

@@ -47,6 +47,8 @@ declare global {
     CHECK: Fetcher;
     /** Service binding → sfab-lite-lint */
     LINT: Fetcher;
+    /** Service binding → sfab-lite-build */
+    BUILD: Fetcher;
     /**
      * Service binding → this same worker. `pnpm seed` (computer or `--live`)
      * runs inside the AppAgent DO, which has no `ExecutionContext` and
@@ -120,9 +122,9 @@ declare global {
      */
     SIGNUP_ALLOWLIST?: string;
     /**
-     * Gates every `/api/protected/*` route, and **must be byte-identical in all three
-     * workers** — factory, check, and lint. The factory presents it over the
-     * service bindings; check and lint compare it. A mismatch surfaces
+     * Gates every `/api/protected/*` route, and **must be byte-identical in all four
+     * workers** — factory, check, lint, and build. The factory presents it over the
+     * service bindings; check, lint and build compare it. A mismatch surfaces
      * mid-commit as `lint_failed` / `lintHttp: 401`, which names the wrong
      * component entirely. `/api/protected/health` reports a fingerprint of the value
      * from each worker so a mismatch is visible before it costs a debugging

@@ -11,7 +11,7 @@
  * no bindings, `globalOutbound: null`.
  */
 import type { ManifestV0 } from "@sfab-lite/core";
-import { bundleWithKernel } from "@sfab-lite/verbs/build";
+import { callBundle } from "../forge/call-build.js";
 import { kernelModules } from "../serve/kernel-modules.js";
 import { drizzleKitLoaderModules } from "./drizzle-kit-modules.js";
 import type { KitSnapshot } from "./schema-kit.js";
@@ -62,8 +62,7 @@ export async function probeSchema(
   try {
     const files = { ...sourceFiles };
     files[PROBE_ENTRY] = probeEntrySource(entry);
-    bundle = (await bundleWithKernel(files, PROBE_ENTRY, [KIT_API_EXTERNAL]))
-      .js;
+    bundle = (await callBundle(env, files, PROBE_ENTRY, [KIT_API_EXTERNAL])).js;
   } catch (e) {
     return {
       ok: false,

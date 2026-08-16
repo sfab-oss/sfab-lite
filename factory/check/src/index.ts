@@ -30,11 +30,11 @@ function unauthorized(env: Env, request: Request): Response | null {
 }
 
 /**
- * `adminToken` is what makes the three workers' shared secret checkable.
+ * `adminToken` is what makes the four workers' shared secret checkable.
  *
  * It reports only two booleans about the *caller's* header — never the value,
  * and never a digest of it. `matchesCaller` is no more of an oracle than
- * `POST /check` already is, and it turns "do factory, check and lint agree?"
+ * `POST /check` already is, and it turns "do factory, check, lint and build agree?"
  * into one question the factory's `/api/protected/health` can ask directly, instead of
  * a `lintHttp: 401` mid-commit that names the wrong component.
  */

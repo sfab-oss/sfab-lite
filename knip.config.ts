@@ -54,7 +54,10 @@ const config: KnipConfig = {
       project: ["src/**/*.ts"],
     },
     "factory/lint": {
-      project: ["src/**/*.{ts,tsx}"],
+      project: ["src/**/*.ts"],
+    },
+    "factory/build": {
+      project: ["src/**/*.ts"],
     },
     "framework/verbs": {
       entry: [

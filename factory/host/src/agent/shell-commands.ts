@@ -286,6 +286,7 @@ async function ensureWorkspaceBuildForSeed(
     const files = await collectWorkspaceSourceFiles(ctx);
     const generation = Date.now();
     const { build, tree } = await compileWorkspaceFiles(
+      deps.env,
       files,
       workspaceBuildSha(generation)
     );

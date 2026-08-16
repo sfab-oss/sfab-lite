@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 # Superseded PR runs are cancelled; runs on main are not. A main run carries
-# the deploy job, and cancelling mid-`wrangler deploy` can leave the three
-# workers on mismatched versions — factory service-binds check and lint.
+# the deploy job, and cancelling mid-`wrangler deploy` can leave the four
+# workers on mismatched versions — factory service-binds check, lint, and build.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
@@ -160,10 +160,9 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm --filter @sfab-lite/factory build:ui
 
-      # Built-bundle upload gate for aux workers (`check` / `lint`). Factory is
-      # measured warn-only — host console size is not a CI fail (kernel/template
-      # gates cover generated-app pressure). Lint still sits near Cloudflare's
-      # 10 MB Worker ceiling; a Biome bump must fail here, not at deploy.
+      # Built-bundle upload gate for every worker in the app loop (host,
+      # check, lint, build). All four hard-fail at ≥97% of the 10 MB Worker
+      # ceiling so a failed prod deploy is never the first signal.
       - name: bundle-size
         if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.ui-build.outcome == 'success' }}
         run: pnpm check:bundle-size
@@ -171,9 +170,9 @@ jobs:
   # Deploying is part of CI here, not a separate workflow on the same trigger.
   # sfab splits them, and that split lets a deploy race its own gates and ship
   # a red commit. `needs: gates` makes that impossible. It matters more in this
-  # repo than in sfab: the lint worker sits at ~95% of Cloudflare's 10 MB
-  # upload limit, so a dependency bump can make the deploy itself fail, and
-  # `check:bundle-size` is what catches it first.
+  # repo than in sfab: every worker in the app loop is hard-gated at 97% of
+  # Cloudflare's 10 MB upload limit, so a dependency bump can make the deploy
+  # itself fail, and `check:bundle-size` is what catches it first.
   deploy:
     needs: gates
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
@@ -234,8 +233,8 @@ jobs:
           workingDirectory: factory/host
           command: d1 migrations apply sfab-lite-factory --remote
 
-      # Order is load-bearing: factory service-binds check and lint, so they
-      # must already be deployed when it comes up.
+      # Order is load-bearing: factory service-binds check, lint, and build, so
+      # they must already be deployed when it comes up.
       - name: Deploy check
         uses: cloudflare/wrangler-action@v4
         with:
@@ -250,6 +249,14 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: factory/lint
+          command: deploy
+
+      - name: Deploy build
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: factory/build
           command: deploy
 
       - name: Deploy factory

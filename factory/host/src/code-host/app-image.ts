@@ -1,13 +1,13 @@
-import type { build } from "@sfab-lite/verbs/build";
 import type { OverlaidTree } from "@sfab-lite/verbs/format";
 import type { AppBuild } from "../code-host/build-store.js";
 import { toAppBuild } from "../code-host/build-store.js";
+import type { AppCompileResult } from "../forge/call-build.js";
 import { collectMigrations } from "../registry/app-migrations.js";
 
 export function appBuildFromCompile(
   sha: string,
   tree: OverlaidTree,
-  compiled: Awaited<ReturnType<typeof build>>
+  compiled: AppCompileResult
 ): AppBuild {
   return toAppBuild({
     sha,
