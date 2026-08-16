@@ -50,6 +50,7 @@ interface Stored {
 
 export class FakeR2Bucket {
   readonly puts: string[] = [];
+  readonly listCalls: { prefix?: string; limit?: number }[] = [];
   readonly #store = new Map<string, Stored>();
 
   put(
@@ -100,6 +101,7 @@ export class FakeR2Bucket {
     const prefix = options?.prefix ?? "";
     const delimiter = options?.delimiter;
     const limit = options?.limit ?? 1000;
+    this.listCalls.push({ prefix: options?.prefix, limit: options?.limit });
     const startAfter = options?.cursor ?? options?.startAfter;
     const keys = [...this.#store.keys()]
       .filter((k) => k.startsWith(prefix))

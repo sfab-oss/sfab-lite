@@ -46,6 +46,7 @@ export interface GitWorkFs {
   realpath: (path: string) => Promise<string>;
   resolvePath: (base: string, path: string) => string;
   glob: (pattern: string) => Promise<string[]>;
+  listFilesUnder?: (dir: string) => Promise<string[]>;
 }
 
 export interface CodeHostRepo {

@@ -86,6 +86,28 @@ export class R2GitFs implements GitWorkFs {
     return listed.objects.length > 0;
   }
 
+  async listFilesUnder(dir: string): Promise<string[]> {
+    const prefix = this.#childPrefix(normalize(dir));
+    const files: string[] = [];
+    let cursor: string | undefined;
+    do {
+      const listed = await this.#bucket.list({
+        prefix,
+        cursor,
+        limit: 1000,
+      });
+      for (const obj of listed.objects) {
+        const rest = obj.key.slice(prefix.length);
+        if (!rest || rest === ".gitkeep" || rest.endsWith("/.gitkeep")) {
+          continue;
+        }
+        files.push(rest);
+      }
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+    return files;
+  }
+
   async readFile(path: string): Promise<string> {
     const bytes = await this.readFileBytes(path);
     return new TextDecoder().decode(bytes);

@@ -31,9 +31,38 @@ function joinPath(dir: string, name: string): string {
   return dir === "/" ? `/${name}` : `${dir}/${name}`;
 }
 
+function isEnoent(err: unknown): boolean {
+  if (!(err instanceof Error)) {
+    return false;
+  }
+  if ("code" in err && (err as { code: unknown }).code === "ENOENT") {
+    return true;
+  }
+  return err.message.startsWith("ENOENT");
+}
+
 interface CopyFile {
   fromPath: string;
   toPath: string;
+}
+
+async function lstatOrMissing(
+  fs: GitWorkFs,
+  path: string
+): Promise<{
+  type: "file" | "directory" | "symlink";
+  size: number;
+  mtime: Date;
+  mode?: number;
+} | null> {
+  try {
+    return await fs.lstat(path);
+  } catch (err) {
+    if (isEnoent(err)) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function collectCopyPlan(
@@ -43,10 +72,10 @@ async function collectCopyPlan(
   files: CopyFile[],
   emptyDirs: string[]
 ): Promise<void> {
-  if (!(await from.exists(fromDir))) {
+  const st = await lstatOrMissing(from, fromDir);
+  if (!st) {
     return;
   }
-  const st = await from.lstat(fromDir);
   if (st.type === "file") {
     files.push({ fromPath: fromDir, toPath: toDir });
     return;
@@ -69,15 +98,60 @@ async function collectCopyPlan(
   }
 }
 
+async function collectViaPrefixList(
+  from: GitWorkFs,
+  fromDir: string,
+  toDir: string,
+  files: CopyFile[]
+): Promise<void> {
+  const rels = await from.listFilesUnder?.(fromDir);
+  if (!rels) {
+    return;
+  }
+  for (const rel of rels) {
+    files.push({
+      fromPath: joinPath(fromDir, rel),
+      toPath: joinPath(toDir, rel),
+    });
+  }
+}
+
 export async function copyTree(
   from: GitWorkFs,
   fromDir: string,
   to: GitWorkFs,
   toDir: string
 ): Promise<void> {
+  const st = await lstatOrMissing(from, fromDir);
+  if (!st) {
+    return;
+  }
+  if (st.type === "file") {
+    await to.writeFileBytes(toDir, await from.readFileBytes(fromDir));
+    return;
+  }
   const files: CopyFile[] = [];
   const emptyDirs: string[] = [];
-  await collectCopyPlan(from, fromDir, toDir, files, emptyDirs);
+  if (from.listFilesUnder) {
+    await collectViaPrefixList(from, fromDir, toDir, files);
+  } else {
+    const names = (await from.readdir(fromDir)).filter(
+      (name) => name !== "." && name !== ".."
+    );
+    if (names.length === 0) {
+      emptyDirs.push(toDir);
+    } else {
+      for (const name of names) {
+        await collectCopyPlan(
+          from,
+          joinPath(fromDir, name),
+          joinPath(toDir, name),
+          files,
+          emptyDirs
+        );
+      }
+    }
+  }
   await mapLimit(files, COPY_CONCURRENCY, async (file) => {
     await to.writeFileBytes(
       file.toPath,

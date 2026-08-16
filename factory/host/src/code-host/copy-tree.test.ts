@@ -111,6 +111,45 @@ describe("copyTree", () => {
       await listFiles(back, "/.git/objects")
     );
   });
+
+  it("lists an R2 source in O(pages), not O(dirs)", async () => {
+    const bucket = new FakeR2Bucket();
+    const src = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    const dirs = 24;
+    for (let i = 0; i < dirs; i++) {
+      const hex = i.toString(16).padStart(2, "0");
+      await src.writeFileBytes(
+        `/objects/${hex}/blob`,
+        new TextEncoder().encode(hex)
+      );
+    }
+    bucket.listCalls.length = 0;
+    const dest = new InMemoryFs() as unknown as GitWorkFs;
+    await copyTree(src, "/objects", dest, "/.git/objects");
+    const prefixPages = bucket.listCalls.filter(
+      (c) => c.prefix?.endsWith("/objects/") && c.limit !== 1
+    );
+    assert.equal(prefixPages.length, 1);
+    assert.ok(bucket.listCalls.length < dirs);
+    assert.equal(await dest.readFile("/.git/objects/00/blob"), "00");
+    assert.equal(
+      await dest.readFile(
+        `/.git/objects/${(dirs - 1).toString(16).padStart(2, "0")}/blob`
+      ),
+      (dirs - 1).toString(16).padStart(2, "0")
+    );
+  });
+
+  it("falls back to recursive readdir when the source has no prefix list", async () => {
+    const from = new InMemoryFs() as unknown as GitWorkFs;
+    await from.writeFile("/objects/ab/cdef", "blob");
+    await from.mkdir("/objects/pack", { recursive: true });
+    const bucket = new FakeR2Bucket();
+    const dest = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    await copyTree(from, "/objects", dest, "/objects");
+    assert.equal(await dest.readFile("/objects/ab/cdef"), "blob");
+    assert.deepEqual(await dest.readdir("/objects/pack"), []);
+  });
 });
 
 describe("receivePush object-then-ref order", () => {

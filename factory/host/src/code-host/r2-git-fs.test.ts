@@ -61,3 +61,14 @@ describe("R2GitFs mkdir markers", () => {
     assert.deepEqual(await git.readdir("/objects/ab"), ["cdef"]);
   });
 });
+
+describe("R2GitFs listFilesUnder", () => {
+  it("returns relative file paths from one prefix list and skips .gitkeep", async () => {
+    const { git } = fs();
+    await git.mkdir("/objects/pack", { recursive: true });
+    await git.writeFileBytes("/objects/ab/one", new TextEncoder().encode("a"));
+    await git.writeFileBytes("/objects/cd/two", new TextEncoder().encode("b"));
+    const paths = await git.listFilesUnder("/objects");
+    assert.deepEqual(paths.sort(), ["ab/one", "cd/two"]);
+  });
+});
