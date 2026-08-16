@@ -1,7 +1,7 @@
 # 2026-08-15 — PR 9a: image v0 + generated format files
 
 Non-authoritative (see [`README.md`](README.md)). Direction:
-[`2026-08-12-lite-evolution-direction.md`](2026-08-12-lite-evolution-direction.md)
+[`2026-08-15-milestone-1-closeout.md`](2026-08-15-milestone-1-closeout.md) (was the 2026-08-12 direction note, graduated 2026-08-15)
 rollout 9. RFC:
 [`../architecture/APP-FORMAT.md`](../architecture/APP-FORMAT.md).
 

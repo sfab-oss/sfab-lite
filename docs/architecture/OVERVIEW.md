@@ -79,20 +79,41 @@ compare = multiple **Deployments** (branches/PRs), not N WIP trees. Nested
 canvases are a non-goal. Naming:
 [`../engineering/terminology.md`](../engineering/terminology.md).
 
+## App format, registry, images (Milestone 1, closed 2026-08-15)
+
+Code enters an app four ways and only four — base runtime, registry
+recipes, catalog modules (none yet), agent-written source — with no
+`npm install` in the happy path. The contract is
+[`APP-FORMAT.md`](APP-FORMAT.md); the decisions behind it are
+[ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)
+(runtime is platform-resolved, pinned by line),
+[ADR-0007](../decisions/0007-harness-depends-on-framework-never-the-reverse.md)
+(harness → framework, `check:direction`),
+[ADR-0008](../decisions/0008-declarative-manifest-no-app-plugin-system.md)
+(declarative manifest, generated root files, no plugin API),
+[ADR-0009](../decisions/0009-registry-shadcn-format-served-lite-namespace.md)
+(shadcn-format registry served at `/r/`, `@lite` only, provenance),
+[ADR-0010](../decisions/0010-runtime-type-surface-independent-and-checked-in-units.md)
+(runtime-owned type surfaces, snapshot client edge, three check units),
+[ADR-0011](../decisions/0011-eject-rule.md) (eject rule).
+`AppBuild` is the image: exact runtime + manifest snapshot + asset keys;
+serve reads only through it.
+
 ## What is in, what is not
 
 | In | Not built yet |
 | --- | --- |
-| Template, frozen kernel, host, check, lint | Tasks-lite |
-| Auth, organizations, app registry | Diffs, quotas, schema evolution, eject |
+| Starter (ERP slice), base runtime, host, check units, lint | Tasks-lite |
+| Auth, organizations, app registry | Diffs, quotas, schema evolution |
+| App format v0, manifest, generated files, image v0 | Second serve adapter; source-upgrade of existing apps |
+| Registry (10 recipes), hosted `add`, `/r/` serving | In-app (per-app) agent — design deferred |
 | Factory console + in-console agent loop | Agent over the protected `/api` |
-| Isolated org-auth PR previews | Design board |
-| Agent Browser workspace WIP serve | |
+| Isolated org-auth PR previews, workspace WIP serve | Design board |
 
 ## Related
 
-- [ADR-0001](../decisions/0001-edge-native-lite-architecture.md)
-- [ADR-0002](../decisions/0002-monorepo-tooling-not-product-lite.md)
-- [`APP-FORMAT.md`](APP-FORMAT.md) — app layout, manifest v0, check units
+- [ADR-0001](../decisions/0001-edge-native-lite-architecture.md) … [ADR-0011](../decisions/0011-eject-rule.md)
+- [`APP-FORMAT.md`](APP-FORMAT.md) — app layout, manifest v0, generated members, check units, image
+- [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md) — what landed, what carried forward
 - [`../engineering/terminology.md`](../engineering/terminology.md)
 - [`../engineering/agent-surfaces.md`](../engineering/agent-surfaces.md)

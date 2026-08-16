@@ -1,9 +1,8 @@
 # App format
 
-**Status:** RFC — the contract later PRs implement. Authoritative for
-layout, manifest v0, generated members, check-unit ordering, and the
-adapter shape. Snapshot emit, image v0, and the four root generated
-files are built; a second adapter is not.
+**Status:** Authoritative for layout, manifest v0, generated members,
+check-unit ordering, and the adapter shape. Everything named here is
+built (Milestone 1, closed 2026-08-15) except a second adapter.
 
 This file lives in `docs/architecture/` because it is the format
 contract, not a working note. Implementations: schema/validation in
@@ -12,9 +11,9 @@ check units in the check-plumbing PR; generated `package.json` /
 `tsconfig` / `index.html` / `components.json` and image v0 in the
 image PR; the starter rebuild on this tree in the starter-rebuild PR.
 
-Direction:
-[`../notes/2026-08-12-lite-evolution-direction.md`](../notes/2026-08-12-lite-evolution-direction.md)
-(milestone item 2). Names:
+Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0011](../decisions/0011-eject-rule.md);
+close-out: [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md).
+Names:
 [`../engineering/terminology.md`](../engineering/terminology.md).
 
 ## 1. What an app is

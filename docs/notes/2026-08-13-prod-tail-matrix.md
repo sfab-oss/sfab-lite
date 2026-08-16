@@ -5,7 +5,7 @@ Non-authoritative (see [`README.md`](README.md)). Catalogue:
 Priors: [`2026-08-13-stack-typed-shallow.md`](2026-08-13-stack-typed-shallow.md),
 [`2026-08-13-snapshot-accumulating-hono.md`](2026-08-13-snapshot-accumulating-hono.md).
 Direction: decision 8 in
-[`2026-08-12-lite-evolution-direction.md`](2026-08-12-lite-evolution-direction.md).
+[ADR-0010](../decisions/0010-runtime-type-surface-independent-and-checked-in-units.md) (was the 2026-08-12 direction note, graduated 2026-08-15).
 
 **Status:** adopted (units architecture). Cheap-surface union does **not**
 fit production.
