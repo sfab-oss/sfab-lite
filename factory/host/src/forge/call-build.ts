@@ -1,3 +1,4 @@
+import type { build, bundleWithKernel } from "@sfab-lite/verbs/build";
 import type { OverlaidTree } from "@sfab-lite/verbs/format";
 
 export function auxServiceHeaders(env: Env): Record<string, string> {
@@ -8,37 +9,11 @@ export function auxServiceHeaders(env: Env): Record<string, string> {
   return h;
 }
 
-export interface AppCompileResult {
-  compiled: {
-    serverBundle: string;
-    compileMs: number;
-    kernelVersion: string;
-    serverSurfaceHash: string;
-    mainModule: string;
-    warnings: unknown[];
-  };
-  client: {
-    js: string;
-    compileMs: number;
-    kernelVersion: string;
-    bailouts: string[];
-  };
-  css: {
-    css: string;
-    compileMs: number;
-    buildMs: number;
-    candidateCount: number;
-    candidates: string[];
-    missesDocumented: boolean;
-  };
-  assets: Record<string, string>;
-}
+export type AppCompileResult = Awaited<ReturnType<typeof build>>;
 
-export interface BundleWithKernelResult {
-  js: string;
-  mainModule: string;
-  warnings: unknown[];
-}
+export type BundleWithKernelResult = Awaited<
+  ReturnType<typeof bundleWithKernel>
+>;
 
 interface BuildWorkerFailure {
   ok?: boolean;
