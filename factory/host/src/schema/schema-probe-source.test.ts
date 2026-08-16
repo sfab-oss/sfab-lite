@@ -1,147 +1,98 @@
 import assert from "node:assert/strict";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
-import { after, describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
+import { describe, it } from "node:test";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
-  canonicalizeSnapshot,
-  diffSchema,
-  introspectSchema,
-  type SchemaSnapshot,
-} from "./schema-ddl.ts";
+  generateSQLiteDrizzleJson,
+  generateSQLiteMigration,
+} from "drizzle-kit/api";
+import {
+  account,
+  invitation,
+  member,
+  organization,
+  session,
+  user,
+  verification,
+} from "../../../../starters/erp/app/src/db/auth.ts";
+import {
+  ledgerEntry,
+  party,
+} from "../../../../starters/erp/app/src/db/ledger.ts";
+import { classifySql } from "./classify-sql.ts";
 import { probeEntrySource } from "./schema-probe-source.ts";
 
-/**
- * The probe is executed here for real, against real drizzle, over the real
- * template schema — everything except the bundling and Worker Loader transport,
- * which the server bundle already exercises on every deploy.
- *
- * It has to run from inside the template app: the generated source imports the
- * schema by a path relative to itself, and drizzle only resolves from there.
- * The file is written and removed around the run; its name is gitignored so a
- * crash cannot leave the template dirty.
- */
-const APP_SRC = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../../starters/erp/app/src"
-);
-const SCRATCH = join(APP_SRC, "__sfab_probe_check.ts");
+const schema = {
+  account,
+  invitation,
+  member,
+  organization,
+  session,
+  user,
+  verification,
+  ledgerEntry,
+  party,
+};
 
-after(() => rmSync(SCRATCH, { force: true }));
+const EXPECTED_TABLES = [
+  "account",
+  "invitation",
+  "ledger_entry",
+  "member",
+  "organization",
+  "party",
+  "session",
+  "user",
+  "verification",
+];
 
-async function runProbe(): Promise<SchemaSnapshot> {
-  mkdirSync(dirname(SCRATCH), { recursive: true });
-  writeFileSync(SCRATCH, probeEntrySource(seed.manifest.schema));
-  const mod = (await import(`${SCRATCH}?t=${seed.migrations.length}`)) as {
-    default: { fetch: () => Response };
-  };
-  const body = (await mod.default.fetch().json()) as {
-    ok: boolean;
-    error?: string;
-    tables?: SchemaSnapshot["tables"];
-  };
-  assert.ok(body.ok, `probe failed: ${body.error}`);
-  return canonicalizeSnapshot({ tables: body.tables ?? [] });
-}
+const BLOCK_COMMENT = /\/\*[\s\S]*?\*\//g;
+const LINE_COMMENT = /--[^\n]*/g;
+const WHITESPACE = /\s+/g;
+const DROP_PARTY = /DROP TABLE\s+`party`/i;
 
-function seededDatabase() {
-  const db = new DatabaseSync(":memory:");
-  for (const migration of seed.migrations) {
-    db.exec(migration.sql);
-  }
-  return (query: string) =>
-    db.prepare(query).all() as Record<string, unknown>[];
+function statementSet(sql: string): Set<string> {
+  const stripped = sql.replace(BLOCK_COMMENT, " ").replace(LINE_COMMENT, " ");
+  return new Set(
+    stripped
+      .split(";")
+      .map((part) => part.replace(WHITESPACE, " ").trim())
+      .filter((part) => part.length > 0)
+  );
 }
 
 describe("probeEntrySource", () => {
-  it("reports every table the template declares", async () => {
-    const snapshot = await runProbe();
-    assert.deepEqual(snapshot.tables.map((t) => t.name).sort(), [
-      "account",
-      "invitation",
-      "ledger_entry",
-      "member",
-      "organization",
-      "party",
-      "session",
-      "user",
-      "verification",
-    ]);
-  });
-
-  it("reads defaults, keys, indexes, and foreign keys off the party table", async () => {
-    const party = (await runProbe()).tables.find((t) => t.name === "party");
-    assert.ok(party);
-    assert.deepEqual(party.primaryKey, ["id"]);
-    assert.equal(
-      party.columns.find((c) => c.name === "kind")?.defaultSql,
-      "'customer'"
-    );
-    assert.equal(
-      party.columns.find((c) => c.name === "created_at")?.defaultSql,
-      "(cast(unixepoch('subsecond') * 1000 as integer))"
-    );
-    assert.deepEqual(party.indexes, [
-      {
-        name: "party_organizationId_idx",
-        columns: ["organization_id"],
-        unique: false,
-      },
-    ]);
-    assert.deepEqual(party.foreignKeys, [
-      {
-        columns: ["organization_id"],
-        refTable: "organization",
-        refColumns: ["id"],
-        onUpdate: "no action",
-        onDelete: "cascade",
-      },
-    ]);
-  });
-
-  /**
-   * `$onUpdate` sets `hasDefault` without giving the column any SQL default.
-   * Branching on `hasDefault` would emit `DEFAULT undefined`; drizzle-kit
-   * writes `session.updated_at` with no default at all, and so must we.
-   */
-  it("gives no default to a column that only has an onUpdate hook", async () => {
-    const session = (await runProbe()).tables.find((t) => t.name === "session");
-    assert.equal(
-      session?.columns.find((c) => c.name === "updated_at")?.defaultSql,
-      null
-    );
-  });
-
-  /**
-   * `uniqueName` is populated on every column whether or not it is unique, so
-   * this fails loudly if the probe ever branches on the name instead of the
-   * flag — the symptom would be a unique index invented on every column.
-   */
-  it("emits a unique index only for columns actually marked unique", async () => {
-    const user = (await runProbe()).tables.find((t) => t.name === "user");
-    assert.deepEqual(user?.indexes, [
-      { name: "user_email_unique", columns: ["email"], unique: true },
-    ]);
+  it("imports drizzle-kit generate and the app schema", () => {
+    const source = probeEntrySource(seed.manifest.schema);
+    assert.ok(source.includes("generateSQLiteDrizzleJson"));
+    assert.ok(source.includes("generateSQLiteMigration"));
+    assert.ok(source.includes('from "./api.mjs"'));
+    assert.ok(source.includes("./db/schema.ts"));
   });
 });
 
-/**
- * The assertion this whole branch exists to make true.
- *
- * The declared schema and the migrations that build the database are two
- * descriptions of one thing, and nothing until now checked that they agreed.
- * Diffing a freshly migrated database against what the code declares must find
- * nothing to do — and had this test existed, the shipped bug would have failed
- * it.
- */
 describe("template schema and seed migrations agree", () => {
-  it("finds no difference between declared and migrated", async () => {
-    const desired = await runProbe();
-    const actual = introspectSchema(seededDatabase());
-    const diff = diffSchema(actual, desired);
-    assert.deepEqual(diff.blocking, []);
-    assert.deepEqual(diff.statements, []);
+  it("kit generate from empty matches the seed SQL statements", async () => {
+    const empty = await generateSQLiteDrizzleJson({});
+    const current = await generateSQLiteDrizzleJson(schema);
+    const sql = await generateSQLiteMigration(empty, current);
+    assert.deepEqual(Object.keys(current.tables ?? {}).sort(), EXPECTED_TABLES);
+    const kit = statementSet(sql.join(";\n"));
+    const fixture = statementSet(seed.migrations.map((m) => m.sql).join("\n"));
+    assert.deepEqual(kit, fixture);
+  });
+
+  it("refuses a destructive diff", async () => {
+    const current = await generateSQLiteDrizzleJson(schema);
+    const { party: _removed, ...tables } = current.tables;
+    const dropped = {
+      ...current,
+      tables,
+      id: "drop-probe",
+      prevId: current.id,
+    };
+    const sql = await generateSQLiteMigration(current, dropped);
+    const classified = classifySql(sql);
+    assert.ok(classified.blocking.length > 0);
+    assert.ok(classified.blocking.some((s) => DROP_PARTY.test(s)));
   });
 });

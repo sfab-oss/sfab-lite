@@ -179,6 +179,20 @@ duration is only observable from the tail's `wallTime`. And the remaining
 seconds are now the check unit itself (cold LanguageService on every create,
 `forceColdCheck`), ensureRepo, and the ≤5 s create poll — not the code host.
 
+### 8. Load drizzle-kit generate as extra ESM in the schema-probe Loader child
+
+A naive esbuild/vite bundle of `drizzle-kit/api` does not boot on workerd
+(eager dialect init; `createRequire(import.meta.url)` with `url` undefined).
+The 2026-08-16 probe ran a patched `api.mjs` as its own ES module under
+`nodejs_compat` (~0.44–0.64 MiB gzip; import-closure ~0.56 MiB gzip). The
+host fetches that map from `KERNEL_R2`
+(`tools/drizzle-kit/<kit>-<orm>/`) on first use per isolate and passes
+the sources into the existing schema-probe Worker Loader child so Vite
+never flattens or executes `api.mjs`. Shipping the map inside the host
+script pushed `factory/host` to 9.84 MiB gzip (103% of the 10 MB Worker
+limit). Not the check worker — that isolate is the 128 MB budget. See
+[ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md).
+
 ## Measured and rejected — do not re-derive these
 
 | Idea | Why it fails | Evidence |

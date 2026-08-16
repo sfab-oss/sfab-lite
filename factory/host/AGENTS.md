@@ -37,6 +37,12 @@ pnpm --filter @sfab-lite/factory dev
 # → http://localhost:8790/dev/ui
 ```
 
+`dev` uploads the schema-probe drizzle-kit module map to local Miniflare
+R2 first (`upload-drizzle-kit-r2`, `--local` default — same bucket as
+the kernel). Without that object, `pnpm db:generate` fails with
+`drizzle-kit modules not uploaded for <version> — run upload`. Do not
+pass `--remote` from a laptop.
+
 ## Imports
 
 ```ts

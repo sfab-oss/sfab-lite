@@ -49,7 +49,7 @@ TanStack-Start-shaped. Feature scope is a subdirectory under
   biome.json                    # injected at seed from the toolchain
   migrations/
     0001_auth.sql               # owner-editable; applied ledger is immutable
-    meta/                       # snapshots; db:generate is offline (ADR-0005)
+    meta/                       # drizzle-kit journal + version-6 snapshots; owner-editable through db:generate only (ADR-0005 / ADR-0014)
   src/
     server.ts                   # server entry (Hono)
     router.tsx                  # client router
@@ -229,7 +229,7 @@ This format **composes with** that ADR, it does not replace it:
 | --- | --- |
 | Real `package.json` / `tsconfig.json` in the tree | Host-generated, exact pins, no install step |
 | `index.html` + Vite config | Host compiles; Vite is for eject / standalone |
-| Drizzle-style `migrations/` + `meta/` snapshots | `db:generate` is offline; nothing introspects a database |
+| Drizzle-kit `migrations/` + `meta/` (journal + version-6 snapshots) | `db:generate` is offline; nothing introspects a database |
 | Familiar `src/routes`, `components`, `lib`, `hooks` | Closed import surface (base runtime + copied source) |
 | `manifest.json` | Additional, not a substitute for the ordinary files |
 
@@ -442,7 +442,7 @@ call sites keep working; later PRs retarget them onto these names.
 | `app.live` / `app.attempts` | `GET /apps/:id/live`, attempts; MCP `apps_live` / `apps_attempts` | Thin pointer + create-job status. |
 | `app.sql` | `POST /apps/:id/sql` | App-database probe; not schema introspection (ADR-0005). |
 | `app.migrate` | CD apply-by-id-and-hash | Applied migrations immutable. |
-| `app.generate` | host `db:generate` — offline schema vs `migrations/meta` | Ordinary drizzle loop. |
+| `app.generate` | host `db:generate` — drizzle-kit API vs `migrations/meta` (journal + version-6 snapshots) | Ordinary drizzle loop. |
 | `app.add` | `POST /api/protected/apps/:id/add`, MCP `apps_add` | Copies `@lite` recipes into the think-workspace; provenance → `manifest.recipes`. Re-add overwrites. |
 | `workspace.list` / `ls` / `read` / `write` / `rm` / `glob` | MCP `workspaces_*` / `workspace_*` | Think-workspace FS, not a console screen. |
 | `workspace.bash` | MCP `bash` | |

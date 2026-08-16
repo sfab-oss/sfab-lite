@@ -28,9 +28,13 @@ import {
   appDataStub,
   liveAppDataStub,
 } from "../registry/app-stub.js";
-import { diffSchema } from "../schema/schema-ddl.js";
+import { classifySql } from "../schema/classify-sql.js";
+import type { KitSnapshot } from "../schema/schema-kit.js";
 import { probeSchema } from "../schema/schema-probe.js";
-import { latestSnapshot } from "../schema/schema-snapshots.js";
+import {
+  latestSnapshot,
+  legacySchemaGateFailure,
+} from "../schema/schema-snapshots.js";
 import {
   type CdStages,
   type CdStageTimings,
@@ -127,7 +131,8 @@ interface SchemaGateFailure {
     | "schema_unsafe"
     | "schema_probe_failed"
     | "schema_snapshot_unreadable"
-    | "schema_history_changed";
+    | "schema_history_changed"
+    | "schema_meta_legacy";
   message: string;
   detail: unknown;
 }
@@ -137,7 +142,23 @@ async function validateSchema(
   files: Record<string, string>,
   manifest: ManifestV0
 ): Promise<SchemaGateFailure | null> {
-  const probe = await probeSchema(env, files, manifest);
+  const legacy = legacySchemaGateFailure(files, manifest);
+  if (legacy) {
+    return { ...legacy, detail: null };
+  }
+
+  let prev: KitSnapshot;
+  try {
+    prev = latestSnapshot(files, manifest);
+  } catch (cause) {
+    return {
+      error: "schema_snapshot_unreadable",
+      message: cause instanceof Error ? cause.message : String(cause),
+      detail: null,
+    };
+  }
+
+  const probe = await probeSchema(env, files, manifest, prev);
   if (!probe.ok) {
     return {
       error: "schema_probe_failed",
@@ -146,16 +167,7 @@ async function validateSchema(
     };
   }
 
-  let diff: ReturnType<typeof diffSchema>;
-  try {
-    diff = diffSchema(latestSnapshot(files, manifest), probe.snapshot);
-  } catch (cause) {
-    return {
-      error: "schema_snapshot_unreadable",
-      message: cause instanceof Error ? cause.message : String(cause),
-      detail: null,
-    };
-  }
+  const diff = classifySql(probe.sql);
 
   if (diff.blocking.length > 0) {
     return {
@@ -166,12 +178,12 @@ async function validateSchema(
     };
   }
 
-  if (diff.statements.length > 0) {
+  if (diff.additive.length > 0) {
     return {
       error: "schema_migration_missing",
       message:
         "The schema declares tables or columns no migration creates. Run `pnpm db:generate` to write one, then deploy again.",
-      detail: { pending: diff.additive, statements: diff.statements },
+      detail: { pending: diff.additive, statements: probe.sql },
     };
   }
 
