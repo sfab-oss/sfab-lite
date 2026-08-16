@@ -12,7 +12,7 @@
   },
   "include": [
     "src/index.ts",
-    "src/kernel-paths.ts",
+    "src/kernel-paths.d.ts",
     "src/generated/*.d.ts",
     "kernel.json"
   ],
