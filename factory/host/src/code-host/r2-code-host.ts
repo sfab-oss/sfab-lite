@@ -8,6 +8,7 @@ import type {
   GitWorkFs,
 } from "./code-host.js";
 import { remoteUrlFor } from "./code-host.js";
+import { copyTree } from "./copy-tree.js";
 import { R2GitFs } from "./r2-git-fs.js";
 
 const AUTHOR = { name: "sfab-lite", email: "forge@sfab.dev" };
@@ -72,31 +73,6 @@ async function listRefNames(
     }
   }
   return names;
-}
-
-async function copyTree(
-  from: GitWorkFs,
-  fromDir: string,
-  to: GitWorkFs,
-  toDir: string
-): Promise<void> {
-  if (!(await from.exists(fromDir))) {
-    return;
-  }
-  const st = await from.lstat(fromDir);
-  if (st.type === "file") {
-    await to.writeFileBytes(toDir, await from.readFileBytes(fromDir));
-    return;
-  }
-  await to.mkdir(toDir, { recursive: true });
-  for (const name of await from.readdir(fromDir)) {
-    if (name === "." || name === "..") {
-      continue;
-    }
-    const src = fromDir === "/" ? `/${name}` : `${fromDir}/${name}`;
-    const dest = toDir === "/" ? `/${name}` : `${toDir}/${name}`;
-    await copyTree(from, src, to, dest);
-  }
 }
 
 function asShellFs(fs: GitWorkFs) {
