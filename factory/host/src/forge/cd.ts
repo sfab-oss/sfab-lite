@@ -353,7 +353,7 @@ async function cdBuildArtifacts(
   const tree = overlayFormatFiles(sourceFiles);
   const files = tree.files;
   const lint = await callLint(env, appId, files);
-  timings.lintMs = lint.wallMs;
+  timings.lintMs = lint.body == null ? lint.wallMs : lint.body.totalMs;
   if (aborted(signal)) {
     return { ok: false, error: "cd_aborted" };
   }
@@ -398,7 +398,7 @@ async function cdBuildArtifacts(
     tree,
     opts?.forceColdCheck ?? false
   );
-  timings.checkMs = check.wallMs;
+  timings.checkMs = check.body?.ok === true ? check.body.wallMs : check.wallMs;
   timings.checkAttempts = check.attempts;
   if (!(check.http < 500 && checkPasses(check.body))) {
     return {

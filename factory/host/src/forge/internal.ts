@@ -19,6 +19,11 @@ import {
 import type { RequestCtx } from "../serve/routes.js";
 import { NOT_FOUND_BODY } from "../serve/routes.js";
 import { runCdForSha } from "./cd.js";
+import {
+  type CreateStageTimings,
+  createStagesLogLine,
+  finishCreateStages,
+} from "./create-stages.js";
 
 const RE_RUN_CREATE =
   /^\/internal\/apps\/([^/]+)\/attempts\/([^/]+)\/run-create$/;
@@ -37,21 +42,36 @@ async function handleRunCreate(
 ): Promise<Response> {
   const stub = appCreateStub(rc.env, appId);
   const host = createR2CodeHost(rc.env);
+  const startedAtMs = Date.now();
+  const timings: CreateStageTimings = {};
+
+  const logStages = (): void => {
+    console.log(
+      createStagesLogLine(appId, finishCreateStages(startedAtMs, timings))
+    );
+  };
 
   try {
+    let lap = Date.now();
     await host.ensureRepo(appId);
+    timings.ensureRepoMs = Date.now() - lap;
     const sourceFiles = overlayFormatFiles(
       TEMPLATE_SEED.sourceFiles as Record<string, string>
     ).files;
+    lap = Date.now();
     const { sha } = await host.commitTree(
       appId,
       sourceFiles,
       "chore: initial template seed"
     );
+    timings.commitTreeMs = Date.now() - lap;
+    lap = Date.now();
     const cd = await runCdForSha(rc.env, appId, sha, sourceFiles, {
       forceColdCheck: true,
     });
+    timings.cdMs = Date.now() - lap;
     if (!cd.ok) {
+      lap = Date.now();
       await stub.failCreateJob(jobId, "fail", cd);
       const record = await settleCreateApp(createDb(rc.env), appId, "fail");
       if (record) {
@@ -60,6 +80,8 @@ async function handleRunCreate(
           { topic: "app_record_changed", payload: { appId } }
         );
       }
+      timings.settleMs = Date.now() - lap;
+      logStages();
       return Response.json({
         ok: true,
         appId,
@@ -67,6 +89,7 @@ async function handleRunCreate(
         status: "fail",
       });
     }
+    lap = Date.now();
     await stub.completeCreateJob(jobId, { liveSha: cd.liveSha });
     const record = await settleCreateApp(createDb(rc.env), appId, "pass");
     if (record) {
@@ -75,8 +98,11 @@ async function handleRunCreate(
         { topic: "app_record_changed", payload: { appId } }
       );
     }
+    timings.settleMs = Date.now() - lap;
+    logStages();
     return Response.json({ ok: true, appId, attemptId: jobId, status: "pass" });
   } catch (e) {
+    const lap = Date.now();
     await stub
       .failCreateJob(jobId, "error", {
         error: "create_crashed",
@@ -90,6 +116,8 @@ async function handleRunCreate(
         { topic: "app_record_changed", payload: { appId } }
       );
     }
+    timings.settleMs = Date.now() - lap;
+    logStages();
     return Response.json({
       ok: true,
       appId,
