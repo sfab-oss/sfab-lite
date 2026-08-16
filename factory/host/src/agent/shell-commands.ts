@@ -177,36 +177,50 @@ async function runDbGenerate(
   args: string[]
 ): Promise<ExecResult> {
   const files = await collectWorkspaceSourceFiles(ctx);
-  const probe = await probeSchema(deps.env, files);
-  if (!probe.ok) {
-    return fail(`db:generate: ${probe.error}\n`, 1);
-  }
+  try {
+    const tree = overlayFormatFiles(files);
+    const probe = await probeSchema(deps.env, tree.files, tree.manifest);
+    if (!probe.ok) {
+      return fail(`db:generate: ${probe.error}\n`, 1);
+    }
 
-  const diff = diffSchema(latestSnapshot(files), probe.snapshot);
+    const diff = diffSchema(
+      latestSnapshot(tree.files, tree.manifest),
+      probe.snapshot
+    );
 
-  if (diff.blocking.length > 0) {
-    const reasons = diff.blocking
-      .map((change) => `  - ${describeBlocking(change)}`)
+    if (diff.blocking.length > 0) {
+      const reasons = diff.blocking
+        .map((change) => `  - ${describeBlocking(change)}`)
+        .join("\n");
+      return fail(
+        `db:generate: refused — this change cannot be made without losing data.\n${reasons}\n\nRestore what was removed, or migrate it by hand.\n`,
+        1
+      );
+    }
+
+    if (diff.statements.length === 0) {
+      return ok("db:generate: no schema changes to migrate\n");
+    }
+
+    const name = args.find((arg) => !arg.startsWith("-")) ?? "schema";
+    const path = nextMigrationPath(tree.files, tree.manifest, name);
+    const snapshotPath = snapshotPathFor(path, tree.manifest);
+    await ctx.fs.writeFile(`/${path}`, `${diff.statements.join("\n")}\n`);
+    await ctx.fs.writeFile(
+      `/${snapshotPath}`,
+      serializeSnapshot(probe.snapshot)
+    );
+    const summary = diff.additive
+      .map((change) => `  ${change.kind} ${change.table}`)
       .join("\n");
+    return ok(`db:generate: wrote ${path} and ${snapshotPath}\n${summary}\n`);
+  } catch (e) {
     return fail(
-      `db:generate: refused — this change cannot be made without losing data.\n${reasons}\n\nRestore what was removed, or migrate it by hand.\n`,
+      `db:generate: ${e instanceof Error ? e.message : String(e)}\n`,
       1
     );
   }
-
-  if (diff.statements.length === 0) {
-    return ok("db:generate: no schema changes to migrate\n");
-  }
-
-  const name = args.find((arg) => !arg.startsWith("-")) ?? "schema";
-  const path = nextMigrationPath(files, name);
-  const snapshotPath = snapshotPathFor(path);
-  await ctx.fs.writeFile(`/${path}`, `${diff.statements.join("\n")}\n`);
-  await ctx.fs.writeFile(`/${snapshotPath}`, serializeSnapshot(probe.snapshot));
-  const summary = diff.additive
-    .map((change) => `  ${change.kind} ${change.table}`)
-    .join("\n");
-  return ok(`db:generate: wrote ${path} and ${snapshotPath}\n${summary}\n`);
 }
 
 const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
@@ -225,14 +239,14 @@ async function ensureWorkspaceBuildForSeed(
   try {
     const files = await collectWorkspaceSourceFiles(ctx);
     const generation = Date.now();
-    const compiled = await compileWorkspaceFiles(
+    const { build, tree } = await compileWorkspaceFiles(
       files,
       workspaceBuildSha(generation)
     );
-    const migrations = collectMigrations(files);
+    const migrations = collectMigrations(tree.files, tree.manifest);
     await putWorkspaceBuild(deps.env, deps.workspaceId, {
       generation,
-      build: compiled,
+      build,
       migrations,
       at: Date.now(),
     });

@@ -5,7 +5,7 @@
  */
 
 import { build } from "@sfab-lite/verbs/build";
-import { overlayFormatFiles } from "@sfab-lite/verbs/format";
+import { type OverlaidTree, overlayFormatFiles } from "@sfab-lite/verbs/format";
 import { appBuildFromCompile } from "../code-host/app-image.js";
 import type { AppBuild } from "../code-host/build-store.js";
 import { parseStoredBuild } from "../code-host/build-store.js";
@@ -27,10 +27,10 @@ function workspaceBuildKey(workspaceId: string): string {
 export async function compileWorkspaceFiles(
   files: Record<string, string>,
   sha: string
-): Promise<AppBuild> {
+): Promise<{ build: AppBuild; tree: OverlaidTree }> {
   const tree = overlayFormatFiles(files);
   const compiled = await build(tree);
-  return appBuildFromCompile(sha, tree, compiled);
+  return { build: appBuildFromCompile(sha, tree, compiled), tree };
 }
 
 export function workspaceBuildSha(generation: number): string {

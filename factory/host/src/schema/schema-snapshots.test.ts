@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { ManifestV0 } from "@sfab-lite/core";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
   EMPTY_SNAPSHOT,
@@ -7,6 +8,8 @@ import {
   serializeSnapshot,
   snapshotPathFor,
 } from "./schema-snapshots.ts";
+
+const MANIFEST = seed.manifest as ManifestV0;
 
 const BAD_JSON = /is not valid JSON/;
 const byName = (a: string, b: string) => a.localeCompare(b);
@@ -18,7 +21,7 @@ function workspace(entries: Record<string, string>): Record<string, string> {
 describe("snapshotPathFor", () => {
   it("names the snapshot after the migration it belongs to", () => {
     assert.equal(
-      snapshotPathFor("migrations/0003_water_delivery.sql"),
+      snapshotPathFor("migrations/0003_water_delivery.sql", MANIFEST),
       "migrations/meta/0003_water_delivery_snapshot.json"
     );
   });
@@ -26,7 +29,7 @@ describe("snapshotPathFor", () => {
 
 describe("latestSnapshot", () => {
   it("reads an app with no migrations as having no tables", () => {
-    assert.deepEqual(latestSnapshot(workspace({})), EMPTY_SNAPSHOT);
+    assert.deepEqual(latestSnapshot(workspace({}), MANIFEST), EMPTY_SNAPSHOT);
   });
 
   /**
@@ -44,7 +47,7 @@ describe("latestSnapshot", () => {
       }),
     });
     assert.deepEqual(
-      latestSnapshot(files).tables.map((t) => t.name),
+      latestSnapshot(files, MANIFEST).tables.map((t) => t.name),
       ["late"]
     );
   });
@@ -54,7 +57,7 @@ describe("latestSnapshot", () => {
       "migrations/meta/notes.md": "not a snapshot",
       "migrations/0001_auth.sql": "CREATE TABLE user (id TEXT);",
     });
-    assert.deepEqual(latestSnapshot(files), EMPTY_SNAPSHOT);
+    assert.deepEqual(latestSnapshot(files, MANIFEST), EMPTY_SNAPSHOT);
   });
 
   /**
@@ -66,7 +69,7 @@ describe("latestSnapshot", () => {
     const files = workspace({
       "migrations/meta/0001_auth_snapshot.json": "{ not json",
     });
-    assert.throws(() => latestSnapshot(files), BAD_JSON);
+    assert.throws(() => latestSnapshot(files, MANIFEST), BAD_JSON);
   });
 });
 
@@ -77,7 +80,7 @@ describe("the template ships its own snapshot", () => {
    * already created.
    */
   it("seeds a snapshot describing what the seed migrations produced", () => {
-    const snapshot = latestSnapshot(seed.sourceFiles);
+    const snapshot = latestSnapshot(seed.sourceFiles, MANIFEST);
     assert.notDeepEqual(snapshot, EMPTY_SNAPSHOT);
     assert.deepEqual(snapshot.tables.map((t) => t.name).toSorted(byName), [
       "account",
@@ -98,7 +101,8 @@ describe("the template ships its own snapshot", () => {
     assert.ok(
       seed.sourceFiles[
         snapshotPathFor(
-          `migrations/${last.id}.sql`
+          `migrations/${last.id}.sql`,
+          MANIFEST
         ) as keyof typeof seed.sourceFiles
       ]
     );
@@ -107,10 +111,10 @@ describe("the template ships its own snapshot", () => {
 
 describe("serializeSnapshot", () => {
   it("round-trips through latestSnapshot", () => {
-    const snapshot = latestSnapshot(seed.sourceFiles);
+    const snapshot = latestSnapshot(seed.sourceFiles, MANIFEST);
     const files = workspace({
       "migrations/meta/0002_erp_snapshot.json": serializeSnapshot(snapshot),
     });
-    assert.deepEqual(latestSnapshot(files), snapshot);
+    assert.deepEqual(latestSnapshot(files, MANIFEST), snapshot);
   });
 });

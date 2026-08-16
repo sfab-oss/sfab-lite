@@ -20,7 +20,7 @@
  * would run anyway the first time a request arrived. A schema file that throws
  * on import fails here instead of in production, which is the better order.
  */
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
+import type { ManifestV0 } from "@sfab-lite/core";
 import { bundleWithKernel } from "@sfab-lite/verbs/build";
 import { kernelModules } from "../serve/kernel-modules.js";
 import {
@@ -69,10 +69,11 @@ export type ProbeResult =
  */
 export async function probeSchema(
   env: Env,
-  sourceFiles: Record<string, string>
+  sourceFiles: Record<string, string>,
+  manifest: ManifestV0
 ): Promise<ProbeResult> {
   const t0 = Date.now();
-  const entry = TEMPLATE_MANIFEST.schema;
+  const entry = manifest.schema;
   const schemaSource = sourceFiles[entry];
   if (schemaSource == null) {
     return {
