@@ -103,6 +103,8 @@ Two supporting rules:
 - drizzle accepts precisely this trade, and its `meta/` directory is a shape
   users already recognise.
 
+2026-08-16: generation is drizzle-kit's API (ADR-0014); the ledger rule is unchanged.
+
 ## Implementation notes
 
 Phased, one PR each; each phase leaves the system no worse than it found it.
@@ -130,6 +132,8 @@ for a branch or a reviewer to exist.
 
 - [ADR-0001](0001-edge-native-lite-architecture.md) — apps are data; the
   factory is ordinary software
+- [ADR-0014](0014-adapter-contract-db-storage-code-host.md) — Drizzle
+  generates; the framework applies and gates
 - The pre-build exploration's `RESEARCH.md` and `PLAN.md` (manager workspace,
   `explore-edge-native-lite`) — drizzle-kit's dependencies, why it stays out of
   the loop, and the drift-guardrail constraint quoted above
