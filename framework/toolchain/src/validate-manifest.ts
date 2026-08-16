@@ -4,10 +4,16 @@
  * fail-fast — an agent should see every problem in one pass.
  */
 
-import type { AdapterTarget, ManifestV0 } from "./manifest.js";
+import type {
+  AdapterTarget,
+  ManifestCapability,
+  ManifestV0,
+} from "./manifest.js";
 
 const FORMAT = 0;
 const TARGETS: readonly AdapterTarget[] = ["cloudflare"];
+const KNOWN_CAPABILITIES: readonly ManifestCapability[] = ["storage"];
+const CAPABILITIES_LIST = KNOWN_CAPABILITIES.join(", ");
 
 export interface ManifestIssue {
   path: string;
@@ -326,8 +332,26 @@ function validateRecipes(
 function validateCapabilities(
   issues: ManifestIssue[],
   value: unknown
-): string[] | null {
-  return requireStringArray(issues, "capabilities", value);
+): ManifestCapability[] | null {
+  const items = requireStringArray(issues, "capabilities", value);
+  if (items === null) {
+    return null;
+  }
+  const out: ManifestCapability[] = [];
+  let ok = true;
+  for (const [i, item] of items.entries()) {
+    if ((KNOWN_CAPABILITIES as readonly string[]).includes(item)) {
+      out.push(item as ManifestCapability);
+    } else {
+      add(
+        issues,
+        `capabilities[${i}]`,
+        `unknown capability "${item}" (allowed: ${CAPABILITIES_LIST})`
+      );
+      ok = false;
+    }
+  }
+  return ok ? out : null;
 }
 
 function validateRuntime(

@@ -43,6 +43,7 @@ export type {
 export { lintPasses } from "./lint.js";
 export type {
   AdapterTarget,
+  ManifestCapability,
   ManifestClient,
   ManifestModule,
   ManifestServer,
@@ -55,6 +56,7 @@ export {
   EXACT_VERSION_RE,
   GENERATED_ARTIFACTS,
   HOST_AUTHORITATIVE_FIELDS,
+  MANIFEST_CAPABILITIES,
   MANIFEST_FORMAT,
   RECIPE_NAME_RE,
   SHA256_RE,

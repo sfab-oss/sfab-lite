@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   GENERATED_ARTIFACTS,
   HOST_AUTHORITATIVE_FIELDS,
+  MANIFEST_CAPABILITIES,
   MANIFEST_FORMAT,
 } from "./manifest.ts";
 import { validateManifest } from "./validate-manifest.ts";
@@ -121,6 +122,21 @@ test("unknown adapter target fails closed", () => {
   );
 });
 
+test("unknown capability fails closed with the allowed list", () => {
+  assert.equal(
+    issueAt(valid({ capabilities: ["email"] }), "capabilities[0]"),
+    'unknown capability "email" (allowed: storage)'
+  );
+});
+
+test("storage is an allowed capability", () => {
+  const result = validateManifest(valid({ capabilities: ["storage"] }));
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(result.manifest.capabilities, ["storage"]);
+  }
+});
+
 test("unknown top-level keys fail", () => {
   assert.ok(issuePaths(valid({ extra: true })).includes("extra"));
 });
@@ -181,4 +197,5 @@ test("generated artifact paths and host-authoritative fields are part of the sch
   assert.equal(GENERATED_ARTIFACTS.dbIndex, "src/db/index.ts");
   assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("runtime"));
   assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("recipes"));
+  assert.deepEqual([...MANIFEST_CAPABILITIES], ["storage"]);
 });
