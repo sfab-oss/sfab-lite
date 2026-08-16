@@ -26,6 +26,7 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `components.json` | **Generated** — `@lite` → `https://lite.sfab.dev/r/{name}.json` is the only registry. |
 | `index.html` | **Generated** — document shell (title, favicon, `#root`, module script). Host injects the import map at pack. |
 | `vite.config.ts` | Vite chrome (standalone package still uses the package-root Vite config with `root: "app"`). |
+| `src/db/index.ts` | **Generated** — adapter db shim (`createDb` / `Db`). Drift-gated with the other format files. Do not hand-edit. |
 | `src/db/` | Schema barrel `schema.ts` re-exports `auth.ts` + `ledger.ts`. |
 | `migrations/` | Applied SQL migrations (root of the app tree). |
 | `src/server.ts` | Hono export `app` (factory server entry). |
@@ -60,10 +61,12 @@ Useful:
 
 - `pnpm db:reset` — drop the local D1 and re-migrate.
 - `pnpm typecheck` — both configs (see below).
-- `pnpm generate` — rewrite the four generated format files under `app/`
-  (`package.json`, `tsconfig.json`, `index.html`, `components.json`) from
-  the manifest + current runtime pins. `pnpm check:generated` (repo root)
-  fails if they drift; do not hand-edit them.
+- `pnpm generate` — rewrite the generated format files under `app/`
+  (`package.json`, `tsconfig.json`, `index.html`, `components.json`,
+  `src/db/index.ts`, and `src/storage/index.ts` when the manifest
+  declares storage) from the manifest + current runtime pins.
+  `pnpm check:generated` (repo root) fails if they drift; do not
+  hand-edit them.
 - `pnpm pack` — print the seed payload to stdout.
 - `pnpm bake-seed` — write `generated/seed.json` (what `check:seed` verifies).
 
