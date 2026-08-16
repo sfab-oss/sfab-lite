@@ -1,0 +1,29 @@
+{
+  "name": "@sfab-lite/verbs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./check": "./src/check/index.ts",
+    "./lint": "./src/lint/index.ts",
+    "./build": "./src/build/index.ts",
+    "./format": "./src/format/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@biomejs/js-api": "6.0.0",
+    "@biomejs/wasm-web": "2.5.5",
+    "@cloudflare/worker-bundler": "0.2.2",
+    "@sfab-lite/core": "workspace:*",
+    "@sfab-lite/kernel": "workspace:*",
+    "tailwindcss": "4.1.11",
+    "typescript": "6.0.3"
+  },
+  "devDependencies": {
+    "@sfab-lite/tsconfig": "workspace:*"
+  }
+}

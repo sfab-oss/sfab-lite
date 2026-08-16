@@ -1,5 +1,6 @@
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { runCheck } from "../src/run-check.ts";
+import { runCheck } from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const files: Record<string, string> = {};
 for (const [path, text] of Object.entries(
@@ -10,7 +11,7 @@ for (const [path, text] of Object.entries(
   }
 }
 
-const result = runCheck({ appId: "dump", files });
+const result = runCheck({ appId: "dump", files, manifest: SEED_MANIFEST });
 console.log("diagnosticCount", result.diagnosticCount);
 const byFile = new Map<string, number>();
 for (const d of result.diagnostics) {

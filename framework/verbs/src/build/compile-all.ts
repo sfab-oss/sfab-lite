@@ -1,3 +1,4 @@
+import type { OverlaidTree } from "../format/overlay-format-files.js";
 import { buildIndexHtml, compileClient } from "./compile-client.js";
 import { compileCss } from "./compile-css.js";
 import { compileServer } from "./compile-server.js";
@@ -6,10 +7,10 @@ import { compileServer } from "./compile-server.js";
  * Compile server + client + css into serveable assets.
  * Shared by CD and workspace WIP preview (workspace skips lint/check).
  */
-export async function compileAll(files: Record<string, string>) {
-  const compiled = await compileServer(files);
-  const client = await compileClient(files);
-  const css = await compileCss(files);
+export async function build(tree: OverlaidTree) {
+  const compiled = await compileServer(tree);
+  const client = await compileClient(tree);
+  const css = await compileCss(tree);
   const assets: Record<string, string> = {
     "index.html": buildIndexHtml({
       kernelVersion: compiled.kernelVersion,

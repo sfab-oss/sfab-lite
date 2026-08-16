@@ -19,6 +19,7 @@ no stability promise. Shape and constraints live under
 framework/
   runtime/       # frozen universe + prebuild (owns pins)
   toolchain/     # shared contracts, app-biome
+  verbs/         # check, lint, build, format overlay
   tsconfig/
   biome-config/
 registry/        # future recipes repo (empty for now)

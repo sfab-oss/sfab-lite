@@ -6,6 +6,7 @@
  * no per-app project (and no `closeProject` in `@biomejs/js-api@6` to reclaim
  * one anyway). Response `path` values are the request keys, not Biome roots.
  */
+/// <reference path="./wasm.d.ts" />
 import { Biome, type Configuration } from "@biomejs/js-api/web";
 import { initSync } from "@biomejs/wasm-web";
 import biomeWasm from "@biomejs/wasm-web/biome_wasm_bg.wasm";
@@ -17,7 +18,7 @@ import {
   type LintResult,
   type LintVersions,
 } from "@sfab-lite/core";
-import pkg from "../package.json" with { type: "json" };
+import pkg from "../../package.json" with { type: "json" };
 
 const MAX_REPORTED_DIAGNOSTICS = 20;
 

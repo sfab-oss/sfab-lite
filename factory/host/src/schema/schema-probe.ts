@@ -21,7 +21,7 @@
  * on import fails here instead of in production, which is the better order.
  */
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
-import { bundleWithKernel } from "../compile/compile-server.js";
+import { bundleWithKernel } from "@sfab-lite/verbs/build";
 import { kernelModules } from "../serve/kernel-modules.js";
 import {
   canonicalizeSnapshot,

@@ -12,7 +12,8 @@
  * Bundled by the companion .mjs runner so Node can load workspace TS.
  */
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { type LsStore, runCheck } from "../src/run-check.ts";
+import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const APPS = Number(process.env.APPS ?? 4);
 const EVICT = process.env.EVICT === "1";
@@ -48,7 +49,7 @@ let prev = baseline;
 for (let i = 1; i <= APPS; i++) {
   const t0 = Date.now();
   const appId = `app_${i}`;
-  const result = runCheck({ appId, files }, { store });
+  const result = runCheck({ appId, files, manifest: SEED_MANIFEST }, { store });
   if (EVICT) {
     store.delete(appId);
   }
@@ -74,12 +75,18 @@ console.log("Workers isolate limit: 128 MB");
 // What is the LS cache actually worth? Re-check the last app with one file
 // edited, warm, and compare against the cold cost above.
 const warmStore: LsStore = new Map();
-runCheck({ appId: "warm", files }, { store: warmStore });
+runCheck(
+  { appId: "warm", files, manifest: SEED_MANIFEST },
+  { store: warmStore }
+);
 const edited = { ...files };
 const key = Object.keys(edited).find((k) => k.endsWith(".ts")) as string;
 edited[key] = `${edited[key]}\nexport const __probe = 1;\n`;
 const t = Date.now();
-const warm = runCheck({ appId: "warm", files: edited }, { store: warmStore });
+const warm = runCheck(
+  { appId: "warm", files: edited, manifest: SEED_MANIFEST },
+  { store: warmStore }
+);
 console.log(
   `\nwarm re-check (1 file edited): ${Date.now() - t} ms, lsReused=${warm.lsReused}, diagnosticCount=${warm.diagnosticCount}`
 );

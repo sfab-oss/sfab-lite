@@ -8,9 +8,10 @@
  * assembly so they do not ship unmeasured.
  */
 import seed from "@sfab-lite/template/seed" with { type: "json" };
+import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
 import { CATALOG } from "../../../registry/src/catalog.ts";
 import { catalogNames, planAdd } from "../../../registry/src/lite.ts";
-import { type LsStore, runCheck } from "../src/run-check.ts";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 function checkFiles(
   sourceFiles: Record<string, string>
@@ -62,7 +63,7 @@ function runLabeled(label: string, runFiles: Record<string, string>): void {
   const peaks: Record<string, unknown>[] = [];
   const before = heapMb();
   const result = runCheck(
-    { appId: label, files: runFiles, forceCold: true },
+    { appId: label, files: runFiles, manifest: SEED_MANIFEST, forceCold: true },
     {
       store,
       afterUnit: (unit) => {

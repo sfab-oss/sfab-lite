@@ -1,6 +1,6 @@
 /**
  * Bare server specifiers the LOADER / compile-server rewrite onto flat chunks.
- * Keep in sync with factory/host/src/compile/compile-server.ts
+ * Keep in sync with framework/verbs/src/build/compile-server.ts
  * KERNEL_VIRTUAL_MODULES.
  */
 export const SERVER_IMPORT_MAP = {

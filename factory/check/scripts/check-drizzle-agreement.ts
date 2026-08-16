@@ -9,6 +9,11 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
+import {
+  clientPrefixesFromManifest,
+  createAppLsState,
+  getLanguageService,
+} from "@sfab-lite/verbs/check";
 import type ts from "typescript";
 import { SEAM_NAMES } from "../../../framework/runtime/scripts/drizzle-seams.mjs";
 import { isDrizzleDeclVfsPath } from "../../../framework/runtime/scripts/served-specifiers.mjs";
@@ -16,7 +21,7 @@ import {
   isTrimTarget,
   trimDrizzleDialects,
 } from "../../../framework/runtime/scripts/trim-drizzle-dialects.mjs";
-import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const repoRoot = join(process.cwd(), "../..");
 const TEMPLATE_SRC = join(repoRoot, "starters/erp/app/src");
@@ -260,7 +265,7 @@ function measure(
   extraRoots: string[]
 ): MeasureRow {
   const before = heapMb();
-  const st = createAppLsState();
+  const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
   for (const [p, text] of Object.entries(files)) {
     st.overlay.set(p, text);
     st.versions.set(p, 1);

@@ -1,0 +1,11 @@
+{
+  "extends": "@sfab-lite/tsconfig/base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

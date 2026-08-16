@@ -47,15 +47,19 @@ export interface AppLsState {
   /** Stable root list — new array identity only when /app file set changes. */
   rootFiles: string[] | null;
   service: LanguageService | null;
+  clientPrefixes: readonly string[];
 }
 
-export function createAppLsState(): AppLsState {
+export function createAppLsState(
+  clientPrefixes: readonly string[]
+): AppLsState {
   return {
     overlay: new Map(),
     versions: new Map(),
     snapshots: new Map(),
     rootFiles: null,
     service: null,
+    clientPrefixes,
   };
 }
 
@@ -223,7 +227,10 @@ export function getLanguageService(st: AppLsState): LanguageService {
     resolveModuleNameLiterals: (moduleLiterals, containingFile) =>
       moduleLiterals.map((lit) => {
         const name = lit.text;
-        const opts = { typeOnly: moduleSpecifierIsTypeOnly(lit) };
+        const opts = {
+          typeOnly: moduleSpecifierIsTypeOnly(lit),
+          clientPrefixes: st.clientPrefixes,
+        };
         const resolved =
           resolvePackage(name, st.overlay, containingFile, opts) ??
           (name.startsWith(".")

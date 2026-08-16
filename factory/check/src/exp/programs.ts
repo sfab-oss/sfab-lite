@@ -5,14 +5,20 @@
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
+  clientPrefixesFromManifest,
+  createAppLsState,
+  forEachChild,
+  getLanguageService,
+  isTypeAliasDeclaration,
+} from "@sfab-lite/verbs/check";
+import {
   applyShallow,
   CLIENT,
   HONO_ACCUMULATING,
   HONO_TYPED,
   overlayTypedVendors,
 } from "../../scripts/experiment-overlays.ts";
-import { createAppLsState, getLanguageService } from "../ls-host.ts";
-import { forEachChild, isTypeAliasDeclaration } from "../typescript-runtime.ts";
+import { SEED_MANIFEST } from "../../scripts/seed-manifest.ts";
 
 const SERVER_ENTRY = "/app/src/hono/index.ts";
 const CLIENT_ENTRY = "/app/src/ui/main.tsx";
@@ -77,7 +83,7 @@ function checkRoots(
 }
 
 function overlayApp(src: Record<string, string>, honoText: string | undefined) {
-  const st = createAppLsState();
+  const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
   for (const [p, text] of Object.entries(src)) {
     st.overlay.set(p, text);
     st.versions.set(p, 1);

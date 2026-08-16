@@ -5,7 +5,7 @@
  * client tree. The hash file's first line is that digest; extra lines are
  * per-file hexes so emit can re-run only changed route modules.
  */
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
+import type { ManifestV0 } from "@sfab-lite/core";
 import { API_DTS, API_HASH } from "./generated-paths.js";
 import { sha256Utf8Hex } from "./sha256.js";
 import { normalizePath } from "./vfs.js";
@@ -31,27 +31,8 @@ export function relFromOverlay(path: string): string {
     : n.replace(LEADING_SLASH, "");
 }
 
-function parseManifestEntries(files: Record<string, string>): {
-  serverEntry: string;
-} {
-  const raw = files["manifest.json"];
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as {
-        server?: { entry?: string };
-      };
-      if (parsed.server?.entry) {
-        return { serverEntry: parsed.server.entry };
-      }
-    } catch {
-      // Fall through to the template manifest.
-    }
-  }
-  return { serverEntry: TEMPLATE_MANIFEST.server.entry };
-}
-
-export function serverEntryRel(files: Record<string, string>): string {
-  return parseManifestEntries(files).serverEntry;
+export function serverEntryRel(manifest: ManifestV0): string {
+  return manifest.server.entry;
 }
 
 function overlayHas(overlay: Map<string, string>, path: string): boolean {

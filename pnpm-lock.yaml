@@ -53,6 +53,9 @@ importers:
       '@sfab-lite/template':
         specifier: workspace:*
         version: link:../../starters/erp
+      '@sfab-lite/verbs':
+        specifier: workspace:*
+        version: link:../../framework/verbs
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -87,9 +90,6 @@ importers:
       '@cloudflare/vite-plugin':
         specifier: 1.46.0
         version: 1.46.0(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.1)(yaml@2.9.0))(wrangler@4.113.0(@cloudflare/workers-types@5.20260721.1))
-      '@cloudflare/worker-bundler':
-        specifier: 0.2.2
-        version: 0.2.2
       '@dnd-kit/core':
         specifier: 6.3.1
         version: 6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -120,6 +120,9 @@ importers:
       '@sfab-lite/ui':
         specifier: workspace:*
         version: link:../ui
+      '@sfab-lite/verbs':
+        specifier: workspace:*
+        version: link:../../framework/verbs
       '@tailwindcss/vite':
         specifier: 4.1.11
         version: 4.1.11(vite@7.3.6(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.23.1)(yaml@2.9.0))
@@ -217,15 +220,12 @@ importers:
 
   factory/lint:
     dependencies:
-      '@biomejs/js-api':
-        specifier: 6.0.0
-        version: 6.0.0(@biomejs/wasm-web@2.5.5)
-      '@biomejs/wasm-web':
-        specifier: 2.5.5
-        version: 2.5.5
       '@sfab-lite/core':
         specifier: workspace:*
         version: link:../../framework/toolchain
+      '@sfab-lite/verbs':
+        specifier: workspace:*
+        version: link:../../framework/verbs
     devDependencies:
       '@cloudflare/workers-types':
         specifier: 5.20260721.1
@@ -307,6 +307,34 @@ importers:
         version: 6.0.3
 
   framework/tsconfig: {}
+
+  framework/verbs:
+    dependencies:
+      '@biomejs/js-api':
+        specifier: 6.0.0
+        version: 6.0.0(@biomejs/wasm-web@2.5.5)
+      '@biomejs/wasm-web':
+        specifier: 2.5.5
+        version: 2.5.5
+      '@cloudflare/worker-bundler':
+        specifier: 0.2.2
+        version: 0.2.2
+      '@sfab-lite/core':
+        specifier: workspace:*
+        version: link:../toolchain
+      '@sfab-lite/kernel':
+        specifier: workspace:*
+        version: link:../runtime
+      tailwindcss:
+        specifier: 4.1.11
+        version: 4.1.11
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+    devDependencies:
+      '@sfab-lite/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
 
   registry:
     dependencies:

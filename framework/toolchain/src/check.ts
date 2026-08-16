@@ -5,11 +5,15 @@
  * shape without either importing the other. Sibling of `LintResult`.
  */
 
+import type { ManifestV0 } from "./manifest.js";
+
 export type CheckUnitName = "server" | "emit" | "client";
 
 export interface CheckRequest {
   appId: string;
   files: Record<string, string>;
+  /** Parsed app-format v0 of the tree being checked — never the starter's. */
+  manifest: ManifestV0;
   /** Drop the per-app LanguageService and rehydrate from scratch. */
   forceCold?: boolean;
 }

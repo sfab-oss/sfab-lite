@@ -65,7 +65,7 @@ A check run is three ordered units (server → emit → client-vs-snapshot) with
 the LanguageService disposed between them; **one TS program** still retains
 far more than a Worker isolate's 128 MB, so the worker can afford state for
 exactly one app at a time. Treat that as a standing budget when touching
-`factory/check/src`: anything cached per app, and anything that grows the
+`framework/verbs/src/check`: anything cached per app, and anything that grows the
 types VFS, spends against it. `factory/check/scripts/measure-memory.mjs` and
 `measure:units` are the diagnostics that produced these numbers and re-derive
 them on demand.
@@ -105,12 +105,13 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 | Path | Role |
 | --- | --- |
 | `factory/host` | Host worker + factory UI |
-| `factory/check` | TypeScript check worker (thin shell; engines extract later) |
-| `factory/lint` | Biome lint worker (thin shell; engines extract later) |
+| `factory/check` | TypeScript check worker (HTTP shell over `@sfab-lite/verbs/check`) |
+| `factory/lint` | Biome lint worker (HTTP shell over `@sfab-lite/verbs/lint`) |
 | `factory/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
 | `starters/erp` | Starter-lite seed in `app/` (independently runnable) |
 | `framework/runtime` | Frozen universe + prebuild (owns universe pins) |
 | `framework/toolchain` | Shared contracts (app-format schema, check/lint wire types, app-biome) |
+| `framework/verbs` | Framework verbs: check, lint, build, format overlay |
 | `framework/tsconfig` | Shared TS configs |
 | `framework/biome-config` | Shared Biome presets |
 | `registry/` | Recipes: pinned schema, lite resolver, published versions |

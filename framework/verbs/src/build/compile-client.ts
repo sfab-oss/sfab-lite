@@ -1,6 +1,6 @@
 /**
  * In-worker client compile against import-map kernel chunks (option A).
- * Client entry comes from TEMPLATE_MANIFEST — never a hardcoded path.
+ * Client entry comes from the tree's manifest — never a hardcoded path.
  */
 import { createWorker } from "@cloudflare/worker-bundler";
 import { formatIndexHtml } from "@sfab-lite/core";
@@ -10,7 +10,7 @@ import {
   CLIENT_KERNEL_FILES,
   KERNEL_VERSION,
 } from "@sfab-lite/kernel";
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
+import type { OverlaidTree } from "../format/overlay-format-files.js";
 
 const RELATIVE_PATH_PREFIX_RE = /^\.\//;
 
@@ -89,9 +89,10 @@ export interface CompileClientResult {
 }
 
 export async function compileClient(
-  sourceFiles: Record<string, string>
+  tree: OverlaidTree
 ): Promise<CompileClientResult> {
-  const entry = TEMPLATE_MANIFEST.client.entry;
+  const sourceFiles = tree.files;
+  const entry = tree.manifest.client.entry;
   const files: Record<string, string> = { ...sourceFiles };
   const entrySrc = files[entry];
   if (entrySrc == null) {

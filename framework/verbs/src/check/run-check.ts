@@ -28,6 +28,7 @@ import {
   getLanguageService,
 } from "./ls-host.js";
 import {
+  clientPrefixesFromManifest,
   closedResolveUnresolvedMessage,
   isClientAppPath,
   sideAwareUnresolvedMessage,
@@ -65,7 +66,11 @@ const GENERATED_PREFIX = "/app/src/generated/";
  * At most one app may hold state at a time, evicted *before* the next program
  * is built (see {@link disposeService} for the memory invariant).
  */
-function stateFor(appId: string, store: LsStore): AppLsState {
+function stateFor(
+  appId: string,
+  store: LsStore,
+  clientPrefixes: readonly string[]
+): AppLsState {
   for (const other of [...store.keys()]) {
     if (other !== appId) {
       const prev = store.get(other);
@@ -76,8 +81,10 @@ function stateFor(appId: string, store: LsStore): AppLsState {
     }
   }
   let s = store.get(appId);
-  if (!s) {
-    s = createAppLsState();
+  if (s) {
+    s.clientPrefixes = clientPrefixes;
+  } else {
+    s = createAppLsState(clientPrefixes);
     store.set(appId, s);
   }
   return s;
@@ -100,7 +107,8 @@ function overlayPathForRel(rel: string): string {
 
 function mapOneDiagnostic(
   d: Diagnostic | CheckDiagnostic,
-  overlay: Map<string, string>
+  overlay: Map<string, string>,
+  clientPrefixes: readonly string[]
 ): CheckDiagnostic {
   if ("message" in d && typeof d.message === "string") {
     return d;
@@ -115,11 +123,20 @@ function mapOneDiagnostic(
     const sideMsg =
       mod == null
         ? undefined
-        : sideAwareUnresolvedMessage(mod, tsDiag.file?.fileName, overlay);
+        : sideAwareUnresolvedMessage(
+            mod,
+            tsDiag.file?.fileName,
+            overlay,
+            clientPrefixes
+          );
     const closedMsg =
       mod == null
         ? undefined
-        : closedResolveUnresolvedMessage(mod, tsDiag.file?.fileName);
+        : closedResolveUnresolvedMessage(
+            mod,
+            tsDiag.file?.fileName,
+            clientPrefixes
+          );
     if (sideMsg) {
       message = sideMsg;
     } else if (closedMsg) {
@@ -144,10 +161,11 @@ function mapOneDiagnostic(
 
 function summarize(
   diags: (Diagnostic | CheckDiagnostic)[],
-  overlay: Map<string, string>
+  overlay: Map<string, string>,
+  clientPrefixes: readonly string[]
 ): CheckDiagnostic[] {
   return diags
-    .map((d) => mapOneDiagnostic(d, overlay))
+    .map((d) => mapOneDiagnostic(d, overlay, clientPrefixes))
     .slice(0, MAX_REPORTED_DIAGNOSTICS);
 }
 
@@ -230,19 +248,27 @@ function isAppTs(path: string): boolean {
   );
 }
 
-function serverUnitRoots(overlay: Map<string, string>): string[] {
+function serverUnitRoots(
+  overlay: Map<string, string>,
+  clientPrefixes: readonly string[]
+): string[] {
   return [...overlay.keys()]
     .filter(
       (k) =>
-        isAppTs(k) && !isClientAppPath(k) && !k.startsWith(GENERATED_PREFIX)
+        isAppTs(k) &&
+        !isClientAppPath(k, clientPrefixes) &&
+        !k.startsWith(GENERATED_PREFIX)
     )
     .sort();
 }
 
-function clientUnitRoots(overlay: Map<string, string>): string[] {
+function clientUnitRoots(
+  overlay: Map<string, string>,
+  clientPrefixes: readonly string[]
+): string[] {
   const apiDts = generatedOverlayPath("apiDts");
   const roots = [...overlay.keys()]
-    .filter((k) => isAppTs(k) && isClientAppPath(k))
+    .filter((k) => isAppTs(k) && isClientAppPath(k, clientPrefixes))
     .sort();
   if (overlay.has(apiDts) && !roots.includes(apiDts)) {
     roots.push(apiDts);
@@ -292,7 +318,8 @@ export function runCheck(
   const store = opts?.store ?? defaultStore;
   const afterUnit = opts?.afterUnit;
   const forceCold = body.forceCold === true;
-  const st = stateFor(body.appId, store);
+  const clientPrefixes = clientPrefixesFromManifest(body.manifest);
+  const st = stateFor(body.appId, store, clientPrefixes);
   const ctx: RunCtx = {
     wallT0: Date.now(),
     appId: body.appId,
@@ -314,9 +341,9 @@ export function runCheck(
   ctx.bumpedFiles = syncOverlay(st, body.files).bumpedFiles;
   applyHonoOverlay(st.overlay, st.versions, null);
 
-  const entryRel = serverEntryRel(body.files);
+  const entryRel = serverEntryRel(body.manifest);
   const entryPath = overlayAppPath(entryRel);
-  const serverRoots = serverUnitRoots(st.overlay);
+  const serverRoots = serverUnitRoots(st.overlay, clientPrefixes);
 
   const runUnit: UnitRun = (unitRoots, honoText) => {
     if (st.service) {
@@ -394,7 +421,7 @@ export function runCheck(
     return finish(ctx);
   }
 
-  const clientRoots = clientUnitRoots(st.overlay);
+  const clientRoots = clientUnitRoots(st.overlay, clientPrefixes);
   if (clientRoots.length === 0) {
     ctx.units.push(skippedUnit("client"));
   } else {
@@ -424,7 +451,11 @@ function finish(ctx: RunCtx): CheckResult {
       `check store holds ${liveServiceCount(ctx.store)} live LanguageServices after the run`
     );
   }
-  const summarized = summarize(ctx.allDiags, ctx.st.overlay);
+  const summarized = summarize(
+    ctx.allDiags,
+    ctx.st.overlay,
+    ctx.st.clientPrefixes
+  );
   return {
     ok: true,
     appId: ctx.appId,

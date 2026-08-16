@@ -10,7 +10,12 @@
 
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
+import {
+  clientPrefixesFromManifest,
+  createAppLsState,
+  getLanguageService,
+} from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const SERVER_ENTITIES = "/app/src/hono/org-protected/entities.ts";
 
@@ -93,7 +98,7 @@ function overlayStubs(
 }
 
 function overlayOf(prefixes: string[]) {
-  const st = createAppLsState();
+  const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
   for (const [p, text] of Object.entries(files)) {
     st.overlay.set(p, text);
     st.versions.set(p, 1);

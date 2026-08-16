@@ -10,17 +10,14 @@ import {
   type LintResult,
   lintPasses,
 } from "@sfab-lite/core";
+import { build } from "@sfab-lite/verbs/build";
+import { type OverlaidTree, overlayFormatFiles } from "@sfab-lite/verbs/format";
 import { eq } from "drizzle-orm";
 import { appBuildFromCompile } from "../code-host/app-image.js";
 import { createR2BuildStore } from "../code-host/r2-build-store.js";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
-import { compileAll } from "../compile/compile-all.js";
 import { createDb } from "../db/index.js";
 import { app as appTable } from "../db/schema.js";
-import {
-  type OverlaidTree,
-  overlayFormatFiles,
-} from "../format/overlay-format-files.js";
 import { publishOrgEvent } from "../org-events.js";
 import { prDataId } from "../registry/app-data-ids.js";
 import { collectMigrations } from "../registry/app-migrations.js";
@@ -90,7 +87,12 @@ export async function callCheck(
         new Request("https://check-worker/check", {
           method: "POST",
           headers: serviceHeaders(env),
-          body: JSON.stringify({ appId, files, forceCold }),
+          body: JSON.stringify({
+            appId,
+            files,
+            manifest: overlayFormatFiles(files).manifest,
+            forceCold,
+          }),
         })
       );
       const body = (await res.json().catch(() => null)) as CheckResponse | null;
@@ -321,7 +323,7 @@ async function cdBuildArtifacts(
 ): Promise<
   | {
       ok: true;
-      compiled: Awaited<ReturnType<typeof compileAll>>;
+      compiled: Awaited<ReturnType<typeof build>>;
       tree: OverlaidTree;
     }
   | { ok: false; error: string; detail?: unknown }
@@ -352,9 +354,9 @@ async function cdBuildArtifacts(
     };
   }
 
-  let compiled: Awaited<ReturnType<typeof compileAll>>;
+  let compiled: Awaited<ReturnType<typeof build>>;
   try {
-    compiled = await compileAll(files);
+    compiled = await build(tree);
   } catch (e) {
     return {
       ok: false,

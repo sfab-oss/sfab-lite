@@ -14,7 +14,8 @@ import {
   type LsStore,
   liveLanguageServices,
   runCheck,
-} from "../src/run-check.ts";
+} from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 /** Distinct apps to check. Must exceed 2 — the bug needs a second app. */
 const APPS = 6;
@@ -47,7 +48,10 @@ let afterFirst = 0;
 let last = 0;
 
 for (let i = 1; i <= APPS; i++) {
-  const result = runCheck({ appId: `bound_${i}`, files }, { store });
+  const result = runCheck(
+    { appId: `bound_${i}`, files, manifest: SEED_MANIFEST },
+    { store }
+  );
   if (result.diagnosticCount !== 0) {
     console.error(
       `FAIL: app ${i} did not typecheck clean (${result.diagnosticCount} diagnostics) — ` +

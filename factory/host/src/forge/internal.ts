@@ -6,9 +6,9 @@
  */
 
 import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
+import { overlayFormatFiles } from "@sfab-lite/verbs/format";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { createDb } from "../db/index.js";
-import { overlayFormatFiles } from "../format/overlay-format-files.js";
 import { publishOrgEvent } from "../org-events.js";
 import { settleCreateApp } from "../registry/app-registry.js";
 import { appCreateStub } from "../registry/app-stub.js";
@@ -40,9 +40,10 @@ async function handleRunCreate(
 
   try {
     await host.ensureRepo(appId);
-    const sourceFiles = overlayFormatFiles(
-      TEMPLATE_SEED.sourceFiles as Record<string, string>
-    ).files;
+    const sourceFiles = overlayFormatFiles({
+      ...(TEMPLATE_SEED.sourceFiles as Record<string, string>),
+      "manifest.json": `${JSON.stringify(TEMPLATE_SEED.manifest, null, 2)}\n`,
+    }).files;
     const { sha } = await host.commitTree(
       appId,
       sourceFiles,

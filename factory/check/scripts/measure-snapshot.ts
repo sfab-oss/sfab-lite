@@ -11,8 +11,12 @@
 import { writeFileSync } from "node:fs";
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
+import {
+  clientPrefixesFromManifest,
+  createAppLsState,
+  getLanguageService,
+} from "@sfab-lite/verbs/check";
 import ts from "typescript";
-import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
 import {
   CLIENT,
   HONO_ACCUMULATING,
@@ -20,6 +24,7 @@ import {
   HOOK_ENTITIES,
   overlayTypedVendors,
 } from "./experiment-overlays.ts";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const SERVER_ENTRY = "/app/src/hono/index.ts";
 const SERVER_ENTITIES = "/app/src/hono/org-protected/entities.ts";
@@ -413,7 +418,7 @@ function measure(opts: {
   diagRoots?: string[];
 }) {
   const before = heapMb();
-  const st = createAppLsState();
+  const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
   for (const [p, text] of Object.entries(opts.src)) {
     st.overlay.set(p, text);
     st.versions.set(p, 1);

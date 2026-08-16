@@ -8,7 +8,8 @@
  * runCheck path. Local heap is an indicator, never a production claim.
  */
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { type LsStore, runCheck } from "../src/run-check.ts";
+import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const files: Record<string, string> = {};
 for (const [path, text] of Object.entries(
@@ -37,7 +38,7 @@ function runLabeled(label: string, runFiles: Record<string, string>): void {
   const peaks: Record<string, unknown>[] = [];
   const before = heapMb();
   const result = runCheck(
-    { appId: label, files: runFiles, forceCold: true },
+    { appId: label, files: runFiles, manifest: SEED_MANIFEST, forceCold: true },
     {
       store,
       afterUnit: (unit) => {

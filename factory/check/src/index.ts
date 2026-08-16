@@ -1,12 +1,11 @@
 /**
  * @sfab-lite/check — TypeScript LanguageService check worker.
  *
- * Stateless Worker (per-isolate LS cache): POST /check with app sources
- * against the frozen kernel types VFS; returns diagnostics.
+ * Thin HTTP shell: admin token + POST /check → `@sfab-lite/verbs/check`.
  */
 import type { CheckRequest } from "@sfab-lite/core";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
-import { runCheck } from "./run-check.js";
+import { runCheck } from "@sfab-lite/verbs/check";
 
 export interface Env {
   ADMIN_TOKEN?: string;
@@ -73,6 +72,12 @@ async function checkResponse(env: Env, request: Request): Promise<Response> {
     if (!body.appId || typeof body.appId !== "string") {
       return Response.json(
         { ok: false, error: "body.appId required" },
+        { status: 400 }
+      );
+    }
+    if (!body.manifest || typeof body.manifest !== "object") {
+      return Response.json(
+        { ok: false, error: "body.manifest required" },
         { status: 400 }
       );
     }
