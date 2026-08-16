@@ -79,6 +79,7 @@ for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
 for (const file of manifest.source.exclude) {
   delete sourceFiles[file];
 }
+sourceFiles["manifest.json"] = `${JSON.stringify(manifest, null, 2)}\n`;
 
 const migrations = readdirSync(join(appRoot, manifest.migrations))
   .filter((f) => f.endsWith(".sql"))

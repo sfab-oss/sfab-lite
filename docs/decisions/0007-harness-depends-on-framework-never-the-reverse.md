@@ -21,7 +21,7 @@ not one-way violations.
 
 Everything in this repo is one of two things:
 
-- **Framework-side** — `framework/{runtime,toolchain}`, `registry/`,
+- **Framework-side** — `framework/{runtime,toolchain,verbs}`, `registry/`,
   `starters/` — what the future-repo map marks extractable.
 - **Harness** — the testing and reference surface around it: factory
   console UI, chat/agent API, workspaces, check/lint workers'

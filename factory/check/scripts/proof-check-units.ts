@@ -9,10 +9,12 @@ import seed from "@sfab-lite/template/seed" with { type: "json" };
 import {
   type LsStore,
   liveLanguageServices,
+  overlayAppPath,
   runCheck,
-} from "../src/run-check.ts";
-import { overlayAppPath, serverImportClosure } from "../src/server-tree.ts";
-import { snapshotFreshnessDiagnostic } from "../src/snapshot-freshness.ts";
+  serverImportClosure,
+  snapshotFreshnessDiagnostic,
+} from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../../..");
@@ -39,7 +41,12 @@ let failed = false;
 
 function check(label: string, files: Record<string, string>) {
   const result = runCheck(
-    { appId: `units-${label}`, files, forceCold: true },
+    {
+      appId: `units-${label}`,
+      files,
+      manifest: SEED_MANIFEST,
+      forceCold: true,
+    },
     { store }
   );
   console.log(

@@ -1,11 +1,10 @@
 /**
  * @sfab-lite/lint — Biome WASM lint worker.
  *
- * Stateless Worker: POST /lint with app sources, get diagnostics + optional
- * format. Applies `APP_BIOME_CONFIG` from `@sfab-lite/core` once at cold boot.
+ * Thin HTTP shell: admin token + POST /lint → `@sfab-lite/verbs/lint`.
  */
 import type { LintRequest } from "@sfab-lite/core";
-import { bootBiome, runLint } from "./run-lint.js";
+import { bootBiome, runLint } from "@sfab-lite/verbs/lint";
 
 export interface Env {
   ADMIN_TOKEN?: string;

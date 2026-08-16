@@ -12,9 +12,8 @@
     "deploy": "wrangler deploy"
   },
   "dependencies": {
-    "@biomejs/js-api": "6.0.0",
-    "@biomejs/wasm-web": "2.5.5",
-    "@sfab-lite/core": "workspace:*"
+    "@sfab-lite/core": "workspace:*",
+    "@sfab-lite/verbs": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260721.1",

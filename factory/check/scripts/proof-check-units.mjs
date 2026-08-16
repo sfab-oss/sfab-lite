@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { VERBS_BUNDLE_FLAGS } from "./esbuild-proof-flags.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = join(here, "..");
@@ -40,7 +41,7 @@ const build = spawnSync(
     "--platform=node",
     "--format=esm",
     `--outfile=${outfile}`,
-    "--packages=external",
+    ...VERBS_BUNDLE_FLAGS,
   ],
   { stdio: "inherit", cwd: appRoot }
 );

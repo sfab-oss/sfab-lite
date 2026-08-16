@@ -38,3 +38,4 @@ export {
   SERVER_SURFACE_HASH,
 } from "./generated/server-kernel.js";
 export { TYPES_VFS, TYPES_VFS_MANIFEST } from "./generated/types-vfs.js";
+export { KERNEL_PATHS } from "./kernel-paths.js";

@@ -1,11 +1,11 @@
 /**
  * Workers-native CSS publish (exp-11 productized).
- * Styles entry comes from TEMPLATE_MANIFEST — missing entry fails explicitly.
+ * Styles entry comes from the tree's manifest — missing entry fails explicitly.
  */
 
 import { TW_CSS_VFS } from "@sfab-lite/kernel";
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import { compile } from "tailwindcss";
+import type { OverlaidTree } from "../format/overlay-format-files.js";
 import { extractCandidates } from "./css-extract.js";
 
 /** @apply-only / theme base classes the extractor cannot see in TSX. */
@@ -77,10 +77,11 @@ export interface CompileCssResult {
  * `safelist` = extra class tokens (file or builtin).
  */
 export async function compileCss(
-  sourceFiles: Record<string, string>,
+  tree: OverlaidTree,
   opts?: { safelist?: string[] }
 ): Promise<CompileCssResult> {
-  const stylesPath = TEMPLATE_MANIFEST.client.styles;
+  const sourceFiles = tree.files;
+  const stylesPath = tree.manifest.client.styles;
   const themeCss = sourceFiles[stylesPath];
   if (themeCss == null) {
     throw new Error(`compileCss: missing styles entry ${stylesPath}`);
@@ -92,7 +93,7 @@ export async function compileCss(
 
   const { candidates, missesDocumented } = extractCandidates(texts);
   const safelist = [...BUILTIN_SAFELIST, ...(opts?.safelist ?? [])];
-  const fileList = sourceFiles[TEMPLATE_MANIFEST.safelist];
+  const fileList = sourceFiles[tree.manifest.safelist];
   if (fileList) {
     for (const line of fileList.split("\n")) {
       const t = line.trim();

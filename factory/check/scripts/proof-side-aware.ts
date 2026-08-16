@@ -6,7 +6,8 @@
  */
 import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { type LsStore, runCheck } from "../src/run-check.ts";
+import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const baseFiles: Record<string, string> = {};
 for (const [path, text] of Object.entries(
@@ -39,7 +40,12 @@ function check(
 } {
   try {
     const result = runCheck(
-      { appId: `side-proof-${label}`, files, forceCold: true },
+      {
+        appId: `side-proof-${label}`,
+        files,
+        manifest: SEED_MANIFEST,
+        forceCold: true,
+      },
       { store }
     );
     console.log(

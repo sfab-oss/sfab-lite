@@ -14,7 +14,12 @@
 
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
+import {
+  clientPrefixesFromManifest,
+  createAppLsState,
+  getLanguageService,
+} from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const CLIENT_ENTRY = "/app/src/ui/main.tsx";
 const SERVER_ENTRY = "/app/src/hono/index.ts";
@@ -50,7 +55,7 @@ function heapMb(): number {
  */
 function measure(label: string, roots: string[]) {
   const before = heapMb();
-  const st = createAppLsState();
+  const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
   // Overlay holds every app file so imports still resolve; only `roots` seed
   // the program, which is what makes the two halves' closures diverge.
   for (const [p, text] of Object.entries(files)) {

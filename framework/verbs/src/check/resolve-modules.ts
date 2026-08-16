@@ -7,12 +7,12 @@
  * / one VFS — classification only changes which specifiers resolve, not how
  * many programs are built.
  */
+import type { ManifestV0 } from "@sfab-lite/core";
 import {
   CLIENT_IMPORT_MAP,
   SERVER_IMPORT_MAP,
   TYPES_VFS,
 } from "@sfab-lite/kernel";
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
 import { joinPath, normalizePath, readVfs } from "./vfs.js";
 
 /**
@@ -85,22 +85,27 @@ const RFC_CLIENT_DIRS = ["routes", "components", "hooks", "lib"] as const;
 
 const CLIENT_TREE_REL = "src/{routes,components,hooks,lib}";
 
-const CLIENT_PREFIXES: readonly string[] = [
-  normalizePath(
-    `/app/${TEMPLATE_MANIFEST.client.entry.replace(LEADING_SLASHES, "")}`
-  ),
-  normalizePath(
-    `/app/${TEMPLATE_MANIFEST.client.styles.replace(LEADING_SLASHES, "")}`
-  ),
-  ...RFC_CLIENT_DIRS.map((dir) => `${normalizePath(`/app/src/${dir}`)}/`),
-];
+export function clientPrefixesFromManifest(
+  manifest: ManifestV0
+): readonly string[] {
+  return [
+    normalizePath(`/app/${manifest.client.entry.replace(LEADING_SLASHES, "")}`),
+    normalizePath(
+      `/app/${manifest.client.styles.replace(LEADING_SLASHES, "")}`
+    ),
+    ...RFC_CLIENT_DIRS.map((dir) => `${normalizePath(`/app/src/${dir}`)}/`),
+  ];
+}
 
-export function isClientAppPath(path: string | undefined): boolean {
+export function isClientAppPath(
+  path: string | undefined,
+  prefixes: readonly string[]
+): boolean {
   if (path == null) {
     return false;
   }
   const n = normalizePath(path);
-  return CLIENT_PREFIXES.some((prefix) =>
+  return prefixes.some((prefix) =>
     prefix.endsWith("/") ? n.startsWith(prefix) : n === prefix
   );
 }
@@ -188,17 +193,19 @@ type VfsRead = (p: string) => string | undefined;
 export interface ResolveOpts {
   /** `import type` / type-only named bindings — erased at emit; may cross sides. */
   typeOnly?: boolean;
+  clientPrefixes: readonly string[];
 }
 
 function bareAllowed(
   name: string,
   containingFile: string | undefined,
-  typeOnly: boolean
+  typeOnly: boolean,
+  clientPrefixes: readonly string[]
 ): boolean {
   if (isVfsInternal(containingFile)) {
     return true;
   }
-  if (isClientAppPath(containingFile)) {
+  if (isClientAppPath(containingFile, clientPrefixes)) {
     if (CLIENT_SERVED.has(name)) {
       return true;
     }
@@ -341,11 +348,12 @@ function resolveRelativePath(
 export function resolvePackage(
   name: string,
   overlay: Map<string, string>,
-  containingFile?: string,
-  opts?: ResolveOpts
+  containingFile: string | undefined,
+  opts: ResolveOpts
 ): string | undefined {
-  const typeOnly = opts?.typeOnly === true;
-  if (!bareAllowed(name, containingFile, typeOnly)) {
+  const typeOnly = opts.typeOnly === true;
+  const clientPrefixes = opts.clientPrefixes;
+  if (!bareAllowed(name, containingFile, typeOnly, clientPrefixes)) {
     return;
   }
   const read: VfsRead = (p) => readVfs(p, overlay);
@@ -374,17 +382,18 @@ export function resolveRelative(
   name: string,
   containingFile: string,
   overlay: Map<string, string>,
-  opts?: ResolveOpts
+  opts: ResolveOpts
 ): string | undefined {
+  const clientPrefixes = opts.clientPrefixes;
   const resolved = resolveRelativePath(name, containingFile, overlay);
   if (!resolved) {
     return;
   }
   if (
-    isClientAppPath(containingFile) &&
+    isClientAppPath(containingFile, clientPrefixes) &&
     opts?.typeOnly !== true &&
     isAppSourcePath(resolved) &&
-    !isClientAppPath(resolved)
+    !isClientAppPath(resolved, clientPrefixes)
   ) {
     return;
   }
@@ -398,15 +407,20 @@ export function resolveRelative(
 export function sideAwareUnresolvedMessage(
   moduleName: string,
   containingFile: string | undefined,
-  overlay: Map<string, string>
+  overlay: Map<string, string>,
+  clientPrefixes: readonly string[]
 ): string | undefined {
-  if (!(containingFile && isClientAppPath(containingFile))) {
+  if (!(containingFile && isClientAppPath(containingFile, clientPrefixes))) {
     return;
   }
 
   if (moduleName.startsWith(".")) {
     const target = resolveRelativePath(moduleName, containingFile, overlay);
-    if (target && isAppSourcePath(target) && !isClientAppPath(target)) {
+    if (
+      target &&
+      isAppSourcePath(target) &&
+      !isClientAppPath(target, clientPrefixes)
+    ) {
       return (
         `Module '${moduleName}' resolves outside the client tree (${CLIENT_TREE_REL}/) and ` +
         "cannot be imported as a value from client code. Use `import type` if " +
@@ -438,7 +452,8 @@ export function sideAwareUnresolvedMessage(
  */
 export function closedResolveUnresolvedMessage(
   moduleName: string,
-  containingFile: string | undefined
+  containingFile: string | undefined,
+  clientPrefixes: readonly string[]
 ): string | undefined {
   if (
     containingFile == null ||
@@ -449,7 +464,7 @@ export function closedResolveUnresolvedMessage(
     return;
   }
   if (
-    isClientAppPath(containingFile) &&
+    isClientAppPath(containingFile, clientPrefixes) &&
     SERVER_SERVED.has(moduleName) &&
     !CLIENT_SERVED.has(moduleName)
   ) {

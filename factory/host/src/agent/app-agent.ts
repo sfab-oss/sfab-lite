@@ -40,6 +40,7 @@ export interface ShellResult {
 }
 
 export interface WorkspaceBuildStatus {
+  compileMs: number | null;
   error: string | null;
   generation: number | null;
   status: "idle" | "compiling" | "ready" | "error";
@@ -61,6 +62,7 @@ const WORKSPACE_COMPILE_DEBOUNCE_SEC = 1;
 const WORKSPACE_BUILD_GEN_KEY = "workspaceBuildGeneration";
 const WORKSPACE_BUILD_STATUS_KEY = "workspaceBuildStatus";
 const WORKSPACE_BUILD_ERROR_KEY = "workspaceBuildError";
+const WORKSPACE_BUILD_COMPILE_MS_KEY = "workspaceBuildCompileMs";
 const INVALID_BRANCH_CHARS = /[\s\\]/;
 
 export interface ThreadSummary {
@@ -324,7 +326,10 @@ export class AppAgent extends Think<Env> {
       (await this.ctx.storage.get<number>(WORKSPACE_BUILD_GEN_KEY)) ?? null;
     const error =
       (await this.ctx.storage.get<string>(WORKSPACE_BUILD_ERROR_KEY)) ?? null;
-    return { status, generation, error };
+    const compileMs =
+      (await this.ctx.storage.get<number>(WORKSPACE_BUILD_COMPILE_MS_KEY)) ??
+      null;
+    return { status, generation, error, compileMs };
   }
 
   #runWorkspaceCompile(): Promise<WorkspaceBuildStatus> {
@@ -343,10 +348,12 @@ export class AppAgent extends Think<Env> {
     await this.#ensureWorkspaceReady();
     await this.ctx.storage.put(WORKSPACE_BUILD_STATUS_KEY, "compiling");
     await this.ctx.storage.delete(WORKSPACE_BUILD_ERROR_KEY);
+    await this.ctx.storage.delete(WORKSPACE_BUILD_COMPILE_MS_KEY);
     this.broadcast(
       JSON.stringify({ type: "workspace-build-status", status: "compiling" })
     );
 
+    const compileStarted = Date.now();
     try {
       const files = await collectAgentWorkspaceFiles(this.#fs);
       const migrations = collectMigrations(files);
@@ -363,35 +370,42 @@ export class AppAgent extends Think<Env> {
         migrations,
         at: Date.now(),
       });
+      const compileMs = Date.now() - compileStarted;
       await this.ctx.storage.put(WORKSPACE_BUILD_GEN_KEY, generation);
       await this.ctx.storage.put(WORKSPACE_BUILD_STATUS_KEY, "ready");
+      await this.ctx.storage.put(WORKSPACE_BUILD_COMPILE_MS_KEY, compileMs);
       const result: WorkspaceBuildStatus = {
         status: "ready",
         generation,
         error: null,
+        compileMs,
       };
       this.broadcast(
         JSON.stringify({
           type: "workspace-build-ready",
           generation,
+          compileMs,
         })
       );
       return result;
     } catch (e) {
+      const compileMs = Date.now() - compileStarted;
       const reason = e instanceof Error ? e.message : String(e);
       await this.ctx.storage.put(WORKSPACE_BUILD_STATUS_KEY, "error");
       await this.ctx.storage.put(WORKSPACE_BUILD_ERROR_KEY, reason);
+      await this.ctx.storage.put(WORKSPACE_BUILD_COMPILE_MS_KEY, compileMs);
       this.broadcast(
         JSON.stringify({
           type: "workspace-build-status",
           status: "error",
           error: reason,
+          compileMs,
         })
       );
       console.error(
         `[AppAgent] ${this.name}: workspace compile failed: ${reason}`
       );
-      return { status: "error", generation: null, error: reason };
+      return { status: "error", generation: null, error: reason, compileMs };
     }
   }
 

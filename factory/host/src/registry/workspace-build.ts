@@ -1,14 +1,14 @@
 /**
- * Ephemeral workspace WIP compile — compileAll only, stored under a fixed R2
+ * Ephemeral workspace WIP compile — build() only, stored under a fixed R2
  * key (not sha-immutable CD builds). Migrations are snapshotted with the build
  * so serve bootstraps the same generation it serves.
  */
 
+import { build } from "@sfab-lite/verbs/build";
+import { overlayFormatFiles } from "@sfab-lite/verbs/format";
 import { appBuildFromCompile } from "../code-host/app-image.js";
 import type { AppBuild } from "../code-host/build-store.js";
 import { parseStoredBuild } from "../code-host/build-store.js";
-import { compileAll } from "../compile/compile-all.js";
-import { overlayFormatFiles } from "../format/overlay-format-files.js";
 import type { AppMigration } from "./app-migrations.js";
 
 const WORKSPACE_BUILD_SHA_PREFIX = "ws:";
@@ -29,7 +29,7 @@ export async function compileWorkspaceFiles(
   sha: string
 ): Promise<AppBuild> {
   const tree = overlayFormatFiles(files);
-  const compiled = await compileAll(tree.files);
+  const compiled = await build(tree);
   return appBuildFromCompile(sha, tree, compiled);
 }
 

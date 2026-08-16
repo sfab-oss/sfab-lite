@@ -12,7 +12,12 @@
 
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
+import {
+  clientPrefixesFromManifest,
+  createAppLsState,
+  getLanguageService,
+} from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const files: Record<string, string> = {};
 for (const [path, text] of Object.entries(
@@ -23,7 +28,7 @@ for (const [path, text] of Object.entries(
   }
 }
 
-const st = createAppLsState();
+const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
 for (const [rel, text] of Object.entries(files)) {
   st.overlay.set(`/app/${rel}`, text);
   st.versions.set(`/app/${rel}`, 1);

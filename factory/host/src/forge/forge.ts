@@ -14,6 +14,7 @@ import {
   getLiveSha,
   runCdForSha,
 } from "./cd.js";
+import { detailWithCdStages } from "./cd-stages.js";
 import type {
   CheckConclusion,
   CheckRunRecord,
@@ -312,7 +313,10 @@ async function startCheckRun(
       sha: input.sha,
       name,
       conclusion: "failure",
-      detail: { error: cd.error, detail: cd.detail },
+      detail: detailWithCdStages(
+        { error: cd.error, detail: cd.detail },
+        cd.stages
+      ),
     });
   }
 
@@ -337,10 +341,13 @@ async function startCheckRun(
           sha: input.sha,
           name,
           conclusion: "failure",
-          detail: {
-            error: "preview_schema_bootstrap_failed",
-            detail: migrated.error,
-          },
+          detail: detailWithCdStages(
+            {
+              error: "preview_schema_bootstrap_failed",
+              detail: migrated.error,
+            },
+            cd.stages
+          ),
         });
       }
       await db
@@ -356,7 +363,7 @@ async function startCheckRun(
     sha: input.sha,
     name,
     conclusion: "success",
-    detail: { sha: cd.sha },
+    detail: detailWithCdStages({ sha: cd.sha }, cd.stages),
   });
 }
 

@@ -1,11 +1,14 @@
 /**
  * In-worker server compile via worker-bundler + kernel externals.
- * Server entry + export name come from TEMPLATE_MANIFEST.
+ * Server entry + export name come from the tree's manifest.
  */
 import { createWorker } from "@cloudflare/worker-bundler";
-import { KERNEL_VERSION, SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
-import { KERNEL_PATHS } from "../serve/kernel-modules.js";
+import {
+  KERNEL_PATHS,
+  KERNEL_VERSION,
+  SERVER_SURFACE_HASH,
+} from "@sfab-lite/kernel";
+import type { OverlaidTree } from "../format/overlay-format-files.js";
 
 const KERNEL_EXTERNALS = Object.values(KERNEL_PATHS);
 
@@ -42,13 +45,13 @@ const KERNEL_VIRTUAL_MODULES: Record<string, string> = {
 
 const SERVER_ENTRY = "src/__sfab_server_entry.ts";
 
-function serverEntrySource(): string {
-  const entry = TEMPLATE_MANIFEST.server.entry;
+function serverEntrySource(tree: OverlaidTree): string {
+  const entry = tree.manifest.server.entry;
   if (!entry.startsWith("src/")) {
     throw new Error(`compileServer: server.entry must be under src/: ${entry}`);
   }
   const relativeFromSynthetic = `./${entry.slice("src/".length)}`;
-  const exportName = TEMPLATE_MANIFEST.server.exportName;
+  const exportName = tree.manifest.server.exportName;
   return `
 import { ${exportName} } from ${JSON.stringify(relativeFromSynthetic)};
 
@@ -135,16 +138,17 @@ export interface CompileServerResult {
  * Compile sub-app server from source files (keys like `src/server.ts`).
  */
 export async function compileServer(
-  sourceFiles: Record<string, string>
+  tree: OverlaidTree
 ): Promise<CompileServerResult> {
-  const entry = TEMPLATE_MANIFEST.server.entry;
+  const sourceFiles = tree.files;
+  const entry = tree.manifest.server.entry;
   if (!(entry in sourceFiles)) {
     throw new Error(`compileServer: missing server entry ${entry}`);
   }
 
   const files: Record<string, string> = { ...sourceFiles };
   // Synthetic entry — host serves assets; LOADER only runs the Hono API.
-  files[SERVER_ENTRY] = serverEntrySource();
+  files[SERVER_ENTRY] = serverEntrySource(tree);
 
   const t0 = performance.now();
   const bundled = await bundleWithKernel(files, SERVER_ENTRY);

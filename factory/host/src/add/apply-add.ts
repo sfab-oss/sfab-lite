@@ -4,7 +4,6 @@ import { validateManifest } from "@sfab-lite/core/validate-manifest";
 import { FORMAT_PINS } from "@sfab-lite/kernel/pins";
 import catalogJson from "@sfab-lite/registry/catalog" with { type: "json" };
 import { type Catalog, planAdd } from "@sfab-lite/registry/lite";
-import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 
 const CATALOG = catalogJson as Catalog;
 const LEADING_SLASHES = /^\/+/;
@@ -14,18 +13,17 @@ function rel(path: string): string {
 }
 
 function readManifest(
-  files: Record<string, string | null | undefined>,
-  fallback: unknown
-): unknown {
-  const raw = files["manifest.json"] ?? files["/manifest.json"];
-  if (typeof raw === "string" && raw.length > 0) {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return fallback;
-    }
+  files: Record<string, string | null | undefined>
+): { ok: true; value: unknown } | { ok: false; error: string } {
+  const raw = files["manifest.json"];
+  if (typeof raw !== "string" || raw.length === 0) {
+    return { ok: false, error: "missing manifest.json" };
   }
-  return fallback;
+  try {
+    return { ok: true, value: JSON.parse(raw) };
+  } catch {
+    return { ok: false, error: "manifest.json is not JSON" };
+  }
 }
 
 export type ApplyAddResult =
@@ -48,8 +46,7 @@ export type ApplyAddResult =
  */
 export function applyAdd(
   name: string,
-  files: Record<string, string | null | undefined>,
-  fallbackManifest: unknown = TEMPLATE_SEED.manifest
+  files: Record<string, string | null | undefined>
 ): ApplyAddResult {
   const existing: Record<string, string | null | undefined> = {};
   for (const [path, content] of Object.entries(files)) {
@@ -63,11 +60,17 @@ export function applyAdd(
     };
   }
 
-  const manifestInput = readManifest(existing, fallbackManifest);
+  const manifestInput = readManifest(existing);
+  if (!manifestInput.ok) {
+    return { ok: false, error: manifestInput.error };
+  }
   const parsed =
-    manifestInput && typeof manifestInput === "object"
-      ? { ...(manifestInput as Record<string, unknown>) }
-      : { ...(fallbackManifest as Record<string, unknown>) };
+    manifestInput.value && typeof manifestInput.value === "object"
+      ? { ...(manifestInput.value as Record<string, unknown>) }
+      : null;
+  if (!parsed) {
+    return { ok: false, error: "manifest.json is not an object" };
+  }
   const currentRecipes =
     parsed.recipes && typeof parsed.recipes === "object"
       ? { ...(parsed.recipes as ManifestV0["recipes"]) }

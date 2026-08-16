@@ -30,7 +30,12 @@ const config: KnipConfig = {
       // `cloudflare:workers` is a workerd built-in, not an npm package.
       // `@tanstack/router-plugin` is applied inside `@tanstack/react-start`'s
       // Vite plugin; keep it pinned for Start alignment even if unused directly.
-      ignoreDependencies: ["cloudflare", "@tanstack/router-plugin"],
+      // `tailwindcss` is loaded by `@tailwindcss/vite` / `@import` in styles.css.
+      ignoreDependencies: [
+        "cloudflare",
+        "@tanstack/router-plugin",
+        "tailwindcss",
+      ],
     },
     "factory/ui": {
       // Primitive barrel is the library surface; shadcn CLI config is not code.
@@ -50,6 +55,17 @@ const config: KnipConfig = {
     },
     "factory/lint": {
       project: ["src/**/*.{ts,tsx}"],
+    },
+    "framework/verbs": {
+      entry: [
+        "src/index.ts",
+        "src/check/index.ts",
+        "src/lint/index.ts",
+        "src/build/index.ts",
+        "src/format/index.ts",
+        "src/**/*.test.ts",
+      ],
+      project: ["src/**/*.ts"],
     },
     // Two trees with different rules. `src` is the package the factory
     // imports; `app` is the seed payload, whose reachability roots are its

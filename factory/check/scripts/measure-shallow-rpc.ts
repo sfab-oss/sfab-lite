@@ -8,7 +8,12 @@
 
 import { TYPES_VFS } from "@sfab-lite/kernel";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
-import { createAppLsState, getLanguageService } from "../src/ls-host.ts";
+import {
+  clientPrefixesFromManifest,
+  createAppLsState,
+  getLanguageService,
+} from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const CLIENT_ENTITIES = "/app/src/ui/routes/entities.tsx";
 const HOOK_ENTITIES = "/app/src/ui/hooks/use-entities.ts";
@@ -454,7 +459,7 @@ function heapMb(): number {
 }
 
 function overlayOf(src: Record<string, string>) {
-  const st = createAppLsState();
+  const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
   for (const [p, text] of Object.entries(src)) {
     st.overlay.set(p, text);
     st.versions.set(p, 1);

@@ -2,7 +2,8 @@
  * In-process regression for delete→re-add version monotonicity + diagnostics.
  * Bundled by the companion .mjs runner (esbuild) so Node can load workspace TS.
  */
-import { type LsStore, runCheck } from "../src/run-check.ts";
+import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
+import { SEED_MANIFEST } from "./seed-manifest.ts";
 
 const appId = "regression-delete-readd";
 const absX = "/app/src/x.ts";
@@ -26,7 +27,10 @@ function versionOfX(): number | undefined {
 }
 
 function step(label: string, files: Record<string, string>) {
-  const result = runCheck({ appId, files, forceCold: false }, { store });
+  const result = runCheck(
+    { appId, files, manifest: SEED_MANIFEST, forceCold: false },
+    { store }
+  );
   const version = versionOfX();
   console.log(
     JSON.stringify({

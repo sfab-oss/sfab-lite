@@ -1,3 +1,4 @@
+import { overlayFormatFiles } from "@sfab-lite/verbs/format";
 import { callCheck, checkPasses } from "../../forge/cd.js";
 import { type ProtectedReply, protectedError } from "../../hono/reply.js";
 import type { CheckBody, CommitBody, RevertBody } from "../../hono/schemas.js";
@@ -21,7 +22,12 @@ export async function handleCheck(
   if (Object.keys(files).length === 0) {
     return protectedError("no_files", 400);
   }
-  const check = await callCheck(rc.env, appId, files, body.forceCold !== false);
+  const check = await callCheck(
+    rc.env,
+    appId,
+    overlayFormatFiles(files),
+    body.forceCold !== false
+  );
   const pass = checkPasses(check.body);
   return {
     status: 200,
