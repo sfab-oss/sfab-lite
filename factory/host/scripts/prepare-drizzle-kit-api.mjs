@@ -9,6 +9,7 @@
  * Writes `src/generated/drizzle-kit-modules.js` (module path → source).
  * Re-run when the pinned drizzle-kit / drizzle-orm versions change.
  */
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -21,9 +22,14 @@ import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const hostRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const scriptPath = fileURLToPath(import.meta.url);
+const hostRoot = join(dirname(scriptPath), "..");
 const outPath = join(hostRoot, "src/generated/drizzle-kit-modules.js");
 const dtsPath = join(hostRoot, "src/generated/drizzle-kit-modules.d.ts");
+const stampPath = join(
+  hostRoot,
+  "src/generated/drizzle-kit-modules.stamp.json"
+);
 
 const ORM_SPEC = "drizzle-orm";
 
@@ -193,6 +199,27 @@ if (kitPkg.version !== "0.31.10") {
     `prepare-drizzle-kit-api: expected drizzle-kit 0.31.10, got ${kitPkg.version}`
   );
 }
+const ormPkg = JSON.parse(readFileSync(join(ormRoot, "package.json"), "utf8"));
+const stamp = {
+  drizzleKit: kitPkg.version,
+  drizzleOrm: ormPkg.version,
+  script: createHash("sha256").update(readFileSync(scriptPath)).digest("hex"),
+};
+if (existsSync(outPath) && existsSync(dtsPath) && existsSync(stampPath)) {
+  try {
+    const previous = JSON.parse(readFileSync(stampPath, "utf8"));
+    if (
+      previous.drizzleKit === stamp.drizzleKit &&
+      previous.drizzleOrm === stamp.drizzleOrm &&
+      previous.script === stamp.script
+    ) {
+      console.log("prepare-drizzle-kit-api: up to date");
+      process.exit(0);
+    }
+  } catch {
+    // Rewrite when the stamp is unreadable.
+  }
+}
 
 const apiSource = patchApi(readFileSync(kitApiPath, "utf8"));
 const ormFiles = collectOrmClosure(ormRoot, Object.values(STATIC_ORM));
@@ -213,6 +240,7 @@ writeFileSync(
   dtsPath,
   "export declare const DRIZZLE_KIT_MODULES: Record<string, string>;\n"
 );
+writeFileSync(stampPath, `${JSON.stringify(stamp, null, 2)}\n`);
 const bytes = Buffer.byteLength(JSON.stringify(modules));
 console.log(
   `prepare-drizzle-kit-api: ${Object.keys(modules).length} modules, ${(bytes / 1_048_576).toFixed(2)} MiB → ${toPosix(relative(hostRoot, outPath))}`
