@@ -108,13 +108,14 @@ function normalizeFlatImports(source: string): string {
  */
 export async function bundleWithKernel(
   files: Record<string, string>,
-  entryPoint: string
+  entryPoint: string,
+  extraExternals: string[] = []
 ): Promise<{ js: string; mainModule: string; warnings: unknown[] }> {
   const result = await createWorker({
     files,
     entryPoint,
     bundle: true,
-    externals: [...KERNEL_EXTERNALS],
+    externals: [...KERNEL_EXTERNALS, ...extraExternals],
     virtualModules: KERNEL_VIRTUAL_MODULES,
     jsx: "transform",
   });
