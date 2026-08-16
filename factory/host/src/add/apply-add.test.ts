@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import seed from "@sfab-lite/template/seed" with { type: "json" };
 import { applyAdd } from "./apply-add.ts";
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const BARE_NAME = /bare names are a hard error/;
+const TREE = {
+  "manifest.json": `${JSON.stringify(seed.manifest, null, 2)}\n`,
+};
 
 test("add lite/field copies deps and writes sha256 provenance", () => {
-  const result = applyAdd("lite/field", {});
+  const result = applyAdd("lite/field", TREE);
   assert.equal(result.ok, true);
   if (!result.ok) {
     return;
@@ -42,7 +46,7 @@ test("bare names never copy files", () => {
 });
 
 test("re-add overwrites a hand-edited target and updates provenance", () => {
-  const first = applyAdd("lite/button", {});
+  const first = applyAdd("lite/button", TREE);
   assert.equal(first.ok, true);
   if (!first.ok) {
     return;
@@ -70,7 +74,7 @@ test("re-add overwrites a hand-edited target and updates provenance", () => {
 });
 
 test("@lite/field is the same add as lite/field", () => {
-  const result = applyAdd("@lite/field", {});
+  const result = applyAdd("@lite/field", TREE);
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.ok(result.files["src/components/ui/field.tsx"]);
