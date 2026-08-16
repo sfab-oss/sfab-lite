@@ -22,10 +22,14 @@ import {
   putWorkspaceBuild,
   workspaceBuildSha,
 } from "../registry/workspace-build.js";
-import { describeBlocking, diffSchema } from "../schema/schema-ddl.js";
+import { classifySql, describeBlockingSql } from "../schema/classify-sql.js";
+import { KIT_SQL_BREAKPOINT } from "../schema/schema-kit.js";
 import { probeSchema } from "../schema/schema-probe.js";
 import {
+  appendJournalEntry,
+  journalPath,
   latestSnapshot,
+  serializeJournal,
   serializeSnapshot,
   snapshotPathFor,
 } from "../schema/schema-snapshots.js";
@@ -179,42 +183,53 @@ async function runDbGenerate(
   const files = await collectWorkspaceSourceFiles(ctx);
   try {
     const tree = overlayFormatFiles(files);
-    const probe = await probeSchema(deps.env, tree.files, tree.manifest);
+    const prev = latestSnapshot(tree.files, tree.manifest);
+    const probe = await probeSchema(deps.env, tree.files, tree.manifest, prev);
     if (!probe.ok) {
       return fail(`db:generate: ${probe.error}\n`, 1);
     }
 
-    const diff = diffSchema(
-      latestSnapshot(tree.files, tree.manifest),
-      probe.snapshot
-    );
+    const diff = classifySql(probe.sql);
 
     if (diff.blocking.length > 0) {
-      const reasons = diff.blocking
-        .map((change) => `  - ${describeBlocking(change)}`)
-        .join("\n");
       return fail(
-        `db:generate: refused — this change cannot be made without losing data.\n${reasons}\n\nRestore what was removed, or migrate it by hand.\n`,
+        `db:generate: refused — this change cannot be applied without losing data — migrate by hand or restore.\n${describeBlockingSql(diff.blocking)}\n\nRestore what was removed, or migrate it by hand.\n`,
         1
       );
     }
 
-    if (diff.statements.length === 0) {
+    if (diff.additive.length === 0) {
       return ok("db:generate: no schema changes to migrate\n");
     }
 
     const name = args.find((arg) => !arg.startsWith("-")) ?? "schema";
     const path = nextMigrationPath(tree.files, tree.manifest, name);
     const snapshotPath = snapshotPathFor(path, tree.manifest);
-    await ctx.fs.writeFile(`/${path}`, `${diff.statements.join("\n")}\n`);
+    const fileName = path.slice(tree.manifest.migrations.length + 1);
+    const tag = fileName.endsWith(".sql")
+      ? fileName.slice(0, -".sql".length)
+      : fileName;
+    const journal = appendJournalEntry(
+      tree.files,
+      tree.manifest,
+      tag,
+      Date.now()
+    );
+    await ctx.fs.writeFile(
+      `/${path}`,
+      `${probe.sql.join(`${KIT_SQL_BREAKPOINT}\n`)}\n`
+    );
     await ctx.fs.writeFile(
       `/${snapshotPath}`,
       serializeSnapshot(probe.snapshot)
     );
-    const summary = diff.additive
-      .map((change) => `  ${change.kind} ${change.table}`)
-      .join("\n");
-    return ok(`db:generate: wrote ${path} and ${snapshotPath}\n${summary}\n`);
+    await ctx.fs.writeFile(
+      `/${journalPath(tree.manifest)}`,
+      serializeJournal(journal)
+    );
+    return ok(
+      `db:generate: wrote ${path}, ${snapshotPath}, and ${journalPath(tree.manifest)}\nRenames are drop+add in this generation and must be hand-migrated.\n`
+    );
   } catch (e) {
     return fail(
       `db:generate: ${e instanceof Error ? e.message : String(e)}\n`,
