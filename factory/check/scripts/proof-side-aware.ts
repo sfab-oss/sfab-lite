@@ -308,6 +308,29 @@ if (plantedResult.clean || !plantedHit) {
   failed = true;
 }
 
+const txFiles = {
+  ...baseFiles,
+  "src/hono/routes/bad-transaction.ts": `export async function boom(db: { transaction: (fn: () => Promise<void>) => Promise<void> }) {
+  await db.transaction(async () => undefined);
+}
+`,
+};
+const txResult = check("13-transaction-floor", txFiles);
+const txHit = txResult.diagnostics.some(
+  (d) =>
+    d.message.includes("LITE-TX") &&
+    d.message.includes("db.batch") &&
+    d.message.includes("ADR-0014") &&
+    (d.file?.includes("bad-transaction.ts") ?? false)
+);
+if (txResult.clean || !txHit) {
+  console.error(
+    "FAIL: .transaction( on app sources must fail with the LITE-TX floor diagnostic",
+    txResult.diagnostics
+  );
+  failed = true;
+}
+
 if (failed) {
   process.exit(1);
 }

@@ -36,7 +36,7 @@ function readTreeManifest(
 }
 
 /**
- * Overlay the four generated format files onto a source tree. Create, CD
+ * Overlay generated format files onto a source tree. Create, CD
  * materialise and workspace compile call this; add regenerates inside
  * apply-add. Agent edits are overwritten.
  */

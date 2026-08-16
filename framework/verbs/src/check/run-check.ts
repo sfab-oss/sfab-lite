@@ -45,6 +45,7 @@ import {
   hashesMatch,
   snapshotFreshnessDiagnostic,
 } from "./snapshot-freshness.js";
+import { transactionFloorDiagnostics } from "./transaction-floor.js";
 import {
   type Diagnostic,
   flattenDiagnosticMessageText,
@@ -340,6 +341,7 @@ export function runCheck(
 
   ctx.bumpedFiles = syncOverlay(st, body.files).bumpedFiles;
   applyHonoOverlay(st.overlay, st.versions, null);
+  ctx.allDiags.push(...transactionFloorDiagnostics(body.files));
 
   const entryRel = serverEntryRel(body.manifest);
   const entryPath = overlayAppPath(entryRel);

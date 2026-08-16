@@ -1,11 +1,29 @@
 /**
  * Host-generated format members: package.json, tsconfig.json, index.html,
- * components.json. One function; starter and host both consume it.
+ * components.json, src/db/index.ts. One function; starter and host both
+ * consume it.
  *
  * See `docs/architecture/APP-FORMAT.md` §4.
  */
 
 import type { ManifestV0 } from "./manifest.js";
+
+export interface FormatPins {
+  dependencies: Readonly<Record<string, string>>;
+  devDependencies: Readonly<Record<string, string>>;
+}
+
+const CLOUDFLARE_DB_SHIM = `import { drizzle } from "drizzle-orm/d1";
+import type { Env } from "../env";
+// biome-ignore lint/performance/noNamespaceImport: drizzle's relational query builder takes the whole schema module as one object.
+import * as schema from "./schema";
+
+export function createDb(env: Env) {
+  return drizzle(env.DB, { schema });
+}
+
+export type Db = ReturnType<typeof createDb>;
+`;
 
 export interface FormatPins {
   dependencies: Readonly<Record<string, string>>;
@@ -143,5 +161,6 @@ export function generateFormatFiles(
       scriptSrc: `/${entry}`,
     }),
     "components.json": `${JSON.stringify(COMPONENTS_JSON, null, 2)}\n`,
+    "src/db/index.ts": CLOUDFLARE_DB_SHIM,
   };
 }

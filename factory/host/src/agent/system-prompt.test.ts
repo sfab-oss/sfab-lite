@@ -19,5 +19,6 @@ test("the prompt names generated files as host-owned", () => {
     prompt.includes("Those files are generated. Edit manifest.json, not them.")
   );
   assert.ok(prompt.includes("src/generated/**"));
+  assert.ok(prompt.includes("src/db/index.ts"));
   assert.equal(prompt.includes("package.json is writable."), false);
 });

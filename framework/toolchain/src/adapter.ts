@@ -2,22 +2,20 @@
  * Serve-adapter shape. Framework-owned; apps name a target in the
  * manifest and never implement this. Cloudflare is the only v0 target.
  *
- * See `docs/architecture/APP-FORMAT.md` §6.
+ * The app never sees a driver: `generateFormatFiles` emits `src/db/index.ts`
+ * (`createDb` / `Db`) for the named target. Cloudflare: `drizzle-orm/d1`
+ * over `env.DB`. See `docs/architecture/APP-FORMAT.md` §6 and ADR-0014.
  */
 
 import type { AdapterTarget, ManifestV0 } from "./manifest.js";
 
 export interface SqliteDriver {
-  readonly kind: "sqlite";
+  readonly dialect: "sqlite";
 }
 
-export interface BlobStore {
-  readonly kind: "blob";
-}
+export type BlobStore = object;
 
-export interface SecretsSource {
-  readonly kind: "secrets";
-}
+export type SecretsSource = object;
 
 export interface PackOutput {
   server: string;
@@ -41,7 +39,7 @@ export interface ServeAdapter {
   pack: (image: AppImage) => Promise<PackOutput>;
   bindings: () => {
     db: SqliteDriver;
-    storage: BlobStore;
+    storage?: BlobStore;
     secrets: SecretsSource;
   };
 }

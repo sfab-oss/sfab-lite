@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Write the four generated format files under app/ from the starter
+ * Write generated format files under app/ from the starter
  * manifest and the runtime pin list. Drift is gated by `pnpm check:generated`.
  */
 import { readFileSync, writeFileSync } from "node:fs";

@@ -18,6 +18,7 @@ const PLATFORM_READONLY_PATHS = [
   "vite.config.ts",
   "package.json",
   "index.html",
+  "src/db/index.ts",
 ] as const;
 
 const GENERATED_PREFIX = "src/generated";
@@ -61,6 +62,7 @@ const HOST_GENERATED_ROOTS = new Set([
   "tsconfig.json",
   "index.html",
   "components.json",
+  "src/db/index.ts",
 ]);
 
 export function isHostGeneratedPath(path: string): boolean {
