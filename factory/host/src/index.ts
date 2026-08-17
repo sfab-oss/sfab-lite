@@ -62,13 +62,13 @@ function handleProtectedResourceMetadata(rc: RouteCtx): Response {
 }
 
 async function handleKernel(rc: RouteCtx): Promise<Response> {
-  const rest = rc.match[1] ?? "";
+  const rest = rc.groups[0] ?? "";
   const res = await serveKernel(rc.request, rest, rc.env);
   return res ?? new Response("unknown kernel path\n", { status: 404 });
 }
 
 function handleRegistryItem(rc: RouteCtx): Response {
-  return serveRegistryItem(rc.request, rc.match[1] ?? "");
+  return serveRegistryItem(rc.request, rc.groups[0] ?? "");
 }
 
 async function requirePreviewAccess(
@@ -135,8 +135,8 @@ async function handlePreviewSubApp(
 }
 
 async function handleSubApp(rc: RouteCtx): Promise<Response> {
-  const id = decodeURIComponent(rc.match[1] ?? "");
-  const rest = rc.match[2] ?? "";
+  const id = decodeURIComponent(rc.groups[0] ?? "");
+  const rest = rc.groups[1] ?? "";
   if (rest === "workspace" || rest.startsWith("workspace/")) {
     if (!id.startsWith("ws_")) {
       return Response.json(
@@ -218,7 +218,11 @@ export async function dispatchFactoryRequest(
 
   const publicHit = matchRoute(PUBLIC_ROUTES, request.method, url.pathname);
   if (publicHit) {
-    return await publicHit.route.handler({ ...rc, match: publicHit.match });
+    return await publicHit.route.handler({
+      ...rc,
+      path: url.pathname,
+      groups: publicHit.groups,
+    });
   }
 
   // Loopback only — the AppCreateDO's alarm calling back in to run a create

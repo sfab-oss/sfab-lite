@@ -28,7 +28,7 @@ export async function handleGetLive(rc: AppCtx) {
 
 export async function handleGetAttempt(rc: AppCtx) {
   const { appId } = rc;
-  const attemptId = rc.attemptId ?? decodeURIComponent(rc.match[2] ?? "");
+  const attemptId = rc.attemptId ?? "";
   const { job } = await appCreateStub(rc.env, appId).getCreateJob(attemptId);
   if (!job) {
     return protectedError("attempt_not_found", 404);

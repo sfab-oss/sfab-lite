@@ -15,9 +15,10 @@ export interface RequestCtx {
   url: URL;
 }
 
-/** …and after. `match` exists only once a pattern produced it. */
+/** …and after. `path` is the pathname; `groups` are regex captures (index 0 = first). */
 export interface RouteCtx extends RequestCtx {
-  match: RegExpMatchArray;
+  path: string;
+  groups: string[];
 }
 
 /** A request that cleared the `/api/protected` credential gate. */
@@ -37,7 +38,7 @@ export interface OrgCtx extends ProtectedCtx {
 /**
  * A protected request for one specific app, already checked to belong to the
  * actor. `appId` arrives decoded because the dispatcher had to decode it to
- * run that check — handlers no longer parse `match[1]` themselves.
+ * run that check — handlers no longer parse `groups[0]` themselves.
  * `attemptId` is set on attempt-detail routes.
  */
 export interface AppCtx extends ProtectedCtx {
@@ -67,14 +68,14 @@ export function matchRoute<
   routes: R[],
   method: string,
   pathname: string
-): { route: R; match: RegExpMatchArray } | null {
+): { route: R; groups: string[] } | null {
   for (const route of routes) {
     if (route.method !== "*" && !methodMatches(route.method, method)) {
       continue;
     }
     const match = pathname.match(route.pattern);
     if (match) {
-      return { route, match };
+      return { route, groups: match.slice(1) };
     }
   }
   return null;
