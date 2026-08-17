@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
-import { listPathsInBare, readFileInBare } from "./bare-browse.ts";
+import { isDescendent, listBranches, resolveRef } from "isomorphic-git";
+import { createGitFs, listPathsInBare, readFileInBare } from "./bare-browse.ts";
 import type { GitWorkFs } from "./code-host.ts";
 
 const AUTHOR = { name: "test", email: "test@example.com" };
@@ -71,5 +72,51 @@ describe("bare-browse", () => {
   it("rejects path traversal", async () => {
     const { bare, sha } = await seedBareRepo();
     assert.equal(await readFileInBare(bare, sha, "../README.md"), null);
+  });
+});
+
+describe("createGitFs + isomorphic-git on a bare repo", () => {
+  const BARE = { dir: "/", gitdir: "/" } as const;
+
+  it("resolveRef / listBranches / isDescendent use the shared binder", async () => {
+    const work = new InMemoryFs();
+    const git = createGit(work, "/");
+    await git.init({ defaultBranch: "main" });
+    await work.writeFile("/a.txt", "a\n");
+    await git.add({ filepath: "." });
+    const parent = (await git.commit({ message: "parent", author: AUTHOR }))
+      .oid;
+    await work.writeFile("/b.txt", "b\n");
+    await git.add({ filepath: "." });
+    const child = (await git.commit({ message: "child", author: AUTHOR })).oid;
+
+    const bare = new InMemoryFs();
+    await copyTree(work, "/.git/objects", bare, "/objects");
+    await copyTree(work, "/.git/refs", bare, "/refs");
+    await bare.writeFile("/HEAD", "ref: refs/heads/main\n");
+    const fs = createGitFs(bare);
+
+    assert.equal(
+      await resolveRef({ fs, ...BARE, ref: "refs/heads/main" }),
+      child
+    );
+    assert.deepEqual(
+      (await listBranches({ fs, ...BARE })).sort((a, b) => a.localeCompare(b)),
+      ["main"]
+    );
+    assert.equal(
+      await isDescendent({ fs, ...BARE, oid: child, ancestor: parent }),
+      true
+    );
+    assert.equal(
+      await isDescendent({ fs, ...BARE, oid: parent, ancestor: child }),
+      false
+    );
+    try {
+      await resolveRef({ fs, ...BARE, ref: "refs/heads/missing" });
+      assert.fail("expected missing ref to throw");
+    } catch {
+      // same catch → null path tipSha uses
+    }
   });
 });

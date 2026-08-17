@@ -1,7 +1,12 @@
 import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
+import {
+  listBranches as gitListBranches,
+  isDescendent,
+  resolveRef,
+} from "isomorphic-git";
 import { z } from "zod";
-import { listPathsInBare, readFileInBare } from "./bare-browse.js";
+import { createGitFs, listPathsInBare, readFileInBare } from "./bare-browse.js";
 import type {
   CodeHost,
   CodeHostCredentials,
@@ -9,12 +14,14 @@ import type {
   GitWorkFs,
 } from "./code-host.js";
 import { remoteUrlFor } from "./code-host.js";
-import { copyTree } from "./copy-tree.js";
+import { copyTree, mapLimit } from "./copy-tree.js";
 import { R2GitFs } from "./r2-git-fs.js";
 
 const AUTHOR = { name: "sfab-lite", email: "forge@sfab.dev" };
 const TRAILING_SLASH = /\/$/;
 const treePathsSchema = z.array(z.string());
+const BARE = { dir: "/", gitdir: "/" } as const;
+const TREE_READ_CONCURRENCY = 16;
 
 function treePathsKey(appId: string, sha: string): string {
   return `tree-index/${appId}/${sha}.json`;
@@ -36,115 +43,39 @@ function mintToken(): string {
     .replaceAll("=", "");
 }
 
-async function readRef(fs: GitWorkFs, path: string): Promise<string | null> {
-  if (!(await fs.exists(path))) {
-    return null;
-  }
-  const raw = (await fs.readFile(path)).trim();
-  if (raw.startsWith("ref:")) {
-    const target = raw.slice(4).trim();
-    return readRef(fs, target.startsWith("/") ? target : `/${target}`);
-  }
-  return raw || null;
-}
-
-async function listRefNames(
+async function resolveRefOrNull(
   fs: GitWorkFs,
-  dir: string,
-  prefix: string
-): Promise<string[]> {
-  if (!(await fs.exists(dir))) {
-    return [];
-  }
-  const st = await fs.lstat(dir);
-  if (st.type !== "directory") {
-    return [];
-  }
-  const names: string[] = [];
-  for (const name of await fs.readdir(dir)) {
-    if (name === "." || name === "..") {
-      continue;
-    }
-    const path = dir === "/" ? `/${name}` : `${dir}/${name}`;
-    const child = await fs.lstat(path);
-    const refName = prefix ? `${prefix}/${name}` : name;
-    if (child.type === "directory") {
-      names.push(...(await listRefNames(fs, path, refName)));
-    } else {
-      names.push(refName);
-    }
-  }
-  return names;
-}
-
-function worktreeChildPath(parent: string, name: string): string {
-  return parent === "/" ? `/${name}` : `${parent}/${name}`;
-}
-
-function sourceKeyFromAbs(path: string): string | null {
-  const key = path.startsWith("/") ? path.slice(1) : path;
-  return key || null;
-}
-
-async function enqueueDirChildren(
-  fs: GitWorkFs,
-  path: string,
-  queue: string[]
-): Promise<void> {
-  for (const name of await fs.readdir(path)) {
-    if (name === "." || name === ".." || name === ".git") {
-      continue;
-    }
-    queue.push(worktreeChildPath(path, name));
-  }
-}
-
-async function collectWorktreeFiles(
-  fs: GitWorkFs,
-  dir = "/"
-): Promise<Record<string, string>> {
-  const files: Record<string, string> = {};
-  const queue = [dir];
-
-  while (queue.length > 0) {
-    const path = queue.pop() as string;
-    if (!(await fs.exists(path))) {
-      continue;
-    }
-    const st = await fs.lstat(path);
-    if (st.type === "file") {
-      const key = sourceKeyFromAbs(path);
-      if (key) {
-        files[key] = await fs.readFile(path);
-      }
-      continue;
-    }
-    if (st.type === "directory") {
-      await enqueueDirChildren(fs, path, queue);
-    }
-  }
-
-  return files;
-}
-
-async function checkoutTreeFiles(
-  bare: R2GitFs,
-  sha: string
-): Promise<Record<string, string> | null> {
-  const work = new InMemoryFs();
-  const git = createGit(work, "/");
-  await git.init({ defaultBranch: "main" });
-  await copyTree(bare, "/objects", work, "/.git/objects");
-  await copyTree(bare, "/refs", work, "/.git/refs");
-  if (await bare.exists("/HEAD")) {
-    await work.writeFile("/.git/HEAD", await bare.readFile("/HEAD"));
-  }
+  ref: string,
+  gitdir = "/"
+): Promise<string | null> {
   try {
-    await git.checkout({ ref: sha, force: true });
+    return await resolveRef({
+      fs: createGitFs(fs),
+      dir: "/",
+      gitdir,
+      ref,
+    });
   } catch {
     return null;
   }
-  return await collectWorktreeFiles(work);
+}
+
+async function readTreeFiles(
+  bare: GitWorkFs,
+  sha: string
+): Promise<Record<string, string> | null> {
+  const paths = await listPathsInBare(bare, sha);
+  if (!paths) {
+    return null;
+  }
+  const files: Record<string, string> = {};
+  await mapLimit(paths, TREE_READ_CONCURRENCY, async (path) => {
+    const content = await readFileInBare(bare, sha, path);
+    if (content != null) {
+      files[path] = content;
+    }
+  });
+  return files;
 }
 
 async function writeTreeFiles(
@@ -203,13 +134,15 @@ export function createR2CodeHost(env: Env): CodeHost {
     },
 
     async tipSha(appId: string, ref = "main"): Promise<string | null> {
-      const fs = bareFs(appId);
-      return await readRef(fs, `/refs/heads/${ref}`);
+      return await resolveRefOrNull(bareFs(appId), `refs/heads/${ref}`);
     },
 
     async listBranches(appId: string): Promise<string[]> {
       await this.ensureRepo(appId);
-      const names = await listRefNames(bareFs(appId), "/refs/heads", "");
+      const names = await gitListBranches({
+        fs: createGitFs(bareFs(appId)),
+        ...BARE,
+      });
       return names.sort((a, b) => a.localeCompare(b));
     },
 
@@ -239,11 +172,9 @@ export function createR2CodeHost(env: Env): CodeHost {
       }
       const sha = await this.tipSha(appId, "main");
       if (sha) {
-        // Materialize the working tree via InMemoryFs checkout, then copy
-        // files onto targetFs. Agent Workspace FS often cannot run
-        // isomorphic-git checkout itself (silent empty catch left only
-        // `.git` and no `src/`).
-        const files = await checkoutTreeFiles(bare, sha);
+        // Agent Workspace FS often cannot run isomorphic-git checkout
+        // (silent empty catch left only `.git` and no `src/`).
+        const files = await readTreeFiles(bare, sha);
         if (!files) {
           throw new Error(
             `cloneTo: checkout failed for ${appId} at ${sha.slice(0, 12)}`
@@ -285,12 +216,16 @@ export function createR2CodeHost(env: Env): CodeHost {
       const dir = opts?.dir ?? "/";
       const ref = opts?.ref ?? "main";
       const gitRoot = dir === "/" ? "/.git" : `${dir}/.git`;
-      const workSha = await readRef(sourceFs, `${gitRoot}/refs/heads/${ref}`);
+      const workSha = await resolveRefOrNull(
+        sourceFs,
+        `refs/heads/${ref}`,
+        gitRoot
+      );
       if (!workSha) {
         return { advancedMain: false, sha: null };
       }
       const bare = bareFs(appId);
-      const prev = await readRef(bare, `/refs/heads/${ref}`);
+      const prev = await resolveRefOrNull(bare, `refs/heads/${ref}`);
       await copyTree(sourceFs, `${gitRoot}/objects`, bare, "/objects");
       await bare.mkdir("/refs/heads", { recursive: true });
       await bare.writeFile(`/refs/heads/${ref}`, `${workSha}\n`);
@@ -308,7 +243,7 @@ export function createR2CodeHost(env: Env): CodeHost {
     ): Promise<{ previous: string | null }> {
       await this.ensureRepo(appId);
       const bare = bareFs(appId);
-      const previous = await readRef(bare, `/refs/heads/${ref}`);
+      const previous = await resolveRefOrNull(bare, `refs/heads/${ref}`);
       await bare.mkdir("/refs/heads", { recursive: true });
       await bare.writeFile(`/refs/heads/${ref}`, `${sha}\n`);
       if (ref === "main") {
@@ -326,18 +261,13 @@ export function createR2CodeHost(env: Env): CodeHost {
         return true;
       }
       await this.ensureRepo(appId);
-      const bare = bareFs(appId);
-      const work = new InMemoryFs();
-      const git = createGit(work, "/");
-      await git.init({ defaultBranch: "main" });
-      await copyTree(bare, "/objects", work, "/.git/objects");
-      await copyTree(bare, "/refs", work, "/.git/refs");
-      if (await bare.exists("/HEAD")) {
-        await work.writeFile("/.git/HEAD", await bare.readFile("/HEAD"));
-      }
       try {
-        const entries = await git.log({ ref: descendantSha, depth: 10_000 });
-        return entries.some((e) => e.oid === ancestorSha);
+        return await isDescendent({
+          fs: createGitFs(bareFs(appId)),
+          ...BARE,
+          oid: descendantSha,
+          ancestor: ancestorSha,
+        });
       } catch {
         return false;
       }
@@ -348,7 +278,7 @@ export function createR2CodeHost(env: Env): CodeHost {
       sha: string
     ): Promise<Record<string, string> | null> {
       await this.ensureRepo(appId);
-      return await checkoutTreeFiles(bareFs(appId), sha);
+      return await readTreeFiles(bareFs(appId), sha);
     },
 
     async listPathsAt(appId: string, sha: string): Promise<string[] | null> {

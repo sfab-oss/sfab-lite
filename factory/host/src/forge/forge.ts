@@ -613,15 +613,12 @@ export async function prDiffSummary(
   }
   const host = createR2CodeHost(env);
   const baseSha = await host.tipSha(appId, pr.baseBranch);
-  const headTree = await host.readTreeAt(appId, pr.headSha);
-  if (!headTree) {
+  const headPaths = await host.listPathsAt(appId, pr.headSha);
+  if (!headPaths) {
     return { ok: false, error: "head_tree_missing" };
   }
-  const baseTree = baseSha ? await host.readTreeAt(appId, baseSha) : {};
-  const paths = new Set([
-    ...Object.keys(headTree),
-    ...Object.keys(baseTree ?? {}),
-  ]);
+  const basePaths = baseSha ? await host.listPathsAt(appId, baseSha) : [];
+  const paths = new Set([...headPaths, ...(basePaths ?? [])]);
   const changedPaths: string[] = [];
   const files: {
     path: string;
@@ -629,8 +626,9 @@ export async function prDiffSummary(
     after: string | null;
   }[] = [];
   for (const path of [...paths].sort()) {
-    const before = baseTree?.[path] ?? null;
-    const after = headTree[path] ?? null;
+    const before =
+      baseSha && basePaths ? await host.readFileAt(appId, baseSha, path) : null;
+    const after = await host.readFileAt(appId, pr.headSha, path);
     if (before !== after) {
       changedPaths.push(path);
       files.push({ path, before, after });
