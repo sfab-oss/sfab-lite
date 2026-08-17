@@ -3,7 +3,8 @@
  *
  * Thin HTTP shell: admin token + POST /lint → `@sfab-lite/verbs/lint`.
  */
-import type { LintRequest } from "@sfab-lite/core";
+import { parseLintRequest } from "@sfab-lite/core/lint";
+import { InvalidRequestError } from "@sfab-lite/core/request";
 import { bootBiome, runLint } from "@sfab-lite/verbs/lint";
 
 export interface Env {
@@ -59,21 +60,12 @@ async function lintResponse(env: Env, request: Request): Promise<Response> {
     return gated;
   }
   try {
-    const body = (await request.json()) as LintRequest;
-    if (!body?.files || typeof body.files !== "object") {
-      return Response.json(
-        { ok: false, error: "body.files (path→content) required" },
-        { status: 400 }
-      );
-    }
-    if (!body.appId || typeof body.appId !== "string") {
-      return Response.json(
-        { ok: false, error: "body.appId required" },
-        { status: 400 }
-      );
-    }
+    const body = parseLintRequest(await request.json());
     return Response.json(runLint(body));
   } catch (e) {
+    if (e instanceof InvalidRequestError) {
+      return Response.json({ ok: false, error: e.message }, { status: 400 });
+    }
     return Response.json(
       {
         ok: false,
