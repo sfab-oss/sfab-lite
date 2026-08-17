@@ -26,6 +26,9 @@ export interface SqlMeta {
   served_by: "do-sqlite";
 }
 
+export type SqlValue = null | string | number | bigint | boolean | ArrayBuffer;
+export type SqlRow = Record<string, SqlValue>;
+
 function d1Meta(cursor: { rowsRead: number; rowsWritten: number }): SqlMeta {
   return {
     duration: 0,
@@ -57,9 +60,9 @@ ${SCHEMA_VERSION_DDL}
 class SqlStmtStub extends RpcTarget {
   readonly #do: AppDataDO;
   readonly #query: string;
-  readonly #binds: unknown[];
+  readonly #binds: SqlValue[];
 
-  constructor(owner: AppDataDO, query: string, binds: unknown[] = []) {
+  constructor(owner: AppDataDO, query: string, binds: SqlValue[] = []) {
     super();
     this.#do = owner;
     this.#query = query;
@@ -67,11 +70,11 @@ class SqlStmtStub extends RpcTarget {
   }
 
   /** Unwrap for `batch()` — stays on the DO side of the RPC boundary. */
-  get _batchItem(): { query: string; binds: unknown[] } {
+  get _batchItem(): { query: string; binds: SqlValue[] } {
     return { query: this.#query, binds: this.#binds };
   }
 
-  bind(...values: unknown[]) {
+  bind(...values: SqlValue[]) {
     return new SqlStmtStub(this.#do, this.#query, [...this.#binds, ...values]);
   }
 
@@ -220,14 +223,14 @@ export class AppDataDO extends DurableObject<Env> {
 
   execAll(
     query: string,
-    binds: unknown[] = []
+    binds: SqlValue[] = []
   ): {
     success: true;
-    results: Record<string, unknown>[];
+    results: SqlRow[];
     meta: SqlMeta;
   } {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
-    const results = cursor.toArray() as Record<string, unknown>[];
+    const results = cursor.toArray() as SqlRow[];
     const meta = d1Meta(cursor);
     try {
       const lid = this.ctx.storage.sql
@@ -240,9 +243,13 @@ export class AppDataDO extends DurableObject<Env> {
     return { success: true, results, meta };
   }
 
-  execFirst(query: string, binds: unknown[] = [], colName?: string): unknown {
+  execFirst(
+    query: string,
+    binds: SqlValue[] = [],
+    colName?: string
+  ): SqlValue | SqlRow | null {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
-    const rows = cursor.toArray() as Record<string, unknown>[];
+    const rows = cursor.toArray() as SqlRow[];
     if (rows.length === 0) {
       return null;
     }
@@ -258,7 +265,7 @@ export class AppDataDO extends DurableObject<Env> {
 
   execRun(
     query: string,
-    binds: unknown[] = []
+    binds: SqlValue[] = []
   ): { success: true; meta: SqlMeta } {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
     cursor.toArray();
@@ -276,14 +283,14 @@ export class AppDataDO extends DurableObject<Env> {
 
   execRaw(
     query: string,
-    binds: unknown[] = [],
+    binds: SqlValue[] = [],
     options?: { columnNames?: boolean }
-  ): unknown {
+  ): SqlValue[][] | [string[], ...SqlValue[][]] {
     const cursor = this.ctx.storage.sql.exec(query, ...binds);
     const rawIter = cursor.raw();
-    const rows: unknown[][] = [];
+    const rows: SqlValue[][] = [];
     for (const row of rawIter) {
-      rows.push(row as unknown[]);
+      rows.push([...row] as SqlValue[]);
     }
     if (options?.columnNames) {
       return [cursor.columnNames, ...rows];
@@ -292,9 +299,9 @@ export class AppDataDO extends DurableObject<Env> {
   }
 
   execBatch(
-    statements: { query: string; binds: unknown[] }[]
-  ): { success: true; results: unknown[]; meta: SqlMeta }[] {
-    const out: { success: true; results: unknown[]; meta: SqlMeta }[] = [];
+    statements: { query: string; binds: SqlValue[] }[]
+  ): { success: true; results: SqlRow[]; meta: SqlMeta }[] {
+    const out: { success: true; results: SqlRow[]; meta: SqlMeta }[] = [];
     this.ctx.storage.transactionSync(() => {
       for (const s of statements) {
         const cursor = this.ctx.storage.sql.exec(s.query, ...s.binds);

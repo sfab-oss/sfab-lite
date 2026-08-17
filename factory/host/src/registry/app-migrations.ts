@@ -50,9 +50,16 @@ interface AppliedMigration {
 }
 
 function readLedger(exec: ExecSql): AppliedMigration[] {
-  return exec(
+  const rows = exec(
     "SELECT id, checksum FROM _sfab_migrations ORDER BY ordinal"
-  ) as unknown as AppliedMigration[];
+  );
+  const applied: AppliedMigration[] = [];
+  for (const row of rows) {
+    if (typeof row.id === "string" && typeof row.checksum === "string") {
+      applied.push({ id: row.id, checksum: row.checksum });
+    }
+  }
+  return applied;
 }
 
 /**

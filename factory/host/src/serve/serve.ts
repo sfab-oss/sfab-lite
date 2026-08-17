@@ -488,15 +488,15 @@ export async function serveSubApp(
       loaded.error === "no_workspace_build"
         ? 503
         : 404;
-    return Response.json(
-      {
-        ok: false,
-        error: loaded.error,
-        ...serveErrorFields(target),
-        ...(loaded.detail == null ? {} : { detail: loaded.detail }),
-      },
-      { status }
-    );
+    const body: Record<string, unknown> = {
+      ok: false,
+      error: loaded.error,
+      ...serveErrorFields(target),
+    };
+    if (loaded.detail != null) {
+      body.detail = loaded.detail;
+    }
+    return Response.json(body, { status });
   }
 
   const { build, generation, migrations } = loaded;

@@ -1,4 +1,5 @@
 import type { GitWorkFs } from "./code-host.js";
+import { errorCode } from "./fs-error.ts";
 
 const COPY_CONCURRENCY = 16;
 
@@ -32,13 +33,10 @@ function joinPath(dir: string, name: string): string {
 }
 
 function isEnoent(err: unknown): boolean {
-  if (!(err instanceof Error)) {
-    return false;
-  }
-  if ("code" in err && (err as { code: unknown }).code === "ENOENT") {
+  if (errorCode(err) === "ENOENT") {
     return true;
   }
-  return err.message.startsWith("ENOENT");
+  return err instanceof Error && err.message.startsWith("ENOENT");
 }
 
 interface CopyFile {

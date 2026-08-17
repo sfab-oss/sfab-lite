@@ -1,13 +1,15 @@
 /** Explicit DO stub surfaces — DO Rpc generics erase method returns under tsc alone. */
 
+import type { CreateJobPayload } from "../durable-objects/app-create-do.js";
+import type { SqlRow, SqlValue } from "../durable-objects/app-data-do.js";
 import { liveDataId } from "./app-data-ids.js";
 import { dataIdForTarget, type ServeTarget } from "./serve-target.js";
 
 interface AppDataSqlStmt {
-  bind: (...values: unknown[]) => AppDataSqlStmt;
+  bind: (...values: SqlValue[]) => AppDataSqlStmt;
   all: () => Promise<{
     success: true;
-    results: Record<string, unknown>[];
+    results: SqlRow[];
     meta: unknown;
   }>;
 }
@@ -45,17 +47,17 @@ export interface AppCreateStub {
       status: "pending" | "pass" | "fail" | "error";
       createdAt: number;
       updatedAt: number;
-      payload: unknown;
+      payload: CreateJobPayload;
     } | null;
   }>;
   failCreateJob: (
     jobId: string,
     status: "fail" | "error",
-    payload?: unknown
+    payload?: CreateJobPayload
   ) => Promise<{ ok: true }>;
   completeCreateJob: (
     jobId: string,
-    payload?: unknown
+    payload?: CreateJobPayload
   ) => Promise<{ ok: true }>;
   startCreateJob: () => Promise<
     | { ok: true; jobId: string }
@@ -64,9 +66,7 @@ export interface AppCreateStub {
 }
 
 export function appDataStub(env: Env, dataId: string): AppDataStub {
-  return env.APP_DATA_DO.get(
-    env.APP_DATA_DO.idFromName(dataId)
-  ) as unknown as AppDataStub;
+  return env.APP_DATA_DO.get(env.APP_DATA_DO.idFromName(dataId));
 }
 
 export function liveAppDataStub(env: Env, appId: string): AppDataStub {
@@ -81,7 +81,5 @@ export function serveTargetAppDataStub(
 }
 
 export function appCreateStub(env: Env, appId: string): AppCreateStub {
-  return env.APP_CREATE_DO.get(
-    env.APP_CREATE_DO.idFromName(appId)
-  ) as unknown as AppCreateStub;
+  return env.APP_CREATE_DO.get(env.APP_CREATE_DO.idFromName(appId));
 }

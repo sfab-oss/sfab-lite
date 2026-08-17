@@ -12,15 +12,13 @@ import type { ApiEnv } from "./types.js";
 
 function routeCtx(c: Context<ApiEnv>): RouteCtx {
   const url = new URL(c.req.url);
-  const match = [url.pathname] as unknown as RegExpMatchArray;
-  match.index = 0;
-  match.input = url.pathname;
   return {
     request: c.req.raw,
     env: c.env,
     ctx: c.executionCtx as ExecutionContext,
     url,
-    match,
+    path: url.pathname,
+    groups: [],
   };
 }
 

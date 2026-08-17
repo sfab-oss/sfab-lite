@@ -7,10 +7,6 @@ import type { GitWorkFs } from "./code-host.ts";
 
 const AUTHOR = { name: "test", email: "test@example.com" };
 
-function asShellFs(fs: GitWorkFs) {
-  return fs as unknown as Parameters<typeof createGit>[0];
-}
-
 async function copyTree(
   from: GitWorkFs,
   fromDir: string,
@@ -37,8 +33,8 @@ async function copyTree(
 }
 
 async function seedBareRepo(): Promise<{ bare: GitWorkFs; sha: string }> {
-  const work = new InMemoryFs() as unknown as GitWorkFs;
-  const git = createGit(asShellFs(work), "/");
+  const work = new InMemoryFs();
+  const git = createGit(work, "/");
   await git.init({ defaultBranch: "main" });
   await work.mkdir("/src/nested", { recursive: true });
   await work.writeFile("/src/hello.ts", 'export const hello = "world";\n');
@@ -47,7 +43,7 @@ async function seedBareRepo(): Promise<{ bare: GitWorkFs; sha: string }> {
   await git.add({ filepath: "." });
   const { oid } = await git.commit({ message: "init", author: AUTHOR });
 
-  const bare = new InMemoryFs() as unknown as GitWorkFs;
+  const bare = new InMemoryFs();
   await copyTree(work, "/.git/objects", bare, "/objects");
   await copyTree(work, "/.git/refs", bare, "/refs");
   await bare.writeFile("/HEAD", "ref: refs/heads/main\n");
