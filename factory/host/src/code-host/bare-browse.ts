@@ -69,7 +69,7 @@ function readOnlyError(op: string) {
  * at construct time even for listFiles/readBlob. Stub those; keep the read
  * surface the object walk actually uses.
  */
-function createGitFs(fs: GitWorkFs) {
+export function createGitFs(fs: GitWorkFs) {
   return {
     promises: {
       async readFile(
