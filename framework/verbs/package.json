@@ -22,7 +22,8 @@
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
     "tailwindcss": "4.1.11",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "zod": "4.3.5"
   },
   "devDependencies": {
     "@sfab-lite/tsconfig": "workspace:*"

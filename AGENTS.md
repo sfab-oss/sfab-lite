@@ -140,6 +140,10 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 4. **No wrangler remote / prod deploys** without an explicit owner ask.
 5. **Registry blocks** are the design source for factory UI; implement only
    what the lite loop needs.
+6. **Do not implement what a library already does.** Use the library directly
+   (or copy / vendor / generate from it). Hand-rolled parsers, validators and
+   utils are not allowed when a pinned library provides them — validation uses
+   zod.
 
 ## Tooling
 

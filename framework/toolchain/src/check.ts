@@ -5,43 +5,24 @@
  * shape without either importing the other. Sibling of `LintResult`.
  */
 
-import type { ManifestV0 } from "./manifest.js";
-import { parseRequestManifest } from "./parse-manifest-field.js";
-import {
-  InvalidRequestError,
-  parseAppIdField,
-  parseFilesField,
-  requestFields,
-} from "./request.js";
+import { z } from "zod";
+import { appIdSchema, filesSchema, parseRequest } from "./request.js";
+import { requestManifestSchema } from "./validate-manifest.js";
 
 export type CheckUnitName = "server" | "emit" | "client";
 
-export interface CheckRequest {
-  appId: string;
-  files: Record<string, string>;
-  /** Parsed app-format v0 of the tree being checked — never the starter's. */
-  manifest: ManifestV0;
-  /** Drop the per-app LanguageService and rehydrate from scratch. */
-  forceCold?: boolean;
-}
+export const checkRequestSchema = z.object({
+  appId: appIdSchema,
+  files: filesSchema,
+  manifest: requestManifestSchema,
+  forceCold: z.boolean({ error: "body.forceCold must be boolean" }).optional(),
+});
+
+/** Parsed app-format v0 of the tree being checked — never the starter's. */
+export type CheckRequest = z.infer<typeof checkRequestSchema>;
 
 export function parseCheckRequest(value: unknown): CheckRequest {
-  const body = requestFields(value);
-  const files = parseFilesField(body.files);
-  const appId = parseAppIdField(body.appId);
-  const manifest = parseRequestManifest(body.manifest);
-  const parsed: CheckRequest = { appId, files, manifest };
-  if (body.forceCold === undefined) {
-    return parsed;
-  }
-  if (typeof body.forceCold !== "boolean") {
-    throw new InvalidRequestError(
-      "forceCold",
-      "body.forceCold must be boolean"
-    );
-  }
-  parsed.forceCold = body.forceCold;
-  return parsed;
+  return parseRequest(checkRequestSchema, value);
 }
 
 export interface CheckUnitResult {

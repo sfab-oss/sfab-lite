@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { z } from "zod";
 import {
+  appIdSchema,
+  filesSchema,
   InvalidRequestError,
-  isStringRecord,
-  parseAppIdField,
-  parseFilesField,
-  requestFields,
+  parseRequest,
 } from "./request.ts";
+
+const probe = z.object({
+  files: filesSchema,
+  appId: appIdSchema,
+});
 
 function assertInvalid(fn: () => unknown, field: string, message: string) {
   try {
@@ -19,29 +24,46 @@ function assertInvalid(fn: () => unknown, field: string, message: string) {
   }
 }
 
-test("parseFilesField and parseAppIdField keep the HTTP 400 strings", () => {
-  assert.deepEqual(parseFilesField({ "src/a.ts": "export {}" }), {
-    "src/a.ts": "export {}",
-  });
-  assert.equal(parseAppIdField("app_1"), "app_1");
+test("parseRequest keeps the HTTP 400 strings for files and appId", () => {
+  assert.deepEqual(
+    parseRequest(probe, {
+      files: { "src/a.ts": "export {}" },
+      appId: "app_1",
+    }),
+    { files: { "src/a.ts": "export {}" }, appId: "app_1" }
+  );
   assertInvalid(
-    () => parseFilesField(undefined),
+    () => parseRequest(probe, { appId: "app_1" }),
     "files",
     "body.files (path→content) required"
   );
   assertInvalid(
-    () => parseFilesField({ "src/a.ts": 1 }),
+    () => parseRequest(probe, { files: { "src/a.ts": 1 }, appId: "app_1" }),
     "files",
     "body.files (path→content) required"
   );
-  assertInvalid(() => parseAppIdField(""), "appId", "body.appId required");
-  assertInvalid(() => parseAppIdField(1), "appId", "body.appId required");
+  assertInvalid(
+    () =>
+      parseRequest(probe, { files: { "src/a.ts": "export {}" }, appId: "" }),
+    "appId",
+    "body.appId required"
+  );
+  assertInvalid(
+    () => parseRequest(probe, { files: { "src/a.ts": "export {}" }, appId: 1 }),
+    "appId",
+    "body.appId required"
+  );
 });
 
-test("requestFields treats a non-object body as empty so field checks fire", () => {
-  assert.deepEqual(requestFields(null), {});
-  assert.deepEqual(requestFields([]), {});
-  assert.equal(isStringRecord({ a: "b" }), true);
-  assert.equal(isStringRecord({ a: 1 }), false);
-  assert.equal(isStringRecord(["a"]), false);
+test("parseRequest treats a non-object body as empty so field checks fire", () => {
+  assertInvalid(
+    () => parseRequest(probe, null),
+    "files",
+    "body.files (path→content) required"
+  );
+  assertInvalid(
+    () => parseRequest(probe, []),
+    "files",
+    "body.files (path→content) required"
+  );
 });

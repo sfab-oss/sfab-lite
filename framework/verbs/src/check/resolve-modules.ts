@@ -13,6 +13,7 @@ import {
   SERVER_IMPORT_MAP,
   TYPES_VFS,
 } from "@sfab-lite/kernel";
+import { z } from "zod";
 import { joinPath, normalizePath, readVfs } from "./vfs.js";
 
 /**
@@ -257,30 +258,50 @@ function firstExisting(
   }
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
+const nonEmptyStringSchema = z.string().min(1);
+
+const exportTypesSchema = z.union([
+  z.string(),
+  z.looseObject({
+    import: z.string().optional(),
+    default: z.string().optional(),
+  }),
+]);
+
+const exportEntrySchema = z.looseObject({
+  types: exportTypesSchema.optional(),
+});
+
+const pkgJsonSchema = z.looseObject({
+  types: z.string().optional(),
+  typings: z.string().optional(),
+  exports: z.unknown().optional(),
+});
 
 function nonEmptyString(value: unknown): string | undefined {
-  return typeof value === "string" && value !== "" ? value : undefined;
+  const parsed = nonEmptyStringSchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function typesFromExports(
   exportsField: unknown,
   expKey: string
 ): string | undefined {
-  if (!isPlainObject(exportsField)) {
+  const exportsRecord = z
+    .record(z.string(), z.unknown())
+    .safeParse(exportsField);
+  if (!exportsRecord.success) {
     return;
   }
-  const exp = exportsField[expKey];
-  if (!isPlainObject(exp)) {
+  const entry = exportEntrySchema.safeParse(exportsRecord.data[expKey]);
+  if (!entry.success) {
     return;
   }
-  const types = exp.types;
+  const types = entry.data.types;
   if (typeof types === "string") {
     return nonEmptyString(types);
   }
-  if (!isPlainObject(types)) {
+  if (!types) {
     return;
   }
   return nonEmptyString(types.import) ?? nonEmptyString(types.default);
@@ -293,17 +314,19 @@ function typesPathFromPackageJson(
   rest: string
 ): string | undefined {
   try {
-    const parsed: unknown = JSON.parse(pkgJsonText);
-    if (!isPlainObject(parsed)) {
+    const parsed = pkgJsonSchema.safeParse(JSON.parse(pkgJsonText));
+    if (!parsed.success) {
       return;
     }
     const expKey = name === pkg ? "." : `./${rest}`;
-    const fromExports = typesFromExports(parsed.exports, expKey);
+    const fromExports = typesFromExports(parsed.data.exports, expKey);
     if (fromExports) {
       return fromExports;
     }
     if (name === pkg) {
-      return nonEmptyString(parsed.types) ?? nonEmptyString(parsed.typings);
+      return (
+        nonEmptyString(parsed.data.types) ?? nonEmptyString(parsed.data.typings)
+      );
     }
   } catch {
     /* ignore malformed package.json in VFS */
