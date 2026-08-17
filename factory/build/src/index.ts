@@ -3,12 +3,9 @@
  *
  * Thin HTTP shell: admin token + POST /build | /bundle → `@sfab-lite/verbs/build`.
  */
-import type { ManifestV0 } from "@sfab-lite/core";
-import {
-  build,
-  bundleWithKernel,
-} from "@sfab-lite/verbs/build";
-import type { OverlaidTree } from "@sfab-lite/verbs/format";
+import { parseBuildRequest, parseBundleRequest } from "@sfab-lite/core/build";
+import { InvalidRequestError } from "@sfab-lite/core/request";
+import { build, bundleWithKernel } from "@sfab-lite/verbs/build";
 
 export interface Env {
   ADMIN_TOKEN?: string;
@@ -43,16 +40,18 @@ function healthResponse(env: Env, request: Request): Response {
   });
 }
 
-function isFilesRecord(value: unknown): value is Record<string, string> {
-  if (!value || typeof value !== "object") {
-    return false;
+function failureResponse(e: unknown): Response {
+  if (e instanceof InvalidRequestError) {
+    return Response.json({ ok: false, error: e.message }, { status: 400 });
   }
-  for (const entry of Object.values(value)) {
-    if (typeof entry !== "string") {
-      return false;
-    }
-  }
-  return true;
+  return Response.json(
+    {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+      stack: e instanceof Error ? e.stack : undefined,
+    },
+    { status: 500 }
+  );
 }
 
 async function buildResponse(env: Env, request: Request): Promise<Response> {
@@ -61,37 +60,11 @@ async function buildResponse(env: Env, request: Request): Promise<Response> {
     return gated;
   }
   try {
-    const body = (await request.json()) as {
-      files?: unknown;
-      manifest?: unknown;
-    };
-    if (!isFilesRecord(body?.files)) {
-      return Response.json(
-        { ok: false, error: "body.files (path→content) required" },
-        { status: 400 }
-      );
-    }
-    if (!body.manifest || typeof body.manifest !== "object") {
-      return Response.json(
-        { ok: false, error: "body.manifest required" },
-        { status: 400 }
-      );
-    }
-    const tree: OverlaidTree = {
-      files: body.files,
-      manifest: body.manifest as ManifestV0,
-    };
-    const result = await build(tree);
+    const body = parseBuildRequest(await request.json());
+    const result = await build(body);
     return Response.json({ ok: true, ...result });
   } catch (e) {
-    return Response.json(
-      {
-        ok: false,
-        error: e instanceof Error ? e.message : String(e),
-        stack: e instanceof Error ? e.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return failureResponse(e);
   }
 }
 
@@ -101,51 +74,15 @@ async function bundleResponse(env: Env, request: Request): Promise<Response> {
     return gated;
   }
   try {
-    const body = (await request.json()) as {
-      files?: unknown;
-      entryPoint?: unknown;
-      extraExternals?: unknown;
-    };
-    if (!isFilesRecord(body?.files)) {
-      return Response.json(
-        { ok: false, error: "body.files (path→content) required" },
-        { status: 400 }
-      );
-    }
-    if (typeof body.entryPoint !== "string" || body.entryPoint === "") {
-      return Response.json(
-        { ok: false, error: "body.entryPoint required" },
-        { status: 400 }
-      );
-    }
-    let extraExternals: string[] = [];
-    if (body.extraExternals !== undefined) {
-      if (
-        !Array.isArray(body.extraExternals) ||
-        body.extraExternals.some((item) => typeof item !== "string")
-      ) {
-        return Response.json(
-          { ok: false, error: "body.extraExternals must be string[]" },
-          { status: 400 }
-        );
-      }
-      extraExternals = body.extraExternals;
-    }
+    const body = parseBundleRequest(await request.json());
     const result = await bundleWithKernel(
       body.files,
       body.entryPoint,
-      extraExternals
+      body.extraExternals ?? []
     );
     return Response.json({ ok: true, ...result });
   } catch (e) {
-    return Response.json(
-      {
-        ok: false,
-        error: e instanceof Error ? e.message : String(e),
-        stack: e instanceof Error ? e.stack : undefined,
-      },
-      { status: 500 }
-    );
+    return failureResponse(e);
   }
 }
 

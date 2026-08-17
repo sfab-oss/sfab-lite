@@ -5,12 +5,41 @@
  * shape without either importing the other.
  */
 
+import {
+  InvalidRequestError,
+  parseAppIdField,
+  parseFilesField,
+  requestFields,
+} from "./request.js";
+
 export type LintMode = "lint" | "format" | "both";
 
 export interface LintRequest {
   appId: string;
   files: Record<string, string>;
   mode?: LintMode;
+}
+
+export function parseLintRequest(value: unknown): LintRequest {
+  const body = requestFields(value);
+  const files = parseFilesField(body.files);
+  const appId = parseAppIdField(body.appId);
+  const parsed: LintRequest = { appId, files };
+  if (body.mode === undefined) {
+    return parsed;
+  }
+  if (!isLintMode(body.mode)) {
+    throw new InvalidRequestError(
+      "mode",
+      "body.mode must be lint, format, or both"
+    );
+  }
+  parsed.mode = body.mode;
+  return parsed;
+}
+
+function isLintMode(value: unknown): value is LintMode {
+  return value === "lint" || value === "format" || value === "both";
 }
 
 export interface LintDiagnostic {

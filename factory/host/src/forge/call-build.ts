@@ -1,3 +1,4 @@
+import type { BuildRequest, BundleRequest } from "@sfab-lite/core";
 import type { build, bundleWithKernel } from "@sfab-lite/verbs/build";
 import type { OverlaidTree } from "@sfab-lite/verbs/format";
 
@@ -24,11 +25,15 @@ export async function callBuild(
   env: Env,
   tree: OverlaidTree
 ): Promise<AppCompileResult> {
+  const payload: BuildRequest = {
+    files: tree.files,
+    manifest: tree.manifest,
+  };
   const res = await env.BUILD.fetch(
     new Request("https://build-worker/build", {
       method: "POST",
       headers: auxServiceHeaders(env),
-      body: JSON.stringify({ files: tree.files, manifest: tree.manifest }),
+      body: JSON.stringify(payload),
     })
   );
   const body = (await res.json().catch(() => null)) as
@@ -51,11 +56,12 @@ export async function callBundle(
   entryPoint: string,
   extraExternals: string[] = []
 ): Promise<BundleWithKernelResult> {
+  const payload: BundleRequest = { files, entryPoint, extraExternals };
   const res = await env.BUILD.fetch(
     new Request("https://build-worker/bundle", {
       method: "POST",
       headers: auxServiceHeaders(env),
-      body: JSON.stringify({ files, entryPoint, extraExternals }),
+      body: JSON.stringify(payload),
     })
   );
   const body = (await res.json().catch(() => null)) as

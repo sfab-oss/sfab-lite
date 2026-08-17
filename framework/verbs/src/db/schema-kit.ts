@@ -26,31 +26,35 @@ export const EMPTY_SNAPSHOT: KitSnapshot = {
   prevId: ORIGIN_SNAPSHOT_ID,
 };
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export function isKitSnapshot(value: unknown): value is KitSnapshot {
-  if (value == null || typeof value !== "object") {
+  if (!isPlainObject(value)) {
     return false;
   }
-  const rec = value as Record<string, unknown>;
   return (
-    rec.version === "6" &&
-    rec.dialect === "sqlite" &&
-    typeof rec.id === "string" &&
-    typeof rec.prevId === "string" &&
-    rec.tables != null &&
-    typeof rec.tables === "object"
+    value.version === "6" &&
+    value.dialect === "sqlite" &&
+    typeof value.id === "string" &&
+    typeof value.prevId === "string" &&
+    isPlainObject(value.tables)
   );
+}
+
+interface KitJournalEntry {
+  idx: number;
+  version: string;
+  when: number;
+  tag: string;
+  breakpoints: boolean;
 }
 
 export interface KitJournal {
   version: string;
   dialect: string;
-  entries: Array<{
-    idx: number;
-    version: string;
-    when: number;
-    tag: string;
-    breakpoints: boolean;
-  }>;
+  entries: KitJournalEntry[];
 }
 
 export const EMPTY_JOURNAL: KitJournal = {
@@ -59,14 +63,27 @@ export const EMPTY_JOURNAL: KitJournal = {
   entries: [],
 };
 
-export function isKitJournal(value: unknown): value is KitJournal {
-  if (value == null || typeof value !== "object") {
+function isKitJournalEntry(value: unknown): value is KitJournalEntry {
+  if (!isPlainObject(value)) {
     return false;
   }
-  const rec = value as Record<string, unknown>;
   return (
-    typeof rec.version === "string" &&
-    rec.dialect === "sqlite" &&
-    Array.isArray(rec.entries)
+    typeof value.idx === "number" &&
+    typeof value.version === "string" &&
+    typeof value.when === "number" &&
+    typeof value.tag === "string" &&
+    typeof value.breakpoints === "boolean"
+  );
+}
+
+export function isKitJournal(value: unknown): value is KitJournal {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  return (
+    typeof value.version === "string" &&
+    value.dialect === "sqlite" &&
+    Array.isArray(value.entries) &&
+    value.entries.every(isKitJournalEntry)
   );
 }

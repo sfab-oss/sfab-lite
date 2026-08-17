@@ -3,7 +3,8 @@
  *
  * Thin HTTP shell: admin token + POST /check → `@sfab-lite/verbs/check`.
  */
-import type { CheckRequest } from "@sfab-lite/core";
+import { parseCheckRequest } from "@sfab-lite/core/check";
+import { InvalidRequestError } from "@sfab-lite/core/request";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
 import { runCheck } from "@sfab-lite/verbs/check";
 
@@ -62,27 +63,12 @@ async function checkResponse(env: Env, request: Request): Promise<Response> {
     return gated;
   }
   try {
-    const body = (await request.json()) as CheckRequest;
-    if (!body?.files || typeof body.files !== "object") {
-      return Response.json(
-        { ok: false, error: "body.files (path→content) required" },
-        { status: 400 }
-      );
-    }
-    if (!body.appId || typeof body.appId !== "string") {
-      return Response.json(
-        { ok: false, error: "body.appId required" },
-        { status: 400 }
-      );
-    }
-    if (!body.manifest || typeof body.manifest !== "object") {
-      return Response.json(
-        { ok: false, error: "body.manifest required" },
-        { status: 400 }
-      );
-    }
+    const body = parseCheckRequest(await request.json());
     return Response.json(runCheck(body));
   } catch (e) {
+    if (e instanceof InvalidRequestError) {
+      return Response.json({ ok: false, error: e.message }, { status: 400 });
+    }
     return Response.json(
       {
         ok: false,

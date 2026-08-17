@@ -257,6 +257,35 @@ function firstExisting(
   }
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value !== "" ? value : undefined;
+}
+
+function typesFromExports(
+  exportsField: unknown,
+  expKey: string
+): string | undefined {
+  if (!isPlainObject(exportsField)) {
+    return;
+  }
+  const exp = exportsField[expKey];
+  if (!isPlainObject(exp)) {
+    return;
+  }
+  const types = exp.types;
+  if (typeof types === "string") {
+    return nonEmptyString(types);
+  }
+  if (!isPlainObject(types)) {
+    return;
+  }
+  return nonEmptyString(types.import) ?? nonEmptyString(types.default);
+}
+
 function typesPathFromPackageJson(
   pkgJsonText: string,
   pkg: string,
@@ -264,23 +293,17 @@ function typesPathFromPackageJson(
   rest: string
 ): string | undefined {
   try {
-    const pkgJson = JSON.parse(pkgJsonText) as {
-      types?: string;
-      typings?: string;
-      exports?: Record<
-        string,
-        { types?: string | { default?: string; import?: string } } | string
-      >;
-    };
+    const parsed: unknown = JSON.parse(pkgJsonText);
+    if (!isPlainObject(parsed)) {
+      return;
+    }
     const expKey = name === pkg ? "." : `./${rest}`;
-    const exp = pkgJson.exports?.[expKey];
-    if (typeof exp === "object" && exp?.types) {
-      return typeof exp.types === "string"
-        ? exp.types
-        : (exp.types.import ?? exp.types.default);
+    const fromExports = typesFromExports(parsed.exports, expKey);
+    if (fromExports) {
+      return fromExports;
     }
     if (name === pkg) {
-      return pkgJson.types ?? pkgJson.typings;
+      return nonEmptyString(parsed.types) ?? nonEmptyString(parsed.typings);
     }
   } catch {
     /* ignore malformed package.json in VFS */
