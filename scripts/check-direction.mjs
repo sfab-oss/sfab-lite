@@ -14,6 +14,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..");
@@ -271,9 +272,13 @@ function failViolations(result) {
   process.exit(1);
 }
 
-const rootArgIdx = process.argv.indexOf("--root");
-if (rootArgIdx !== -1) {
-  const root = resolve(process.argv[rootArgIdx + 1] ?? "");
+const { values } = parseArgs({
+  options: {
+    root: { type: "string" },
+  },
+});
+if (values.root !== undefined) {
+  const root = resolve(values.root);
   if (!(root && existsSync(root))) {
     console.error("check:direction --root needs an existing directory");
     process.exit(2);

@@ -10,6 +10,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import {
   EMPTY_JOURNAL,
   isKitSnapshot,
@@ -68,7 +69,13 @@ const journal = {
 const bakedSnapshot = `${JSON.stringify(generated, null, 2)}\n`;
 const bakedJournal = `${JSON.stringify(journal, null, 2)}\n`;
 
-if (process.argv.includes("--check")) {
+const { values } = parseArgs({
+  options: {
+    check: { type: "boolean", default: false },
+  },
+});
+
+if (values.check) {
   let currentSnapshot = null;
   let currentJournal = null;
   try {

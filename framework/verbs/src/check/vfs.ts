@@ -1,6 +1,8 @@
 /**
  * Read paths against the per-app overlay and the frozen kernel types VFS.
  */
+/// <reference path="../node-stdlib.d.ts" />
+import { posix } from "node:path";
 import { TYPES_VFS } from "@sfab-lite/kernel";
 
 const D_TS_SUFFIX = /\.d\.ts$/i;
@@ -35,21 +37,12 @@ export function normalizePath(path: string): string {
     p = p.slice(0, q);
   }
   const absolute = p.startsWith("/");
-  const out: string[] = [];
-  for (const part of p.split("/")) {
-    if (!part || part === ".") {
-      continue;
-    }
-    if (part === "..") {
-      out.pop();
-    } else {
-      out.push(part);
-    }
-  }
+  const n = posix.normalize(absolute ? p : `/${p}`);
+  const stripped = n.replace(TRAILING_SLASH, "") || "/";
   if (absolute) {
-    return `/${out.join("/")}`;
+    return stripped;
   }
-  return out.join("/");
+  return stripped === "/" ? "" : stripped.slice(1);
 }
 
 function remapLibPath(path: string, overlay: Map<string, string>): string {
@@ -86,19 +79,8 @@ export function readVfs(
 }
 
 export function joinPath(dir: string, rel: string): string {
-  const parts = (dir + rel).split("/");
-  const out: string[] = [];
-  for (const p of parts) {
-    if (!p || p === ".") {
-      continue;
-    }
-    if (p === "..") {
-      out.pop();
-    } else {
-      out.push(p);
-    }
-  }
-  return `/${out.join("/")}`;
+  const n = posix.normalize(posix.join("/", dir, rel));
+  return n.replace(TRAILING_SLASH, "") || "/";
 }
 
 function overlayHasDirectory(

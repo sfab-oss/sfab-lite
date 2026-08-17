@@ -25,22 +25,34 @@ export type OrgEventInput =
       payload: { appId: string; liveSha: string };
     };
 
-export interface OrgEventWire {
-  v: 1;
-  kind: "event";
-  seq: number;
-  id: string;
-  topic: string;
-  payload: Record<string, unknown>;
-}
-
-export type OrgServerFrame =
-  | OrgEventWire
-  | { v: 1; kind: "sync"; seq: number }
-  | { v: 1; kind: "resync"; fromSeq: number; toSeq: number };
-
 export const orgEventPayloadSchema = z.record(z.string(), z.unknown());
 export type OrgEventPayload = z.infer<typeof orgEventPayloadSchema>;
+
+const orgEventWireSchema = z.object({
+  v: z.literal(1),
+  kind: z.literal("event"),
+  seq: z.number(),
+  id: z.string(),
+  topic: z.string(),
+  payload: orgEventPayloadSchema,
+});
+export type OrgEventWire = z.infer<typeof orgEventWireSchema>;
+
+export const orgServerFrameSchema = z.discriminatedUnion("kind", [
+  z.object({
+    v: z.literal(1),
+    kind: z.literal("sync"),
+    seq: z.number(),
+  }),
+  z.object({
+    v: z.literal(1),
+    kind: z.literal("resync"),
+    fromSeq: z.number(),
+    toSeq: z.number(),
+  }),
+  orgEventWireSchema,
+]);
+export type OrgServerFrame = z.infer<typeof orgServerFrameSchema>;
 
 export function newOrgEventId(): string {
   return `evt_${nextEventUlid()}`;

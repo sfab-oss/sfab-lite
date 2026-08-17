@@ -18,6 +18,7 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 
 const factoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const repoRoot = join(factoryRoot, "../..");
@@ -25,10 +26,16 @@ const bucket = "sfab-lite-kernel";
 const kernelJsonPath = join(repoRoot, "framework/runtime/kernel.json");
 const clientDir = join(repoRoot, "framework/runtime/vendor/client");
 
-const args = new Set(process.argv.slice(2));
-const force = args.has("--force");
-const remote = args.has("--remote");
-if (remote && args.has("--local")) {
+const { values } = parseArgs({
+  options: {
+    force: { type: "boolean", default: false },
+    remote: { type: "boolean", default: false },
+    local: { type: "boolean", default: false },
+  },
+});
+const force = values.force;
+const remote = values.remote;
+if (remote && values.local) {
   console.error("pass only one of --local / --remote");
   process.exit(2);
 }

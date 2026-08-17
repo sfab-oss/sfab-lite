@@ -4,25 +4,14 @@
  * Thin HTTP shell: admin token + POST /build | /bundle → `@sfab-lite/verbs/build`.
  */
 import { parseBuildRequest, parseBundleRequest } from "@sfab-lite/core/build";
-import { InvalidRequestError } from "@sfab-lite/core/request";
+import {
+  InvalidRequestError,
+  rejectUnlessAdmin,
+} from "@sfab-lite/core/request";
 import { build, bundleWithKernel } from "@sfab-lite/verbs/build";
 
 export interface Env {
   ADMIN_TOKEN?: string;
-}
-
-/**
- * An unset `ADMIN_TOKEN` denies rather than allows — see the same correction
- * in `factory/check/src/index.ts`. A missing secret must not grant access.
- */
-function unauthorized(env: Env, request: Request): Response | null {
-  if (
-    env.ADMIN_TOKEN &&
-    request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN
-  ) {
-    return null;
-  }
-  return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
 }
 
 /** `adminToken` mirrors the check worker's — see its note on why booleans. */
@@ -55,7 +44,7 @@ function failureResponse(e: unknown): Response {
 }
 
 async function buildResponse(env: Env, request: Request): Promise<Response> {
-  const gated = unauthorized(env, request);
+  const gated = rejectUnlessAdmin(request, env);
   if (gated) {
     return gated;
   }
@@ -69,7 +58,7 @@ async function buildResponse(env: Env, request: Request): Promise<Response> {
 }
 
 async function bundleResponse(env: Env, request: Request): Promise<Response> {
-  const gated = unauthorized(env, request);
+  const gated = rejectUnlessAdmin(request, env);
   if (gated) {
     return gated;
   }
