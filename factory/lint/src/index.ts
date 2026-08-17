@@ -4,25 +4,14 @@
  * Thin HTTP shell: admin token + POST /lint → `@sfab-lite/verbs/lint`.
  */
 import { parseLintRequest } from "@sfab-lite/core/lint";
-import { InvalidRequestError } from "@sfab-lite/core/request";
+import {
+  InvalidRequestError,
+  rejectUnlessAdmin,
+} from "@sfab-lite/core/request";
 import { bootBiome, runLint } from "@sfab-lite/verbs/lint";
 
 export interface Env {
   ADMIN_TOKEN?: string;
-}
-
-/**
- * An unset `ADMIN_TOKEN` denies rather than allows — see the same correction
- * in `factory/check/src/index.ts`. A missing secret must not grant access.
- */
-function unauthorized(env: Env, request: Request): Response | null {
-  if (
-    env.ADMIN_TOKEN &&
-    request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN
-  ) {
-    return null;
-  }
-  return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
 }
 
 /** `adminToken` mirrors the check worker's — see its note on why booleans. */
@@ -42,7 +31,7 @@ function healthResponse(env: Env, request: Request): Response {
 }
 
 function bootResponse(env: Env, request: Request): Response {
-  const gated = unauthorized(env, request);
+  const gated = rejectUnlessAdmin(request, env);
   if (gated) {
     return gated;
   }
@@ -55,7 +44,7 @@ function bootResponse(env: Env, request: Request): Response {
 }
 
 async function lintResponse(env: Env, request: Request): Promise<Response> {
-  const gated = unauthorized(env, request);
+  const gated = rejectUnlessAdmin(request, env);
   if (gated) {
     return gated;
   }

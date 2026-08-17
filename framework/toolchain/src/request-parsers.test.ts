@@ -6,6 +6,7 @@ import {
   filesSchema,
   InvalidRequestError,
   parseRequest,
+  rejectUnlessAdmin,
 } from "./request.ts";
 
 const probe = z.object({
@@ -66,4 +67,22 @@ test("parseRequest treats a non-object body as empty so field checks fire", () =
     "files",
     "body.files (path→content) required"
   );
+});
+
+test("rejectUnlessAdmin denies a missing token and a mismatch", async () => {
+  const req = new Request("https://example.test/check");
+  const denied = rejectUnlessAdmin(req, {});
+  assert.equal(denied?.status, 401);
+  assert.deepEqual(await denied?.json(), { ok: false, error: "unauthorized" });
+
+  const mismatch = rejectUnlessAdmin(req, { ADMIN_TOKEN: "secret" });
+  assert.equal(mismatch?.status, 401);
+
+  const ok = rejectUnlessAdmin(
+    new Request("https://example.test/check", {
+      headers: { "X-Admin-Token": "secret" },
+    }),
+    { ADMIN_TOKEN: "secret" }
+  );
+  assert.equal(ok, null);
 });

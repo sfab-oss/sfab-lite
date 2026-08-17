@@ -4,30 +4,15 @@
  * Thin HTTP shell: admin token + POST /check → `@sfab-lite/verbs/check`.
  */
 import { parseCheckRequest } from "@sfab-lite/core/check";
-import { InvalidRequestError } from "@sfab-lite/core/request";
+import {
+  InvalidRequestError,
+  rejectUnlessAdmin,
+} from "@sfab-lite/core/request";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
 import { runCheck } from "@sfab-lite/verbs/check";
 
 export interface Env {
   ADMIN_TOKEN?: string;
-}
-
-/**
- * An unset `ADMIN_TOKEN` denies rather than allows.
- *
- * This used to return `null` — allowed — when the secret was missing, so a
- * deploy that forgot it exposed `/check` to anyone who found the worker's URL.
- * A missing secret must never be the thing that grants access; the factory's
- * own gate made this same correction.
- */
-function unauthorized(env: Env, request: Request): Response | null {
-  if (
-    env.ADMIN_TOKEN &&
-    request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN
-  ) {
-    return null;
-  }
-  return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
 }
 
 /**
@@ -58,7 +43,7 @@ function healthResponse(env: Env, request: Request): Response {
 }
 
 async function checkResponse(env: Env, request: Request): Promise<Response> {
-  const gated = unauthorized(env, request);
+  const gated = rejectUnlessAdmin(request, env);
   if (gated) {
     return gated;
   }

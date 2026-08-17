@@ -10,6 +10,23 @@ export class InvalidRequestError extends Error {
   }
 }
 
+/**
+ * An unset `ADMIN_TOKEN` denies rather than allows. A missing secret must
+ * never be the thing that grants access.
+ */
+export function rejectUnlessAdmin(
+  request: Request,
+  env: { ADMIN_TOKEN?: string }
+): Response | null {
+  if (
+    env.ADMIN_TOKEN &&
+    request.headers.get("X-Admin-Token") === env.ADMIN_TOKEN
+  ) {
+    return null;
+  }
+  return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+}
+
 export const filesSchema = z.record(
   z.string(),
   z.string({ error: "body.files (path→content) required" }),
