@@ -1,3 +1,4 @@
+import { posix } from "node:path";
 import type { FileStat, FsStat, WorkspaceFsLike } from "@cloudflare/shell";
 import type { GitWorkFs } from "../code-host/code-host.js";
 import { fsError } from "../code-host/fs-error.ts";
@@ -9,6 +10,7 @@ export const WORKSPACE_CLONE_PENDING = "pending";
 
 const FAILED_PREFIX = "failed:";
 const LEADING_SLASHES = /^\/+/;
+const TRAILING_SLASHES = /\/*$/;
 
 export function isWorkspaceCloneReady(
   status: string | undefined
@@ -39,16 +41,8 @@ export function workspaceCloneFailedMarker(reason: string): string {
 }
 
 function normalize(path: string): string {
-  const parts = path.split("/").filter((p) => p && p !== ".");
-  const out: string[] = [];
-  for (const part of parts) {
-    if (part === "..") {
-      out.pop();
-    } else {
-      out.push(part);
-    }
-  }
-  return `/${out.join("/")}`;
+  const n = posix.normalize(`/${path}`);
+  return n === "/" ? "/" : n.replace(TRAILING_SLASHES, "");
 }
 
 function toFsStat(info: FileStat): FsStat {

@@ -5,7 +5,7 @@ import {
   routeOrgEvent,
 } from "@/lib/org-events/org-events-router-core";
 import { notifyLive } from "@/lib/preview/live-bus";
-import type { OrgServerFrame } from "@/org-events";
+import { type OrgServerFrame, orgServerFrameSchema } from "@/org-events";
 
 const RECONNECT_MS = 1500;
 const INVALIDATE_DEBOUNCE_MS = 50;
@@ -132,16 +132,9 @@ export function OrgEventsRouter({
         } catch {
           return;
         }
-        if (
-          !parsed ||
-          typeof parsed !== "object" ||
-          (parsed as { v?: unknown }).v !== 1
-        ) {
-          return;
-        }
-        const kind = (parsed as { kind?: unknown }).kind;
-        if (kind === "sync" || kind === "resync" || kind === "event") {
-          handleFrame(parsed as OrgServerFrame);
+        const frame = orgServerFrameSchema.safeParse(parsed);
+        if (frame.success) {
+          handleFrame(frame.data);
         }
       });
 

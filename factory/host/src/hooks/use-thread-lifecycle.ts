@@ -10,19 +10,25 @@ import type { Thread } from "@/lib/chat/types";
 const RPC_TIMEOUT_MS = 12_000;
 
 function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  // AbortSignal.timeout does not cancel the RPC, so the server may have
+  // applied it. Say so rather than implying nothing happened.
+  const signal = AbortSignal.timeout(RPC_TIMEOUT_MS);
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      // A timeout does not cancel the call, so the server may have applied it.
-      // Say so rather than implying nothing happened.
+    const onAbort = () => {
       reject(new Error(`${label} timed out — it may still have gone through.`));
-    }, RPC_TIMEOUT_MS);
+    };
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener("abort", onAbort, { once: true });
     promise.then(
       (value) => {
-        clearTimeout(timer);
+        signal.removeEventListener("abort", onAbort);
         resolve(value);
       },
       (error: unknown) => {
-        clearTimeout(timer);
+        signal.removeEventListener("abort", onAbort);
         reject(error);
       }
     );

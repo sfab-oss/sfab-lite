@@ -18,6 +18,7 @@ import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import type { AppDataDO } from "../durable-objects/app-data-do.js";
 import { getLiveSha } from "../forge/cd.js";
 import { getPullRequestByNumber } from "../forge/forge.js";
+import { mimeFromPath } from "../lib/workspace-files/mime.ts";
 import {
   type AppMigration,
   collectMigrations,
@@ -74,23 +75,16 @@ class PrefixedR2Binding extends RpcTarget {
   }
 }
 
+const SERVE_CHARSET_EXT = new Set(["html", "js", "css"]);
+
 function contentType(path: string): string {
-  if (path.endsWith(".html")) {
-    return "text/html; charset=utf-8";
+  const mime = mimeFromPath(path) ?? "application/octet-stream";
+  const dot = path.lastIndexOf(".");
+  const ext = dot >= 0 ? path.slice(dot + 1).toLowerCase() : "";
+  if (SERVE_CHARSET_EXT.has(ext)) {
+    return `${mime}; charset=utf-8`;
   }
-  if (path.endsWith(".js")) {
-    return "application/javascript; charset=utf-8";
-  }
-  if (path.endsWith(".css")) {
-    return "text/css; charset=utf-8";
-  }
-  if (path.endsWith(".svg")) {
-    return "image/svg+xml";
-  }
-  if (path.endsWith(".json")) {
-    return "application/json";
-  }
-  return "application/octet-stream";
+  return mime;
 }
 
 type LoadBuildResult =

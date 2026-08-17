@@ -11,13 +11,17 @@ const EXT_MIME: Record<string, string> = {
   txt: "text/plain",
 };
 
+export function mimeFromPath(path: string): string | undefined {
+  const dot = path.lastIndexOf(".");
+  if (dot < 0) {
+    return;
+  }
+  return EXT_MIME[path.slice(dot + 1).toLowerCase()];
+}
+
 export function mimeFor(path: string, fallback?: string): string {
   if (fallback && fallback !== "application/octet-stream") {
     return fallback;
   }
-  const dot = path.lastIndexOf(".");
-  if (dot < 0) {
-    return "text/plain";
-  }
-  return EXT_MIME[path.slice(dot + 1).toLowerCase()] ?? "text/plain";
+  return mimeFromPath(path) ?? "text/plain";
 }

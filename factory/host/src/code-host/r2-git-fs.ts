@@ -1,3 +1,4 @@
+import { posix } from "node:path";
 import type { GitWorkFs } from "./code-host.js";
 import { fsError } from "./fs-error.ts";
 import type { ObjectStore } from "./object-store.ts";
@@ -6,16 +7,8 @@ const LEADING_SLASHES = /^\/+/;
 const TRAILING_SLASHES = /\/*$/;
 
 function normalize(path: string): string {
-  const parts = path.split("/").filter((p) => p && p !== ".");
-  const out: string[] = [];
-  for (const part of parts) {
-    if (part === "..") {
-      out.pop();
-    } else {
-      out.push(part);
-    }
-  }
-  return `/${out.join("/")}`;
+  const n = posix.normalize(`/${path}`);
+  return n === "/" ? "/" : n.replace(TRAILING_SLASHES, "");
 }
 
 function parentOf(path: string): string {
