@@ -8,7 +8,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\"",
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" scripts/parse-cli.test.mjs",
     "build": "vite build",
     "build:ui": "vite build",
     "dev": "node scripts/upload-drizzle-kit-r2.mjs && vite dev --port ${FACTORY_PORT:-8790}",
