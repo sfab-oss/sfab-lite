@@ -14,7 +14,7 @@ import { flattenError } from "zod";
  *     const input = c.req.valid("json");   // typed
  *   })
  */
-export function jsonBody<T extends z.ZodType>(schema: T) {
+export function jsonBody<Output>(schema: z.ZodType<Output>) {
   return validator("json", (value, c) => {
     const parsed = schema.safeParse(value);
     if (!parsed.success) {
@@ -23,6 +23,6 @@ export function jsonBody<T extends z.ZodType>(schema: T) {
         400
       );
     }
-    return parsed.data as z.infer<T>;
+    return parsed.data;
   });
 }

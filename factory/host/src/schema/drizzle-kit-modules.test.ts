@@ -16,8 +16,8 @@ afterEach(() => {
   resetDrizzleKitModulesCache();
 });
 
-function envWith(bucket: FakeR2Bucket): Env {
-  return { KERNEL_R2: bucket } as unknown as Env;
+function envWith(bucket: FakeR2Bucket): { KERNEL_R2: FakeR2Bucket } {
+  return { KERNEL_R2: bucket };
 }
 
 describe("drizzle-kit R2 modules", () => {

@@ -5,7 +5,7 @@ import { flattenError } from "zod";
 /**
  * Validate a JSON body against a Zod schema so `hc` sees request types.
  */
-export function jsonBody<T extends z.ZodType>(schema: T) {
+export function jsonBody<Output>(schema: z.ZodType<Output>) {
   return validator("json", (value, c) => {
     const parsed = schema.safeParse(value);
     if (!parsed.success) {
@@ -14,11 +14,11 @@ export function jsonBody<T extends z.ZodType>(schema: T) {
         400
       );
     }
-    return parsed.data as z.infer<T>;
+    return parsed.data;
   });
 }
 
-export function queryParams<T extends z.ZodType>(schema: T) {
+export function queryParams<Output>(schema: z.ZodType<Output>) {
   return validator("query", (value, c) => {
     const parsed = schema.safeParse(value);
     if (!parsed.success) {
@@ -27,6 +27,6 @@ export function queryParams<T extends z.ZodType>(schema: T) {
         400
       );
     }
-    return parsed.data as z.infer<T>;
+    return parsed.data;
   });
 }

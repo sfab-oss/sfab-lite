@@ -1,5 +1,6 @@
 import { useAgent } from "agents/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { workspaceChangeEventSchema } from "@/lib/chat/workspace-agent-events";
 import { mimeFor } from "@/lib/workspace-files/mime";
 import type {
   WorkspaceFileContent,
@@ -140,8 +141,13 @@ export function useAgentWorkspaceFilesSource(workspaceId: string): {
         return;
       }
       try {
-        const parsed = JSON.parse(event.data) as { type?: string };
-        if (parsed.type === "workspace-change") {
+        const parsed = workspaceChangeEventSchema.safeParse(
+          JSON.parse(event.data)
+        );
+        if (!parsed.success) {
+          return;
+        }
+        if (parsed.data.type === "workspace-change") {
           invalidate();
         }
       } catch {

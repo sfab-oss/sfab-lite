@@ -23,7 +23,8 @@ import { publicBase } from "./public-base";
  * discards on that branch. The suffix has to be part of the URL we hand over.
  * Keep it in step with `basePath` in `app/src/auth/index.ts`.
  */
-export const authClient = createAuthClient({
-  ...(publicBase ? { baseURL: `${publicBase}/api/auth` } : {}),
+const authClientOptions = {
   plugins: [organizationClient()],
-});
+  baseURL: publicBase ? `${publicBase}/api/auth` : undefined,
+};
+export const authClient = createAuthClient(authClientOptions);

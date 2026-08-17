@@ -6,7 +6,7 @@ import { FakeR2Bucket } from "./test/fake-r2-bucket.ts";
 function fs(bucket = new FakeR2Bucket()) {
   return {
     bucket,
-    git: new R2GitFs(bucket as unknown as R2Bucket, "repos/app"),
+    git: new R2GitFs(bucket, "repos/app"),
   };
 }
 

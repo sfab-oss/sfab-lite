@@ -1,5 +1,6 @@
 import type { GitWorkFs } from "./code-host.js";
 import { fsError } from "./fs-error.ts";
+import type { ObjectStore } from "./object-store.ts";
 
 const LEADING_SLASHES = /^\/+/;
 const TRAILING_SLASHES = /\/*$/;
@@ -35,10 +36,10 @@ function join(base: string, name: string): string {
  * store for the code-host stand-in (`repos/{appId}/…`).
  */
 export class R2GitFs implements GitWorkFs {
-  readonly #bucket: R2Bucket;
+  readonly #bucket: ObjectStore;
   readonly #prefix: string;
 
-  constructor(bucket: R2Bucket, prefix: string) {
+  constructor(bucket: ObjectStore, prefix: string) {
     this.#bucket = bucket;
     this.#prefix = prefix.endsWith("/") ? prefix : `${prefix}/`;
   }

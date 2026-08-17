@@ -130,14 +130,22 @@ export const ToolOutput = ({
     return null;
   }
 
-  let Output = <div>{output as ReactNode}</div>;
+  let Output: ReactNode = null;
 
-  if (typeof output === "object" && !isValidElement(output)) {
+  if (
+    typeof output === "object" &&
+    output !== null &&
+    !isValidElement(output)
+  ) {
     Output = (
       <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
     );
   } else if (typeof output === "string") {
     Output = <CodeBlock code={output} language="json" />;
+  } else if (isValidElement(output)) {
+    Output = <div>{output}</div>;
+  } else if (output != null) {
+    Output = <div>{String(output)}</div>;
   }
 
   return (

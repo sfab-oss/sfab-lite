@@ -119,16 +119,30 @@ export const partyRoutes = new Hono<AppEnv>()
   .patch("/:id", jsonBody(partyUpdateSchema), async (c) => {
     const input = c.req.valid("json");
 
+    const patch: {
+      name?: string;
+      kind?: z.infer<typeof partyUpdateSchema>["kind"];
+      email?: string | null;
+      taxId?: string | null;
+      updatedAt: Date;
+    } = { updatedAt: new Date() };
+    if (input.name !== undefined) {
+      patch.name = input.name;
+    }
+    if (input.kind !== undefined) {
+      patch.kind = input.kind;
+    }
+    if (input.email !== undefined) {
+      patch.email = input.email ?? null;
+    }
+    if (input.taxId !== undefined) {
+      patch.taxId = input.taxId ?? null;
+    }
+
     const [updated] = await c
       .get("db")
       .update(party)
-      .set({
-        ...(input.name === undefined ? {} : { name: input.name }),
-        ...(input.kind === undefined ? {} : { kind: input.kind }),
-        ...(input.email === undefined ? {} : { email: input.email ?? null }),
-        ...(input.taxId === undefined ? {} : { taxId: input.taxId ?? null }),
-        updatedAt: new Date(),
-      })
+      .set(patch)
       .where(owned(c.req.param("id"), c.get("orgId")))
       .returning();
 

@@ -58,7 +58,7 @@ describe("copyTree", () => {
     await git.commit({ message: "init", author: AUTHOR });
 
     const bucket = new FakeR2Bucket();
-    const dest = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    const dest = new R2GitFs(bucket, "repos/app");
     await copyTree(work, "/.git/objects", dest, "/objects");
 
     const fromFiles = await listFiles(work, "/.git/objects");
@@ -80,7 +80,7 @@ describe("copyTree", () => {
     await from.mkdir("/objects/pack", { recursive: true });
     await from.writeFile("/objects/ab/cdef", "blob");
     const bucket = new FakeR2Bucket();
-    const dest = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    const dest = new R2GitFs(bucket, "repos/app");
     await copyTree(from, "/objects", dest, "/objects");
     assert.equal((await dest.lstat("/objects/pack")).type, "directory");
     assert.deepEqual(await dest.readdir("/objects/pack"), []);
@@ -97,7 +97,7 @@ describe("copyTree", () => {
     await git.commit({ message: "init", author: AUTHOR });
 
     const bucket = new FakeR2Bucket();
-    const dest = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    const dest = new R2GitFs(bucket, "repos/app");
     await copyTree(work, "/.git/objects", dest, "/objects");
 
     const back = new InMemoryFs();
@@ -110,7 +110,7 @@ describe("copyTree", () => {
 
   it("lists an R2 source in O(pages), not O(dirs)", async () => {
     const bucket = new FakeR2Bucket();
-    const src = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    const src = new R2GitFs(bucket, "repos/app");
     const dirs = 24;
     for (let i = 0; i < dirs; i++) {
       const hex = i.toString(16).padStart(2, "0");
@@ -141,7 +141,7 @@ describe("copyTree", () => {
     await from.writeFile("/objects/ab/cdef", "blob");
     await from.mkdir("/objects/pack", { recursive: true });
     const bucket = new FakeR2Bucket();
-    const dest = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    const dest = new R2GitFs(bucket, "repos/app");
     await copyTree(from, "/objects", dest, "/objects");
     assert.equal(await dest.readFile("/objects/ab/cdef"), "blob");
     assert.deepEqual(await dest.readdir("/objects/pack"), []);
@@ -158,7 +158,7 @@ describe("receivePush object-then-ref order", () => {
     const { oid } = await git.commit({ message: "init", author: AUTHOR });
 
     const bucket = new FakeR2Bucket();
-    const bare = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
+    const bare = new R2GitFs(bucket, "repos/app");
     await copyTree(work, "/.git/objects", bare, "/objects");
     await bare.mkdir("/refs/heads", { recursive: true });
     await bare.writeFile("/refs/heads/main", `${oid}\n`);

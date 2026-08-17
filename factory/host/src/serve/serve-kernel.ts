@@ -46,9 +46,16 @@ function fromBundle(request: Request, file: string): Response {
   return new Response(body, { status: 200, headers: IMMUTABLE_JS });
 }
 
+export interface KernelServeR2 {
+  head: (key: string) => Promise<unknown>;
+  get: (
+    key: string
+  ) => Promise<{ body: ReadableStream | string | ArrayBuffer | null } | null>;
+}
+
 async function fromR2(
   request: Request,
-  env: Env,
+  env: { KERNEL_R2: KernelServeR2 },
   version: string,
   file: string
 ): Promise<Response> {
@@ -93,7 +100,7 @@ async function fromR2(
 export async function serveKernel(
   request: Request,
   restPath: string,
-  env: Env
+  env: { KERNEL_R2: KernelServeR2 }
 ): Promise<Response | null> {
   const m = restPath.match(KERNEL_CHUNK_PATH_RE);
   if (!m) {

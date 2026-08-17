@@ -2,6 +2,7 @@ import { useAgent } from "agents/react";
 import { FileDiff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConsoleRoute } from "@/hooks/use-console-route";
+import { workspaceChangeEventSchema } from "@/lib/chat/workspace-agent-events";
 import { useWorkspaceSelectedPathStore } from "@/lib/chat/workspace-selected-path-store";
 import { useWorkspaceTabsStore } from "@/lib/chat/workspace-tabs-store";
 
@@ -50,8 +51,13 @@ function GitStatusBody({ workspaceId }: { workspaceId: string }) {
         return;
       }
       try {
-        const parsed = JSON.parse(event.data) as { type?: string };
-        if (parsed.type === "workspace-change") {
+        const parsed = workspaceChangeEventSchema.safeParse(
+          JSON.parse(event.data)
+        );
+        if (!parsed.success) {
+          return;
+        }
+        if (parsed.data.type === "workspace-change") {
           refreshRef.current().catch(() => undefined);
         }
       } catch {

@@ -63,9 +63,14 @@ function toLoaderModules(
   return modules;
 }
 
-export async function drizzleKitLoaderModules(
-  env: Env
-): Promise<DrizzleKitLoaderModules> {
+export interface DrizzleKitR2 {
+  head: (key: string) => Promise<unknown>;
+  get: (key: string) => Promise<{ text: () => Promise<string> } | null>;
+}
+
+export async function drizzleKitLoaderModules(env: {
+  KERNEL_R2: DrizzleKitR2;
+}): Promise<DrizzleKitLoaderModules> {
   const version = drizzleKitToolVersion();
   if (cached?.version === version) {
     return { ok: true, modules: cached.modules };

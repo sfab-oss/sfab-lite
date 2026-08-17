@@ -35,11 +35,11 @@ function stubEnv(state: BucketState) {
     // biome-ignore lint/suspicious/useAwait: R2Bucket's methods are async.
     get: async (key: string) => {
       reads.push(`get ${key}`);
-      return has(key) ? { body: state.chunk } : null;
+      return has(key) ? { body: state.chunk ?? "" } : null;
     },
   };
 
-  return { reads, env: { KERNEL_R2: bucket } as unknown as Env };
+  return { reads, env: { KERNEL_R2: bucket } };
 }
 
 const get = (path: string) =>
