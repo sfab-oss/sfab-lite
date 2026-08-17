@@ -83,7 +83,7 @@ export function buildSystemPrompt(opts: {
     "Use the file tools (list, find, grep, read, write, edit, …) and the bash tool for shell-style workflows.",
     "The Agent Browser tab shows your workspace WIP as a localhost-like preview (org-auth under the hood); it rebuilds when you write files. Live and PR deployments stay on the forge path.",
     "Git, checks, and forge are ordinary shell commands in bash:",
-    "  git status|add|commit|push|pull|fetch|log|branch|checkout|diff|remote …",
+    "  git status|add|commit|push|pull|fetch|log|branch|checkout|diff|remote|show",
     "  gh pr create|list|view|checks|diff|merge — pull requests (virtual gh)",
     "  gh run list|view|watch|rerun         — check runs (virtual gh; create/push/rerun wait for CD)",
     "  pnpm typecheck          — typecheck via the check worker (tsc-style output)",

@@ -4,6 +4,7 @@ import { bridgeBashFs } from "../code-host/bash-fs-bridge.js";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { onBranchPushed } from "../forge/forge.js";
 import { parsePushArgs } from "./git-push-args.js";
+import { gitShow } from "./git-show.js";
 
 const AUTHOR = { name: "sfab-agent", email: "agent@sfab.dev" };
 const TOKEN_RE = /token[=:]\S+/gi;
@@ -257,6 +258,7 @@ const GIT_HANDLERS: Record<string, GitFn> = {
   branch: (git, rest) => gitBranch(git, rest),
   checkout: (git, rest) => gitCheckout(git, rest),
   diff: (git) => gitDiff(git),
+  show: (_git, rest, _deps, ctx) => gitShow(bridgeBashFs(ctx.fs), rest),
   init: (git) => gitInit(git),
   remote: (git, rest) => gitRemote(git, rest),
   clone: (_git, rest, deps, ctx) => gitCloneOrPull(deps, ctx, "clone", rest),

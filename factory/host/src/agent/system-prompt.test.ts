@@ -14,6 +14,11 @@ test("the prompt states the closed import surface", () => {
   assert.ok(prompt.includes("kysely"));
 });
 
+test("the prompt names git show", () => {
+  assert.ok(prompt.includes("|show"));
+  assert.equal(prompt.includes("diff|remote …"), false);
+});
+
 test("the prompt names generated files as host-owned", () => {
   assert.ok(
     prompt.includes("Those files are generated. Edit manifest.json, not them.")
