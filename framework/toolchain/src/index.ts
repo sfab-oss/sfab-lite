@@ -18,6 +18,7 @@ export type {
   SqliteDriver,
 } from "./adapter.js";
 export { APP_BIOME_CONFIG } from "./app-biome-config.js";
+export type { BuildRequest, BundleRequest } from "./build.js";
 export type {
   CheckDiagnostic,
   CheckFailure,

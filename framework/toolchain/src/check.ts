@@ -6,6 +6,13 @@
  */
 
 import type { ManifestV0 } from "./manifest.js";
+import { parseRequestManifest } from "./parse-manifest-field.js";
+import {
+  InvalidRequestError,
+  parseAppIdField,
+  parseFilesField,
+  requestFields,
+} from "./request.js";
 
 export type CheckUnitName = "server" | "emit" | "client";
 
@@ -16,6 +23,25 @@ export interface CheckRequest {
   manifest: ManifestV0;
   /** Drop the per-app LanguageService and rehydrate from scratch. */
   forceCold?: boolean;
+}
+
+export function parseCheckRequest(value: unknown): CheckRequest {
+  const body = requestFields(value);
+  const files = parseFilesField(body.files);
+  const appId = parseAppIdField(body.appId);
+  const manifest = parseRequestManifest(body.manifest);
+  const parsed: CheckRequest = { appId, files, manifest };
+  if (body.forceCold === undefined) {
+    return parsed;
+  }
+  if (typeof body.forceCold !== "boolean") {
+    throw new InvalidRequestError(
+      "forceCold",
+      "body.forceCold must be boolean"
+    );
+  }
+  parsed.forceCold = body.forceCold;
+  return parsed;
 }
 
 export interface CheckUnitResult {

@@ -6,11 +6,15 @@
   "exports": {
     ".": "./src/index.ts",
     "./validate-manifest": "./src/validate-manifest.ts",
-    "./generate-format-files": "./src/generate-format-files.ts"
+    "./generate-format-files": "./src/generate-format-files.ts",
+    "./check": "./src/check.ts",
+    "./lint": "./src/lint.ts",
+    "./build": "./src/build.ts",
+    "./request": "./src/request.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test --experimental-strip-types src/validate-manifest.test.ts src/generate-format-files.test.ts"
+    "test": "node --test --experimental-strip-types src/validate-manifest.test.ts src/generate-format-files.test.ts src/request-parsers.test.ts"
   },
   "devDependencies": {
     "typescript": "6.0.3"
