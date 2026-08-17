@@ -1,10 +1,13 @@
 import type { Context } from "hono";
-import type { AppCtx, OrgCtx, ProtectedCtx } from "../serve/routes.js";
-import type { AdminEnv } from "./types.js";
+import type {
+  AppCtx,
+  OrgCtx,
+  ProtectedCtx,
+  RouteCtx,
+} from "../serve/routes.js";
+import type { AdminEnv, ApiEnv } from "./types.js";
 
-function baseCtx(c: Context<AdminEnv>): Omit<ProtectedCtx, "actor"> & {
-  actor: ProtectedCtx["actor"];
-} {
+export function routeCtx<E extends ApiEnv>(c: Context<E>): RouteCtx {
   const url = new URL(c.req.url);
   return {
     request: c.req.raw,
@@ -13,6 +16,14 @@ function baseCtx(c: Context<AdminEnv>): Omit<ProtectedCtx, "actor"> & {
     url,
     path: url.pathname,
     groups: [],
+  };
+}
+
+function baseCtx(c: Context<AdminEnv>): Omit<ProtectedCtx, "actor"> & {
+  actor: ProtectedCtx["actor"];
+} {
+  return {
+    ...routeCtx(c),
     actor: c.get("actor"),
   };
 }

@@ -7,20 +7,8 @@ import {
 } from "@/lib/auth/policy";
 import { createAuth } from "../auth/server.js";
 import { handleMcpConsent, handleMcpConsentContext } from "../mcp/consent.js";
-import type { RouteCtx } from "../serve/routes.js";
+import { routeCtx } from "./context.js";
 import type { ApiEnv } from "./types.js";
-
-function routeCtx(c: Context<ApiEnv>): RouteCtx {
-  const url = new URL(c.req.url);
-  return {
-    request: c.req.raw,
-    env: c.env,
-    ctx: c.executionCtx as ExecutionContext,
-    url,
-    path: url.pathname,
-    groups: [],
-  };
-}
 
 /**
  * Unauthenticated factory config and MCP consent — formerly RegExp
