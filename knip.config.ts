@@ -25,6 +25,7 @@ const config: KnipConfig = {
         "src/**/*.test.ts",
         "scripts/*.mjs",
         "vite.config.ts",
+        "src/components/code/pierre-ssr-stub.ts",
       ],
       project: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs", "vite.config.ts"],
       // `cloudflare:workers` is a workerd built-in, not an npm package.
