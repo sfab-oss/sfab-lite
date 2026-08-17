@@ -17,6 +17,7 @@ import {
 } from "react";
 import { useConsoleRoute } from "@/hooks/use-console-route";
 import { appQuickLinks } from "@/lib/chat/extract-app-routes";
+import { workspaceBrowserEventSchema } from "@/lib/chat/workspace-agent-events";
 import {
   appWorkspaceBasePath,
   clampToWorkspace,
@@ -296,45 +297,46 @@ function handleWorkspaceAgentMessage(
   startBuildPoll: () => void
 ): void {
   try {
-    const parsed = JSON.parse(data) as {
-      type?: string;
-      generation?: number;
-      status?: string;
-      error?: string;
-    };
-    if (parsed.type === "workspace-change") {
+    const parsed = workspaceBrowserEventSchema.safeParse(JSON.parse(data));
+    if (!parsed.success) {
+      return;
+    }
+    const event = parsed.data;
+    if (event.type === "workspace-change") {
       refreshQuickLinks();
       // Write landed — compile is scheduled on the DO; poll in case ready WS is missed.
       startBuildPoll();
       return;
     }
-    if (parsed.type === "workspace-build-ready") {
+    if (event.type === "workspace-build-ready") {
       if (
-        typeof parsed.generation === "number" &&
-        parsed.generation === loadedGenerationRef.current
+        typeof event.generation === "number" &&
+        event.generation === loadedGenerationRef.current
       ) {
         setBuildHint(null);
         return;
       }
-      if (typeof parsed.generation === "number") {
-        generationRef.current = parsed.generation;
-        loadedGenerationRef.current = parsed.generation;
+      if (typeof event.generation === "number") {
+        generationRef.current = event.generation;
+        loadedGenerationRef.current = event.generation;
       }
       setBuildHint(null);
       refreshQuickLinks();
       reloadFrame();
       return;
     }
-    if (parsed.type !== "workspace-build-status") {
+    if (event.type !== "workspace-build-status") {
       return;
     }
-    if (parsed.status === "compiling") {
+    if (event.status === "compiling") {
       setBuildHint(compilingHint(generationRef));
       startBuildPoll();
       return;
     }
-    if (parsed.status === "error") {
-      setBuildHint(parsed.error ?? "Workspace compile failed");
+    if (event.status === "error") {
+      setBuildHint(
+        event.error == null ? "Workspace compile failed" : String(event.error)
+      );
     }
   } catch {
     // Non-JSON frame.
