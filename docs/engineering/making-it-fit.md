@@ -207,6 +207,21 @@ gzip (46.7%)**, check 2.90 / lint 9.09 (unchanged). `check:bundle-size`
 hard-fails all four workers at ≥97%. See
 [ADR-0015](../decisions/0015-one-worker-per-verb.md).
 
+### 10. Console code viewers are client-only; the Worker never sees shiki
+
+The remaining 2.45 MiB of lazy chunks were `@pierre/diffs` (the PR diff
+and workspace file viewers) importing shiki's full `bundledLanguages` —
+~200 grammars plus the oniguruma wasm — and TanStack Start SSR emitted
+every one of them into the Worker upload, where Cloudflare counts lazy
+modules too. The server never highlights anything: these are
+interactive widgets. `factory/host/src/components/code/pierre-client.tsx`
+wraps both in `ClientOnly` + `lazy`, and a Vite plugin
+(`pierreClientOnly` in `vite.config.ts`) resolves `@pierre/diffs/react`
+to an empty stub in the `ssr` environment. Measured 2026-08-17: host
+**5.47 → 3.70 MiB gzip (38.8%)**, server modules 391 → 78; client bundle
+unchanged (it already loaded those chunks lazily). Harness-only —
+nothing under `framework/` imports pierre.
+
 ## Measured and rejected — do not re-derive these
 
 | Idea | Why it fails | Evidence |

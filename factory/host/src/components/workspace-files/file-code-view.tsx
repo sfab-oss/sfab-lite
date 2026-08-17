@@ -1,9 +1,4 @@
-import { File as PierreFile } from "@pierre/diffs/react";
-
-const PIERRE_THEME = {
-  dark: "pierre-dark" as const,
-  light: "pierre-light" as const,
-};
+import { PIERRE_THEME, PierreFile } from "@/components/code/pierre-client";
 
 function contentFingerprint(content: string): string {
   let hash = 0;
