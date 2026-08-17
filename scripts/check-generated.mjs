@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { FORMAT_PINS } from "../framework/runtime/scripts/pins.mjs";
 import { generateFormatFiles } from "../framework/toolchain/src/generate-format-files.ts";
 import { validateManifest } from "../framework/toolchain/src/validate-manifest.ts";
+import { LITE_REGISTRY_URL_PATTERN } from "../registry/src/pin.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const starterPath = join(repoRoot, "starters/erp/manifest.json");
@@ -35,7 +36,9 @@ if (!validated.ok) {
   process.exit(1);
 }
 
-const expected = generateFormatFiles(validated.manifest, FORMAT_PINS);
+const expected = generateFormatFiles(validated.manifest, FORMAT_PINS, {
+  registryUrl: LITE_REGISTRY_URL_PATTERN,
+});
 const failures = [];
 for (const [rel, want] of Object.entries(expected)) {
   let got;

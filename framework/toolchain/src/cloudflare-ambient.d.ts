@@ -36,16 +36,11 @@ interface D1PreparedStatement {
   raw<T = unknown[]>(options?: { columnNames?: boolean }): Promise<T[]>;
 }
 
-/**
- * D1 shapes, served by the app's Durable Object SQLite (`AppDataDO` stub as
- * `env.DB`). Apps write `drizzle-orm/d1` against this and never learn the
- * difference.
- */
+/** D1 is the Cloudflare adapter's engine. Apps write `drizzle-orm/d1` against this. */
 interface D1Database {
   prepare(query: string): D1PreparedStatement;
   batch<T = unknown>(statements: D1PreparedStatement[]): Promise<T[]>;
   exec(query: string): Promise<unknown>;
-  pingScope?(): Promise<{ appId: string; ok: true }>;
 }
 
 interface Fetcher {

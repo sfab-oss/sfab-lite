@@ -28,9 +28,7 @@
     "measure:stack": "node scripts/run-measure.mjs measure-stack.ts",
     "measure:snapshot": "node scripts/run-measure.mjs measure-snapshot.ts",
     "measure:units": "node scripts/run-measure.mjs measure-units.ts",
-    "measure:assembled-recipes": "node scripts/run-measure.mjs measure-assembled-recipes.ts",
-    "exp:watch-tail": "node scripts/watch-tail.mjs",
-    "exp:drive": "node scripts/drive-exp-matrix.mjs"
+    "measure:assembled-recipes": "node scripts/run-measure.mjs measure-assembled-recipes.ts"
   },
   "dependencies": {
     "@sfab-lite/core": "workspace:*",

@@ -3,8 +3,8 @@
  * manifest and never implement this. Cloudflare is the only v0 target.
  *
  * The app never sees a driver: `generateFormatFiles` emits `src/db/index.ts`
- * (`createDb` / `Db`) for the named target. Cloudflare: `drizzle-orm/d1`
- * over `env.DB`. See `docs/architecture/APP-FORMAT.md` §6 and ADR-0014.
+ * (`createDb` / `Db` / `DbEnv`) for the named target. Cloudflare: `drizzle-orm/d1`
+ * over `{ DB }`. See `docs/architecture/APP-FORMAT.md` §6 and ADR-0014.
  */
 
 import type { AdapterTarget, ManifestV0 } from "./manifest.js";

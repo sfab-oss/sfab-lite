@@ -54,27 +54,7 @@ export async function handleSql(
     }
   }
 
-  const db = serveTargetAppDataStub(rc.env, target) as unknown as {
-    prepare: (query: string) => {
-      bind: (...values: unknown[]) => {
-        all: () => Promise<{
-          success: true;
-          results: Record<string, unknown>[];
-          meta: unknown;
-        }>;
-      };
-      all: () => Promise<{
-        success: true;
-        results: Record<string, unknown>[];
-        meta: unknown;
-      }>;
-    };
-    pingScope: () => Promise<{
-      dataId: string;
-      ok: true;
-      backend: "do-sqlite";
-    }>;
-  };
+  const db = serveTargetAppDataStub(rc.env, target);
   const ping = await db.pingScope();
   const result = await db
     .prepare(body.query)

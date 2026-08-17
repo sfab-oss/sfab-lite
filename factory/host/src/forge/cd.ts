@@ -11,7 +11,12 @@ import {
   lintPasses,
   type ManifestV0,
 } from "@sfab-lite/core";
-import { type OverlaidTree, overlayFormatFiles } from "@sfab-lite/verbs/format";
+import {
+  classifySql,
+  type KitSnapshot,
+  latestSnapshot,
+} from "@sfab-lite/verbs/db";
+import type { OverlaidTree } from "@sfab-lite/verbs/format";
 import { eq } from "drizzle-orm";
 import { appBuildFromCompile } from "../code-host/app-image.js";
 import { createR2BuildStore } from "../code-host/r2-build-store.js";
@@ -19,6 +24,7 @@ import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { createDb } from "../db/index.js";
 import { app as appTable } from "../db/schema.js";
 import { publishOrgEvent } from "../org-events.js";
+import { overlayFormatFiles } from "../overlay-format-files.js";
 import { prDataId } from "../registry/app-data-ids.js";
 import { collectMigrations } from "../registry/app-migrations.js";
 import { getAppOrganizationId } from "../registry/app-registry.js";
@@ -27,13 +33,8 @@ import {
   appDataStub,
   liveAppDataStub,
 } from "../registry/app-stub.js";
-import { classifySql } from "../schema/classify-sql.js";
-import type { KitSnapshot } from "../schema/schema-kit.js";
 import { probeSchema } from "../schema/schema-probe.js";
-import {
-  latestSnapshot,
-  legacySchemaGateFailure,
-} from "../schema/schema-snapshots.js";
+import { legacySchemaGateFailure } from "../schema/schema-snapshots.js";
 import {
   type AppCompileResult,
   auxServiceHeaders,

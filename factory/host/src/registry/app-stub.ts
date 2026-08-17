@@ -3,6 +3,15 @@
 import { liveDataId } from "./app-data-ids.js";
 import { dataIdForTarget, type ServeTarget } from "./serve-target.js";
 
+interface AppDataSqlStmt {
+  bind: (...values: unknown[]) => AppDataSqlStmt;
+  all: () => Promise<{
+    success: true;
+    results: Record<string, unknown>[];
+    meta: unknown;
+  }>;
+}
+
 export interface AppDataStub {
   touch: () => Promise<{
     ok: true;
@@ -18,6 +27,12 @@ export interface AppDataStub {
   }>;
   seedCredentials: () => Promise<{ token: string; password: string }>;
   destroy: () => Promise<{ ok: true; bytesFreed: number }>;
+  prepare: (query: string) => AppDataSqlStmt;
+  pingScope: () => Promise<{
+    dataId: string;
+    ok: true;
+    backend: "do-sqlite";
+  }>;
 }
 
 export interface AppCreateStub {

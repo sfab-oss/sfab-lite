@@ -14,6 +14,7 @@ import {
 const RELATIVE_KEY = /relative/;
 const RELATIVE_PATH = /relative path/;
 const NO_PINS = { dependencies: {}, devDependencies: {} };
+const REGISTRY_URL = "https://lite.sfab.dev/r/{name}.json";
 
 function storageManifest(): ManifestV0 {
   return {
@@ -43,11 +44,14 @@ function storageManifest(): ManifestV0 {
 
 describe("prefixed app storage", () => {
   it("generator emits the storage shim only when declared", () => {
-    const withStorage = generateFormatFiles(storageManifest(), NO_PINS);
+    const withStorage = generateFormatFiles(storageManifest(), NO_PINS, {
+      registryUrl: REGISTRY_URL,
+    });
     assert.ok(withStorage["src/storage/index.ts"]?.includes("createStorage"));
     const without = generateFormatFiles(
       { ...storageManifest(), capabilities: [] },
-      NO_PINS
+      NO_PINS,
+      { registryUrl: REGISTRY_URL }
     );
     assert.equal(without["src/storage/index.ts"], undefined);
     assert.equal(manifestHasStorage(storageManifest()), true);

@@ -41,11 +41,15 @@ function readTreeManifest(
  * apply-add. Agent edits are overwritten.
  */
 export function overlayFormatFiles(
-  files: Record<string, string>
+  files: Record<string, string>,
+  options: { registryUrl: string }
 ): OverlaidTree {
   const manifest = readTreeManifest(files, "overlayFormatFiles");
   return {
-    files: { ...files, ...generateFormatFiles(manifest, FORMAT_PINS) },
+    files: {
+      ...files,
+      ...generateFormatFiles(manifest, FORMAT_PINS, options),
+    },
     manifest,
   };
 }

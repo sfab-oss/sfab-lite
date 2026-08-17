@@ -1,5 +1,16 @@
 import { lintPasses } from "@sfab-lite/core";
-import { overlayFormatFiles } from "@sfab-lite/verbs/format";
+import {
+  appendJournalEntry,
+  classifySql,
+  describeBlockingSql,
+  EMPTY_SNAPSHOT,
+  journalPath,
+  KIT_SQL_BREAKPOINT,
+  latestSnapshot,
+  serializeJournal,
+  serializeSnapshot,
+  snapshotPathFor,
+} from "@sfab-lite/verbs/db";
 import {
   type CommandContext,
   type CustomCommand,
@@ -7,6 +18,7 @@ import {
   type ExecResult,
 } from "just-bash";
 import { callCheck, callLint, checkPasses, getLiveSha } from "../forge/cd.js";
+import { overlayFormatFiles } from "../overlay-format-files.js";
 import {
   collectMigrations,
   nextMigrationPath,
@@ -22,18 +34,10 @@ import {
   putWorkspaceBuild,
   workspaceBuildSha,
 } from "../registry/workspace-build.js";
-import { classifySql, describeBlockingSql } from "../schema/classify-sql.js";
-import { EMPTY_SNAPSHOT, KIT_SQL_BREAKPOINT } from "../schema/schema-kit.js";
 import { probeSchema } from "../schema/schema-probe.js";
 import {
-  appendJournalEntry,
   convertLegacyMeta,
   isLegacySchemaMeta,
-  journalPath,
-  latestSnapshot,
-  serializeJournal,
-  serializeSnapshot,
-  snapshotPathFor,
 } from "../schema/schema-snapshots.js";
 import { createGhCommand } from "./gh-commands.js";
 import { commitAllAndPushMain, runGitCommand } from "./git-commands.js";

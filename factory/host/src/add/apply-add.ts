@@ -4,6 +4,7 @@ import { validateManifest } from "@sfab-lite/core/validate-manifest";
 import { FORMAT_PINS } from "@sfab-lite/kernel/pins";
 import catalogJson from "@sfab-lite/registry/catalog" with { type: "json" };
 import { type Catalog, planAdd } from "@sfab-lite/registry/lite";
+import { LITE_REGISTRY_URL_PATTERN } from "@sfab-lite/registry/pin";
 
 const CATALOG = catalogJson as Catalog;
 const LEADING_SLASHES = /^\/+/;
@@ -92,7 +93,12 @@ export function applyAdd(
     next[path] = content;
   }
   next["manifest.json"] = `${JSON.stringify(validated.manifest, null, 2)}\n`;
-  Object.assign(next, generateFormatFiles(validated.manifest, FORMAT_PINS));
+  Object.assign(
+    next,
+    generateFormatFiles(validated.manifest, FORMAT_PINS, {
+      registryUrl: LITE_REGISTRY_URL_PATTERN,
+    })
+  );
   const overwrote = new Set(planned.overwrote);
   return {
     ok: true,

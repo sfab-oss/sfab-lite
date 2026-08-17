@@ -7,7 +7,7 @@ House rules and index for this repo.
 
 ## What this is
 
-Edge-native **lite factory**: host + check + lint workers, frozen kernel, and
+Edge-native **lite factory**: host + check + lint + build workers, frozen kernel, and
 starter-lite template. Packages are `@sfab-lite/*`.
 
 **Lite** means the hosted template / frozen-kernel sub-apps — not skimpy

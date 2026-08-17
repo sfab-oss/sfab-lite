@@ -4,11 +4,12 @@
  * so serve bootstraps the same generation it serves.
  */
 
-import { type OverlaidTree, overlayFormatFiles } from "@sfab-lite/verbs/format";
+import type { OverlaidTree } from "@sfab-lite/verbs/format";
 import { appBuildFromCompile } from "../code-host/app-image.js";
 import type { AppBuild } from "../code-host/build-store.js";
 import { parseStoredBuild } from "../code-host/build-store.js";
 import { callBuild } from "../forge/call-build.js";
+import { overlayFormatFiles } from "../overlay-format-files.js";
 import type { AppMigration } from "./app-migrations.js";
 
 const WORKSPACE_BUILD_SHA_PREFIX = "ws:";

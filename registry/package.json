@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./lite": "./src/lite.ts",
+    "./pin": "./src/pin.ts",
     "./catalog": "./src/generated/catalog.json"
   },
   "scripts": {

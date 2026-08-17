@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifySql } from "./classify-sql.ts";
+import { classifySql } from "@sfab-lite/verbs/db";
 
 describe("schema gate red cases", () => {
   it("detects a missing migration from additive kit SQL", () => {

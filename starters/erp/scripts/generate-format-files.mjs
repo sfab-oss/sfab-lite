@@ -25,7 +25,9 @@ if (!validated.ok) {
   process.exit(1);
 }
 
-const files = generateFormatFiles(validated.manifest, FORMAT_PINS);
+const files = generateFormatFiles(validated.manifest, FORMAT_PINS, {
+  registryUrl: "https://lite.sfab.dev/r/{name}.json",
+});
 for (const [rel, content] of Object.entries(files)) {
   writeFileSync(join(appRoot, rel), content);
 }

@@ -246,7 +246,7 @@ Fixed paths — apps do not choose them:
 | `package.json` | Exact runtime pins so a copied tree `pnpm install`s. |
 | `tsconfig.json` | Same regime. |
 | `index.html` | Document shell. Standalone Vite and the host pack path share `formatIndexHtml`; the host injects the import map at pack. |
-| `src/db/index.ts` | Adapter db shim (`createDb` / `Db`). Cloudflare: `drizzle-orm/d1` over `env.DB`. |
+| `src/db/index.ts` | Adapter db shim (`createDb` / `Db` / `DbEnv`). Cloudflare: `drizzle-orm/d1` over `{ DB }`. Owner `Env` composes `DbEnv` and never names a driver. |
 | `src/storage/index.ts` | Adapter storage shim wrapping `env.STORAGE`. Emitted only when `capabilities` includes `"storage"`. |
 | `src/generated/api.d.ts` | Client API snapshot. Standalone types; no vendor leakage (`drizzle`, `hono/index`, `AppEnv`). |
 | `src/generated/api.hash` | `sha256:` of the server tree the snapshot was emitted from. |
@@ -368,8 +368,11 @@ The contract is [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-ho
 the app sees a generic model; the adapter chooses the engine.
 
 - **Database** is always on. Generated `src/db/index.ts` is the only
-  place a driver appears (Cloudflare: `drizzle-orm/d1` over `env.DB`).
-  App code imports `createDb` / `Db` from `./db`. The capability floor
+  place a driver appears (Cloudflare: `drizzle-orm/d1` over `{ DB }`, a
+  `DbEnv` declared in that file). App code imports `createDb` / `Db` /
+  `DbEnv` from `./db`. Owner-editable `src/env.ts` composes `DbEnv` with
+  host-injected `BETTER_AUTH_URL`, `APP_BASE_PATH`, and `SEED_TOKEN`; it
+  never names `D1Database` or a host Durable Object. The capability floor
   is D1's: `db.batch` yes, interactive `db.transaction` no. The check
   verb flags `.transaction(` in app sources with `LITE-TX` (code 9002).
 - **Storage** is opt-in (`capabilities: ["storage"]`). The generator
@@ -436,7 +439,7 @@ call sites keep working; later PRs retarget them onto these names.
 | `app.get` / `app.list` / `app.delete` | protected `/apps`, MCP `apps_get` / `apps_list` / `apps_delete` | |
 | `app.check` | `POST` check worker `/check`; host `POST /apps/:id/check`; CD publish gate | Becomes the check *run* of §5. Engine in `framework/verbs`; wire types in `framework/toolchain` (`CheckRequest` / `CheckResult`). |
 | `app.lint` | `POST` lint worker `/lint`; CD before check | Sync, stateless Biome WASM. Engine in `framework/verbs`; wire types in toolchain. |
-| `app.pack` | `compileAll` (server + client + css + host-built `index.html`) | Image v0: `putBuild` stores `image: 0`, resolved `runtime`, manifest snapshot, asset keys, migration names. `getBuild` fills `image: null` on legacy records so existing live apps keep serving; the next CD writes an image. No backfill. |
+| `app.pack` | `build()` (server + client + css + host-built `index.html`) | Image v0: `putBuild` stores `image: 0`, resolved `runtime`, manifest snapshot, asset keys, migration names. `getBuild` fills `image: null` on legacy records so existing live apps keep serving; the next CD writes an image. No backfill. |
 | `app.preview` | PR preview `/a/:appId/preview/:n`; workspace WIP `/a/:workspaceId/workspace` | Org-auth; empty+migrations SQLite, never a live clone. |
 | `app.serve` | LOADER child isolate, `live_sha` → immutable build | The serve-plane half of the adapter. |
 | `app.live` / `app.attempts` | `GET /apps/:id/live`, attempts; MCP `apps_live` / `apps_attempts` | Thin pointer + create-job status. |
