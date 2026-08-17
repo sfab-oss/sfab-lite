@@ -1,9 +1,9 @@
 /**
- * Routing and HTTP primitives for the factory host worker.
+ * Request-context types and shared HTTP primitives for the factory host.
  *
- * Owns the request-context types, the public route shape, and the shared
- * matchers / error helpers. Protected routing lives in `hono/protected/`;
- * domain handlers in `lib/protected/`.
+ * Protected routing lives in `hono/protected/`; public / kernel / live /
+ * agents / mcp dispatch lives in `hono/host.ts`; domain handlers in
+ * `lib/protected/`.
  */
 import type { Actor } from "../hono/tenancy.js";
 
@@ -15,7 +15,7 @@ export interface RequestCtx {
   url: URL;
 }
 
-/** …and after. `path` is the pathname; `groups` are regex captures (index 0 = first). */
+/** …and after. `path` is the pathname; `groups` are route captures (index 0 = first). */
 export interface RouteCtx extends RequestCtx {
   path: string;
   groups: string[];
@@ -44,41 +44,6 @@ export interface OrgCtx extends ProtectedCtx {
 export interface AppCtx extends ProtectedCtx {
   appId: string;
   attemptId?: string;
-}
-
-export interface PublicRoute {
-  method: string | readonly string[];
-  pattern: RegExp;
-  handler: (rc: RouteCtx) => Promise<Response> | Response;
-}
-
-function methodMatches(
-  allowed: string | readonly string[],
-  method: string
-): boolean {
-  if (typeof allowed === "string") {
-    return allowed === method;
-  }
-  return allowed.includes(method);
-}
-
-export function matchRoute<
-  R extends { method: string | readonly string[]; pattern: RegExp },
->(
-  routes: R[],
-  method: string,
-  pathname: string
-): { route: R; groups: string[] } | null {
-  for (const route of routes) {
-    if (route.method !== "*" && !methodMatches(route.method, method)) {
-      continue;
-    }
-    const match = pathname.match(route.pattern);
-    if (match) {
-      return { route, groups: match.slice(1) };
-    }
-  }
-  return null;
 }
 
 export const NOT_FOUND_BODY =

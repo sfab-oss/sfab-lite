@@ -29,7 +29,7 @@
  *
  * PR previews (`/a/:appId/preview/:prNumber/*`) and workspace WIP
  * (`/a/:appId/workspace/*`) are different: they are factory org surfaces
- * and are gated with `resolveActor` + `requireAppAccess` in `index.ts`
+ * and are gated with `resolveActor` + `requireAppAccess` in `hono/host.ts`
  * before serve.
  */
 import { and, eq } from "drizzle-orm";
