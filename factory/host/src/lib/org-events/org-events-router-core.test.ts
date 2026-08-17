@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { OrgEventWire } from "../../org-events.ts";
+import type { OrgEventInput, OrgEventWire } from "../../org-events.ts";
 import {
   type OrgEventsRouterDeps,
   routeOrgEvent,
 } from "./org-events-router-core.ts";
 
 function frame(
-  topic: string,
-  payload: Record<string, unknown>,
+  topic: OrgEventInput["topic"],
+  payload: { appId?: string; liveSha?: string },
   seq = 1
 ): OrgEventWire {
   return {

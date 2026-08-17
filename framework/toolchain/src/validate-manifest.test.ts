@@ -5,10 +5,15 @@ import {
   HOST_AUTHORITATIVE_FIELDS,
   MANIFEST_CAPABILITIES,
   MANIFEST_FORMAT,
+  type ManifestV0,
 } from "./manifest.ts";
 import { validateManifest } from "./validate-manifest.ts";
 
-function valid(overrides: Record<string, unknown> = {}) {
+type ManifestOverrides = {
+  [K in keyof ManifestV0]?: unknown;
+} & { extra?: unknown };
+
+function valid(overrides: ManifestOverrides = {}) {
   return {
     format: MANIFEST_FORMAT,
     name: "erp",
@@ -80,7 +85,7 @@ test("recipes with exact versions and sha256 hashes validate", () => {
 });
 
 test("missing format fails", () => {
-  const body: Record<string, unknown> = valid();
+  const body: ManifestOverrides = valid();
   body.format = undefined;
   assert.ok(issuePaths(body).includes("format"));
 });

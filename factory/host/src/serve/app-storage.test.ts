@@ -64,7 +64,7 @@ describe("prefixed app storage", () => {
   it("put then get round-trips under the generation prefix", async () => {
     const bucket = new FakeR2Bucket();
     const live = new PrefixedR2Bucket(
-      bucket as unknown as R2Bucket,
+      bucket,
       storagePrefixForTarget({ mode: "live", appId: "app_1" })
     );
     await live.put("docs/a.txt", "hello", {
@@ -83,11 +83,11 @@ describe("prefixed app storage", () => {
   it("preview generation cannot see live keys", async () => {
     const bucket = new FakeR2Bucket();
     const live = new PrefixedR2Bucket(
-      bucket as unknown as R2Bucket,
+      bucket,
       storagePrefixForTarget({ mode: "live", appId: "app_1" })
     );
     const preview = new PrefixedR2Bucket(
-      bucket as unknown as R2Bucket,
+      bucket,
       storagePrefixForTarget({
         mode: "preview",
         appId: "app_1",
@@ -109,7 +109,7 @@ describe("prefixed app storage", () => {
   it("rejects keys that would leave the relative namespace", async () => {
     const bucket = new FakeR2Bucket();
     const live = new PrefixedR2Bucket(
-      bucket as unknown as R2Bucket,
+      bucket,
       storagePrefixForTarget({ mode: "live", appId: "app_1" })
     );
     await assert.rejects(live.put("../escape", "nope"), RELATIVE_PATH);
@@ -121,21 +121,19 @@ describe("prefixed app storage", () => {
   it("delete removes the app prefix and not sibling apps", async () => {
     const bucket = new FakeR2Bucket();
     const a = new PrefixedR2Bucket(
-      bucket as unknown as R2Bucket,
+      bucket,
       storagePrefixForTarget({ mode: "live", appId: "app_a" })
     );
     const b = new PrefixedR2Bucket(
-      bucket as unknown as R2Bucket,
+      bucket,
       storagePrefixForTarget({ mode: "live", appId: "app_b" })
     );
     await a.put("one", "1");
     await a.put("two", "2");
     await b.put("keep", "yes");
-    await deleteStoragePrefix(bucket as unknown as R2Bucket, "apps/app_a/");
+    await deleteStoragePrefix(bucket, "apps/app_a/");
     assert.deepEqual(bucket.keys(), ["apps/app_b/live/keep"]);
-    await deleteAppObjectStorage(bucket as unknown as R2Bucket, "app_b", [
-      "ws_other",
-    ]);
+    await deleteAppObjectStorage(bucket, "app_b", ["ws_other"]);
     assert.deepEqual(bucket.keys(), []);
   });
 });

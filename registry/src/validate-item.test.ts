@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { validateItem } from "./lite.ts";
+import type { RecipeItem } from "./types.ts";
 
 const DEPENDENCIES_ABSENT = /dependencies key must be absent/;
 const UNKNOWN_THEME = /unknown item type "registry:theme"/;
 const BARE_NAME = /bare names are a hard error/;
 const MIGRATION_TARGET = /must not target applied-migration files/;
 
-function base(overrides: Record<string, unknown> = {}) {
+type ItemOverrides = {
+  [K in keyof RecipeItem]?: unknown;
+} & { dependencies?: unknown };
+
+function base(overrides: ItemOverrides = {}) {
   return {
     name: "lite/button",
     type: "registry:ui",
