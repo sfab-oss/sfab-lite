@@ -20,7 +20,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseArgs } from "node:util";
+import { parseCli } from "./parse-cli.mjs";
 
 const factoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const bucket = "sfab-lite-kernel";
@@ -29,12 +29,10 @@ const stampPath = join(factoryRoot, ".tmp/drizzle-kit/stamp.json");
 const PINNED_KIT = "0.31.10";
 const PINNED_ORM = "0.45.2";
 
-const { values } = parseArgs({
-  options: {
-    force: { type: "boolean", default: false },
-    remote: { type: "boolean", default: false },
-    local: { type: "boolean", default: false },
-  },
+const { values } = parseCli({
+  force: { type: "boolean", default: false },
+  remote: { type: "boolean", default: false },
+  local: { type: "boolean", default: false },
 });
 const force = values.force;
 const remote = values.remote;

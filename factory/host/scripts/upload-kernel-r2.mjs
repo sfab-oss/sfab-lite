@@ -18,7 +18,7 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseArgs } from "node:util";
+import { parseCli } from "./parse-cli.mjs";
 
 const factoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const repoRoot = join(factoryRoot, "../..");
@@ -26,12 +26,10 @@ const bucket = "sfab-lite-kernel";
 const kernelJsonPath = join(repoRoot, "framework/runtime/kernel.json");
 const clientDir = join(repoRoot, "framework/runtime/vendor/client");
 
-const { values } = parseArgs({
-  options: {
-    force: { type: "boolean", default: false },
-    remote: { type: "boolean", default: false },
-    local: { type: "boolean", default: false },
-  },
+const { values } = parseCli({
+  force: { type: "boolean", default: false },
+  remote: { type: "boolean", default: false },
+  local: { type: "boolean", default: false },
 });
 const force = values.force;
 const remote = values.remote;
