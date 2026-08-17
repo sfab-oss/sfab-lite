@@ -127,8 +127,8 @@
   },
   "typesVfs": {
     "fileCount": 2500,
-    "rawBytes": 9618160,
-    "gzipBytes": 1253629,
+    "rawBytes": 9618019,
+    "gzipBytes": 1253553,
     "packages": {
       "@base-ui/react": 1151,
       "@base-ui/utils": 10,
@@ -226,10 +226,10 @@
   "totals": {
     "raw": 7953249,
     "gzip": 1397297,
-    "typesGzip": 1253629,
+    "typesGzip": 1253553,
     "cssGzip": 13148,
     "clientGzip": 666413,
-    "hostBakeGzip": 2664074
+    "hostBakeGzip": 2663998
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,
