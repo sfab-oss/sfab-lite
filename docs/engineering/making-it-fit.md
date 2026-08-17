@@ -235,6 +235,7 @@ nothing under `framework/` imports pierre.
 | CheckDO for warm affinity | Retention ~30s; full template checks did not stay warm and often 500'd | DO warm-curve ladder |
 | A bigger Worker | 128 MB on Free and Paid alike; no 2026 increase | Cloudflare docs |
 | TypeScript 7 / `tsgo` (~2.9x less memory) | Pin stays 6.0.3. Local disk `tsc` vs `tsgo` 7.0.0-dev.20260707.2 on the materialized VFS+seed: **1.14× RSS** (523 vs 459 MB), ~2.5× user time. The ~2.9× figure is not this program or this metric. | [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md) |
+| Tailwind oxide `Scanner` in the build worker (replace `extractCandidates`) | The only non-native build is `@tailwindcss/oxide-wasm32-wasi` (1.72 MB wasm, 0.55 MB gzip) and its loader needs `node:worker_threads` + `readFileSync` for wasi-threads; Workers `nodejs_compat` has neither and wasm must be a static import. `tailwindcss` `compile()` itself does no scanning. The 137-line JS extractor in `framework/verbs/src/build/css-extract.ts` stays, with its documented misses. | package inspection 2026-08-17, hand-rolled audit |
 
 ## Still open
 
