@@ -3,6 +3,7 @@
  */
 import { DurableObject } from "cloudflare:workers";
 import { monotonicFactory } from "ulid";
+import { z } from "zod";
 import {
   INTERNAL_TOKEN_HEADER,
   signAttemptRun,
@@ -29,37 +30,50 @@ const CREATE_RUN_WATCHDOG_MS = 45_000;
 const LOOPBACK_ORIGIN = "https://sfab-lite.internal";
 const JOB_RETENTION = 50;
 
-type JobStatus = "pending" | "pass" | "fail" | "error";
+const jobStatusSchema = z.enum(["pending", "pass", "fail", "error"]);
+type JobStatus = z.infer<typeof jobStatusSchema>;
+
+const createJobPayloadSchema = z.union([
+  z.record(z.string(), z.unknown()),
+  z.array(z.unknown()),
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+]);
+export type CreateJobPayload = z.infer<typeof createJobPayloadSchema>;
 
 export interface CreateJobRecord {
   id: string;
   status: JobStatus;
   createdAt: number;
   updatedAt: number;
-  payload: unknown;
+  payload: CreateJobPayload;
 }
 
-interface JobRow {
-  id: string;
-  status: string;
-  created_at: number;
-  updated_at: number;
-  payload: string | null;
-}
+const jobRowSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  created_at: z.number(),
+  updated_at: z.number(),
+  payload: z.string().nullable(),
+});
 
 function toJobRecord(raw: unknown): CreateJobRecord {
-  const row = raw as JobRow;
-  let payload: unknown = null;
+  const row = jobRowSchema.parse(raw);
+  let payload: CreateJobPayload = null;
   if (row.payload) {
     try {
-      payload = JSON.parse(row.payload) as unknown;
+      const parsed = createJobPayloadSchema.safeParse(JSON.parse(row.payload));
+      payload = parsed.success ? parsed.data : row.payload;
     } catch {
       payload = row.payload;
     }
   }
+  const status = jobStatusSchema.safeParse(row.status);
   return {
     id: row.id,
-    status: row.status as JobStatus,
+    status: status.success ? status.data : "error",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     payload,
@@ -111,8 +125,9 @@ export class AppCreateDO extends DurableObject<Env> {
   #jobStatus(jobId: string): JobStatus | null {
     const row = this.ctx.storage.sql
       .exec("SELECT status FROM _sfab_create_jobs WHERE id = ?", jobId)
-      .toArray()[0] as { status?: JobStatus } | undefined;
-    return row?.status ?? null;
+      .toArray()[0];
+    const parsed = z.object({ status: jobStatusSchema }).safeParse(row);
+    return parsed.success ? parsed.data.status : null;
   }
 
   async #clearCreateRun(): Promise<void> {
@@ -191,8 +206,9 @@ export class AppCreateDO extends DurableObject<Env> {
     this.#sweepStaleJobs();
     const running = this.ctx.storage.sql
       .exec("SELECT id FROM _sfab_create_jobs WHERE status = 'pending' LIMIT 1")
-      .toArray()[0] as { id?: string } | undefined;
-    return running?.id ?? null;
+      .toArray()[0];
+    const parsed = z.object({ id: z.string() }).safeParse(running);
+    return parsed.success ? parsed.data.id : null;
   }
 
   startCreateJob():
@@ -237,7 +253,7 @@ export class AppCreateDO extends DurableObject<Env> {
   failCreateJob(
     jobId: string,
     status: "fail" | "error",
-    payload: unknown = null
+    payload: CreateJobPayload = null
   ): { ok: true } {
     this.#ensureMeta();
     this.ctx.storage.sql.exec(
@@ -252,7 +268,10 @@ export class AppCreateDO extends DurableObject<Env> {
     return { ok: true };
   }
 
-  completeCreateJob(jobId: string, payload: unknown = null): { ok: true } {
+  completeCreateJob(
+    jobId: string,
+    payload: CreateJobPayload = null
+  ): { ok: true } {
     this.#ensureMeta();
     this.ctx.storage.sql.exec(
       `UPDATE _sfab_create_jobs

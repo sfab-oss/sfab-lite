@@ -66,7 +66,9 @@ export const treeFileQuerySchema = z
 export const sqlBodySchema = z
   .object({
     query: z.string().min(1),
-    binds: z.array(z.unknown()).optional(),
+    binds: z
+      .array(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+      .optional(),
     /**
      * Which serve-target DB to query. Default `live` (factory inspect).
      * Computer shell seeds default to workspace separately.

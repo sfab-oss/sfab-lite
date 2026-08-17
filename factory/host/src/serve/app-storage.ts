@@ -75,22 +75,22 @@ export class PrefixedR2Bucket {
     return this.#inner.put(`${this.prefix}${key}`, value, options);
   }
 
-  async get(key: string): Promise<R2ObjectBody | null> {
+  async get(key: string): Promise<PrefixedR2Body | null> {
     assertRelativeKey(key);
     const obj = await this.#inner.get(`${this.prefix}${key}`);
     if (obj == null) {
       return null;
     }
-    return exposeObject(obj, key) as R2ObjectBody;
+    return exposeBody(obj, key);
   }
 
-  async head(key: string): Promise<R2Object | null> {
+  async head(key: string): Promise<PrefixedR2Head | null> {
     assertRelativeKey(key);
     const obj = await this.#inner.head(`${this.prefix}${key}`);
     if (obj == null) {
       return null;
     }
-    return exposeObject(obj, key);
+    return exposeHead(obj, key);
   }
 
   delete(keys: string | string[]): Promise<void> {
@@ -101,7 +101,12 @@ export class PrefixedR2Bucket {
     return this.#inner.delete(list.map((key) => `${this.prefix}${key}`));
   }
 
-  async list(options?: R2ListOptions): Promise<R2Objects> {
+  async list(options?: R2ListOptions): Promise<{
+    objects: PrefixedR2Head[];
+    truncated: boolean;
+    cursor?: string;
+    delimitedPrefixes: string[];
+  }> {
     const userPrefix = options?.prefix ?? "";
     assertRelativePrefix(userPrefix);
     const listed = await this.#inner.list({
@@ -111,15 +116,28 @@ export class PrefixedR2Bucket {
     return {
       ...listed,
       objects: listed.objects.map((obj) =>
-        exposeObject(obj, obj.key.slice(this.prefix.length))
+        exposeHead(obj, obj.key.slice(this.prefix.length))
       ),
     };
   }
 }
 
-function exposeObject<T extends R2Object>(obj: T, key: string): T {
-  const bodyObj = obj as unknown as R2ObjectBody;
-  const body = "body" in obj ? bodyObj.body : undefined;
+export interface PrefixedR2Head {
+  key: string;
+  size: number;
+  etag: string;
+  uploaded: Date;
+  httpMetadata?: R2HTTPMetadata;
+  customMetadata?: Record<string, string>;
+}
+
+export interface PrefixedR2Body extends PrefixedR2Head {
+  body: R2ObjectBody["body"];
+  arrayBuffer: () => Promise<ArrayBuffer>;
+  text: () => Promise<string>;
+}
+
+function exposeHead(obj: R2Object, key: string): PrefixedR2Head {
   return {
     key,
     size: obj.size,
@@ -127,10 +145,17 @@ function exposeObject<T extends R2Object>(obj: T, key: string): T {
     uploaded: obj.uploaded,
     httpMetadata: obj.httpMetadata,
     customMetadata: obj.customMetadata,
-    ...(body ? { body } : {}),
-    arrayBuffer: () => bodyObj.arrayBuffer(),
-    text: () => bodyObj.text(),
-  } as unknown as T;
+  };
+}
+
+function exposeBody(obj: R2ObjectBody, key: string): PrefixedR2Body {
+  const exposed: PrefixedR2Body = {
+    ...exposeHead(obj, key),
+    body: obj.body,
+    arrayBuffer: () => obj.arrayBuffer(),
+    text: () => obj.text(),
+  };
+  return exposed;
 }
 
 export async function deleteStoragePrefix(

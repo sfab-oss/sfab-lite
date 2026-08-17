@@ -7,6 +7,7 @@
  * triggered the publish.
  */
 import { monotonicFactory } from "ulid";
+import { z } from "zod";
 
 const nextEventUlid = monotonicFactory();
 
@@ -38,13 +39,16 @@ export type OrgServerFrame =
   | { v: 1; kind: "sync"; seq: number }
   | { v: 1; kind: "resync"; fromSeq: number; toSeq: number };
 
+export const orgEventPayloadSchema = z.record(z.string(), z.unknown());
+export type OrgEventPayload = z.infer<typeof orgEventPayloadSchema>;
+
 export function newOrgEventId(): string {
   return `evt_${nextEventUlid()}`;
 }
 
 export function packOrgEventFrame(
   topic: string,
-  payload: Record<string, unknown>,
+  payload: OrgEventPayload,
   seq: number,
   id: string
 ): OrgEventWire {
@@ -65,7 +69,7 @@ export function packOrgEvent(
 ): OrgEventWire {
   return packOrgEventFrame(
     event.topic,
-    (event.payload ?? {}) as Record<string, unknown>,
+    orgEventPayloadSchema.parse(event.payload ?? {}),
     seq,
     id
   );
@@ -79,6 +83,9 @@ export function publishOrgEvent(
     ctx.env.ORG_EVENTS.idFromName(ctx.organizationId)
   );
   stub
-    .publish({ topic: event.topic, payload: event.payload ?? {} })
+    .publish({
+      topic: event.topic,
+      payload: orgEventPayloadSchema.parse(event.payload ?? {}),
+    })
     .catch(() => undefined);
 }

@@ -64,12 +64,16 @@ export async function fetchRuns(
   appId: string,
   opts?: { sha?: string; limit?: number }
 ) {
+  const query: { sha?: string; limit?: number } = {};
+  if (opts?.sha) {
+    query.sha = opts.sha;
+  }
+  if (opts?.limit != null) {
+    query.limit = opts.limit;
+  }
   const res = await protectedApi.apps[":appId"].runs.$get({
     param: { appId },
-    query: {
-      ...(opts?.sha ? { sha: opts.sha } : {}),
-      ...(opts?.limit == null ? {} : { limit: opts.limit }),
-    },
+    query,
   });
   throwIfUnauthorized(res);
   if (res.status !== 200) {

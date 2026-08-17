@@ -34,15 +34,14 @@ export async function protectedFetch(
   if (!token) {
     throw new Error("ADMIN_TOKEN is not configured on this factory");
   }
+  const headers: Record<string, string> = { "X-Admin-Token": token };
+  const init: RequestInit = { method, headers };
+  if (body !== undefined) {
+    headers["content-type"] = "application/json";
+    init.body = JSON.stringify(body);
+  }
   const res = await ctx.env.SELF.fetch(
-    new Request(`${LOOPBACK_ORIGIN}${path}`, {
-      method,
-      headers: {
-        "X-Admin-Token": token,
-        ...(body === undefined ? {} : { "content-type": "application/json" }),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    })
+    new Request(`${LOOPBACK_ORIGIN}${path}`, init)
   );
   return { status: res.status, body: await res.json().catch(() => null) };
 }

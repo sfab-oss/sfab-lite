@@ -10,6 +10,8 @@
  */
 
 import type { ManifestV0 } from "@sfab-lite/core";
+import { validateManifest } from "@sfab-lite/core/validate-manifest";
+import { z } from "zod";
 
 export const APP_IMAGE_VERSION = 0;
 export const IMAGE_SERVER_KEY = "server.js";
@@ -63,53 +65,34 @@ export function assertPutBuild(build: AppBuild): void {
   }
 }
 
-function asStringRecord(value: unknown): Record<string, string> | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  const out: Record<string, string> = {};
-  for (const [key, entry] of Object.entries(value)) {
-    if (typeof entry !== "string") {
-      return null;
-    }
-    out[key] = entry;
-  }
-  return out;
-}
+const stringRecordSchema = z.record(z.string(), z.string());
 
-function asStringArray(value: unknown): string[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const out: string[] = [];
-  for (const entry of value) {
-    if (typeof entry !== "string") {
-      return null;
-    }
-    out.push(entry);
-  }
-  return out;
-}
+const storedBuildSchema = z
+  .object({
+    sha: z.string(),
+    serverBundle: z.string(),
+    assets: stringRecordSchema,
+    serverSurfaceHash: z.string().nullable().optional(),
+    runtime: z.string().optional(),
+    kernelVersion: z.string().optional(),
+    image: z.literal(APP_IMAGE_VERSION).optional(),
+    manifest: z.unknown().optional(),
+    server: z.string().optional(),
+    client: z.array(z.string()).optional(),
+    migrations: z.array(z.string()).optional(),
+  })
+  .passthrough();
 
 /**
  * Normalize a stored JSON record. Legacy builds (kernelVersion, no image)
  * become image: null so serve keeps working. New writes never take this path.
  */
 export function parseStoredBuild(raw: unknown): AppBuild | null {
-  if (!raw || typeof raw !== "object") {
+  const parsed = storedBuildSchema.safeParse(raw);
+  if (!parsed.success) {
     return null;
   }
-  const record = raw as Record<string, unknown>;
-  if (
-    typeof record.sha !== "string" ||
-    typeof record.serverBundle !== "string"
-  ) {
-    return null;
-  }
-  const assets = asStringRecord(record.assets);
-  if (!assets) {
-    return null;
-  }
+  const record = parsed.data;
   let runtime = "";
   if (typeof record.runtime === "string" && record.runtime !== "") {
     runtime = record.runtime;
@@ -123,29 +106,28 @@ export function parseStoredBuild(raw: unknown): AppBuild | null {
   const base = {
     sha: record.sha,
     serverBundle: record.serverBundle,
-    assets,
+    assets: record.assets,
     serverSurfaceHash,
     runtime,
   };
-  if (
-    record.image === APP_IMAGE_VERSION &&
-    record.manifest &&
-    typeof record.manifest === "object"
-  ) {
-    const client = asStringArray(record.client) ?? [];
-    const migrations = asStringArray(record.migrations) ?? [];
-    const server =
-      typeof record.server === "string" && record.server !== ""
-        ? record.server
-        : IMAGE_SERVER_KEY;
-    return {
-      ...base,
-      image: APP_IMAGE_VERSION,
-      manifest: record.manifest as ManifestV0,
-      server,
-      client,
-      migrations,
-    };
+  if (record.image === APP_IMAGE_VERSION) {
+    const manifest = validateManifest(record.manifest);
+    if (manifest.ok) {
+      const client = record.client ?? [];
+      const migrations = record.migrations ?? [];
+      const server =
+        typeof record.server === "string" && record.server !== ""
+          ? record.server
+          : IMAGE_SERVER_KEY;
+      return {
+        ...base,
+        image: APP_IMAGE_VERSION,
+        manifest: manifest.manifest,
+        server,
+        client,
+        migrations,
+      };
+    }
   }
   return {
     ...base,

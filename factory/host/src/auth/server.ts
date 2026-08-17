@@ -115,9 +115,9 @@ export function createAuth(env: Env, baseURL: string) {
     basePath: "/api/auth",
     secret,
     advanced: { cookiePrefix: FACTORY_COOKIE_PREFIX },
-    ...(github
-      ? { socialProviders: { github: { ...github, disableSignUp } } }
-      : {}),
+    socialProviders: github
+      ? { github: { ...github, disableSignUp } }
+      : undefined,
     database: drizzleAdapter(db, {
       provider: "sqlite",
       schema,
