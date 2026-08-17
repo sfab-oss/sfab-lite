@@ -271,7 +271,7 @@ export async function runGitCommand(
   ctx: CommandContext
 ): Promise<ExecResult> {
   const fs = bridgeBashFs(ctx.fs);
-  const git = createGit(fs as never, "/");
+  const git = createGit(fs, "/");
   const [cmd, ...rest] = args;
   if (!cmd) {
     return fail("git: missing command\n", 1);

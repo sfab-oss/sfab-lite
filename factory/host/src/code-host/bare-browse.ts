@@ -1,5 +1,6 @@
 import { listFiles, readBlob } from "isomorphic-git";
 import type { GitWorkFs } from "./code-host.js";
+import { fsError } from "./fs-error.ts";
 
 const BARE = { dir: "/", gitdir: "/" } as const;
 const LEADING_SLASHES = /^\/+/;
@@ -59,29 +60,8 @@ function defaultMode(
   return 0o10_0644;
 }
 
-function fsError(path: string, cause?: unknown): Error & { code: string } {
-  if (
-    cause instanceof Error &&
-    "code" in cause &&
-    typeof (cause as { code: unknown }).code === "string"
-  ) {
-    return cause as Error & { code: string };
-  }
-  const err = new Error(
-    cause instanceof Error ? cause.message : `ENOENT: ${path}`
-  ) as Error & { code: string };
-  err.code = "ENOENT";
-  return err;
-}
-
-function readOnlyError(op: string): Error & { code: string } {
-  const err = new Error(
-    `EROFS: ${op} not supported on bare browse fs`
-  ) as Error & {
-    code: string;
-  };
-  err.code = "EROFS";
-  return err;
+function readOnlyError(op: string) {
+  return fsError(`${op} not supported on bare browse fs`, "EROFS");
 }
 
 /**
@@ -104,7 +84,7 @@ function createGitFs(fs: GitWorkFs) {
           }
           return await fs.readFileBytes(path);
         } catch (err) {
-          throw fsError(path, err);
+          throw fsError(path, "ENOENT", err);
         }
       },
 
@@ -132,7 +112,7 @@ function createGitFs(fs: GitWorkFs) {
         try {
           return new GitStat(await fs.stat(path));
         } catch (err) {
-          throw fsError(path, err);
+          throw fsError(path, "ENOENT", err);
         }
       },
 
@@ -140,7 +120,7 @@ function createGitFs(fs: GitWorkFs) {
         try {
           return new GitStat(await fs.lstat(path));
         } catch (err) {
-          throw fsError(path, err);
+          throw fsError(path, "ENOENT", err);
         }
       },
 
@@ -148,7 +128,7 @@ function createGitFs(fs: GitWorkFs) {
         try {
           return await fs.readlink(path);
         } catch (err) {
-          throw fsError(path, err);
+          throw fsError(path, "ENOENT", err);
         }
       },
 

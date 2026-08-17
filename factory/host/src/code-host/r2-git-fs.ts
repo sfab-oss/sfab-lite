@@ -1,13 +1,8 @@
 import type { GitWorkFs } from "./code-host.js";
+import { fsError } from "./fs-error.ts";
 
 const LEADING_SLASHES = /^\/+/;
 const TRAILING_SLASHES = /\/*$/;
-
-function enoent(path: string): Error & { code: string } {
-  const err = new Error(`ENOENT: ${path}`) as Error & { code: string };
-  err.code = "ENOENT";
-  return err;
-}
 
 function normalize(path: string): string {
   const parts = path.split("/").filter((p) => p && p !== ".");
@@ -116,7 +111,7 @@ export class R2GitFs implements GitWorkFs {
   async readFileBytes(path: string): Promise<Uint8Array> {
     const obj = await this.#bucket.get(this.#objectKey(path));
     if (!obj) {
-      throw enoent(path);
+      throw fsError(path, "ENOENT");
     }
     return new Uint8Array(await obj.arrayBuffer());
   }
@@ -172,7 +167,7 @@ export class R2GitFs implements GitWorkFs {
     if (await this.#hasChildren(n)) {
       return { type: "directory", size: 0, mtime: new Date(0), mode: 0o4_0755 };
     }
-    throw enoent(path);
+    throw fsError(path, "ENOENT");
   }
 
   async mkdir(path: string, options?: { recursive?: boolean }): Promise<void> {
@@ -190,7 +185,7 @@ export class R2GitFs implements GitWorkFs {
     const parent = parentOf(n);
     if (!options?.recursive) {
       if (parent !== "/" && !(await this.exists(parent))) {
-        throw enoent(parent);
+        throw fsError(parent, "ENOENT");
       }
     } else if (parent !== "/") {
       await this.mkdir(parent, { recursive: true });
@@ -264,7 +259,7 @@ export class R2GitFs implements GitWorkFs {
       if (options?.force) {
         return;
       }
-      throw enoent(path);
+      throw fsError(path, "ENOENT");
     }
     if (!options?.recursive) {
       throw new Error(`ENOTEMPTY: ${path}`);

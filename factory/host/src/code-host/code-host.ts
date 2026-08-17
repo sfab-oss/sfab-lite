@@ -6,46 +6,10 @@
  * never "Artifacts".
  */
 
-/** Minimal FS surface isomorphic-git / createGit need against a worktree. */
-export interface GitWorkFs {
-  readFile: (path: string) => Promise<string>;
-  readFileBytes: (path: string) => Promise<Uint8Array>;
-  writeFile: (path: string, content: string) => Promise<void>;
-  writeFileBytes: (path: string, content: Uint8Array) => Promise<void>;
-  appendFile: (path: string, content: string | Uint8Array) => Promise<void>;
-  exists: (path: string) => Promise<boolean>;
-  stat: (path: string) => Promise<{
-    type: "file" | "directory" | "symlink";
-    size: number;
-    mtime: Date;
-    mode?: number;
-  }>;
-  lstat: (path: string) => Promise<{
-    type: "file" | "directory" | "symlink";
-    size: number;
-    mtime: Date;
-    mode?: number;
-  }>;
-  mkdir: (path: string, options?: { recursive?: boolean }) => Promise<void>;
-  readdir: (path: string) => Promise<string[]>;
-  readdirWithFileTypes: (
-    path: string
-  ) => Promise<{ name: string; type: "file" | "directory" | "symlink" }[]>;
-  rm: (
-    path: string,
-    options?: { recursive?: boolean; force?: boolean }
-  ) => Promise<void>;
-  cp: (
-    src: string,
-    dest: string,
-    options?: { recursive?: boolean }
-  ) => Promise<void>;
-  mv: (src: string, dest: string) => Promise<void>;
-  symlink: (target: string, linkPath: string) => Promise<void>;
-  readlink: (path: string) => Promise<string>;
-  realpath: (path: string) => Promise<string>;
-  resolvePath: (base: string, path: string) => string;
-  glob: (pattern: string) => Promise<string[]>;
+import type { FileSystem } from "@cloudflare/shell";
+
+/** Shell FileSystem plus the optional R2 prefix walk `copyTree` uses. */
+export interface GitWorkFs extends FileSystem {
   listFilesUnder?: (dir: string) => Promise<string[]>;
 }
 

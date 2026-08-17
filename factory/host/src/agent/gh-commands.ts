@@ -55,7 +55,7 @@ function takeOption(
 
 async function currentBranch(ctx: CommandContext): Promise<string | null> {
   const fs = bridgeBashFs(ctx.fs);
-  const git = createGit(fs as never, "/");
+  const git = createGit(fs, "/");
   const listed = await git.branch({ list: true });
   if ("current" in listed && typeof listed.current === "string") {
     return listed.current;

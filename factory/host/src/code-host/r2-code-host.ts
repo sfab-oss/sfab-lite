@@ -1,5 +1,6 @@
 import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
+import { z } from "zod";
 import { listPathsInBare, readFileInBare } from "./bare-browse.js";
 import type {
   CodeHost,
@@ -13,6 +14,7 @@ import { R2GitFs } from "./r2-git-fs.js";
 
 const AUTHOR = { name: "sfab-lite", email: "forge@sfab.dev" };
 const TRAILING_SLASH = /\/$/;
+const treePathsSchema = z.array(z.string());
 
 function treePathsKey(appId: string, sha: string): string {
   return `tree-index/${appId}/${sha}.json`;
@@ -75,10 +77,6 @@ async function listRefNames(
   return names;
 }
 
-function asShellFs(fs: GitWorkFs) {
-  return fs as unknown as Parameters<typeof createGit>[0];
-}
-
 function worktreeChildPath(parent: string, name: string): string {
   return parent === "/" ? `/${name}` : `${parent}/${name}`;
 }
@@ -133,8 +131,8 @@ async function checkoutTreeFiles(
   bare: R2GitFs,
   sha: string
 ): Promise<Record<string, string> | null> {
-  const work = new InMemoryFs() as unknown as GitWorkFs;
-  const git = createGit(asShellFs(work), "/");
+  const work = new InMemoryFs();
+  const git = createGit(work, "/");
   await git.init({ defaultBranch: "main" });
   await copyTree(bare, "/objects", work, "/.git/objects");
   await copyTree(bare, "/refs", work, "/.git/refs");
@@ -176,7 +174,7 @@ export function createR2CodeHost(env: Env): CodeHost {
     async ensureRepo(appId: string): Promise<CodeHostRepo> {
       const fs = bareFs(appId);
       if (!(await fs.exists("/HEAD"))) {
-        const git = createGit(asShellFs(fs), "/");
+        const git = createGit(fs, "/");
         await git.init({ defaultBranch: "main" });
         // Convert to bare layout: move .git/* to root if init created nested .git
         if (await fs.exists("/.git/HEAD")) {
@@ -223,7 +221,7 @@ export function createR2CodeHost(env: Env): CodeHost {
       await this.ensureRepo(appId);
       const bare = bareFs(appId);
       const gitRoot = dir === "/" ? "/.git" : `${dir}/.git`;
-      const git = createGit(asShellFs(targetFs), dir);
+      const git = createGit(targetFs, dir);
       await git.init({ defaultBranch: "main" });
       await copyTree(bare, "/objects", targetFs, `${gitRoot}/objects`);
       await copyTree(bare, "/refs", targetFs, `${gitRoot}/refs`);
@@ -265,8 +263,8 @@ export function createR2CodeHost(env: Env): CodeHost {
       message: string
     ): Promise<{ sha: string }> {
       await this.ensureRepo(appId);
-      const work = new InMemoryFs() as unknown as GitWorkFs;
-      const git = createGit(asShellFs(work), "/");
+      const work = new InMemoryFs();
+      const git = createGit(work, "/");
       await git.init({ defaultBranch: "main" });
       for (const [path, content] of Object.entries(files)) {
         const abs = path.startsWith("/") ? path : `/${path}`;
@@ -329,8 +327,8 @@ export function createR2CodeHost(env: Env): CodeHost {
       }
       await this.ensureRepo(appId);
       const bare = bareFs(appId);
-      const work = new InMemoryFs() as unknown as GitWorkFs;
-      const git = createGit(asShellFs(work), "/");
+      const work = new InMemoryFs();
+      const git = createGit(work, "/");
       await git.init({ defaultBranch: "main" });
       await copyTree(bare, "/objects", work, "/.git/objects");
       await copyTree(bare, "/refs", work, "/.git/refs");
@@ -359,12 +357,11 @@ export function createR2CodeHost(env: Env): CodeHost {
       const cached = await bucket.get(cacheKey);
       if (cached) {
         try {
-          const parsed = JSON.parse(await cached.text()) as unknown;
-          if (
-            Array.isArray(parsed) &&
-            parsed.every((p) => typeof p === "string")
-          ) {
-            return parsed;
+          const parsed = treePathsSchema.safeParse(
+            JSON.parse(await cached.text())
+          );
+          if (parsed.success) {
+            return parsed.data;
           }
         } catch {
           // fall through to walk

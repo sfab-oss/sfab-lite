@@ -9,10 +9,6 @@ import { FakeR2Bucket } from "./test/fake-r2-bucket.ts";
 
 const AUTHOR = { name: "test", email: "test@example.com" };
 
-function asShellFs(fs: GitWorkFs) {
-  return fs as unknown as Parameters<typeof createGit>[0];
-}
-
 async function listFiles(
   fs: GitWorkFs,
   dir: string
@@ -53,8 +49,8 @@ function bytesEqual(
 
 describe("copyTree", () => {
   it("copies object bytes 1:1 onto R2 without ancestor markers", async () => {
-    const work = new InMemoryFs() as unknown as GitWorkFs;
-    const git = createGit(asShellFs(work), "/");
+    const work = new InMemoryFs();
+    const git = createGit(work, "/");
     await git.init({ defaultBranch: "main" });
     await work.writeFile("/src/hello.ts", "export const hello = 1;\n");
     await work.writeFile("/README.md", "# demo\n");
@@ -80,7 +76,7 @@ describe("copyTree", () => {
   });
 
   it("mkdirs empty source dirs so isomorphic-git can readdir them", async () => {
-    const from = new InMemoryFs() as unknown as GitWorkFs;
+    const from = new InMemoryFs();
     await from.mkdir("/objects/pack", { recursive: true });
     await from.writeFile("/objects/ab/cdef", "blob");
     const bucket = new FakeR2Bucket();
@@ -93,8 +89,8 @@ describe("copyTree", () => {
   });
 
   it("copies R2 objects back into an in-memory git dir with equal bytes", async () => {
-    const work = new InMemoryFs() as unknown as GitWorkFs;
-    const git = createGit(asShellFs(work), "/");
+    const work = new InMemoryFs();
+    const git = createGit(work, "/");
     await git.init({ defaultBranch: "main" });
     await work.writeFile("/src/hello.ts", "export const hello = 1;\n");
     await git.add({ filepath: "." });
@@ -104,7 +100,7 @@ describe("copyTree", () => {
     const dest = new R2GitFs(bucket as unknown as R2Bucket, "repos/app");
     await copyTree(work, "/.git/objects", dest, "/objects");
 
-    const back = new InMemoryFs() as unknown as GitWorkFs;
+    const back = new InMemoryFs();
     await copyTree(dest, "/objects", back, "/.git/objects");
     bytesEqual(
       await listFiles(work, "/.git/objects"),
@@ -124,7 +120,7 @@ describe("copyTree", () => {
       );
     }
     bucket.listCalls.length = 0;
-    const dest = new InMemoryFs() as unknown as GitWorkFs;
+    const dest = new InMemoryFs();
     await copyTree(src, "/objects", dest, "/.git/objects");
     const prefixPages = bucket.listCalls.filter(
       (c) => c.prefix?.endsWith("/objects/") && c.limit !== 1
@@ -141,7 +137,7 @@ describe("copyTree", () => {
   });
 
   it("falls back to recursive readdir when the source has no prefix list", async () => {
-    const from = new InMemoryFs() as unknown as GitWorkFs;
+    const from = new InMemoryFs();
     await from.writeFile("/objects/ab/cdef", "blob");
     await from.mkdir("/objects/pack", { recursive: true });
     const bucket = new FakeR2Bucket();
@@ -154,8 +150,8 @@ describe("copyTree", () => {
 
 describe("receivePush object-then-ref order", () => {
   it("writes every object before the ref", async () => {
-    const work = new InMemoryFs() as unknown as GitWorkFs;
-    const git = createGit(asShellFs(work), "/");
+    const work = new InMemoryFs();
+    const git = createGit(work, "/");
     await git.init({ defaultBranch: "main" });
     await work.writeFile("/a.txt", "a\n");
     await git.add({ filepath: "." });
