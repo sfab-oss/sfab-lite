@@ -48,7 +48,6 @@ const config: KnipConfig = {
     "factory/check": {
       entry: [
         "src/index.ts",
-        "src/exp/index.ts",
         "scripts/check-drizzle-agreement.ts",
         "scripts/proof-check-units.ts",
       ],

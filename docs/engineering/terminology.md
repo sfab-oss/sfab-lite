@@ -74,7 +74,7 @@ is the successor term.
 | Term | Meaning |
 | --- | --- |
 | **Base runtime** | Versioned, platform-resolved dependency universe (`framework/runtime/`). Successor term for kernel. |
-| **Toolchain** | App format, check/lint/pack engines, serve adapters (`framework/toolchain/`). Apps pin the runtime; they never reference the toolchain. |
+| **Toolchain** | App format, check/lint wire types, serve adapters (`framework/toolchain/`). Verbs (check, lint, build, format, db) live in `framework/verbs` (ADR-0012). Apps pin the runtime; they never reference the toolchain. |
 | **App format** | Layout conventions + declarative manifest that make a tree seedable, checkable, packable, servable. |
 | **Manifest** | Typed, data-only app descriptor. Never executable. |
 | **App image** | Content-addressed pack output: app source build + manifest + base-runtime *reference*. |

@@ -1,6 +1,6 @@
 /**
  * @sfab-lite/core — shared contracts: app/version types, D1 ambient surface,
- * check/lint results, app-format manifest v0, tasks-lite model.
+ * check/lint results, app-format manifest v0.
  *
  * Filled in stage by stage. Today it holds the two pieces the template port
  * needed to have a single owner: the app-facing Biome config, and the
@@ -27,7 +27,10 @@ export type {
   CheckUnitName,
   CheckUnitResult,
 } from "./check.js";
-export type { FormatPins } from "./generate-format-files.js";
+export type {
+  FormatPins,
+  GenerateFormatOptions,
+} from "./generate-format-files.js";
 export {
   formatIndexHtml,
   generateFormatFiles,

@@ -6,6 +6,5 @@
     "noEmit": true,
     "types": ["@cloudflare/workers-types"]
   },
-  "include": ["src"],
-  "exclude": ["src/exp"]
+  "include": ["src"]
 }

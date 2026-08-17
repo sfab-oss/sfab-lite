@@ -124,6 +124,7 @@ chooses the engine; the framework never chooses an engine or a host.
   presign later is additive.
 
 Implemented by PR 15 (db shim, floor diagnostic, storage).
+Implemented by PR 18 (schema gate in verbs; app Env never names the engine).
 
 ## Related
 
