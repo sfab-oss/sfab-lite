@@ -6,10 +6,10 @@
  */
 
 import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
-import { overlayFormatFiles } from "@sfab-lite/verbs/format";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { createDb } from "../db/index.js";
 import { publishOrgEvent } from "../org-events.js";
+import { overlayFormatFiles } from "../overlay-format-files.js";
 import { settleCreateApp } from "../registry/app-registry.js";
 import { appCreateStub } from "../registry/app-stub.js";
 import {

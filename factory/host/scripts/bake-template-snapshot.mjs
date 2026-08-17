@@ -10,12 +10,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { generateSQLiteDrizzleJson } from "drizzle-kit/api";
 import {
   EMPTY_JOURNAL,
   isKitSnapshot,
   ORIGIN_SNAPSHOT_ID,
-} from "../src/schema/schema-kit.ts";
+} from "@sfab-lite/verbs/db";
+import { generateSQLiteDrizzleJson } from "drizzle-kit/api";
 
 const factoryRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const appRoot = join(factoryRoot, "../../starters/erp/app");

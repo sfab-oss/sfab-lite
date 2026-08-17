@@ -11,10 +11,10 @@
  * no bindings, `globalOutbound: null`.
  */
 import type { ManifestV0 } from "@sfab-lite/core";
+import type { KitSnapshot } from "@sfab-lite/verbs/db";
 import { callBundle } from "../forge/call-build.js";
 import { kernelModules } from "../serve/kernel-modules.js";
 import { drizzleKitLoaderModules } from "./drizzle-kit-modules.js";
-import type { KitSnapshot } from "./schema-kit.js";
 import { probeEntrySource } from "./schema-probe-source.js";
 
 const PROBE_ENTRY = "src/__sfab_schema_probe.ts";

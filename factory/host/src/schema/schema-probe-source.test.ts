@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import seed from "@sfab-lite/template/seed" with { type: "json" };
+import { classifySql } from "@sfab-lite/verbs/db";
 import {
   generateSQLiteDrizzleJson,
   generateSQLiteMigration,
@@ -18,7 +19,6 @@ import {
   ledgerEntry,
   party,
 } from "../../../../starters/erp/app/src/db/ledger.ts";
-import { classifySql } from "./classify-sql.ts";
 import { probeEntrySource } from "./schema-probe-source.ts";
 
 const schema = {

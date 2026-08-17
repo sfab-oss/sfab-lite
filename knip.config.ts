@@ -67,6 +67,7 @@ const config: KnipConfig = {
         "src/lint/index.ts",
         "src/build/index.ts",
         "src/format/index.ts",
+        "src/db/index.ts",
         "src/**/*.test.ts",
       ],
       project: ["src/**/*.ts"],

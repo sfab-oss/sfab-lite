@@ -14,12 +14,19 @@ export interface FormatPins {
   devDependencies: Readonly<Record<string, string>>;
 }
 
+export interface GenerateFormatOptions {
+  registryUrl: string;
+}
+
 const CLOUDFLARE_DB_SHIM = `import { drizzle } from "drizzle-orm/d1";
-import type { Env } from "../env";
 // biome-ignore lint/performance/noNamespaceImport: drizzle's relational query builder takes the whole schema module as one object.
 import * as schema from "./schema";
 
-export function createDb(env: Env) {
+export interface DbEnv {
+  DB: D1Database;
+}
+
+export function createDb(env: DbEnv) {
   return drizzle(env.DB, { schema });
 }
 
@@ -175,7 +182,6 @@ export function createStorage(env: { STORAGE: StorageR2 }): Storage {
 }
 `;
 
-const LITE_REGISTRY_URL = "https://lite.sfab.dev/r/{name}.json";
 const LEADING_SLASHES = /^\/+/;
 
 const TSCONFIG_JSON = `{
@@ -217,10 +223,16 @@ const COMPONENTS_JSON = {
     lib: "@/lib",
     hooks: "@/hooks",
   },
-  registries: {
-    "@lite": LITE_REGISTRY_URL,
-  },
 };
+
+function componentsJson(registryUrl: string) {
+  return {
+    ...COMPONENTS_JSON,
+    registries: {
+      "@lite": registryUrl,
+    },
+  };
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -282,7 +294,8 @@ function sortedPins(
 
 export function generateFormatFiles(
   manifest: ManifestV0,
-  pins: FormatPins
+  pins: FormatPins,
+  options: GenerateFormatOptions
 ): Record<string, string> {
   const entry = manifest.client.entry.replace(LEADING_SLASHES, "");
   const packageJson = {
@@ -305,7 +318,7 @@ export function generateFormatFiles(
       title: manifest.name,
       scriptSrc: `/${entry}`,
     }),
-    "components.json": `${JSON.stringify(COMPONENTS_JSON, null, 2)}\n`,
+    "components.json": `${JSON.stringify(componentsJson(options.registryUrl), null, 2)}\n`,
     "src/db/index.ts": CLOUDFLARE_DB_SHIM,
   };
   if (manifest.capabilities.includes("storage")) {

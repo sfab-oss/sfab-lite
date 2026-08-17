@@ -7,6 +7,15 @@ import {
 import { GENERATED_ARTIFACTS, MANIFEST_FORMAT } from "./manifest.ts";
 
 const NO_PINS = { dependencies: {}, devDependencies: {} };
+const REGISTRY_URL = "https://lite.sfab.dev/r/{name}.json";
+
+function generate(
+  manifest = validManifest(),
+  pins = NO_PINS,
+  registryUrl = REGISTRY_URL
+) {
+  return generateFormatFiles(manifest, pins, { registryUrl });
+}
 
 function validManifest() {
   return {
@@ -35,7 +44,7 @@ function validManifest() {
 }
 
 test("generateFormatFiles emits the RFC paths including the db shim", () => {
-  const files = generateFormatFiles(validManifest(), NO_PINS);
+  const files = generate();
   assert.deepEqual(Object.keys(files).sort(), [
     GENERATED_ARTIFACTS.componentsJson,
     GENERATED_ARTIFACTS.indexHtml,
@@ -45,25 +54,24 @@ test("generateFormatFiles emits the RFC paths including the db shim", () => {
   ]);
 });
 
-test("the cloudflare db shim exports createDb and Db over drizzle-orm/d1", () => {
-  const files = generateFormatFiles(validManifest(), NO_PINS);
+test("the cloudflare db shim takes DbEnv, not the app Env", () => {
+  const files = generate();
   const shim = files[GENERATED_ARTIFACTS.dbIndex] ?? "";
   assert.ok(shim.includes('from "drizzle-orm/d1"'));
+  assert.ok(shim.includes("export interface DbEnv"));
   assert.ok(shim.includes("export function createDb"));
   assert.ok(shim.includes("export type Db"));
   assert.ok(shim.includes("drizzle(env.DB, { schema })"));
+  assert.equal(shim.includes('from "../env"'), false);
 });
 
 test("storage shim is omitted unless capabilities includes storage", () => {
-  const files = generateFormatFiles(validManifest(), NO_PINS);
+  const files = generate();
   assert.equal(files[GENERATED_ARTIFACTS.storageIndex], undefined);
 });
 
 test("storage shim is emitted when capabilities includes storage", () => {
-  const files = generateFormatFiles(
-    { ...validManifest(), capabilities: ["storage"] },
-    NO_PINS
-  );
+  const files = generate({ ...validManifest(), capabilities: ["storage"] });
   const shim = files[GENERATED_ARTIFACTS.storageIndex] ?? "";
   assert.ok(shim.includes("export function createStorage"));
   assert.ok(shim.includes("export interface Storage"));
@@ -71,7 +79,7 @@ test("storage shim is emitted when capabilities includes storage", () => {
 });
 
 test("package.json takes name and exact pins, no ranges", () => {
-  const files = generateFormatFiles(validManifest(), {
+  const files = generate(validManifest(), {
     dependencies: { "react-dom": "19.2.8", react: "19.2.8" },
     devDependencies: { vite: "7.0.6", typescript: "6.0.3" },
   });
@@ -99,14 +107,14 @@ test("package.json takes name and exact pins, no ranges", () => {
 });
 
 test("tsconfig keeps types: [] and include: src", () => {
-  const files = generateFormatFiles(validManifest(), NO_PINS);
+  const files = generate();
   const tsconfig = JSON.parse(files[GENERATED_ARTIFACTS.tsconfig] ?? "{}");
   assert.deepEqual(tsconfig.compilerOptions.types, []);
   assert.deepEqual(tsconfig.include, ["src"]);
 });
 
 test("index.html is the shared shell without the host import map", () => {
-  const files = generateFormatFiles(validManifest(), NO_PINS);
+  const files = generate();
   const html = files[GENERATED_ARTIFACTS.indexHtml] ?? "";
   assert.ok(html.includes("<title>erp</title>"));
   assert.ok(html.includes('<link rel="icon" href="data:,">'));
@@ -117,15 +125,19 @@ test("index.html is the shared shell without the host import map", () => {
   assert.equal(html.includes("importmap"), false);
 });
 
-test("components.json locks @lite as the only registry", () => {
-  const files = generateFormatFiles(validManifest(), NO_PINS);
+test("components.json uses the caller-supplied registry URL as the only registry", () => {
+  const files = generate(
+    validManifest(),
+    NO_PINS,
+    "https://example.test/r/{name}.json"
+  );
   const components = JSON.parse(
     files[GENERATED_ARTIFACTS.componentsJson] ?? "{}"
   );
   assert.deepEqual(Object.keys(components.registries), ["@lite"]);
   assert.equal(
     components.registries["@lite"],
-    "https://lite.sfab.dev/r/{name}.json"
+    "https://example.test/r/{name}.json"
   );
 });
 
