@@ -1,18 +1,22 @@
+import { z } from "zod";
+
 export const ORIGIN_SNAPSHOT_ID = "00000000-0000-0000-0000-000000000000";
 
 export const KIT_SQL_BREAKPOINT = "--> statement-breakpoint";
 
-export interface KitSnapshot {
-  version: string;
-  dialect: string;
-  id: string;
-  prevId: string;
-  tables: Record<string, unknown>;
-  views?: Record<string, unknown>;
-  enums?: Record<string, unknown>;
-  _meta?: unknown;
-  internal?: unknown;
-}
+const kitSnapshotSchema = z.object({
+  version: z.literal("6"),
+  dialect: z.literal("sqlite"),
+  id: z.string(),
+  prevId: z.string(),
+  tables: z.record(z.string(), z.unknown()),
+  views: z.record(z.string(), z.unknown()).optional(),
+  enums: z.record(z.string(), z.unknown()).optional(),
+  _meta: z.unknown().optional(),
+  internal: z.unknown().optional(),
+});
+
+export type KitSnapshot = z.infer<typeof kitSnapshotSchema>;
 
 export const EMPTY_SNAPSHOT: KitSnapshot = {
   version: "6",
@@ -26,36 +30,25 @@ export const EMPTY_SNAPSHOT: KitSnapshot = {
   prevId: ORIGIN_SNAPSHOT_ID,
 };
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
 export function isKitSnapshot(value: unknown): value is KitSnapshot {
-  if (!isPlainObject(value)) {
-    return false;
-  }
-  return (
-    value.version === "6" &&
-    value.dialect === "sqlite" &&
-    typeof value.id === "string" &&
-    typeof value.prevId === "string" &&
-    isPlainObject(value.tables)
-  );
+  return kitSnapshotSchema.safeParse(value).success;
 }
 
-interface KitJournalEntry {
-  idx: number;
-  version: string;
-  when: number;
-  tag: string;
-  breakpoints: boolean;
-}
+const kitJournalEntrySchema = z.object({
+  idx: z.number(),
+  version: z.string(),
+  when: z.number(),
+  tag: z.string(),
+  breakpoints: z.boolean(),
+});
 
-export interface KitJournal {
-  version: string;
-  dialect: string;
-  entries: KitJournalEntry[];
-}
+const kitJournalSchema = z.object({
+  version: z.string(),
+  dialect: z.literal("sqlite"),
+  entries: z.array(kitJournalEntrySchema),
+});
+
+export type KitJournal = z.infer<typeof kitJournalSchema>;
 
 export const EMPTY_JOURNAL: KitJournal = {
   version: "7",
@@ -63,27 +56,6 @@ export const EMPTY_JOURNAL: KitJournal = {
   entries: [],
 };
 
-function isKitJournalEntry(value: unknown): value is KitJournalEntry {
-  if (!isPlainObject(value)) {
-    return false;
-  }
-  return (
-    typeof value.idx === "number" &&
-    typeof value.version === "string" &&
-    typeof value.when === "number" &&
-    typeof value.tag === "string" &&
-    typeof value.breakpoints === "boolean"
-  );
-}
-
 export function isKitJournal(value: unknown): value is KitJournal {
-  if (!isPlainObject(value)) {
-    return false;
-  }
-  return (
-    typeof value.version === "string" &&
-    value.dialect === "sqlite" &&
-    Array.isArray(value.entries) &&
-    value.entries.every(isKitJournalEntry)
-  );
+  return kitJournalSchema.safeParse(value).success;
 }
