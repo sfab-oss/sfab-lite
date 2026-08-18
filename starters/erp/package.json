@@ -18,7 +18,7 @@
     "pack": "node scripts/pack.mjs",
     "bake-seed": "node scripts/pack.mjs --out=generated/seed.json",
     "generate": "node --experimental-strip-types scripts/generate-format-files.mjs",
-    "generate-routes": "tsr generate",
+    "generate-routes": "tsr generate && node scripts/rewrite-route-tree-banner.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {

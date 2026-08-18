@@ -13,8 +13,7 @@ const config: KnipConfig = {
       // check-bundle-size.mjs runs `pnpm exec wrangler` with cwd set to each
       // app, so it resolves from that app's node_modules where wrangler is a
       // real dependency. Declaring it at the root would be the wrong fix.
-      // check-route-tree.mjs runs `pnpm exec tsr` in starters/erp.
-      ignoreBinaries: ["wrangler", "tsr"],
+      ignoreBinaries: ["wrangler"],
     },
     "factory/host": {
       // Worker/Start entry + console under `src/`.

@@ -5,7 +5,9 @@
  *
  * Template-only: hosted apps do not run the CLI; agents edit the gen file
  * with the route files. Same shape as check:seed — re-run the generator and
- * compare bytes.
+ * compare bytes. Regenerates via the template's `generate-routes` script
+ * (tsr + banner rewrite) so the gate compares against the same output the
+ * template commits, never raw tsr output.
  */
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -18,7 +20,7 @@ const genPath = join(templateRoot, "app/src/routeTree.gen.ts");
 
 const before = readFileSync(genPath, "utf8");
 
-const generated = spawnSync("pnpm", ["exec", "tsr", "generate"], {
+const generated = spawnSync("pnpm", ["run", "generate-routes"], {
   cwd: templateRoot,
   encoding: "utf8",
   shell: false,
@@ -26,7 +28,7 @@ const generated = spawnSync("pnpm", ["exec", "tsr", "generate"], {
 if (generated.status !== 0) {
   process.stderr.write(generated.stdout ?? "");
   process.stderr.write(generated.stderr ?? "");
-  console.error("check:route-tree — tsr generate failed.");
+  console.error("check:route-tree — generate-routes failed.");
   process.exit(generated.status ?? 1);
 }
 

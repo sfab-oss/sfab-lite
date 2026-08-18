@@ -67,6 +67,9 @@ describe("platform-readonly", () => {
       PlatformReadonlyError
     );
     assert.doesNotThrow(() => assertWritableWorkspacePath("/src/router.tsx"));
+    assert.doesNotThrow(() =>
+      assertWritableWorkspacePath("/src/routeTree.gen.ts")
+    );
   });
 
   it("writeGenerated is only for generated format members", () => {

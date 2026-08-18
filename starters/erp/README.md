@@ -69,8 +69,9 @@ Useful:
   `pnpm check:generated` (repo root) fails if they drift; do not
   hand-edit them.
 - `pnpm generate-routes` — regenerate `app/src/routeTree.gen.ts` from
-  `app/src/routes/` (`tsr generate`). Commit the result; `check:route-tree`
-  fails if it drifts.
+  `app/src/routes/` (`tsr generate`, then the stock "do not edit" banner is
+  rewritten to the hosted-edit contract). Commit the result;
+  `check:route-tree` fails if it drifts.
 - `pnpm pack` — print the seed payload to stdout.
 - `pnpm bake-seed` — write `generated/seed.json` (what `check:seed` verifies).
 
