@@ -56,7 +56,8 @@ is the hash lockfile of every file in each published tree. `check:registry`
 recomputes those hashes and, when `origin/main:registry/published.json`
 exists, refuses any change or deletion of an existing `name@version`
 key. Ship a new version by adding a new directory; never mutate `0.1.0`
-in place. No auto-update, ever.
+in place. No auto-update, ever. Repo Biome skips superseded trees so
+`lint:check` does not demand headers on frozen files.
 The harness decides when an app moves to a newer recipe version
 ([ADR-0013](../docs/decisions/0013-templates-and-registry-are-inert.md)).
 
