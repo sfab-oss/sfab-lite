@@ -65,6 +65,12 @@ export function contentHash(text: string): string {
   return `sha256:${createHash("sha256").update(text, "utf8").digest("hex")}`;
 }
 
+const BIOME_IGNORE_ALL_HEADER = /^(?:\/\/ biome-ignore-all .+\n)+(?:\n)?/;
+
+export function stripBiomeIgnoreAllHeaders(source: string): string {
+  return source.replace(BIOME_IGNORE_ALL_HEADER, "");
+}
+
 export interface NameOk {
   ok: true;
   name: string;

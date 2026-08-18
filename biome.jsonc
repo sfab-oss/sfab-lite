@@ -64,15 +64,6 @@
   // that target runtime bundling / hot-path concerns off; readability rules
   // (complexity, nested ternary) stay on and the scripts must satisfy them.
   "overrides": [
-    // Recipe trees must stay byte-identical to `shadcn add`. The CLI strips
-    // `biome-ignore-all` headers, so lint those files here (and the ERP
-    // copies under `src/components/ui/`) with the linter off instead.
-    {
-      "includes": ["registry/recipes/**", "**/src/components/ui/**"],
-      "linter": {
-        "enabled": false
-      }
-    },
     {
       "includes": ["framework/runtime/scripts/**"],
       "linter": {

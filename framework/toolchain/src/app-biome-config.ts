@@ -17,10 +17,6 @@ import config from "../app-biome.json" with { type: "json" };
  * that happens to agree with the repo's on everything the payload touches —
  * and `check:app-lint` is what proves the "happens to" part.
  *
- * `src/components/ui/**` is verbatim shadcn. The linter is off there because
- * recipe files must stay byte-identical to `shadcn add` (the CLI strips
- * `biome-ignore-all` headers). Formatter still runs.
- *
  * `$schema` and `root` are stripped: they are file-level concerns that
  * `applyConfiguration` rejects.
  */

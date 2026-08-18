@@ -86,10 +86,11 @@ No modified-since-add warnings.
 `pnpm check:registry-agreement` (CI-only) runs the real `shadcn@4.17.0`
 CLI: `registry validate` on the generated source registry, then `add
 @lite/<slug>` against a locally served `/r/{name}.json` for every
-published recipe, asserting byte-identical placement vs `planAdd`.
-The CLI strips file-level `biome-ignore-all` comments, so recipe trees
-must not carry them. App lint turns the linter off under
-`src/components/ui/` instead (`framework/toolchain/app-biome.json`).
+published recipe, asserting placement equals `planAdd` (nothing extra,
+same file bodies). The CLI strips leading `biome-ignore-all` comments;
+those headers live on a new recipe version so app lint still runs, and
+the agreement check ignores them when comparing. Published versions
+are immutable — do not edit a shipped `0.1.0` tree.
 
 ## Recipes in this milestone
 

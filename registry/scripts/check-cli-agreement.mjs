@@ -26,6 +26,7 @@ import {
   catalogNames,
   planAdd,
   serveSlug,
+  stripBiomeIgnoreAllHeaders,
   toBuiltRegistryItem,
 } from "../src/lite.ts";
 
@@ -224,7 +225,10 @@ try {
         failures.push(`${name}: CLI did not write ${path}`);
         continue;
       }
-      if (onDisk !== content) {
+      if (
+        stripBiomeIgnoreAllHeaders(onDisk) !==
+        stripBiomeIgnoreAllHeaders(content)
+      ) {
         failures.push(`${name}: ${path} differs from planAdd`);
       }
     }
