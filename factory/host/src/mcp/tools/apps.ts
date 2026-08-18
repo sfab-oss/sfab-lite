@@ -43,9 +43,7 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
         template: z
           .string()
           .optional()
-          .describe(
-            "Starter catalog id (e.g. base, erp). Omitted → default base."
-          ),
+          .describe("Starter catalog id. Omitted → the catalog default."),
       },
     },
     async ({ name, template }) =>

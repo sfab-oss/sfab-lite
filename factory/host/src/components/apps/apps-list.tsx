@@ -22,19 +22,16 @@ import {
 import { useApps, useCreateApp } from "@/hooks/query/use-apps";
 import type { AppRecord } from "@/lib/api/apps";
 import { appBasePath } from "@/lib/preview/reload-preview";
+import { defaultStarterId, listStarterChoices } from "@/starters/choices";
 import { StatusDot } from "./status-badge";
-
-const STARTER_CHOICES = [
-  { id: "base", label: "Base", description: "Auth, inset shell, empty home" },
-  { id: "erp", label: "ERP", description: "Parties, ledger, and balances" },
-] as const;
 
 export function AppsListPage() {
   const navigate = useNavigate();
   const appsQuery = useApps();
   const createApp = useCreateApp();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [template, setTemplate] = useState<string>("base");
+  const [template, setTemplate] = useState<string>(defaultStarterId());
+  const starterChoices = listStarterChoices();
 
   async function onCreate() {
     if (createApp.isPending) {
@@ -108,7 +105,7 @@ export function AppsListPage() {
           <Button
             disabled={createApp.isPending}
             onClick={() => {
-              setTemplate("base");
+              setTemplate(defaultStarterId());
               setPickerOpen(true);
             }}
             size="sm"
@@ -138,7 +135,7 @@ export function AppsListPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex flex-col gap-2 py-2" role="radiogroup">
-            {STARTER_CHOICES.map((choice) => {
+            {starterChoices.map((choice) => {
               const selected = template === choice.id;
               return (
                 <label

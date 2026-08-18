@@ -1,9 +1,11 @@
 /**
  * Explicit starter catalog for create. Workers have no filesystem — each
- * seed is an import, not a glob. PR2 adds `heavy` by registering one more row.
+ * seed is an import, not a glob. PR2 adds `heavy` by registering one more
+ * choice plus one more seed import.
  */
 import BASE_SEED from "@sfab-lite/starter-base/seed" with { type: "json" };
 import ERP_SEED from "@sfab-lite/starter-erp/seed" with { type: "json" };
+import { listStarterChoices, type StarterId } from "./choices.js";
 
 interface StarterSeed {
   sourceFiles: Record<string, string>;
@@ -18,20 +20,19 @@ export interface StarterEntry {
   seed: StarterSeed;
 }
 
-const STARTERS: readonly StarterEntry[] = [
-  {
-    id: "base",
-    label: "Base",
-    isDefault: true,
-    seed: BASE_SEED as StarterSeed,
-  },
-  {
-    id: "erp",
-    label: "ERP",
-    isDefault: false,
-    seed: ERP_SEED as StarterSeed,
-  },
-] as const;
+const SEEDS: Record<StarterId, StarterSeed> = {
+  base: BASE_SEED as StarterSeed,
+  erp: ERP_SEED as StarterSeed,
+};
+
+const STARTERS: readonly StarterEntry[] = listStarterChoices().map(
+  (choice) => ({
+    id: choice.id,
+    label: choice.label,
+    isDefault: choice.isDefault,
+    seed: SEEDS[choice.id],
+  })
+);
 
 export function defaultStarter(): StarterEntry {
   const found = STARTERS.find((s) => s.isDefault);

@@ -8,12 +8,20 @@
  * again. Run with `--check` to verify rather than write.
  *
  * Usage:
- *   pnpm --filter @sfab-lite/factory bake-template-snapshot [--starter=base|erp]
+ *   pnpm --filter @sfab-lite/factory bake-template-snapshot [--starter=<id>]
  *   pnpm --filter @sfab-lite/factory bake-template-snapshot -- --check
  *
- * With no `--starter`, checks/bakes every starter under `starters/`.
+ * With no `--starter`, checks/bakes every directory under `starters/`.
+ * Unknown dirs fail closed (must have `app/src/db/schema.ts` and at least
+ * one `app/migrations/*.sql`).
  */
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -29,48 +37,67 @@ const startersRoot = join(factoryRoot, "../../starters");
 
 const STABLE_WHEN = 1_752_000_000_000;
 
-/** Tip snapshot filename + journal tags per starter id. */
-const STARTER_META = {
-  base: {
-    tipSnapshot: "0001_snapshot.json",
-    tipId: "00000000-0000-4000-8000-000000000001",
-    journalTags: ["0001_auth"],
-  },
-  erp: {
-    tipSnapshot: "0002_snapshot.json",
-    tipId: "00000000-0000-4000-8000-000000000002",
-    journalTags: ["0001_auth", "0002_erp"],
-  },
-};
-
 function coreOf(snapshot) {
   const { id: _id, prevId: _prevId, ...rest } = snapshot;
   return rest;
 }
 
 function listStarterIds() {
-  return readdirSync(startersRoot, { withFileTypes: true })
+  const ids = readdirSync(startersRoot, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
-    .filter((id) => STARTER_META[id] != null)
     .sort();
+  if (ids.length === 0) {
+    console.error("bake-template-snapshot: no directories under starters/");
+    process.exit(1);
+  }
+  return ids;
 }
 
-async function bakeOne(starterId, check) {
-  const meta = STARTER_META[starterId];
-  if (!meta) {
+function metaFromDisk(starterId) {
+  const appRoot = join(startersRoot, starterId, "app");
+  const schemaPath = join(appRoot, "src/db/schema.ts");
+  const migDir = join(appRoot, "migrations");
+  if (!existsSync(schemaPath)) {
     console.error(
-      `bake-template-snapshot: unknown starter "${starterId}" (known: ${Object.keys(STARTER_META).join(", ")})`
+      `bake-template-snapshot: starters/${starterId}/app/src/db/schema.ts missing`
     );
     process.exit(1);
   }
+  let sqlFiles;
+  try {
+    sqlFiles = readdirSync(migDir)
+      .filter((name) => name.endsWith(".sql"))
+      .sort();
+  } catch {
+    console.error(
+      `bake-template-snapshot: starters/${starterId}/app/migrations missing`
+    );
+    process.exit(1);
+  }
+  if (sqlFiles.length === 0) {
+    console.error(
+      `bake-template-snapshot: starters/${starterId} has no .sql migrations`
+    );
+    process.exit(1);
+  }
+  const journalTags = sqlFiles.map((name) => name.slice(0, -".sql".length));
+  const pad = String(journalTags.length).padStart(4, "0");
+  return {
+    appRoot,
+    tipSnapshot: `${pad}_snapshot.json`,
+    tipId: `00000000-0000-4000-8000-${String(journalTags.length).padStart(12, "0")}`,
+    journalTags,
+  };
+}
 
-  const appRoot = join(startersRoot, starterId, "app");
-  const metaDir = join(appRoot, "migrations/meta");
+async function bakeOne(starterId, check) {
+  const meta = metaFromDisk(starterId);
+  const metaDir = join(meta.appRoot, "migrations/meta");
   const snapshotPath = join(metaDir, meta.tipSnapshot);
   const journalFile = join(metaDir, "_journal.json");
 
-  const schema = await import(join(appRoot, "src/db/schema.ts"));
+  const schema = await import(join(meta.appRoot, "src/db/schema.ts"));
   const generated = {
     ...(await generateSQLiteDrizzleJson(schema, ORIGIN_SNAPSHOT_ID)),
     id: meta.tipId,

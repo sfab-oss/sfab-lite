@@ -42,13 +42,13 @@ hashes.
 `/r/{name}.json` must place files byte-identical to `planAdd`. CI-only
 — not in pre-commit.
 
-`check:app-lint` is the odd one: it checks `starters/base/app/src` and
-`starters/erp/app/src` — the seed payloads — against
-`framework/toolchain/app-biome.json`, the config the factory's lint
-worker applies to app sources. That config cannot `extends` the shared
-preset (the worker runs Biome in WASM, which has no package resolution),
-so this gate is what keeps the two from drifting and a freshly seeded
-app from lighting up on code its owner never touched.
+`check:app-lint` is the odd one: it checks every `starters/*/app/src` —
+the seed payloads — against `framework/toolchain/app-biome.json`, the
+config the factory's lint worker applies to app sources. That config
+cannot `extends` the shared preset (the worker runs Biome in WASM, which
+has no package resolution), so this gate is what keeps them from
+drifting and a freshly seeded app from lighting up on code its owner
+never touched.
 
 `check:kernel` rebuilds `@sfab-lite/kernel` from its isolated
 `framework/runtime/universe` install and fails if committed vendor /

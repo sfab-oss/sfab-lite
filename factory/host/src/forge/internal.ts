@@ -17,7 +17,7 @@ import {
 } from "../registry/internal-token.js";
 import type { RequestCtx } from "../serve/routes.js";
 import { NOT_FOUND_BODY } from "../serve/routes.js";
-import { defaultStarter, getStarter } from "../starters/catalog.js";
+import { getStarter } from "../starters/catalog.js";
 import { runCdForSha } from "./cd.js";
 import {
   type CreateStages,
@@ -53,10 +53,13 @@ async function handleRunCreate(
 
   try {
     const record = await getAppUnscoped(createDb(rc.env), appId);
-    const starter =
-      record == null
-        ? defaultStarter()
-        : (getStarter(record.template) ?? defaultStarter());
+    if (record == null) {
+      throw new Error("create run: app row missing");
+    }
+    const starter = getStarter(record.template);
+    if (starter == null) {
+      throw new Error(`create run: unknown template ${record.template}`);
+    }
 
     let lap = Date.now();
     await host.ensureRepo(appId);
