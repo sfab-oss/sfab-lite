@@ -1,7 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { AppShell } from "../components/layout/app-shell";
-import { Card, CardContent } from "../components/ui/card";
+import type { ReactNode } from "react";
+import { AppBreadcrumbs } from "../components/layout/app-breadcrumbs";
+import {
+  ShellContent,
+  ShellHeader,
+  ShellHeaderActions,
+  ShellHeaderSidebarTrigger,
+  ShellPage,
+} from "../components/layout/shell";
+import { Badge } from "../components/ui/badge";
 import { EmptyState } from "../components/ui/empty-state";
+import { Skeleton } from "../components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -16,54 +25,73 @@ import { PARTY_KIND_LABEL } from "../lib/party-kind";
 
 export function BalancesPage() {
   const balances = useOpenBalances();
+  const rows = balances.data ?? [];
+  const empty = !balances.isLoading && rows.length === 0;
 
-  return (
-    <AppShell title="Open balances">
-      {balances.isLoading ? (
-        <p className="text-muted-foreground text-sm">Loading…</p>
-      ) : null}
-
-      {!balances.isLoading && balances.data?.length === 0 ? (
+  let body: ReactNode;
+  if (balances.isLoading) {
+    body = (
+      <div className="flex flex-col gap-3 p-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  } else if (empty) {
+    body = (
+      <div className="flex flex-1 items-center justify-center p-6">
         <EmptyState
           description="Everyone is settled."
           title="No open balances"
         />
-      ) : null}
+      </div>
+    );
+  } else {
+    body = (
+      <div className="min-h-0 flex-1 overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Party</TableHead>
+              <TableHead>Kind</TableHead>
+              <TableHead className="text-right">Balance</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell className="font-medium">
+                  <Link
+                    className="transition-colors hover:text-primary hover:underline"
+                    params={{ id: row.id }}
+                    to="/parties/$id"
+                  >
+                    {row.name}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">
+                    {PARTY_KIND_LABEL[row.kind]}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-medium tabular-nums">
+                  {formatCents(row.balanceCents)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
 
-      {balances.data && balances.data.length > 0 ? (
-        <Card>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Party</TableHead>
-                  <TableHead>Kind</TableHead>
-                  <TableHead>Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {balances.data.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">
-                      <Link
-                        className="underline underline-offset-4"
-                        params={{ id: row.id }}
-                        to="/parties/$id"
-                      >
-                        {row.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {PARTY_KIND_LABEL[row.kind]}
-                    </TableCell>
-                    <TableCell>{formatCents(row.balanceCents)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      ) : null}
-    </AppShell>
+  return (
+    <ShellPage>
+      <ShellHeader>
+        <ShellHeaderSidebarTrigger className="-ml-1" />
+        <AppBreadcrumbs items={[{ title: "Open balances" }]} />
+        <ShellHeaderActions />
+      </ShellHeader>
+      <ShellContent>{body}</ShellContent>
+    </ShellPage>
   );
 }

@@ -91,9 +91,8 @@ const config: KnipConfig = {
         "app/src/server.ts": ["exports", "types"],
         // Registry recipes are copied verbatim; unused exports stay so
         // provenance hashes match the catalog.
-        "app/src/components/ui/table.tsx": ["exports"],
-        "app/src/components/ui/alert.tsx": ["exports"],
-        "app/src/components/ui/select.tsx": ["exports"],
+        "app/src/components/ui/**/*.tsx": ["exports"],
+        "app/src/hooks/use-mobile.ts": ["exports"],
       },
     },
     "framework/runtime": {

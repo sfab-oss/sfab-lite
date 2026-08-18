@@ -96,25 +96,31 @@ must not carry them. App lint turns the linter off under
 Extracted from the starter's shared UI so the starter can assemble
 from the registry. Targets are the RFC §2 tree (`src/components/ui/`,
 `src/lib/`, `src/hooks/`). `ERP_SEED_RECIPES` is the subset copied into
-`starters/erp` at bake time; today that is still the original ten.
-Additional Base UI recipes are catalog-only. A 2026-08-18
-`measure:assembled-recipes` run put unused UI files on the client unit
-(+43 roots, +91 MB local heap); the seed list does not grow until a live
-full-catalog check survives.
+`starters/erp` at bake time. It is the recipes the ERP layout actually
+imports (shell, lists, dialogs) — not the whole catalog. Unused catalog
+files still enter the client check unit; do not add a recipe to this list
+until a screen imports it.
 
-| Name | Why it survives the starter rebuild |
+| Name | Why it is in the ERP seed |
 | --- | --- |
 | `lite/utils` | `cn()` — every primitive depends on it |
-| `lite/button` | primary actions on party / ledger forms |
+| `lite/button` | primary actions; dialog and alert-dialog compose it |
 | `lite/label` | labeled controls; Field composes it |
 | `lite/input` | create/edit fields |
-| `lite/field` | form layout the plan's party-form assumes |
-| `lite/card` | detail / balance tiles |
+| `lite/field` | form layout |
+| `lite/card` | identity and settings cards |
 | `lite/table` | party list, open balances, ledger lines |
-| `lite/select` | party kind; replaces the native `<select>` |
+| `lite/select` | party kind |
 | `lite/alert` | form and mutation errors |
 | `lite/empty-state` | empty parties, balances, and ledger |
+| `lite/sidebar` | inset app rail (`Sheet`, `tooltip`, `skeleton`, `separator`, `use-mobile`) |
+| `lite/dropdown-menu` | sidebar footer user menu |
+| `lite/avatar` | org/user initials in the footer |
+| `lite/dialog` | create party; charge/pay |
+| `lite/breadcrumb` | inset header trail |
+| `lite/badge` | party kind |
+| `lite/alert-dialog` | delete party |
 
-The rest of the catalog (dialog, sidebar, toast, …) is add-only. See
-`registry/recipes/`. Calendar, carousel, chart, command, form, resizable,
-and sonner stay out: they need npm packages the kernel does not serve.
+The rest of the catalog is add-only. See `registry/recipes/`. Calendar,
+carousel, chart, command, form, resizable, and sonner stay out: they need
+npm packages the kernel does not serve.

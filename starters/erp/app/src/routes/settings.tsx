@@ -1,6 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
-import { AppShell } from "../components/layout/app-shell";
+import { AppBreadcrumbs } from "../components/layout/app-breadcrumbs";
+import {
+  ShellContent,
+  ShellHeader,
+  ShellHeaderActions,
+  ShellHeaderSidebarTrigger,
+  ShellPage,
+} from "../components/layout/shell";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import {
@@ -12,6 +19,7 @@ import {
 } from "../components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import { Skeleton } from "../components/ui/skeleton";
 import { invalidateSession, useSession } from "../hooks/use-session";
 import { authClient } from "../lib/auth-client";
 
@@ -54,68 +62,105 @@ export function SettingsPage() {
   }
 
   return (
-    <AppShell title="Settings">
-      <Card>
-        <CardHeader>
-          <CardTitle>Organization</CardTitle>
-          <CardDescription>
-            Parties and ledger lines belong to this organization.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="flex max-w-md flex-col gap-4" onSubmit={onSubmit}>
-            <FieldGroup className="gap-4">
-              <Field>
-                <FieldLabel htmlFor="org-name">Name</FieldLabel>
-                <Input
-                  id="org-name"
-                  onChange={(event) => {
-                    setName(event.target.value);
-                    setSaved(false);
-                  }}
-                  required
-                  value={value}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="org-slug">Slug</FieldLabel>
-                <Input
-                  disabled
-                  id="org-slug"
-                  readOnly
-                  value={organization?.slug ?? ""}
-                />
-              </Field>
-            </FieldGroup>
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-            <div className="flex items-center gap-3">
-              <Button disabled={pending || !organization} type="submit">
-                {pending ? "Saving…" : "Save changes"}
-              </Button>
-              {saved ? (
-                <span className="text-muted-foreground text-sm">Saved.</span>
-              ) : null}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>The signed-in user.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-1 text-sm">
-          <span>{session.data?.user?.name}</span>
-          <span className="text-muted-foreground">
-            {session.data?.user?.email}
-          </span>
-        </CardContent>
-      </Card>
-    </AppShell>
+    <ShellPage>
+      <ShellHeader>
+        <ShellHeaderSidebarTrigger className="-ml-1" />
+        <AppBreadcrumbs items={[{ title: "Settings" }]} />
+        <ShellHeaderActions />
+      </ShellHeader>
+      <ShellContent>
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-6 md:px-6 md:py-8">
+            {session.isPending ? (
+              <div className="space-y-3">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-64 w-full" />
+              </div>
+            ) : (
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Organization</CardTitle>
+                    <CardDescription>
+                      Parties and ledger lines belong to this organization.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form
+                      className="flex max-w-md flex-col gap-4"
+                      onSubmit={onSubmit}
+                    >
+                      <FieldGroup className="gap-4">
+                        <Field>
+                          <FieldLabel
+                            className="text-muted-foreground"
+                            htmlFor="org-name"
+                          >
+                            Name
+                          </FieldLabel>
+                          <Input
+                            id="org-name"
+                            onChange={(event) => {
+                              setName(event.target.value);
+                              setSaved(false);
+                            }}
+                            required
+                            value={value}
+                          />
+                        </Field>
+                        <Field>
+                          <FieldLabel
+                            className="text-muted-foreground"
+                            htmlFor="org-slug"
+                          >
+                            Slug
+                          </FieldLabel>
+                          <Input
+                            disabled
+                            id="org-slug"
+                            readOnly
+                            value={organization?.slug ?? ""}
+                          />
+                        </Field>
+                      </FieldGroup>
+                      {error ? (
+                        <Alert variant="destructive">
+                          <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                      ) : null}
+                      <div className="flex items-center gap-3">
+                        <Button
+                          disabled={pending || !organization}
+                          type="submit"
+                        >
+                          {pending ? "Saving…" : "Save changes"}
+                        </Button>
+                        {saved ? (
+                          <span className="text-muted-foreground text-sm">
+                            Saved.
+                          </span>
+                        ) : null}
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Account</CardTitle>
+                    <CardDescription>The signed-in user.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-1 text-sm">
+                    <span>{session.data?.user?.name}</span>
+                    <span className="text-muted-foreground">
+                      {session.data?.user?.email}
+                    </span>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+        </div>
+      </ShellContent>
+    </ShellPage>
   );
 }

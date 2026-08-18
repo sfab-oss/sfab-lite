@@ -299,6 +299,8 @@ nothing under `framework/` imports pierre.
   **340 → 431 MB**. Extra files are unused `src/components/ui/` (client
   unit). Seed stays the original ten; the rest is `apps_add`.
   [`../notes/2026-08-18-full-catalog-assembled-check.md`](../notes/2026-08-18-full-catalog-assembled-check.md).
+  ERP later seeds the recipes the layout **imports** (sidebar, dialogs,
+  breadcrumbs, …), not the unused remainder of the catalog.
 
 - **Runtime bundle diet.** Full write-up:
   [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md).
