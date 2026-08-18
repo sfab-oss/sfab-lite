@@ -1,0 +1,18 @@
+{
+  "name": "lite/skeleton",
+  "type": "registry:ui",
+  "title": "Skeleton",
+  "description": "Loading placeholder. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "skeleton.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/skeleton.tsx"
+    }
+  ]
+}

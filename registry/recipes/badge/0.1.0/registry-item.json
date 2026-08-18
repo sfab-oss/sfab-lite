@@ -1,0 +1,18 @@
+{
+  "name": "lite/badge",
+  "type": "registry:ui",
+  "title": "Badge",
+  "description": "Compact status label. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "badge.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/badge.tsx"
+    }
+  ]
+}

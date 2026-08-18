@@ -1,0 +1,18 @@
+{
+  "name": "lite/toggle-group",
+  "type": "registry:ui",
+  "title": "Toggle group",
+  "description": "Exclusive or multiple toggles. Assumes lite/toggle is present.",
+  "registryDependencies": ["lite/utils", "lite/toggle"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "toggle-group.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/toggle-group.tsx"
+    }
+  ]
+}

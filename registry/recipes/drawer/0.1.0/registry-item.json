@@ -1,0 +1,18 @@
+{
+  "name": "lite/drawer",
+  "type": "registry:ui",
+  "title": "Drawer",
+  "description": "Base UI drawer (not vaul). Wrap with DrawerProvider. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "drawer.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/drawer.tsx"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "lite/progress",
+  "type": "registry:ui",
+  "title": "Progress",
+  "description": "Determinate bar. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "progress.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/progress.tsx"
+    }
+  ]
+}

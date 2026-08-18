@@ -1,0 +1,18 @@
+{
+  "name": "lite/avatar",
+  "type": "registry:ui",
+  "title": "Avatar",
+  "description": "User image with fallback initials. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "avatar.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/avatar.tsx"
+    }
+  ]
+}

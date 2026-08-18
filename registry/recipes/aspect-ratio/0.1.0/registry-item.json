@@ -1,0 +1,18 @@
+{
+  "name": "lite/aspect-ratio",
+  "type": "registry:ui",
+  "title": "Aspect ratio",
+  "description": "Lock a box to a ratio. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "aspect-ratio.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/aspect-ratio.tsx"
+    }
+  ]
+}

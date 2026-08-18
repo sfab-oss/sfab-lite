@@ -1,0 +1,18 @@
+{
+  "name": "lite/popover",
+  "type": "registry:ui",
+  "title": "Popover",
+  "description": "Anchored overlay. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "popover.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/popover.tsx"
+    }
+  ]
+}

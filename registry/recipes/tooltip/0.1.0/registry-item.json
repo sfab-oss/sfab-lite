@@ -1,0 +1,18 @@
+{
+  "name": "lite/tooltip",
+  "type": "registry:ui",
+  "title": "Tooltip",
+  "description": "Label on hover. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "tooltip.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/tooltip.tsx"
+    }
+  ]
+}

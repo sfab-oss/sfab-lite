@@ -1,0 +1,18 @@
+{
+  "name": "lite/item",
+  "type": "registry:ui",
+  "title": "Item",
+  "description": "Row in a list. Assumes lite/separator is present.",
+  "registryDependencies": ["lite/utils", "lite/separator"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "item.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/item.tsx"
+    }
+  ]
+}

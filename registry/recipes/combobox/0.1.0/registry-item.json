@@ -1,0 +1,18 @@
+{
+  "name": "lite/combobox",
+  "type": "registry:ui",
+  "title": "Combobox",
+  "description": "Searchable select. Assumes lite/button and lite/input-group.",
+  "registryDependencies": ["lite/utils", "lite/button", "lite/input-group"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "combobox.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/combobox.tsx"
+    }
+  ]
+}

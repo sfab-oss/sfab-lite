@@ -92,9 +92,9 @@ published recipe, asserting byte-identical placement vs `planAdd`.
 
 Extracted from the starter's shared UI so the starter can assemble
 from the registry. Targets are the RFC §2 tree (`src/components/ui/`,
-`src/lib/`). `ERP_SEED_RECIPES` is the subset copied into `starters/erp`
-at bake time; today it is the whole catalog. New recipes can join the
-catalog without changing that list.
+`src/lib/`, `src/hooks/`). `ERP_SEED_RECIPES` is the subset copied into
+`starters/erp` at bake time; today that is still the original ten.
+Additional Base UI recipes are catalog-only until that list grows.
 
 | Name | Why it survives the starter rebuild |
 | --- | --- |
@@ -108,3 +108,7 @@ catalog without changing that list.
 | `lite/select` | party kind; replaces the native `<select>` |
 | `lite/alert` | form and mutation errors |
 | `lite/empty-state` | empty parties, balances, and ledger |
+
+The rest of the catalog (dialog, sidebar, toast, …) is add-only. See
+`registry/recipes/`. Calendar, carousel, chart, command, form, resizable,
+and sonner stay out: they need npm packages the kernel does not serve.
