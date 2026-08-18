@@ -12,6 +12,10 @@ here so it does not evaporate.
 (item 7 / PR 10), which the owner deferred on 2026-08-15 to work out
 directly rather than hand off. Nothing built depends on it.
 
+Addendum 2026-08-17: the post-close-out structure wave through #164
+is also closed. Parked drop/keep list and validation honesty:
+[`2026-08-17-milestone-1-addendum.md`](2026-08-17-milestone-1-addendum.md).
+
 ## What landed (PR map)
 
 | # | Unit | PR | Landed |
@@ -109,8 +113,9 @@ smaller than advertised (`tsgo` 1.14× leaner RSS on this tree, not
 
 **Also open, outside the plan:** the CI `check-memory` job fails on the
 first attempt of many PR-branch runs with identical numbers (heap after
-first app 101.7 → 324.1 MB) and passes on rerun and locally; tracked as
-a real CI-only defect, not noise.
+first app 101.7 → 324.1 MB) and passes on rerun and locally. Owner
+2026-08-17: not a project; rerun is the move unless reruns fail too
+([addendum](2026-08-17-milestone-1-addendum.md)).
 
 ## Non-goals that stay non-goals
 
