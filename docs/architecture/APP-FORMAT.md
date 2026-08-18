@@ -102,7 +102,7 @@ The hosted compile path does not run it.
 
 ### Starter-package packaging
 
-In this repo the payload lives under `starters/erp/app/`. The
+In this repo each starter payload lives under `starters/<id>/app/` (packages `-lite/starter-base`, `-lite/starter-erp`). The
 manifest's `root` field names that subdirectory for the packer. A
 hosted app's tree *is* the root; seeded apps currently inherit
 `root: "app"` from the starter — a packaging leak, ignored at serve,
@@ -116,7 +116,7 @@ references, no environment lookups. Flexibility lives in adapters
 (framework-owned) and recipes (source in the tree).
 
 v0 is a **superset of the packer manifest** already used by
-`starters/erp/manifest.json`, `scripts/pack.mjs`, and the factory
+`starters/<id>/manifest.json`, `scripts/pack.mjs`, and the factory
 compile path. Working field names (`server.entry`, `client.entry`,
 `schema`, `source`, `inject`, `safelist`, `migrations`) stay. The
 direction note's `entries` object was illustrative; renaming them
@@ -471,11 +471,12 @@ with the toolchain; apps pin the runtime, never the toolchain). The
 direction gate forbids `framework/` from importing `factory/` or
 `starters/`.
 
-`pnpm check:manifest` validates `starters/erp/manifest.json` against
+`pnpm check:manifest` validates each `starters/<id>/manifest.json` against
 v0, fails closed if a committed invalid fixture validates, and fails
-when the starter drifts from `ERP_SEED_RECIPES`: committed `recipes`
-must equal `assemble(CATALOG, ERP_SEED_RECIPES)` and every seed recipe
-file under `starters/erp/app/` must hash to the catalog. Extra catalog
+when a starter drifts from its seed recipe list (`BASE_SEED_RECIPES` /
+`ERP_SEED_RECIPES`): committed `recipes` must equal
+`assemble(CATALOG, …)` and every seed recipe file under
+`starters/<id>/app/` must hash to the catalog. Extra catalog
 items are add-only. Provenance is a gate, not a claim. That red fixture
 is the gate lesson from
 [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md):

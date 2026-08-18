@@ -29,7 +29,7 @@
     "check:pins": "node scripts/check-pins-independence.mjs",
     "check:dead-code": "knip",
     "prepare": "husky",
-    "check:app-lint": "biome check --config-path=framework/toolchain/app-biome.json starters/erp/app/src",
+    "check:app-lint": "biome check --config-path=framework/toolchain/app-biome.json starters/base/app/src starters/erp/app/src",
     "check:template-snapshot": "node --experimental-strip-types factory/host/scripts/bake-template-snapshot.mjs --check"
   },
   "devDependencies": {

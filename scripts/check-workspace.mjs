@@ -18,7 +18,8 @@ const products = [
   ["factory/lint", "@sfab-lite/lint"],
   ["factory/build", "@sfab-lite/build"],
   ["framework/verbs", "@sfab-lite/verbs"],
-  ["starters/erp", "@sfab-lite/template"],
+  ["starters/erp", "@sfab-lite/starter-erp"],
+  ["starters/base", "@sfab-lite/starter-base"],
   ["framework/runtime", "@sfab-lite/kernel"],
   ["framework/toolchain", "@sfab-lite/core"],
   ["registry", "@sfab-lite/registry"],
@@ -90,39 +91,78 @@ if (!existsSync(join(root, "biome.jsonc"))) {
   failed = true;
 }
 
-// The template manifest is the factory's only map of the seed payload. When
-// a declared path stops existing, the failure otherwise surfaces as a broken
-// build — or, in the exploration's case, a silent fallback — long after the
-// rename that caused it.
-const templateRoot = join(root, "starters/erp");
-const manifest = JSON.parse(
-  readFileSync(join(templateRoot, "manifest.json"), "utf8")
-);
-const appRoot = join(templateRoot, manifest.root);
-const declared = [
-  manifest.server.entry,
-  manifest.client.entry,
-  manifest.client.styles,
-  manifest.html,
-  manifest.safelist,
-  manifest.migrations,
-  manifest.schema,
-  ...manifest.source.dirs,
-  ...manifest.source.files,
-  ...manifest.source.exclude,
-];
-for (const path of declared) {
-  if (!existsSync(join(appRoot, path))) {
-    console.error(`template manifest points at a missing path: ${path}`);
-    failed = true;
-  }
-}
+// Each starter manifest is the factory's map of that seed payload. When a
+// declared path stops existing, the failure otherwise surfaces as a broken
+// build long after the rename that caused it.
+const starterDirs = products
+  .filter(([dir]) => dir.startsWith("starters/"))
+  .map(([dir]) => dir);
 
-for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
-  const abs = join(templateRoot, src);
-  if (!existsSync(abs)) {
-    console.error(`template inject source missing: ${dest} ← ${src}`);
-    failed = true;
+let declaredCount = 0;
+const runtimePins = {
+  ...PINS,
+  ...UNIVERSE_EXTRA_PINS,
+  ...STANDALONE_TOOL_PINS,
+};
+
+for (const starterDir of starterDirs) {
+  const templateRoot = join(root, starterDir);
+  const manifest = JSON.parse(
+    readFileSync(join(templateRoot, "manifest.json"), "utf8")
+  );
+  const appRoot = join(templateRoot, manifest.root);
+  const declared = [
+    manifest.server.entry,
+    manifest.client.entry,
+    manifest.client.styles,
+    manifest.html,
+    manifest.safelist,
+    manifest.migrations,
+    manifest.schema,
+    ...manifest.source.dirs,
+    ...manifest.source.files,
+    ...manifest.source.exclude,
+  ];
+  declaredCount += declared.length;
+  for (const path of declared) {
+    if (!existsSync(join(appRoot, path))) {
+      console.error(`${starterDir} manifest points at a missing path: ${path}`);
+      failed = true;
+    }
+  }
+
+  for (const [dest, src] of Object.entries(manifest.inject ?? {})) {
+    const abs = join(templateRoot, src);
+    if (!existsSync(abs)) {
+      console.error(`${starterDir} inject source missing: ${dest} ← ${src}`);
+      failed = true;
+    }
+  }
+
+  // Starter conforms to the runtime's pins — never the reverse.
+  const starterPkg = JSON.parse(
+    readFileSync(join(templateRoot, "package.json"), "utf8")
+  );
+  const starterPins = {
+    ...starterPkg.dependencies,
+    ...starterPkg.devDependencies,
+  };
+  for (const [name, version] of Object.entries(runtimePins)) {
+    if (name === "esbuild") {
+      continue;
+    }
+    const got = starterPins[name];
+    if (got == null) {
+      console.error(
+        `${starterDir}/package.json missing runtime pin ${name}@${version}`
+      );
+      failed = true;
+    } else if (got !== version) {
+      console.error(
+        `${starterDir}/package.json pins ${name}@${got}; runtime owns ${version}`
+      );
+      failed = true;
+    }
   }
 }
 
@@ -162,40 +202,9 @@ if (KERNEL_TS) {
   failed = true;
 }
 
-// Starter conforms to the runtime's pins — never the reverse.
-const starterPkg = JSON.parse(
-  readFileSync(join(templateRoot, "package.json"), "utf8")
-);
-const starterPins = {
-  ...starterPkg.dependencies,
-  ...starterPkg.devDependencies,
-};
-const runtimePins = {
-  ...PINS,
-  ...UNIVERSE_EXTRA_PINS,
-  ...STANDALONE_TOOL_PINS,
-};
-for (const [name, version] of Object.entries(runtimePins)) {
-  if (name === "esbuild") {
-    continue;
-  }
-  const got = starterPins[name];
-  if (got == null) {
-    console.error(
-      `starters/erp/package.json missing runtime pin ${name}@${version}`
-    );
-    failed = true;
-  } else if (got !== version) {
-    console.error(
-      `starters/erp/package.json pins ${name}@${got}; runtime owns ${version}`
-    );
-    failed = true;
-  }
-}
-
 if (failed) {
   process.exit(1);
 }
 console.log(
-  `workspace ok: ${products.length} products + ${tooling.length} tooling, ${declared.length} template paths, typescript ${KERNEL_TS}`
+  `workspace ok: ${products.length} products + ${tooling.length} tooling, ${declaredCount} starter paths, typescript ${KERNEL_TS}`
 );
