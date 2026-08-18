@@ -1,7 +1,11 @@
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSession } from "../hooks/use-session";
 
-export function LandingPage() {
+export const Route = createFileRoute("/")({
+  component: LandingPage,
+});
+
+function LandingPage() {
   const session = useSession();
   const enterTo =
     session.data?.authenticated && !session.data.needsOnboarding

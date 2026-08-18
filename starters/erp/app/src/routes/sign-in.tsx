@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { AuthShell } from "../components/layout/auth-shell";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -15,7 +15,11 @@ import { Input } from "../components/ui/input";
 import { invalidateSession } from "../hooks/use-session";
 import { authClient } from "../lib/auth-client";
 
-export function SignInPage() {
+export const Route = createFileRoute("/sign-in")({
+  component: SignInPage,
+});
+
+function SignInPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

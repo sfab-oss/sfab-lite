@@ -1,21 +1,21 @@
 import { TrashIcon } from "@radix-ui/react-icons";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ShellPageFrame } from "../components/layout/shell";
-import { DeletePartyDialog } from "../components/parties/delete-party-dialog";
-import { LedgerDialog } from "../components/parties/ledger-dialog";
-import { Alert, AlertDescription } from "../components/ui/alert";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
+import { ShellPageFrame } from "../../../components/layout/shell";
+import { DeletePartyDialog } from "../../../components/parties/delete-party-dialog";
+import { LedgerDialog } from "../../../components/parties/ledger-dialog";
+import { Alert, AlertDescription } from "../../../components/ui/alert";
+import { Badge } from "../../../components/ui/badge";
+import { Button } from "../../../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { EmptyState } from "../components/ui/empty-state";
-import { Skeleton } from "../components/ui/skeleton";
+} from "../../../components/ui/card";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { Skeleton } from "../../../components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -23,18 +23,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../components/ui/table";
+} from "../../../components/ui/table";
 import {
   useAddCharge,
   useAddPayment,
   useDeleteParty,
   useParty,
-} from "../hooks/use-parties";
-import { formatCents } from "../lib/money";
-import { PARTY_KIND_LABEL } from "../lib/party-kind";
+} from "../../../hooks/use-parties";
+import { formatCents } from "../../../lib/money";
+import { PARTY_KIND_LABEL } from "../../../lib/party-kind";
 
-export function PartyDetailPage() {
-  const { id } = useParams({ from: "/_app/parties/$id" });
+export const Route = createFileRoute("/_app/parties/$id")({
+  component: PartyDetailPage,
+});
+
+function PartyDetailPage() {
+  const { id } = Route.useParams();
   const navigate = useNavigate();
   const detail = useParty(id);
   const charge = useAddCharge(id);

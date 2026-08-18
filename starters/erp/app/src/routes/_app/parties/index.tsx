@@ -1,9 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { ShellPageFrame } from "../components/layout/shell";
-import { Badge } from "../components/ui/badge";
-import { EmptyState } from "../components/ui/empty-state";
-import { Skeleton } from "../components/ui/skeleton";
+import { ShellPageFrame } from "../../../components/layout/shell";
+import { CreatePartyDialog } from "../../../components/parties/create-party-dialog";
+import { Badge } from "../../../components/ui/badge";
+import { EmptyState } from "../../../components/ui/empty-state";
+import { Skeleton } from "../../../components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -11,18 +12,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../components/ui/table";
-import { useOpenBalances } from "../hooks/use-parties";
-import { formatCents } from "../lib/money";
-import { PARTY_KIND_LABEL } from "../lib/party-kind";
+} from "../../../components/ui/table";
+import { useParties } from "../../../hooks/use-parties";
+import { formatCents } from "../../../lib/money";
+import { PARTY_KIND_LABEL } from "../../../lib/party-kind";
 
-export function BalancesPage() {
-  const balances = useOpenBalances();
-  const rows = balances.data ?? [];
-  const empty = !balances.isLoading && rows.length === 0;
+export const Route = createFileRoute("/_app/parties/")({
+  component: PartiesPage,
+});
+
+function PartiesPage() {
+  const parties = useParties();
+  const rows = parties.data ?? [];
+  const empty = !parties.isLoading && rows.length === 0;
 
   let body: ReactNode;
-  if (balances.isLoading) {
+  if (parties.isLoading) {
     body = (
       <div className="flex flex-col gap-3 p-6">
         <Skeleton className="h-8 w-48" />
@@ -33,8 +38,8 @@ export function BalancesPage() {
     body = (
       <div className="flex flex-1 items-center justify-center p-6">
         <EmptyState
-          description="Everyone is settled."
-          title="No open balances"
+          description="Create a customer or vendor to get started."
+          title="No parties yet"
         />
       </div>
     );
@@ -44,7 +49,7 @@ export function BalancesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Party</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Kind</TableHead>
               <TableHead className="text-right">Balance</TableHead>
             </TableRow>
@@ -78,6 +83,11 @@ export function BalancesPage() {
   }
 
   return (
-    <ShellPageFrame items={[{ title: "Open balances" }]}>{body}</ShellPageFrame>
+    <ShellPageFrame
+      actions={<CreatePartyDialog />}
+      items={[{ title: "Parties" }]}
+    >
+      {body}
+    </ShellPageFrame>
   );
 }

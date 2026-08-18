@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { AuthShell } from "../components/layout/auth-shell";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -20,7 +20,11 @@ import { Input } from "../components/ui/input";
 import { invalidateSession } from "../hooks/use-session";
 import { authClient } from "../lib/auth-client";
 
-export function SignUpPage() {
+export const Route = createFileRoute("/sign-up")({
+  component: SignUpPage,
+});
+
+function SignUpPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

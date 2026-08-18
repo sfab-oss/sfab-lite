@@ -1,22 +1,27 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { ShellPageFrame } from "../components/layout/shell";
-import { Alert, AlertDescription } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import { ShellPageFrame } from "../../components/layout/shell";
+import { Alert, AlertDescription } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
-import { Input } from "../components/ui/input";
-import { Skeleton } from "../components/ui/skeleton";
-import { invalidateSession, useSession } from "../hooks/use-session";
-import { authClient } from "../lib/auth-client";
+} from "../../components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "../../components/ui/field";
+import { Input } from "../../components/ui/input";
+import { Skeleton } from "../../components/ui/skeleton";
+import { invalidateSession, useSession } from "../../hooks/use-session";
+import { authClient } from "../../lib/auth-client";
 
-export function SettingsPage() {
+export const Route = createFileRoute("/_app/settings")({
+  component: SettingsPage,
+});
+
+function SettingsPage() {
   const queryClient = useQueryClient();
   const session = useSession();
   const organization = session.data?.organization;
