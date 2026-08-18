@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { AuthShell } from "../components/layout/auth-shell";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -11,7 +11,7 @@ import {
   FieldLabel,
 } from "../components/ui/field";
 import { Input } from "../components/ui/input";
-import { invalidateSession } from "../hooks/use-session";
+import { invalidateSession, loadSession } from "../hooks/use-session";
 import { authClient } from "../lib/auth-client";
 
 const NON_SLUG = /[^a-z0-9]+/g;
@@ -21,7 +21,20 @@ function slugify(value: string): string {
   return value.toLowerCase().replaceAll(NON_SLUG, "-").replace(EDGE_DASHES, "");
 }
 
-export function OnboardingPage() {
+export const Route = createFileRoute("/onboarding")({
+  beforeLoad: async () => {
+    const session = await loadSession();
+    if (!session.authenticated) {
+      throw redirect({ to: "/sign-in" });
+    }
+    if (!session.needsOnboarding) {
+      throw redirect({ to: "/overview" });
+    }
+  },
+  component: OnboardingPage,
+});
+
+function OnboardingPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");

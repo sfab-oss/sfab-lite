@@ -34,7 +34,9 @@
       "!!**/registry/recipes/sidebar/0.1.0",
       "!!**/registry/recipes/slider/0.1.0",
       "!!**/registry/recipes/toggle-group/0.1.0",
-      "!!**/scripts/fixtures"
+      "!!**/scripts/fixtures",
+      // tsr emits any / ts-nocheck; keep out of repo Biome (and app-biome).
+      "!!**/starters/erp/app/src/routeTree.gen.ts"
     ]
   },
   // Same assist/noise offs as starter — presets turn these on; not worth

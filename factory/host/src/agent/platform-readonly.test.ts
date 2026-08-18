@@ -67,6 +67,9 @@ describe("platform-readonly", () => {
       PlatformReadonlyError
     );
     assert.doesNotThrow(() => assertWritableWorkspacePath("/src/router.tsx"));
+    assert.doesNotThrow(() =>
+      assertWritableWorkspacePath("/src/routeTree.gen.ts")
+    );
   });
 
   it("writeGenerated is only for generated format members", () => {
@@ -78,6 +81,7 @@ describe("platform-readonly", () => {
     assert.equal(isHostGeneratedPath("biome.json"), false);
     assert.equal(isHostGeneratedPath("vite.config.ts"), false);
     assert.equal(isHostGeneratedPath("src/router.tsx"), false);
+    assert.equal(isHostGeneratedPath("src/routeTree.gen.ts"), false);
     assert.doesNotThrow(() =>
       assertHostGeneratedPath("/src/generated/api.hash")
     );

@@ -52,12 +52,13 @@ TanStack-Start-shaped. Feature scope is a subdirectory under
     meta/                       # drizzle-kit journal + version-6 snapshots; owner-editable through db:generate only (ADR-0005 / ADR-0014)
   src/
     server.ts                   # server entry (Hono)
-    router.tsx                  # client router
+    router.tsx                  # client entry / mount (createRoot)
+    routeTree.gen.ts            # owner-editable codegen (tsr); committed
     styles.css
     generated/
       api.d.ts                  # GENERATED — client API snapshot
       api.hash                  # GENERATED — sha256 of the server tree
-    routes/                     # file-based routes
+    routes/                     # file-based routes (createFileRoute)
     components/<feature>/
     hooks/
     lib/<feature>/
@@ -81,6 +82,7 @@ does not require the RFC names.
 | `manifest.json` | Owner + host (`runtime`, `recipes`) | schema-validated |
 | `src/**` except `src/generated/` and adapter shims | Owner / agent / `add` | lint + check |
 | `migrations/*.sql` | `db:generate` (offline) | CI drift vs `meta/` |
+| `src/routeTree.gen.ts` | Owner / agent (`tsr generate` on the template; edit with route files on hosted apps) | template drift check; not host-readonly |
 | `package.json` | Host, from the manifest + runtime pins | exact pins; owner edits are overwritten |
 | `tsconfig.json` | Host | same |
 | `index.html` | Host | same; eject-load-bearing |

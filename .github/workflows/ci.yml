@@ -111,6 +111,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:kernel
 
+      # routeTree.gen.ts is committed tsr output. Without this, editing
+      # starters/erp/app/src/routes/ and forgetting generate-routes ships a
+      # seed whose route tree no longer matches its route files.
+      - name: route-tree
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:route-tree
+
       # The seed is a committed build artifact. Without this, editing the
       # template and forgetting to re-bake ships a factory that keeps seeding
       # the old source, with every other gate green.

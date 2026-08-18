@@ -1,12 +1,16 @@
-import { Link } from "@tanstack/react-router";
-import { ShellPageFrame } from "../components/layout/shell";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ShellPageFrame } from "../../components/layout/shell";
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../components/ui/card";
-import { useSession } from "../hooks/use-session";
+} from "../../components/ui/card";
+import { useSession } from "../../hooks/use-session";
+
+export const Route = createFileRoute("/_app/overview")({
+  component: OverviewPage,
+});
 
 const SECTIONS = [
   {
@@ -21,7 +25,7 @@ const SECTIONS = [
   },
 ];
 
-export function OverviewPage() {
+function OverviewPage() {
   const session = useSession();
   const orgName = session.data?.organization?.name ?? "your organization";
 

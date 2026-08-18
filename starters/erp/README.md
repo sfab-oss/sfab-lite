@@ -32,8 +32,9 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `src/server.ts` | Hono export `app` (factory server entry). |
 | `src/hono/` | API tiers: `public/` / `protected/` / `org-protected/`. |
 | `src/contract/` | Shared Zod schemas for Hono + hooks. |
-| `src/router.tsx` | Client entry: route tree and `createRoot` mount. |
-| `src/routes/` | Page modules, registered in `router.tsx`. |
+| `src/router.tsx` | Client entry: mounts `routeTree` + `createRoot` (not the route registry). |
+| `src/routes/` | File routes (`createFileRoute`); pages live here. |
+| `src/routeTree.gen.ts` | Committed tsr output; update whenever `src/routes/` changes. |
 | `src/components/layout/` | Inset shell, sidebar, breadcrumbs, auth shell. |
 | `src/components/ui/` | Registry recipes (seed list in `ERP_SEED_RECIPES`, including sidebar and dialogs). |
 | `src/hooks/` | Data hooks (`use-parties`, `use-session`). |
@@ -67,6 +68,10 @@ Useful:
   declares storage) from the manifest + current runtime pins.
   `pnpm check:generated` (repo root) fails if they drift; do not
   hand-edit them.
+- `pnpm generate-routes` — regenerate `app/src/routeTree.gen.ts` from
+  `app/src/routes/` (`tsr generate`, then the stock "do not edit" banner is
+  rewritten to the hosted-edit contract). Commit the result;
+  `check:route-tree` fails if it drifts.
 - `pnpm pack` — print the seed payload to stdout.
 - `pnpm bake-seed` — write `generated/seed.json` (what `check:seed` verifies).
 

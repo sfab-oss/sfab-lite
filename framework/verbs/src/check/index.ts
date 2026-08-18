@@ -1,13 +1,15 @@
 export {
+  clientPrefixesFromManifest,
+  isClientAppPath,
+} from "./client-prefixes.js";
+export {
   type AppLsState,
   createAppLsState,
   disposeService,
   getLanguageService,
 } from "./ls-host.js";
 export {
-  clientPrefixesFromManifest,
   closedResolveUnresolvedMessage,
-  isClientAppPath,
   resolvePackage,
   resolveRelative,
   sideAwareUnresolvedMessage,

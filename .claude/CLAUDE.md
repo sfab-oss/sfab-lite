@@ -22,7 +22,7 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
 `pnpm check:generated`, `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
-`pnpm check:seed`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
+`pnpm check:seed`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
 `pnpm check:registry-agreement`.
 
 `check:generated` fails when the generated format files under
@@ -59,6 +59,13 @@ re-runs the template pack and fails if the committed seed no longer matches
 imports it at build time because the host Worker has no filesystem. Editing the
 template without re-baking would leave every other gate green while the factory
 kept seeding the old source.
+
+`check:route-tree` is the same idea for
+`starters/erp/app/src/routeTree.gen.ts`: re-runs the template's
+`generate-routes` (`tsr generate` + banner rewrite) and fails if the
+committed tree no longer matches `app/src/routes/`. Template-only — hosted
+apps have no `tsr`; agents there edit the gen file by hand together with
+the route files.
 
 `check:check-memory` runs the check worker over six distinct appIds in one
 process and fails if its LanguageService store holds more than one app, if a

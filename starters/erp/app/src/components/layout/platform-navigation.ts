@@ -4,11 +4,12 @@ import {
   HomeIcon,
   PersonIcon,
 } from "@radix-ui/react-icons";
+import type { LinkProps } from "@tanstack/react-router";
 import type { ComponentType } from "react";
 
 export interface PlatformNavigationItem {
   title: string;
-  url: "/overview" | "/parties" | "/balances" | "/settings";
+  url: NonNullable<LinkProps["to"]>;
   icon: ComponentType<{ className?: string }>;
 }
 

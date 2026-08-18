@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, type LinkProps } from "@tanstack/react-router";
 import { Fragment } from "react";
 import { cn } from "../../lib/utils";
 import {
@@ -12,7 +12,7 @@ import {
 
 export interface AppBreadcrumbItem {
   title: string;
-  to?: "/overview" | "/parties" | "/balances" | "/settings";
+  to?: NonNullable<LinkProps["to"]>;
 }
 
 export function AppBreadcrumbs({

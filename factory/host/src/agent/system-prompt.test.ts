@@ -28,3 +28,8 @@ test("the prompt names generated files as host-owned", () => {
   assert.ok(prompt.includes("src/storage/index.ts"));
   assert.equal(prompt.includes("package.json is writable."), false);
 });
+
+test("the prompt tells agents to update routeTree.gen.ts for new pages", () => {
+  assert.ok(prompt.includes("src/routeTree.gen.ts"));
+  assert.equal(prompt.includes("registered in src/router.tsx"), false);
+});

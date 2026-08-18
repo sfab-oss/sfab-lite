@@ -9,7 +9,8 @@
       "!!**/node_modules",
       "!!**/dist",
       "!!**/.wrangler",
-      "!!**/generated"
+      "!!**/generated",
+      "!!**/src/routeTree.gen.ts"
     ]
   },
   "formatter": {
