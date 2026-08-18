@@ -5,9 +5,12 @@ Non-authoritative (see [`README.md`](README.md)). Catalogue:
 Sibling: [`2026-08-14-assembled-recipes-check.md`](2026-08-14-assembled-recipes-check.md)
 (seven recipes, unused RFC copies);
 [`2026-08-14-pr8-starter-rebuild-check.md`](2026-08-14-pr8-starter-rebuild-check.md)
-(ERP already assembled from the then-catalog).
+(ERP already assembled from the then-catalog);
+[`2026-08-18-imported-shell-units.md`](2026-08-18-imported-shell-units.md)
+(layout-imported recipes, not the unused remainder).
 
-**Status:** local done; **do not grow `ERP_SEED_RECIPES`**.
+**Status:** local done; **do not grow `ERP_SEED_RECIPES` to the unused
+catalog remainder.** Imported-layout growth is the sibling note.
 **Hypothesis:** copying every published Base UI recipe onto the ERP seed
 grows the client unit because `src/components/ui/*` is a client root,
 even when the app does not import those files. That is the unused-

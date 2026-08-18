@@ -53,10 +53,46 @@
         "src/components/ui/button.tsx": "sha256:521cf3ca8073d605f5d056047fe981ffaf1cc78fa9c45feabec4499721964932"
       }
     },
+    "lite/alert-dialog": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/alert-dialog.tsx": "sha256:dad2541489d85c063fb24f5f96c53b992b514dfe970d591fa0940be29fc60012"
+      }
+    },
+    "lite/avatar": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/avatar.tsx": "sha256:d641caf031342481001515d48cb2c5a7c96bed60759a7953505b9894c19783ac"
+      }
+    },
+    "lite/badge": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/badge.tsx": "sha256:1aeab17f6c1f982b4bed067ccc1c3209b235d4868ec6d1ddf18cd7e5cf4bd4ad"
+      }
+    },
+    "lite/breadcrumb": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/breadcrumb.tsx": "sha256:1aad7ce4842cc918edfdcda34d91d0b71d74dadac282a3405b5a9d49067d2b3d"
+      }
+    },
     "lite/card": {
       "version": "0.1.0",
       "files": {
         "src/components/ui/card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
+      }
+    },
+    "lite/dialog": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/dialog.tsx": "sha256:a7156aa381302d2d077227a58733cd22a8c5fe4d8a3847a98fe78db47217d219"
+      }
+    },
+    "lite/dropdown-menu": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/dropdown-menu.tsx": "sha256:c2f12da320a8b56d32e42510bf42ddfdaa6e9201b8c5256a38c7ae2940c66d67"
       }
     },
     "lite/empty-state": {
@@ -87,6 +123,42 @@
       "version": "0.1.0",
       "files": {
         "src/components/ui/select.tsx": "sha256:d49d61dc00a0a5eaabefca09ead0adb557fc538b1dad5d1d54669d682e37dbe0"
+      }
+    },
+    "lite/separator": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/separator.tsx": "sha256:7cdc3757d62638224c93f641e3b6c9e36d2a763325042a365408b84d48e34682"
+      }
+    },
+    "lite/sheet": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/sheet.tsx": "sha256:78ab5f170cd532e8a144388fd3c355b017bd33ecf086a9dde2263bfa2fd25b38"
+      }
+    },
+    "lite/use-mobile": {
+      "version": "0.1.0",
+      "files": {
+        "src/hooks/use-mobile.ts": "sha256:8959cc32720b0c4b1e5222373b44f973f9c562aa4c12249cfacce0645e6c8737"
+      }
+    },
+    "lite/skeleton": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/skeleton.tsx": "sha256:420a5a4b2ebe8c09e475de5bde1448e07df38f36d931077a5abfe1bc7ec907db"
+      }
+    },
+    "lite/tooltip": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/tooltip.tsx": "sha256:729d12b8533e0eef83b6f966e91c5b525f51f2b4a81df969e9644a1978cde74c"
+      }
+    },
+    "lite/sidebar": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/sidebar.tsx": "sha256:9536c2b6e428e605d4e455a449b420d953e8a3cf223498ed01638db4c129d903"
       }
     },
     "lite/table": {

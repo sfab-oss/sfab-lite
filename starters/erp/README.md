@@ -34,8 +34,8 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `src/contract/` | Shared Zod schemas for Hono + hooks. |
 | `src/router.tsx` | Client entry: route tree and `createRoot` mount. |
 | `src/routes/` | Page modules, registered in `router.tsx`. |
-| `src/components/layout/` | App shell, top nav, auth shell. |
-| `src/components/ui/` | Registry recipes (`button`, `card`, `field`, `input`, `label`, `table`). |
+| `src/components/layout/` | Inset shell, sidebar, breadcrumbs, auth shell. |
+| `src/components/ui/` | Registry recipes (seed list in `ERP_SEED_RECIPES`, including sidebar and dialogs). |
 | `src/hooks/` | Data hooks (`use-parties`, `use-session`). |
 | `src/lib/` | Client, auth client, money helpers, `utils` (`cn`). |
 
@@ -144,19 +144,25 @@ planner), and each file is provenance-recorded in `manifest.recipes`:
 
 `lite/utils`, `lite/button`, `lite/label`, `lite/input`, `lite/field`,
 `lite/card`, `lite/table`, `lite/select`, `lite/alert`,
-`lite/empty-state` (all `@0.1.0`).
+`lite/empty-state`, `lite/sidebar`, `lite/dropdown-menu`, `lite/avatar`,
+`lite/dialog`, `lite/breadcrumb`, `lite/badge`, `lite/alert-dialog`
+(and the sidebar's sheet/tooltip/skeleton/separator/use-mobile deps)
+(all `@0.1.0`).
 
 `pnpm --filter @sfab-lite/registry assemble-erp-starter` re-runs that
-assembly from `ERP_SEED_RECIPES` (the original ten; the catalog is
-larger and add-only). `pnpm check:manifest`
+assembly from `ERP_SEED_RECIPES` (the recipes the ERP screens import;
+the catalog is larger and add-only). `pnpm check:manifest`
 fails when the tree or `manifest.recipes` drifts from it, so do not
 hand-edit a recipe file or hand-copy one into `src/components/ui/` —
 add it to the catalog, then either assemble it into the seed list or
 `add` it onto an app.
 
-Kind is a `lite/select`. Errors use `lite/alert`. Empty lists use
-`lite/empty-state`. There is no sidebar; navigation is a top bar in
-`src/components/layout/app-nav.tsx`.
+Kind is a `lite/select` (create dialog) and a `lite/badge` on lists.
+Errors use `lite/alert`. Empty lists use `lite/empty-state`. Navigation
+is an inset `lite/sidebar`; the main column is `SidebarInset`. Create
+and ledger writes open from header/card **dialogs**. Delete is an
+**alert-dialog** on the party record. The org/user menu is the sidebar
+footer.
 
 ## Icons
 
