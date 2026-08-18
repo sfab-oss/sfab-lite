@@ -250,6 +250,11 @@ export const app = sqliteTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /**
+     * Starter catalog id used at create (`base`, `erp`, …). Provenance only —
+     * not a runtime mode. SQL default backfills historical rows as `erp`.
+     */
+    template: text("template").notNull().default("erp"),
     /** `creating` → `ready` | `failed`. Never trust a `creating` row as live. */
     status: text("status").notNull().default("creating"),
     /**

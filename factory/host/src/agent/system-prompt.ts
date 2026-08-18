@@ -127,7 +127,7 @@ export function buildSystemPrompt(opts: {
     "  them. Delete what you stop using rather than leaving it for them to find.",
     "",
     "The database:",
-    "  src/db/schema.ts declares the tables (auth + ledger);",
+    "  src/db/schema.ts declares the tables (this app's schema barrel);",
     "  migrations/*.sql are what actually",
     "  create them. Editing the schema does not change the database — typecheck",
     "  passes either way, because types describe intent and the database holds",

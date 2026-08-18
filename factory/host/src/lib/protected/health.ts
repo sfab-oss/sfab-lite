@@ -1,4 +1,3 @@
-import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import {
   githubAuthEnabled,
   githubSecretsPresent,
@@ -8,6 +7,7 @@ import {
 } from "@/lib/auth/policy";
 import type { ProtectedReply } from "../../hono/reply.js";
 import type { ProtectedCtx } from "../../serve/routes.js";
+import { listStarters } from "../../starters/catalog.js";
 
 /**
  * Ask a bound worker whether it holds the same `ADMIN_TOKEN` we do.
@@ -67,6 +67,16 @@ export async function handleHealth(
     probePeerToken(rc.env.LINT, token),
     probePeerToken(rc.env.BUILD, token),
   ]);
+  const starters = Object.fromEntries(
+    listStarters().map((s) => [
+      s.id,
+      {
+        seedFiles: Object.keys(s.seed.sourceFiles).length,
+        seedMigrations: s.seed.migrations.length,
+        isDefault: s.isDefault,
+      },
+    ])
+  );
   return {
     status: 200,
     body: {
@@ -90,8 +100,7 @@ export async function handleHealth(
           lint.matchesCaller &&
           build.matchesCaller,
       },
-      seedFiles: Object.keys(TEMPLATE_SEED.sourceFiles).length,
-      seedMigrations: TEMPLATE_SEED.migrations.length,
+      starters,
       passwordAuth: passwordAuthEnabled(rc.env),
       githubAuth: githubAuthEnabled(rc.env),
       githubSecrets: githubSecretsPresent(rc.env),

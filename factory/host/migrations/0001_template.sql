@@ -1,0 +1,1 @@
+ALTER TABLE `app` ADD `template` text DEFAULT 'erp' NOT NULL;

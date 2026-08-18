@@ -1,9 +1,20 @@
 import { AgentSigil } from "@sfab-lite/ui/components/icons/agent-sigil";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@sfab-lite/ui/components/shadcn/alert-dialog";
 import { Button } from "@sfab-lite/ui/components/shadcn/button";
+import { Label } from "@sfab-lite/ui/components/shadcn/label";
 import { Skeleton } from "@sfab-lite/ui/components/shadcn/skeleton";
 import { cn } from "@sfab-lite/ui/lib/utils";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import {
   AppLayoutHeader,
   AppLayoutHeaderActions,
@@ -13,17 +24,25 @@ import type { AppRecord } from "@/lib/api/apps";
 import { appBasePath } from "@/lib/preview/reload-preview";
 import { StatusDot } from "./status-badge";
 
+const STARTER_CHOICES = [
+  { id: "base", label: "Base", description: "Auth, inset shell, empty home" },
+  { id: "erp", label: "ERP", description: "Parties, ledger, and balances" },
+] as const;
+
 export function AppsListPage() {
   const navigate = useNavigate();
   const appsQuery = useApps();
   const createApp = useCreateApp();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [template, setTemplate] = useState<string>("base");
 
   async function onCreate() {
     if (createApp.isPending) {
       return;
     }
     try {
-      const created = await createApp.mutateAsync(undefined);
+      const created = await createApp.mutateAsync({ template });
+      setPickerOpen(false);
       navigate({
         to: "/apps/$appId",
         params: { appId: created.appId },
@@ -63,7 +82,7 @@ export function AppsListPage() {
   } else if (apps && apps.length === 0) {
     body = (
       <p className="text-muted-foreground">
-        No apps yet. Create one to seed the starter template.
+        No apps yet. Create one to seed a starter.
       </p>
     );
   } else if (apps) {
@@ -88,7 +107,10 @@ export function AppsListPage() {
         <AppLayoutHeaderActions>
           <Button
             disabled={createApp.isPending}
-            onClick={onCreate}
+            onClick={() => {
+              setTemplate("base");
+              setPickerOpen(true);
+            }}
             size="sm"
             type="button"
           >
@@ -107,6 +129,64 @@ export function AppsListPage() {
         ) : null}
         {body}
       </div>
+      <AlertDialog onOpenChange={setPickerOpen} open={pickerOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>New app</AlertDialogTitle>
+            <AlertDialogDescription>
+              Pick a starter. Base is the default for every new app.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-2" role="radiogroup">
+            {STARTER_CHOICES.map((choice) => {
+              const selected = template === choice.id;
+              return (
+                <label
+                  className={cn(
+                    "flex cursor-pointer flex-col gap-0.5 rounded-md border p-3",
+                    selected
+                      ? "border-primary bg-muted/40"
+                      : "border-border hover:bg-muted/20"
+                  )}
+                  key={choice.id}
+                >
+                  <span className="flex items-center gap-2">
+                    <input
+                      checked={selected}
+                      className="size-4"
+                      name="starter"
+                      onChange={() => setTemplate(choice.id)}
+                      type="radio"
+                      value={choice.id}
+                    />
+                    <Label className="font-medium text-sm">
+                      {choice.label}
+                    </Label>
+                  </span>
+                  <span className="pl-6 text-muted-foreground text-xs">
+                    {choice.description}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={createApp.isPending} type="button">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={createApp.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                onCreate().catch(() => undefined);
+              }}
+              type="button"
+            >
+              {createApp.isPending ? "Creating…" : "Create"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

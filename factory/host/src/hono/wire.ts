@@ -5,6 +5,7 @@ export interface WireApp {
   id: string;
   organizationId: string;
   name: string;
+  template: string;
   status: "creating" | "ready" | "failed";
   createAttemptId: string | null;
   liveSha: string | null;
@@ -17,6 +18,7 @@ export function wireApp(record: AppRecord): WireApp {
     id: record.id,
     organizationId: record.organizationId,
     name: record.name,
+    template: record.template,
     status: record.status,
     createAttemptId: record.createAttemptId,
     liveSha: record.liveSha,

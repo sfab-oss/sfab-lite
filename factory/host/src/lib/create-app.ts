@@ -1,11 +1,16 @@
 import { errorMessage, throwIfUnauthorized } from "@/lib/api-errors";
 import { client } from "@/lib/client";
 
-/** Omit `name` and the server picks a placeholder from the prompt context. */
-export async function createApp(name?: string) {
-  const res = await client.protected.apps.$post({
-    json: name ? { name } : {},
-  });
+/** Omit `name` / `template` and the server picks a placeholder + default starter. */
+export async function createApp(name?: string, template?: string) {
+  const json: { name?: string; template?: string } = {};
+  if (name) {
+    json.name = name;
+  }
+  if (template) {
+    json.template = template;
+  }
+  const res = await client.protected.apps.$post({ json });
   throwIfUnauthorized(res);
   if (res.status !== 202) {
     throw new Error(await errorMessage(res, `create failed (${res.status})`));
@@ -21,5 +26,7 @@ export async function createApp(name?: string) {
     appId: body.appId,
     attemptId: body.attemptId,
     name: nameOut,
+    template:
+      typeof body.template === "string" ? body.template : (template ?? "base"),
   };
 }

@@ -22,6 +22,7 @@ export interface AppRecord {
   id: string;
   organizationId: string;
   name: string;
+  template: string;
   status: AppStatus;
   createAttemptId: string | null;
   liveSha: string | null;
@@ -42,6 +43,7 @@ function toRecord(row: typeof app.$inferSelect): AppRecord {
     id: row.id,
     organizationId: row.organizationId,
     name: row.name,
+    template: row.template,
     status: row.status as AppStatus,
     createAttemptId: row.createAttemptId,
     liveSha: row.liveSha ?? null,
@@ -101,7 +103,7 @@ export async function appBelongsToOrganization(
  */
 export async function insertCreatingAppWithDefaultWorkspace(
   db: Db,
-  input: { organizationId: string; name: string }
+  input: { organizationId: string; name: string; template: string }
 ): Promise<{ app: AppRecord; workspace: WorkspaceRecord }> {
   const appId = newAppId();
   const workspaceId = newWorkspaceId();
@@ -113,6 +115,7 @@ export async function insertCreatingAppWithDefaultWorkspace(
         id: appId,
         organizationId: input.organizationId,
         name: input.name,
+        template: input.template,
         status: "creating",
         createdAt: now,
         updatedAt: now,

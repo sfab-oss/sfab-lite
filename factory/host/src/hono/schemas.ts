@@ -12,6 +12,7 @@ export const addRecipeBodySchema = z
 export const createAppBodySchema = z
   .object({
     name: z.string().optional(),
+    template: z.string().optional(),
   })
   .strict();
 

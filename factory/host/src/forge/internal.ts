@@ -5,12 +5,11 @@
  * orphaning a `creating` row. Auth is a derived capability token.
  */
 
-import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { createDb } from "../db/index.js";
 import { publishOrgEvent } from "../org-events.js";
 import { overlayFormatFiles } from "../overlay-format-files.js";
-import { settleCreateApp } from "../registry/app-registry.js";
+import { getAppUnscoped, settleCreateApp } from "../registry/app-registry.js";
 import { appCreateStub } from "../registry/app-stub.js";
 import {
   INTERNAL_TOKEN_HEADER,
@@ -18,6 +17,7 @@ import {
 } from "../registry/internal-token.js";
 import type { RequestCtx } from "../serve/routes.js";
 import { NOT_FOUND_BODY } from "../serve/routes.js";
+import { defaultStarter, getStarter } from "../starters/catalog.js";
 import { runCdForSha } from "./cd.js";
 import {
   type CreateStages,
@@ -34,7 +34,7 @@ function notFound(): Response {
 }
 
 /**
- * ensureRepo → commit TEMPLATE_SEED to main → CD → settle registry.
+ * ensureRepo → commit starter seed to main → CD → settle registry.
  */
 async function handleRunCreate(
   rc: RequestCtx,
@@ -52,11 +52,17 @@ async function handleRunCreate(
   };
 
   try {
+    const record = await getAppUnscoped(createDb(rc.env), appId);
+    const starter =
+      record == null
+        ? defaultStarter()
+        : (getStarter(record.template) ?? defaultStarter());
+
     let lap = Date.now();
     await host.ensureRepo(appId);
     timings.ensureRepoMs = Date.now() - lap;
     const sourceFiles = overlayFormatFiles(
-      TEMPLATE_SEED.sourceFiles as Record<string, string>
+      starter.seed.sourceFiles as Record<string, string>
     ).files;
     lap = Date.now();
     const { sha } = await host.commitTree(
@@ -73,10 +79,10 @@ async function handleRunCreate(
     if (!cd.ok) {
       lap = Date.now();
       await stub.failCreateJob(jobId, "fail", cd);
-      const record = await settleCreateApp(createDb(rc.env), appId, "fail");
-      if (record) {
+      const settled = await settleCreateApp(createDb(rc.env), appId, "fail");
+      if (settled) {
         publishOrgEvent(
-          { env: rc.env, organizationId: record.organizationId },
+          { env: rc.env, organizationId: settled.organizationId },
           { topic: "app_record_changed", payload: { appId } }
         );
       }
@@ -91,10 +97,10 @@ async function handleRunCreate(
     }
     lap = Date.now();
     await stub.completeCreateJob(jobId, { liveSha: cd.liveSha });
-    const record = await settleCreateApp(createDb(rc.env), appId, "pass");
-    if (record) {
+    const settled = await settleCreateApp(createDb(rc.env), appId, "pass");
+    if (settled) {
       publishOrgEvent(
-        { env: rc.env, organizationId: record.organizationId },
+        { env: rc.env, organizationId: settled.organizationId },
         { topic: "app_record_changed", payload: { appId } }
       );
     }
@@ -109,10 +115,10 @@ async function handleRunCreate(
         message: e instanceof Error ? e.message : String(e),
       })
       .catch(() => undefined);
-    const record = await settleCreateApp(createDb(rc.env), appId, "error");
-    if (record) {
+    const settled = await settleCreateApp(createDb(rc.env), appId, "error");
+    if (settled) {
       publishOrgEvent(
-        { env: rc.env, organizationId: record.organizationId },
+        { env: rc.env, organizationId: settled.organizationId },
         { topic: "app_record_changed", payload: { appId } }
       );
     }

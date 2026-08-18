@@ -31,23 +31,33 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     "apps_create",
     {
       description:
-        "Create an app from the starter-lite template and wait for the create " +
+        "Create an app from a starter catalog template and wait for the create " +
         "attempt to be scheduled. Returns immediately with status `creating` — " +
-        "poll `apps_get` until status is `ready` or `failed` (typically 25-40s).",
+        "poll `apps_get` until status is `ready` or `failed` (typically 25-40s). " +
+        "Omit `template` to use the default starter (`base`).",
       inputSchema: {
         name: z
           .string()
           .optional()
           .describe("App name. Omitted picks a generated one."),
+        template: z
+          .string()
+          .optional()
+          .describe(
+            "Starter catalog id (e.g. base, erp). Omitted → default base."
+          ),
       },
     },
-    async ({ name }) =>
+    async ({ name, template }) =>
       passThrough(
         await protectedFetch(
           ctx,
           "POST",
           `/api/protected/apps${orgQuery(ctx)}`,
-          name === undefined ? {} : { name }
+          {
+            ...(name === undefined ? {} : { name }),
+            ...(template === undefined ? {} : { template }),
+          }
         )
       )
   );
