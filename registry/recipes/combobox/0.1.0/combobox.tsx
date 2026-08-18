@@ -1,5 +1,3 @@
-// biome-ignore-all lint/performance/noNamespaceImport: shadcn registry stock
-
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import { CheckIcon, ChevronDownIcon, Cross2Icon } from "@radix-ui/react-icons";
 import * as React from "react";

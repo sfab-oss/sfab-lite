@@ -1,6 +1,3 @@
-// biome-ignore-all lint/a11y/noRedundantRoles: shadcn registry stock
-// biome-ignore-all lint/a11y/useSemanticElements: shadcn registry stock
-
 import {
   ChevronLeftIcon,
   ChevronRightIcon,

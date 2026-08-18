@@ -1,6 +1,3 @@
-// biome-ignore-all lint/a11y/useFocusableInteractive: shadcn registry stock
-// biome-ignore-all lint/a11y/useSemanticElements: shadcn registry stock
-
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { ChevronRightIcon, DotsHorizontalIcon } from "@radix-ui/react-icons";

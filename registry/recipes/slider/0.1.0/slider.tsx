@@ -1,6 +1,3 @@
-// biome-ignore-all lint/style/noNestedTernary: shadcn registry stock
-// biome-ignore-all lint/suspicious/noArrayIndexKey: shadcn registry stock
-
 import { Slider as SliderPrimitive } from "@base-ui/react/slider";
 
 import { cn } from "../../lib/utils";

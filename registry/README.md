@@ -87,6 +87,9 @@ No modified-since-add warnings.
 CLI: `registry validate` on the generated source registry, then `add
 @lite/<slug>` against a locally served `/r/{name}.json` for every
 published recipe, asserting byte-identical placement vs `planAdd`.
+The CLI strips file-level `biome-ignore-all` comments, so recipe trees
+must not carry them. App lint turns the linter off under
+`src/components/ui/` instead (`framework/toolchain/app-biome.json`).
 
 ## Recipes in this milestone
 
