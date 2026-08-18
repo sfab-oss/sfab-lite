@@ -69,13 +69,5 @@
       "cssModules": false,
       "tailwindDirectives": true
     }
-  },
-  "overrides": [
-    {
-      "includes": ["**/src/components/ui/**"],
-      "linter": {
-        "enabled": false
-      }
-    }
-  ]
+  }
 }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { contentHash, planAdd } from "./lite.ts";
+import { contentHash, planAdd, stripBiomeIgnoreAllHeaders } from "./lite.ts";
 import type { Catalog, CatalogEntry } from "./types.ts";
 
 function entry(name: string, target: string, body: string): CatalogEntry {
@@ -80,4 +80,14 @@ test("@lite/button resolves the same catalog key as lite/button", () => {
     assert.equal(result.writes[target], incoming);
     assert.ok(result.provenance["lite/button"]);
   }
+});
+
+test("stripBiomeIgnoreAllHeaders drops leading stock-recipe ignores", () => {
+  const withHeader =
+    "// biome-ignore-all lint/a11y/useSemanticElements: shadcn registry stock\n\nexport const x = 1;\n";
+  assert.equal(stripBiomeIgnoreAllHeaders(withHeader), "export const x = 1;\n");
+  assert.equal(
+    stripBiomeIgnoreAllHeaders("export const x = 1;\n"),
+    "export const x = 1;\n"
+  );
 });

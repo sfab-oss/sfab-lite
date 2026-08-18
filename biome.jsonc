@@ -23,6 +23,17 @@
       // Baked by bake-catalog.mjs and compared byte-for-byte by
       // check:registry. Formatting it here would desync the two.
       "!!**/registry/registry.json",
+      // Superseded published trees are immutable. Live catalog is 0.1.1
+      // (biome-ignore-all headers). Do not lint or format these copies.
+      "!!**/registry/recipes/breadcrumb/0.1.0",
+      "!!**/registry/recipes/button-group/0.1.0",
+      "!!**/registry/recipes/combobox/0.1.0",
+      "!!**/registry/recipes/input-group/0.1.0",
+      "!!**/registry/recipes/item/0.1.0",
+      "!!**/registry/recipes/pagination/0.1.0",
+      "!!**/registry/recipes/sidebar/0.1.0",
+      "!!**/registry/recipes/slider/0.1.0",
+      "!!**/registry/recipes/toggle-group/0.1.0",
       "!!**/scripts/fixtures"
     ]
   },
@@ -64,15 +75,6 @@
   // that target runtime bundling / hot-path concerns off; readability rules
   // (complexity, nested ternary) stay on and the scripts must satisfy them.
   "overrides": [
-    // Recipe trees must stay byte-identical to `shadcn add`. The CLI strips
-    // `biome-ignore-all` headers, so lint those files here (and the ERP
-    // copies under `src/components/ui/`) with the linter off instead.
-    {
-      "includes": ["registry/recipes/**", "**/src/components/ui/**"],
-      "linter": {
-        "enabled": false
-      }
-    },
     {
       "includes": ["framework/runtime/scripts/**"],
       "linter": {

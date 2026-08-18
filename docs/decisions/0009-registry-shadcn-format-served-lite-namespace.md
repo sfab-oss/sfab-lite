@@ -37,10 +37,12 @@ and config — the opposite of a no-install ecosystem.
   block.
 - **Two agreement gates:** `check:registry-agreement` runs the real
   pinned `shadcn` CLI against the served registry and asserts placement
-  equals `planAdd` and nothing extra was written; `check:manifest`
-  asserts the starter is the ERP seed list assembled via `add`
-  ("provenance is a gate, not a claim"). The catalog may list recipes
-  the starter does not copy.
+  equals `planAdd` and nothing extra was written. Leading
+  `biome-ignore-all` headers on stock recipes are ignored in that
+  comparison — the CLI strips them; the files keep them so app lint
+  still runs. `check:manifest` asserts the starter is the ERP seed
+  list assembled via `add` ("provenance is a gate, not a claim"). The
+  catalog may list recipes the starter does not copy.
 
 ## Consequences
 

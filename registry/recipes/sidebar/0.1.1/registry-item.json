@@ -1,0 +1,27 @@
+{
+  "name": "lite/sidebar",
+  "type": "registry:ui",
+  "title": "Sidebar",
+  "description": "App rail. Assumes sheet, tooltip, skeleton, separator, button, input, use-mobile.",
+  "registryDependencies": [
+    "lite/utils",
+    "lite/use-mobile",
+    "lite/button",
+    "lite/input",
+    "lite/separator",
+    "lite/sheet",
+    "lite/skeleton",
+    "lite/tooltip"
+  ],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "sidebar.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/sidebar.tsx"
+    }
+  ]
+}

@@ -134,7 +134,7 @@
       ],
       "files": [
         {
-          "path": "recipes/breadcrumb/0.1.0/breadcrumb.tsx",
+          "path": "recipes/breadcrumb/0.1.1/breadcrumb.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/breadcrumb.tsx"
         }
@@ -175,7 +175,7 @@
       ],
       "files": [
         {
-          "path": "recipes/button-group/0.1.0/button-group.tsx",
+          "path": "recipes/button-group/0.1.1/button-group.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/button-group.tsx"
         }
@@ -255,7 +255,7 @@
       ],
       "files": [
         {
-          "path": "recipes/combobox/0.1.0/combobox.tsx",
+          "path": "recipes/combobox/0.1.1/combobox.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/combobox.tsx"
         }
@@ -478,7 +478,7 @@
       ],
       "files": [
         {
-          "path": "recipes/input-group/0.1.0/input-group.tsx",
+          "path": "recipes/input-group/0.1.1/input-group.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/input-group.tsx"
         }
@@ -519,7 +519,7 @@
       ],
       "files": [
         {
-          "path": "recipes/item/0.1.0/item.tsx",
+          "path": "recipes/item/0.1.1/item.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/item.tsx"
         }
@@ -641,7 +641,7 @@
       ],
       "files": [
         {
-          "path": "recipes/pagination/0.1.0/pagination.tsx",
+          "path": "recipes/pagination/0.1.1/pagination.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/pagination.tsx"
         }
@@ -809,7 +809,7 @@
       ],
       "files": [
         {
-          "path": "recipes/sidebar/0.1.0/sidebar.tsx",
+          "path": "recipes/sidebar/0.1.1/sidebar.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/sidebar.tsx"
         }
@@ -849,7 +849,7 @@
       ],
       "files": [
         {
-          "path": "recipes/slider/0.1.0/slider.tsx",
+          "path": "recipes/slider/0.1.1/slider.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/slider.tsx"
         }
@@ -1010,7 +1010,7 @@
       ],
       "files": [
         {
-          "path": "recipes/toggle-group/0.1.0/toggle-group.tsx",
+          "path": "recipes/toggle-group/0.1.1/toggle-group.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/toggle-group.tsx"
         }

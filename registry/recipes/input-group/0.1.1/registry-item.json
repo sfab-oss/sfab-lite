@@ -1,0 +1,23 @@
+{
+  "name": "lite/input-group",
+  "type": "registry:ui",
+  "title": "Input group",
+  "description": "Input with addons. Assumes lite/button, lite/input, lite/textarea.",
+  "registryDependencies": [
+    "lite/utils",
+    "lite/button",
+    "lite/input",
+    "lite/textarea"
+  ],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "input-group.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/input-group.tsx"
+    }
+  ]
+}

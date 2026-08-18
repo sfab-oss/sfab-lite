@@ -72,9 +72,9 @@
       }
     },
     "lite/breadcrumb": {
-      "version": "0.1.0",
+      "version": "0.1.1",
       "files": {
-        "src/components/ui/breadcrumb.tsx": "sha256:1aad7ce4842cc918edfdcda34d91d0b71d74dadac282a3405b5a9d49067d2b3d"
+        "src/components/ui/breadcrumb.tsx": "sha256:fbf367c48a8a9874bcb1cc731e2062c24506462f6744e6e3d3583d08714fedd1"
       }
     },
     "lite/card": {
@@ -156,9 +156,9 @@
       }
     },
     "lite/sidebar": {
-      "version": "0.1.0",
+      "version": "0.1.1",
       "files": {
-        "src/components/ui/sidebar.tsx": "sha256:9536c2b6e428e605d4e455a449b420d953e8a3cf223498ed01638db4c129d903"
+        "src/components/ui/sidebar.tsx": "sha256:4b39d38caaadd6f3115eec675de202edf7e561978770b560991c0b0e6d7a5e42"
       }
     },
     "lite/table": {
