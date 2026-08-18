@@ -66,6 +66,10 @@ and config — the opposite of a no-install ecosystem.
 
 The starter is assembled from `ERP_SEED_RECIPES` by
 `registry/scripts/assemble-erp-starter.mjs`; the catalog may be larger.
+Unused catalog files under `src/components/ui/` still enter the client
+check unit, so the seed stays the original ten until a live full-catalog
+app is measured
+([`../notes/2026-08-18-full-catalog-assembled-check.md`](../notes/2026-08-18-full-catalog-assembled-check.md)).
 The memory cost of recipes is gated as an absolute per-app ceiling
 measured in production, not per recipe
 ([`../engineering/making-it-fit.md`](../engineering/making-it-fit.md),

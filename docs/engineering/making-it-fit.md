@@ -294,6 +294,11 @@ nothing under `framework/` imports pierre.
   Production ceiling after the rebuild: still **0/8** OOM (checkpoint 4
   re-tail, 8/8 ready, 0 retries; wall 12.7–13.9 s, one 20.9 s).
   [`../notes/2026-08-15-cp4-retail.md`](../notes/2026-08-15-cp4-retail.md).
+  **2026-08-18 full catalog (53 recipes) onto the ten-recipe seed:**
+  server stays 84 roots / 255 → 258 MB; client **94 → 137 roots**,
+  **340 → 431 MB**. Extra files are unused `src/components/ui/` (client
+  unit). Seed stays the original ten; the rest is `apps_add`.
+  [`../notes/2026-08-18-full-catalog-assembled-check.md`](../notes/2026-08-18-full-catalog-assembled-check.md).
 
 - **Runtime bundle diet.** Full write-up:
   [`../notes/2026-08-13-serve-upload-diet.md`](../notes/2026-08-13-serve-upload-diet.md).

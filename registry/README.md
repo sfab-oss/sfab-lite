@@ -94,7 +94,10 @@ Extracted from the starter's shared UI so the starter can assemble
 from the registry. Targets are the RFC §2 tree (`src/components/ui/`,
 `src/lib/`, `src/hooks/`). `ERP_SEED_RECIPES` is the subset copied into
 `starters/erp` at bake time; today that is still the original ten.
-Additional Base UI recipes are catalog-only until that list grows.
+Additional Base UI recipes are catalog-only. A 2026-08-18
+`measure:assembled-recipes` run put unused UI files on the client unit
+(+43 roots, +91 MB local heap); the seed list does not grow until a live
+full-catalog check survives.
 
 | Name | Why it survives the starter rebuild |
 | --- | --- |
