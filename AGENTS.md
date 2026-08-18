@@ -8,7 +8,7 @@ House rules and index for this repo.
 ## What this is
 
 Edge-native **lite factory**: host + check + lint + build workers, frozen kernel, and
-starter packages (`base`, `erp`). Packages are `@sfab-lite/*`.
+starter packages (`base`, `erp`, `heavy`). Packages are `@sfab-lite/*`.
 
 **Lite** means the hosted template / frozen-kernel sub-apps — not skimpy
 factory tooling. Architecture:
@@ -121,6 +121,7 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 | `factory/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
 | `starters/base` | Default create seed (`@sfab-lite/starter-base`) |
 | `starters/erp` | Named ERP seed (`@sfab-lite/starter-erp`) |
+| `starters/heavy` | Named full-catalog gallery seed (`@sfab-lite/starter-heavy`) |
 | `framework/runtime` | Frozen universe + prebuild (owns universe pins) |
 | `framework/toolchain` | Shared contracts (app-format schema, check/lint wire types, app-biome) |
 | `framework/verbs` | Framework verbs: check, lint, build, format overlay |

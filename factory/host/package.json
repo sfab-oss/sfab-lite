@@ -38,6 +38,7 @@
     "@sfab-lite/kernel": "workspace:*",
     "@sfab-lite/registry": "workspace:*",
     "@sfab-lite/starter-erp": "workspace:*",
+    "@sfab-lite/starter-heavy": "workspace:*",
     "@sfab-lite/ui": "workspace:*",
     "@sfab-lite/verbs": "workspace:*",
     "@tailwindcss/vite": "4.1.11",

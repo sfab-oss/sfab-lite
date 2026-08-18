@@ -20,6 +20,7 @@ const products = [
   ["framework/verbs", "@sfab-lite/verbs"],
   ["starters/erp", "@sfab-lite/starter-erp"],
   ["starters/base", "@sfab-lite/starter-base"],
+  ["starters/heavy", "@sfab-lite/starter-heavy"],
   ["framework/runtime", "@sfab-lite/kernel"],
   ["framework/toolchain", "@sfab-lite/core"],
   ["registry", "@sfab-lite/registry"],

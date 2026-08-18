@@ -1,0 +1,11 @@
+// Package-side config: the manifest and the standalone build tooling.
+// The payload has its own config (tsconfig.app.json) that deliberately
+// mirrors the factory's compiler options instead of these.
+{
+  "extends": "@sfab-lite/tsconfig/base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src", "vite.config.ts"]
+}
