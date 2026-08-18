@@ -8,7 +8,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { TYPES_VFS } from "@sfab-lite/kernel";
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import {
   clientPrefixesFromManifest,
   createAppLsState,

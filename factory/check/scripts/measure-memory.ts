@@ -11,7 +11,7 @@
  *
  * Bundled by the companion .mjs runner so Node can load workspace TS.
  */
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
 import { SEED_MANIFEST } from "./seed-manifest.ts";
 

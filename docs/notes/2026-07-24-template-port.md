@@ -32,13 +32,13 @@ The exploration hardcoded template paths in six places across the host —
 fallback for the styles entry), `seed.mjs`, and the migrations snapshot.
 
 All six now have one source: `packages/template/manifest.json`, re-exported
-as `TEMPLATE_MANIFEST` from `@sfab-lite/template`. `check:workspace` fails if
+as `TEMPLATE_MANIFEST` from `@sfab-lite/starter-erp`. `check:workspace` fails if
 a declared path stops existing.
 
 ## The seed payload is a build-time constant
 
 The factory host is a Worker with no filesystem, so the seed cannot be read
-at runtime. `pnpm --filter @sfab-lite/template pack` emits
+at runtime. `pnpm --filter @sfab-lite/starter-erp pack` emits
 `{ manifest, sourceFiles, migrations }`; the factory bakes that into its
 bundle. Worth diffing the first output against the exploration's seed
 snapshot — same 32 source files, minus `app/src/worker.ts` and

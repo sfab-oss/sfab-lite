@@ -1,6 +1,6 @@
-# @sfab-lite/template
+# @sfab-lite/starter-erp
 
-The app every sfab-lite app starts as.
+Named ERP starter — parties, ledger, and balances. New apps default to `@sfab-lite/starter-base` instead.
 
 This package wears two hats, and the directory split is the whole design:
 
@@ -46,8 +46,8 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 
 ```sh
 cp .dev.vars.example .dev.vars      # then put a ≥32-char secret in it
-pnpm --filter @sfab-lite/template db:migrate
-pnpm --filter @sfab-lite/template dev
+pnpm --filter @sfab-lite/starter-erp db:migrate
+pnpm --filter @sfab-lite/starter-erp dev
 ```
 
 That starts two processes: `wrangler dev` on 8787 (the Hono API against a

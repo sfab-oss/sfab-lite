@@ -4,8 +4,8 @@
  * detection. Bundled by the companion .mjs runner so Node can load
  * workspace TS.
  */
-import { TEMPLATE_MANIFEST } from "@sfab-lite/template";
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import { TEMPLATE_MANIFEST } from "@sfab-lite/starter-erp";
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
 import { SEED_MANIFEST } from "./seed-manifest.ts";
 

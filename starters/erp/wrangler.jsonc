@@ -4,14 +4,14 @@
 // the same shape locally (worker + D1 + SPA assets).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "sfab-lite-template",
+  "name": "sfab-lite-starter-erp",
   "main": "app/src/worker.ts",
   "compatibility_date": "2026-07-23",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "sfab-lite-template",
+      "database_name": "sfab-lite-starter-erp",
       // Local-only: `wrangler dev` never contacts the account for this.
       "database_id": "local-only-placeholder",
       "migrations_dir": "app/migrations"

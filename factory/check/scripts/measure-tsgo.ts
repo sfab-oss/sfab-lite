@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TYPES_VFS } from "@sfab-lite/kernel";
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 
 const LEADING_SLASH = /^\//;
 const TIME_MAX_RSS = /Maximum resident set size \(kbytes\): (\d+)/;

@@ -38,8 +38,8 @@ anything extra beyond `planAdd`.
 ## How to regenerate
 
 ```sh
-pnpm --filter @sfab-lite/template generate
-pnpm --filter @sfab-lite/template bake-seed
+pnpm --filter @sfab-lite/starter-erp generate
+pnpm --filter @sfab-lite/starter-erp bake-seed
 ```
 
 ## Legacy-build decision

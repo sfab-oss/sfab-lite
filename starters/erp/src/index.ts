@@ -1,7 +1,7 @@
 import manifest from "../manifest.json" with { type: "json" };
 
 /**
- * @sfab-lite/template — the seed app.
+ * @sfab-lite/starter-erp — the seed app.
  *
  * `app/` is the payload: the source tree a new app starts life as. It runs
  * standalone from this package (`pnpm dev`) and is also what the factory

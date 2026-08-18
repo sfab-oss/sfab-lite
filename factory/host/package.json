@@ -37,7 +37,7 @@
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
     "@sfab-lite/registry": "workspace:*",
-    "@sfab-lite/template": "workspace:*",
+    "@sfab-lite/starter-erp": "workspace:*",
     "@sfab-lite/ui": "workspace:*",
     "@sfab-lite/verbs": "workspace:*",
     "@tailwindcss/vite": "4.1.11",
@@ -60,7 +60,8 @@
     "tailwindcss": "4.1.11",
     "ulid": "3.0.2",
     "zod": "4.4.3",
-    "zustand": "5.0.6"
+    "zustand": "5.0.6",
+    "@sfab-lite/starter-base": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260721.1",

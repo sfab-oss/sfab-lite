@@ -7,7 +7,7 @@
  * ceiling stays the units 0/8 re-tail; this records the first-recipes
  * assembly so they do not ship unmeasured.
  */
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
 import { CATALOG } from "../../../registry/src/catalog.ts";
 import { catalogNames, planAdd } from "../../../registry/src/lite.ts";

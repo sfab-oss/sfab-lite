@@ -7,7 +7,7 @@
  * experiment numbers). This script times the shipped server → emit → client
  * runCheck path. Local heap is an indicator, never a production claim.
  */
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
 import { SEED_MANIFEST } from "./seed-manifest.ts";
 
