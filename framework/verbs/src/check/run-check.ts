@@ -14,6 +14,10 @@ import type {
 } from "@sfab-lite/core";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
 import {
+  clientPrefixesFromManifest,
+  isClientAppPath,
+} from "./client-prefixes.js";
+import {
   type AfterUnit,
   runEmit,
   skippedUnit,
@@ -28,9 +32,7 @@ import {
   getLanguageService,
 } from "./ls-host.js";
 import {
-  clientPrefixesFromManifest,
   closedResolveUnresolvedMessage,
-  isClientAppPath,
   sideAwareUnresolvedMessage,
 } from "./resolve-modules.js";
 import {

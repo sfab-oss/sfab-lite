@@ -13,6 +13,7 @@
     "check:workspace": "node scripts/check-workspace.mjs",
     "check:kernel": "node scripts/check-kernel.mjs",
     "check:seed": "node scripts/check-seed.mjs",
+    "check:route-tree": "node scripts/check-route-tree.mjs",
     "check:check-memory": "node factory/check/scripts/regression-store-bound-inprocess.mjs",
     "check:export-agreement": "node scripts/check-export-agreement.mjs",
     "check:drizzle-agreement": "NODE_OPTIONS=--max-old-space-size=8192 node factory/check/scripts/run-measure.mjs check-drizzle-agreement.ts",

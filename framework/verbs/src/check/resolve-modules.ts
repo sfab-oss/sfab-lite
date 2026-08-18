@@ -7,13 +7,13 @@
  * / one VFS — classification only changes which specifiers resolve, not how
  * many programs are built.
  */
-import type { ManifestV0 } from "@sfab-lite/core";
 import {
   CLIENT_IMPORT_MAP,
   SERVER_IMPORT_MAP,
   TYPES_VFS,
 } from "@sfab-lite/kernel";
 import { z } from "zod";
+import { isClientAppPath } from "./client-prefixes.js";
 import { joinPath, normalizePath, readVfs } from "./vfs.js";
 
 /**
@@ -74,42 +74,7 @@ const SERVED_SURFACE =
 const CLOSED_RESOLVE_FIX =
   "Fix: write it in-tree, or use a registry recipe. npm packages cannot be added to a lite app.";
 
-const LEADING_SLASHES = /^\/+/;
-
-/**
- * RFC §2 client tree: the client entry, its stylesheet, and
- * `src/{routes,components,hooks,lib}/`. Everything else under `src/` is
- * server-side. `dirname(client.entry)` is `src/`, so a dirname prefix would
- * swallow hono/db/auth — the tree is named, not derived.
- */
-const RFC_CLIENT_DIRS = ["routes", "components", "hooks", "lib"] as const;
-
 const CLIENT_TREE_REL = "src/{routes,components,hooks,lib}";
-
-export function clientPrefixesFromManifest(
-  manifest: ManifestV0
-): readonly string[] {
-  return [
-    normalizePath(`/app/${manifest.client.entry.replace(LEADING_SLASHES, "")}`),
-    normalizePath(
-      `/app/${manifest.client.styles.replace(LEADING_SLASHES, "")}`
-    ),
-    ...RFC_CLIENT_DIRS.map((dir) => `${normalizePath(`/app/src/${dir}`)}/`),
-  ];
-}
-
-export function isClientAppPath(
-  path: string | undefined,
-  prefixes: readonly string[]
-): boolean {
-  if (path == null) {
-    return false;
-  }
-  const n = normalizePath(path);
-  return prefixes.some((prefix) =>
-    prefix.endsWith("/") ? n.startsWith(prefix) : n === prefix
-  );
-}
 
 function isAppSourcePath(path: string): boolean {
   return normalizePath(path).startsWith("/app/");
