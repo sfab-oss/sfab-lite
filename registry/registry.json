@@ -4,6 +4,26 @@
   "homepage": "https://lite.sfab.dev",
   "items": [
     {
+      "name": "accordion",
+      "type": "registry:ui",
+      "title": "Accordion",
+      "description": "Collapsible sections. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/accordion/0.1.0/accordion.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/accordion.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "alert",
       "type": "registry:ui",
       "title": "Alert",
@@ -16,6 +36,107 @@
           "path": "recipes/alert/0.1.0/alert.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/alert.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "alert-dialog",
+      "type": "registry:ui",
+      "title": "Alert dialog",
+      "description": "Confirm a destructive choice. Assumes lite/button is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/button"
+      ],
+      "files": [
+        {
+          "path": "recipes/alert-dialog/0.1.0/alert-dialog.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/alert-dialog.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "aspect-ratio",
+      "type": "registry:ui",
+      "title": "Aspect ratio",
+      "description": "Lock a box to a ratio. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/aspect-ratio/0.1.0/aspect-ratio.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/aspect-ratio.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "avatar",
+      "type": "registry:ui",
+      "title": "Avatar",
+      "description": "User image with fallback initials. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/avatar/0.1.0/avatar.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/avatar.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "badge",
+      "type": "registry:ui",
+      "title": "Badge",
+      "description": "Compact status label. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/badge/0.1.0/badge.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/badge.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "breadcrumb",
+      "type": "registry:ui",
+      "title": "Breadcrumb",
+      "description": "Path trail for nested pages. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/breadcrumb/0.1.0/breadcrumb.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/breadcrumb.tsx"
         }
       ],
       "meta": {
@@ -44,6 +165,27 @@
       }
     },
     {
+      "name": "button-group",
+      "type": "registry:ui",
+      "title": "Button group",
+      "description": "Clustered actions. Assumes lite/separator is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/separator"
+      ],
+      "files": [
+        {
+          "path": "recipes/button-group/0.1.0/button-group.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/button-group.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "card",
       "type": "registry:ui",
       "title": "Card",
@@ -56,6 +198,185 @@
           "path": "recipes/card/0.1.0/card.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/card.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "checkbox",
+      "type": "registry:ui",
+      "title": "Checkbox",
+      "description": "Boolean field. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/checkbox/0.1.0/checkbox.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/checkbox.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "collapsible",
+      "type": "registry:ui",
+      "title": "Collapsible",
+      "description": "Show and hide a panel.",
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "recipes/collapsible/0.1.0/collapsible.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/collapsible.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "combobox",
+      "type": "registry:ui",
+      "title": "Combobox",
+      "description": "Searchable select. Assumes lite/button and lite/input-group.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/button",
+        "@lite/input-group"
+      ],
+      "files": [
+        {
+          "path": "recipes/combobox/0.1.0/combobox.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/combobox.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "context-menu",
+      "type": "registry:ui",
+      "title": "Context menu",
+      "description": "Right-click menu. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/context-menu/0.1.0/context-menu.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/context-menu.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "dialog",
+      "type": "registry:ui",
+      "title": "Dialog",
+      "description": "Modal surface. Assumes lite/button is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/button"
+      ],
+      "files": [
+        {
+          "path": "recipes/dialog/0.1.0/dialog.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/dialog.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "direction",
+      "type": "registry:ui",
+      "title": "Direction",
+      "description": "LTR/RTL provider from Base UI.",
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "recipes/direction/0.1.0/direction.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/direction.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "drawer",
+      "type": "registry:ui",
+      "title": "Drawer",
+      "description": "Base UI drawer (not vaul). Wrap with DrawerProvider. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/drawer/0.1.0/drawer.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/drawer.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "dropdown-menu",
+      "type": "registry:ui",
+      "title": "Dropdown menu",
+      "description": "Action menu from a trigger. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/dropdown-menu/0.1.0/dropdown-menu.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/dropdown-menu.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "empty",
+      "type": "registry:ui",
+      "title": "Empty",
+      "description": "Empty list or panel composition. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/empty/0.1.0/empty.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/empty.tsx"
         }
       ],
       "meta": {
@@ -105,6 +426,26 @@
       }
     },
     {
+      "name": "hover-card",
+      "type": "registry:ui",
+      "title": "Hover card",
+      "description": "Preview on hover. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/hover-card/0.1.0/hover-card.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/hover-card.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "input",
       "type": "registry:ui",
       "title": "Input",
@@ -117,6 +458,90 @@
           "path": "recipes/input/0.1.0/input.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/input.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "input-group",
+      "type": "registry:ui",
+      "title": "Input group",
+      "description": "Input with addons. Assumes lite/button, lite/input, lite/textarea.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/button",
+        "@lite/input",
+        "@lite/textarea"
+      ],
+      "files": [
+        {
+          "path": "recipes/input-group/0.1.0/input-group.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/input-group.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "input-otp",
+      "type": "registry:ui",
+      "title": "Input OTP",
+      "description": "Base UI OTP field (not the input-otp package). Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/input-otp/0.1.0/input-otp.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/input-otp.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "item",
+      "type": "registry:ui",
+      "title": "Item",
+      "description": "Row in a list. Assumes lite/separator is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/separator"
+      ],
+      "files": [
+        {
+          "path": "recipes/item/0.1.0/item.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/item.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "kbd",
+      "type": "registry:ui",
+      "title": "Kbd",
+      "description": "Keyboard shortcut glyph. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/kbd/0.1.0/kbd.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/kbd.tsx"
         }
       ],
       "meta": {
@@ -145,6 +570,168 @@
       }
     },
     {
+      "name": "menubar",
+      "type": "registry:ui",
+      "title": "Menubar",
+      "description": "Desktop menu bar. Assumes lite/dropdown-menu is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/dropdown-menu"
+      ],
+      "files": [
+        {
+          "path": "recipes/menubar/0.1.0/menubar.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/menubar.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "native-select",
+      "type": "registry:ui",
+      "title": "Native select",
+      "description": "Styled native select. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/native-select/0.1.0/native-select.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/native-select.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "navigation-menu",
+      "type": "registry:ui",
+      "title": "Navigation menu",
+      "description": "Site nav with panels. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/navigation-menu/0.1.0/navigation-menu.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/navigation-menu.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "pagination",
+      "type": "registry:ui",
+      "title": "Pagination",
+      "description": "Page controls. Assumes lite/button is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/button"
+      ],
+      "files": [
+        {
+          "path": "recipes/pagination/0.1.0/pagination.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/pagination.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "popover",
+      "type": "registry:ui",
+      "title": "Popover",
+      "description": "Anchored overlay. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/popover/0.1.0/popover.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/popover.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "progress",
+      "type": "registry:ui",
+      "title": "Progress",
+      "description": "Determinate bar. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/progress/0.1.0/progress.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/progress.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "radio-group",
+      "type": "registry:ui",
+      "title": "Radio group",
+      "description": "Exclusive choice. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/radio-group/0.1.0/radio-group.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/radio-group.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "scroll-area",
+      "type": "registry:ui",
+      "title": "Scroll area",
+      "description": "Custom scrollbar. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/scroll-area/0.1.0/scroll-area.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/scroll-area.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "select",
       "type": "registry:ui",
       "title": "Select",
@@ -165,6 +752,154 @@
       }
     },
     {
+      "name": "separator",
+      "type": "registry:ui",
+      "title": "Separator",
+      "description": "Hairline divider. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/separator/0.1.0/separator.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/separator.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "sheet",
+      "type": "registry:ui",
+      "title": "Sheet",
+      "description": "Edge panel over a backdrop. Assumes lite/button is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/button"
+      ],
+      "files": [
+        {
+          "path": "recipes/sheet/0.1.0/sheet.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/sheet.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "sidebar",
+      "type": "registry:ui",
+      "title": "Sidebar",
+      "description": "App rail. Assumes sheet, tooltip, skeleton, separator, button, input, use-mobile.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/use-mobile",
+        "@lite/button",
+        "@lite/input",
+        "@lite/separator",
+        "@lite/sheet",
+        "@lite/skeleton",
+        "@lite/tooltip"
+      ],
+      "files": [
+        {
+          "path": "recipes/sidebar/0.1.0/sidebar.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/sidebar.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "skeleton",
+      "type": "registry:ui",
+      "title": "Skeleton",
+      "description": "Loading placeholder. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/skeleton/0.1.0/skeleton.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/skeleton.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "slider",
+      "type": "registry:ui",
+      "title": "Slider",
+      "description": "Numeric range. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/slider/0.1.0/slider.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/slider.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "spinner",
+      "type": "registry:ui",
+      "title": "Spinner",
+      "description": "Loading indicator. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/spinner/0.1.0/spinner.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/spinner.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "switch",
+      "type": "registry:ui",
+      "title": "Switch",
+      "description": "On/off control. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/switch/0.1.0/switch.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/switch.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "table",
       "type": "registry:ui",
       "title": "Table",
@@ -177,6 +912,145 @@
           "path": "recipes/table/0.1.0/table.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/table.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "tabs",
+      "type": "registry:ui",
+      "title": "Tabs",
+      "description": "Tabbed panels. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/tabs/0.1.0/tabs.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/tabs.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "textarea",
+      "type": "registry:ui",
+      "title": "Textarea",
+      "description": "Multiline text. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/textarea/0.1.0/textarea.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/textarea.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "toast",
+      "type": "registry:ui",
+      "title": "Toast",
+      "description": "Base UI toast primitives. Wrap the tree in ToastProvider. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/toast/0.1.0/toast.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/toast.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "toggle",
+      "type": "registry:ui",
+      "title": "Toggle",
+      "description": "Pressed state button. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/toggle/0.1.0/toggle.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/toggle.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "toggle-group",
+      "type": "registry:ui",
+      "title": "Toggle group",
+      "description": "Exclusive or multiple toggles. Assumes lite/toggle is present.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/toggle"
+      ],
+      "files": [
+        {
+          "path": "recipes/toggle-group/0.1.0/toggle-group.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/toggle-group.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "tooltip",
+      "type": "registry:ui",
+      "title": "Tooltip",
+      "description": "Label on hover. Assumes src/lib/utils exports cn.",
+      "registryDependencies": [
+        "@lite/utils"
+      ],
+      "files": [
+        {
+          "path": "recipes/tooltip/0.1.0/tooltip.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/tooltip.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "use-mobile",
+      "type": "registry:hook",
+      "title": "useIsMobile",
+      "description": "Viewport mobile breakpoint hook. Used by lite/sidebar.",
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "recipes/use-mobile/0.1.0/use-mobile.ts",
+          "type": "registry:hook",
+          "target": "src/hooks/use-mobile.ts"
         }
       ],
       "meta": {

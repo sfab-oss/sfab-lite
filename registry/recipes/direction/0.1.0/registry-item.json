@@ -1,0 +1,18 @@
+{
+  "name": "lite/direction",
+  "type": "registry:ui",
+  "title": "Direction",
+  "description": "LTR/RTL provider from Base UI.",
+  "registryDependencies": [],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "direction.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/direction.tsx"
+    }
+  ]
+}

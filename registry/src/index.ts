@@ -1,5 +1,8 @@
 export { CATALOG } from "./catalog.js";
+export { ERP_SEED_RECIPES } from "./erp-seed.js";
 export type {
+  AssembleErr,
+  AssembleOk,
   CatalogConflict,
   PlanErr,
   PlanOk,
@@ -9,6 +12,8 @@ export type {
   ResolveResult,
 } from "./lite.js";
 export {
+  assemble,
+  assembleAll,
   catalogNameForSlug,
   catalogNames,
   contentHash,

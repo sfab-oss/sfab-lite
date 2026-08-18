@@ -1,0 +1,18 @@
+{
+  "name": "lite/sheet",
+  "type": "registry:ui",
+  "title": "Sheet",
+  "description": "Edge panel over a backdrop. Assumes lite/button is present.",
+  "registryDependencies": ["lite/utils", "lite/button"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "sheet.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/sheet.tsx"
+    }
+  ]
+}

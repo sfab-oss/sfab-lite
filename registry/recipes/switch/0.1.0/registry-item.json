@@ -1,0 +1,18 @@
+{
+  "name": "lite/switch",
+  "type": "registry:ui",
+  "title": "Switch",
+  "description": "On/off control. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "switch.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/switch.tsx"
+    }
+  ]
+}

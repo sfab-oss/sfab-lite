@@ -1,0 +1,18 @@
+{
+  "name": "lite/native-select",
+  "type": "registry:ui",
+  "title": "Native select",
+  "description": "Styled native select. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "native-select.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/native-select.tsx"
+    }
+  ]
+}

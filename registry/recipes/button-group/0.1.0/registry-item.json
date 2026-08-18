@@ -1,0 +1,18 @@
+{
+  "name": "lite/button-group",
+  "type": "registry:ui",
+  "title": "Button group",
+  "description": "Clustered actions. Assumes lite/separator is present.",
+  "registryDependencies": ["lite/utils", "lite/separator"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "button-group.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/button-group.tsx"
+    }
+  ]
+}

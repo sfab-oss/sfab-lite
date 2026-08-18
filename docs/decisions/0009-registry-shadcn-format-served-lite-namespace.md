@@ -38,8 +38,9 @@ and config — the opposite of a no-install ecosystem.
 - **Two agreement gates:** `check:registry-agreement` runs the real
   pinned `shadcn` CLI against the served registry and asserts placement
   equals `planAdd` and nothing extra was written; `check:manifest`
-  asserts the starter is exactly the whole catalog assembled via `add`
-  ("provenance is a gate, not a claim").
+  asserts the starter is the ERP seed list assembled via `add`
+  ("provenance is a gate, not a claim"). The catalog may list recipes
+  the starter does not copy.
 
 ## Consequences
 
@@ -63,10 +64,15 @@ and config — the opposite of a no-install ecosystem.
 
 ## Implementation notes
 
-The starter is assembled from the whole catalog by
-`registry/scripts/assemble-erp-starter.mjs`; the memory cost of recipes
-is gated as an absolute per-app ceiling measured in production, not per
-recipe ([`../engineering/making-it-fit.md`](../engineering/making-it-fit.md),
+The starter is assembled from `ERP_SEED_RECIPES` by
+`registry/scripts/assemble-erp-starter.mjs`; the catalog may be larger.
+Unused catalog files under `src/components/ui/` still enter the client
+check unit, so the seed stays the original ten until a live full-catalog
+app is measured
+([`../notes/2026-08-18-full-catalog-assembled-check.md`](../notes/2026-08-18-full-catalog-assembled-check.md)).
+The memory cost of recipes is gated as an absolute per-app ceiling
+measured in production, not per recipe
+([`../engineering/making-it-fit.md`](../engineering/making-it-fit.md),
 "Recipes grow checked surface").
 
 ## Related

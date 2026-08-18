@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Assemble the whole registry catalog into the ERP starter via `planAdd`,
- * then write provenance onto starters/erp/manifest.json `recipes`.
+ * Copy `ERP_SEED_RECIPES` into the ERP starter via `planAdd`, then write
+ * provenance onto starters/erp/manifest.json `recipes`.
  *
- * The starter is the whole catalog by definition; `check:manifest` fails
+ * The catalog may list recipes this list does not. `check:manifest` fails
  * when the committed tree or provenance drifts from this assembly.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -11,14 +11,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateManifest } from "../../framework/toolchain/src/validate-manifest.ts";
 import { CATALOG } from "../src/catalog.ts";
-import { assembleAll } from "../src/lite.ts";
+import { ERP_SEED_RECIPES } from "../src/erp-seed.ts";
+import { assemble } from "../src/lite.ts";
 
 const registryRoot = fileURLToPath(new URL("..", import.meta.url));
 const packageRoot = join(registryRoot, "../starters/erp");
 const appRoot = join(packageRoot, "app");
 const manifestPath = join(packageRoot, "manifest.json");
 
-const assembled = assembleAll(CATALOG);
+const assembled = assemble(CATALOG, ERP_SEED_RECIPES);
 if (!assembled.ok) {
   console.error(`assemble-erp-starter: ${assembled.name}: ${assembled.error}`);
   process.exit(1);

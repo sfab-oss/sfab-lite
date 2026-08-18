@@ -1,0 +1,18 @@
+{
+  "name": "lite/empty",
+  "type": "registry:ui",
+  "title": "Empty",
+  "description": "Empty list or panel composition. Assumes src/lib/utils exports cn.",
+  "registryDependencies": ["lite/utils"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "empty.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/empty.tsx"
+    }
+  ]
+}

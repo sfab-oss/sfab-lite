@@ -1,0 +1,18 @@
+{
+  "name": "lite/collapsible",
+  "type": "registry:ui",
+  "title": "Collapsible",
+  "description": "Show and hide a panel.",
+  "registryDependencies": [],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "collapsible.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/collapsible.tsx"
+    }
+  ]
+}
