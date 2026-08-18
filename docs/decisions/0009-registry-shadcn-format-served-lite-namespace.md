@@ -69,7 +69,8 @@ The starter is assembled from `ERP_SEED_RECIPES` by
 The seed list is the recipes the ERP layout imports (sidebar, dialogs,
 breadcrumbs, …), not the whole catalog. Unused catalog files under
 `src/components/ui/` still enter the client check unit
-([`../notes/2026-08-18-full-catalog-assembled-check.md`](../notes/2026-08-18-full-catalog-assembled-check.md)).
+([`../notes/2026-08-18-full-catalog-assembled-check.md`](../notes/2026-08-18-full-catalog-assembled-check.md),
+[`../notes/2026-08-18-imported-shell-units.md`](../notes/2026-08-18-imported-shell-units.md)).
 The memory cost of recipes is gated as an absolute per-app ceiling
 measured in production, not per recipe
 ([`../engineering/making-it-fit.md`](../engineering/making-it-fit.md),

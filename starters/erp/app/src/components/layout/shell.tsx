@@ -7,6 +7,7 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { TooltipProvider } from "../ui/tooltip";
+import { type AppBreadcrumbItem, AppBreadcrumbs } from "./app-breadcrumbs";
 
 export function Shell({
   children,
@@ -55,11 +56,7 @@ export function ShellInset({
   );
 }
 
-export function ShellPage({
-  className,
-  children,
-  ...props
-}: ComponentProps<"div">) {
+function ShellPage({ className, children, ...props }: ComponentProps<"div">) {
   return (
     <div
       className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", className)}
@@ -71,7 +68,7 @@ export function ShellPage({
   );
 }
 
-export function ShellHeaderSidebarTrigger({
+function ShellHeaderSidebarTrigger({
   className,
   toggleLabel = "Toggle Sidebar",
 }: {
@@ -98,7 +95,7 @@ export function ShellHeaderSidebarTrigger({
   );
 }
 
-export function ShellHeader({
+function ShellHeader({
   className,
   children,
   ...props
@@ -117,7 +114,7 @@ export function ShellHeader({
   );
 }
 
-export function ShellHeaderActions({
+function ShellHeaderActions({
   className,
   children,
   ...props
@@ -133,7 +130,7 @@ export function ShellHeaderActions({
   );
 }
 
-export function ShellContent({
+function ShellContent({
   className,
   children,
   ...props
@@ -149,5 +146,26 @@ export function ShellContent({
     >
       {children}
     </div>
+  );
+}
+
+export function ShellPageFrame({
+  items,
+  actions,
+  children,
+}: {
+  items?: AppBreadcrumbItem[];
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <ShellPage>
+      <ShellHeader>
+        <ShellHeaderSidebarTrigger className="-ml-1" />
+        <AppBreadcrumbs items={items} />
+        <ShellHeaderActions>{actions}</ShellHeaderActions>
+      </ShellHeader>
+      <ShellContent>{children}</ShellContent>
+    </ShellPage>
   );
 }

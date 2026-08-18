@@ -1,8 +1,3 @@
-// biome-ignore-all lint/correctness/useExhaustiveDependencies: shadcn registry stock
-// biome-ignore-all lint/performance/noNamespaceImport: shadcn registry stock
-// biome-ignore-all lint/style/useConsistentTypeDefinitions: shadcn registry stock
-// biome-ignore-all lint/suspicious/noDocumentCookie: shadcn registry stock
-
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { ViewVerticalIcon } from "@radix-ui/react-icons";

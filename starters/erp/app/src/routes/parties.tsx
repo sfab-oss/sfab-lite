@@ -1,13 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { AppBreadcrumbs } from "../components/layout/app-breadcrumbs";
-import {
-  ShellContent,
-  ShellHeader,
-  ShellHeaderActions,
-  ShellHeaderSidebarTrigger,
-  ShellPage,
-} from "../components/layout/shell";
+import { ShellPageFrame } from "../components/layout/shell";
 import { CreatePartyDialog } from "../components/parties/create-party-dialog";
 import { Badge } from "../components/ui/badge";
 import { EmptyState } from "../components/ui/empty-state";
@@ -86,15 +79,11 @@ export function PartiesPage() {
   }
 
   return (
-    <ShellPage>
-      <ShellHeader>
-        <ShellHeaderSidebarTrigger className="-ml-1" />
-        <AppBreadcrumbs items={[{ title: "Parties" }]} />
-        <ShellHeaderActions>
-          <CreatePartyDialog />
-        </ShellHeaderActions>
-      </ShellHeader>
-      <ShellContent>{body}</ShellContent>
-    </ShellPage>
+    <ShellPageFrame
+      actions={<CreatePartyDialog />}
+      items={[{ title: "Parties" }]}
+    >
+      {body}
+    </ShellPageFrame>
   );
 }

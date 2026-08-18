@@ -34,8 +34,8 @@ The seed is a **single-project** tree (not a monorepo, no fake `packages/`):
 | `src/contract/` | Shared Zod schemas for Hono + hooks. |
 | `src/router.tsx` | Client entry: route tree and `createRoot` mount. |
 | `src/routes/` | Page modules, registered in `router.tsx`. |
-| `src/components/layout/` | App shell, top nav, auth shell. |
-| `src/components/ui/` | Registry recipes (`button`, `card`, `field`, `input`, `label`, `table`). |
+| `src/components/layout/` | Inset shell, sidebar, breadcrumbs, auth shell. |
+| `src/components/ui/` | Registry recipes (seed list in `ERP_SEED_RECIPES`, including sidebar and dialogs). |
 | `src/hooks/` | Data hooks (`use-parties`, `use-session`). |
 | `src/lib/` | Client, auth client, money helpers, `utils` (`cn`). |
 

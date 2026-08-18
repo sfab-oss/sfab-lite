@@ -1,13 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { AppBreadcrumbs } from "../components/layout/app-breadcrumbs";
-import {
-  ShellContent,
-  ShellHeader,
-  ShellHeaderActions,
-  ShellHeaderSidebarTrigger,
-  ShellPage,
-} from "../components/layout/shell";
+import { ShellPageFrame } from "../components/layout/shell";
 import { Badge } from "../components/ui/badge";
 import { EmptyState } from "../components/ui/empty-state";
 import { Skeleton } from "../components/ui/skeleton";
@@ -85,13 +78,6 @@ export function BalancesPage() {
   }
 
   return (
-    <ShellPage>
-      <ShellHeader>
-        <ShellHeaderSidebarTrigger className="-ml-1" />
-        <AppBreadcrumbs items={[{ title: "Open balances" }]} />
-        <ShellHeaderActions />
-      </ShellHeader>
-      <ShellContent>{body}</ShellContent>
-    </ShellPage>
+    <ShellPageFrame items={[{ title: "Open balances" }]}>{body}</ShellPageFrame>
   );
 }
