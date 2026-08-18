@@ -92,7 +92,9 @@ published recipe, asserting byte-identical placement vs `planAdd`.
 
 Extracted from the starter's shared UI so the starter can assemble
 from the registry. Targets are the RFC §2 tree (`src/components/ui/`,
-`src/lib/`).
+`src/lib/`). `ERP_SEED_RECIPES` is the subset copied into `starters/erp`
+at bake time; today it is the whole catalog. New recipes can join the
+catalog without changing that list.
 
 | Name | Why it survives the starter rebuild |
 | --- | --- |

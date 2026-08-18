@@ -147,10 +147,12 @@ planner), and each file is provenance-recorded in `manifest.recipes`:
 `lite/empty-state` (all `@0.1.0`).
 
 `pnpm --filter @sfab-lite/registry assemble-erp-starter` re-runs that
-assembly (the starter is the whole catalog). `pnpm check:manifest`
+assembly from `ERP_SEED_RECIPES` (today the whole catalog; the catalog
+may grow without this list). `pnpm check:manifest`
 fails when the tree or `manifest.recipes` drifts from it, so do not
 hand-edit a recipe file or hand-copy one into `src/components/ui/` —
-add it to the catalog, then assemble.
+add it to the catalog, then either assemble it into the seed list or
+`add` it onto an app.
 
 Kind is a `lite/select`. Errors use `lite/alert`. Empty lists use
 `lite/empty-state`. There is no sidebar; navigation is a top bar in

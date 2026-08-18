@@ -11,7 +11,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateManifest } from "../framework/toolchain/src/validate-manifest.ts";
 import { CATALOG } from "../registry/src/catalog.ts";
-import { assembleAll, contentHash } from "../registry/src/lite.ts";
+import { ERP_SEED_RECIPES } from "../registry/src/erp-seed.ts";
+import { assemble, contentHash } from "../registry/src/lite.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const starterPath = join(repoRoot, "starters/erp/manifest.json");
@@ -63,7 +64,7 @@ console.log(
   `manifest ok: starters/erp format ${starterResult.manifest.format} ${starterResult.manifest.runtime} + red fixture`
 );
 
-const assembled = assembleAll(CATALOG);
+const assembled = assemble(CATALOG, ERP_SEED_RECIPES);
 if (!assembled.ok) {
   console.error(
     `check:manifest — add ${assembled.name} failed: ${assembled.error}`
@@ -76,12 +77,12 @@ const assembledResult = validateManifest({
 });
 if (!assembledResult.ok) {
   console.error(
-    `check:manifest — starter + all recipes provenance failed v0:\n${formatIssues(assembledResult.issues)}`
+    `check:manifest — starter + ERP_SEED_RECIPES provenance failed v0:\n${formatIssues(assembledResult.issues)}`
   );
   process.exit(1);
 }
 
-// The starter is the whole catalog, assembled. Committed provenance must be
+// The starter is the ERP seed list, assembled. Committed provenance must be
 // exactly that assembly, and every recipe file on disk must still hash to it —
 // otherwise `manifest.recipes` describes a tree that no longer exists.
 const drift = [];
@@ -103,7 +104,7 @@ const canonical = (recipes) =>
   );
 if (canonical(starter.recipes ?? {}) !== canonical(assembled.provenance)) {
   drift.push(
-    "manifest.recipes differs from assembleAll(CATALOG) — run `pnpm --filter @sfab-lite/registry assemble-erp-starter`"
+    "manifest.recipes differs from assemble(CATALOG, ERP_SEED_RECIPES) — run `pnpm --filter @sfab-lite/registry assemble-erp-starter`"
   );
 }
 for (const [path, content] of Object.entries(assembled.writes)) {
@@ -125,5 +126,5 @@ if (drift.length > 0) {
   process.exit(1);
 }
 console.log(
-  `manifest ok: ${Object.keys(assembled.provenance).length} recipes via add; starter tree + provenance match the catalog`
+  `manifest ok: ${Object.keys(assembled.provenance).length} seed recipes via add; starter tree + provenance match ERP_SEED_RECIPES`
 );

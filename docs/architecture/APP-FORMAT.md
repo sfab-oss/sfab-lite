@@ -471,10 +471,11 @@ direction gate forbids `framework/` from importing `factory/` or
 
 `pnpm check:manifest` validates `starters/erp/manifest.json` against
 v0, fails closed if a committed invalid fixture validates, and fails
-when the starter drifts from the registry: committed `recipes` must
-equal `assembleAll(CATALOG)` and every recipe file under
-`starters/erp/app/` must hash to the catalog. Provenance is a gate,
-not a claim. That red fixture is the gate lesson from
+when the starter drifts from `ERP_SEED_RECIPES`: committed `recipes`
+must equal `assemble(CATALOG, ERP_SEED_RECIPES)` and every seed recipe
+file under `starters/erp/app/` must hash to the catalog. Extra catalog
+items are add-only. Provenance is a gate, not a claim. That red fixture
+is the gate lesson from
 [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md):
 ask what the gate would still pass if the thing it protects were
 broken.
