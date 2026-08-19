@@ -61,6 +61,10 @@ in place. No auto-update, ever. Repo Biome skips superseded trees so
 The harness decides when an app moves to a newer recipe version
 ([ADR-0013](../docs/decisions/0013-templates-and-registry-are-inert.md)).
 
+`lite/form@0.1.0` is hashed in `published.json` but omitted from the live
+catalog (`catalog.items` / `registry.json`). Screens use Controller +
+Field + FieldError. Bake skips the `form` slug when writing those.
+
 ## What a recipe may target (ratified, owner 2026-08-14)
 
 Applied migrations are an immutable ledger (ADR-0005: `db:generate` is

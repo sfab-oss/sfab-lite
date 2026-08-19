@@ -7,12 +7,13 @@ import { Badge } from "../../../components/ui/badge";
 import {
   DataTable,
   DataTableColumnHeader,
+  type TableFilterDefinition,
 } from "../../../components/ui/data-table";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Skeleton } from "../../../components/ui/skeleton";
 import { useParties } from "../../../hooks/use-parties";
 import { formatCents } from "../../../lib/money";
-import { PARTY_KIND_LABEL } from "../../../lib/party-kind";
+import { PARTY_KIND_LABEL, PARTY_KINDS } from "../../../lib/party-kind";
 
 export const Route = createFileRoute("/_app/parties/")({
   component: PartiesPage,
@@ -25,9 +26,31 @@ interface PartyRow {
   balanceCents: number;
 }
 
+const PARTY_FILTER_DEFINITIONS: TableFilterDefinition[] = [
+  {
+    id: "name",
+    columnId: "name",
+    label: "Name",
+    type: "text",
+    placeholder: "Search names…",
+  },
+  {
+    id: "kind",
+    columnId: "kind",
+    label: "Kind",
+    type: "enum",
+    options: PARTY_KINDS.map((kind) => ({
+      value: kind,
+      label: PARTY_KIND_LABEL[kind],
+    })),
+  },
+];
+
 const columns: ColumnDef<PartyRow>[] = [
   {
     accessorKey: "name",
+    meta: { label: "Name" },
+    filterFn: "includesString",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Name" />
     ),
@@ -43,6 +66,8 @@ const columns: ColumnDef<PartyRow>[] = [
   },
   {
     accessorKey: "kind",
+    meta: { label: "Kind" },
+    filterFn: "arrIncludesExact",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Kind" />
     ),
@@ -52,6 +77,7 @@ const columns: ColumnDef<PartyRow>[] = [
   },
   {
     accessorKey: "balanceCents",
+    meta: { label: "Balance" },
     header: ({ column }) => (
       <DataTableColumnHeader
         className="justify-end"
@@ -91,13 +117,11 @@ function PartiesPage() {
     );
   } else {
     body = (
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        <DataTable
-          columns={columns}
-          data={rows}
-          filterPlaceholder="Filter parties…"
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={rows}
+        filterDefinitions={PARTY_FILTER_DEFINITIONS}
+      />
     );
   }
 

@@ -6,12 +6,13 @@ import { Badge } from "../../components/ui/badge";
 import {
   DataTable,
   DataTableColumnHeader,
+  type TableFilterDefinition,
 } from "../../components/ui/data-table";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Skeleton } from "../../components/ui/skeleton";
 import { useOpenBalances } from "../../hooks/use-parties";
 import { formatCents } from "../../lib/money";
-import { PARTY_KIND_LABEL } from "../../lib/party-kind";
+import { PARTY_KIND_LABEL, PARTY_KINDS } from "../../lib/party-kind";
 
 export const Route = createFileRoute("/_app/balances")({
   component: BalancesPage,
@@ -24,9 +25,31 @@ interface BalanceRow {
   balanceCents: number;
 }
 
+const BALANCE_FILTER_DEFINITIONS: TableFilterDefinition[] = [
+  {
+    id: "name",
+    columnId: "name",
+    label: "Party",
+    type: "text",
+    placeholder: "Search parties…",
+  },
+  {
+    id: "kind",
+    columnId: "kind",
+    label: "Kind",
+    type: "enum",
+    options: PARTY_KINDS.map((kind) => ({
+      value: kind,
+      label: PARTY_KIND_LABEL[kind],
+    })),
+  },
+];
+
 const columns: ColumnDef<BalanceRow>[] = [
   {
     accessorKey: "name",
+    meta: { label: "Party" },
+    filterFn: "includesString",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Party" />
     ),
@@ -42,6 +65,8 @@ const columns: ColumnDef<BalanceRow>[] = [
   },
   {
     accessorKey: "kind",
+    meta: { label: "Kind" },
+    filterFn: "arrIncludesExact",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Kind" />
     ),
@@ -51,6 +76,7 @@ const columns: ColumnDef<BalanceRow>[] = [
   },
   {
     accessorKey: "balanceCents",
+    meta: { label: "Balance" },
     header: ({ column }) => (
       <DataTableColumnHeader
         className="justify-end"
@@ -90,13 +116,11 @@ function BalancesPage() {
     );
   } else {
     body = (
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        <DataTable
-          columns={columns}
-          data={rows}
-          filterPlaceholder="Filter balances…"
-        />
-      </div>
+      <DataTable
+        columns={columns}
+        data={rows}
+        filterDefinitions={BALANCE_FILTER_DEFINITIONS}
+      />
     );
   }
 

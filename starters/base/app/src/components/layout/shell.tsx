@@ -1,6 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "../../lib/utils";
-import { ThemeToggle } from "../theme-toggle";
 import {
   SidebarInset,
   SidebarProvider,
@@ -164,10 +163,7 @@ export function ShellPageFrame({
       <ShellHeader>
         <ShellHeaderSidebarTrigger className="-ml-1" />
         <AppBreadcrumbs items={items} />
-        <ShellHeaderActions>
-          {actions}
-          <ThemeToggle />
-        </ShellHeaderActions>
+        <ShellHeaderActions>{actions}</ShellHeaderActions>
       </ShellHeader>
       <ShellContent>{children}</ShellContent>
     </ShellPage>

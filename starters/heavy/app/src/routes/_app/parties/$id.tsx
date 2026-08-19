@@ -18,6 +18,7 @@ import {
 import {
   DataTable,
   DataTableColumnHeader,
+  type TableFilterDefinition,
 } from "../../../components/ui/data-table";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Skeleton } from "../../../components/ui/skeleton";
@@ -41,9 +42,31 @@ interface LedgerRow {
   memo: string | null;
 }
 
+const LEDGER_FILTER_DEFINITIONS: TableFilterDefinition[] = [
+  {
+    id: "kind",
+    columnId: "kind",
+    label: "Kind",
+    type: "enum",
+    options: [
+      { value: "charge", label: "Charge" },
+      { value: "payment", label: "Payment" },
+    ],
+  },
+  {
+    id: "memo",
+    columnId: "memo",
+    label: "Memo",
+    type: "text",
+    placeholder: "Search memos…",
+  },
+];
+
 const ledgerColumns: ColumnDef<LedgerRow>[] = [
   {
     accessorKey: "kind",
+    meta: { label: "Kind" },
+    filterFn: "arrIncludesExact",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Kind" />
     ),
@@ -51,6 +74,7 @@ const ledgerColumns: ColumnDef<LedgerRow>[] = [
   },
   {
     accessorKey: "amountCents",
+    meta: { label: "Amount" },
     header: ({ column }) => (
       <DataTableColumnHeader
         className="justify-end"
@@ -66,6 +90,8 @@ const ledgerColumns: ColumnDef<LedgerRow>[] = [
   },
   {
     accessorKey: "memo",
+    meta: { label: "Memo" },
+    filterFn: "includesString",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Memo" />
     ),
@@ -197,7 +223,7 @@ function PartyDetailPage() {
                 <DataTable
                   columns={ledgerColumns}
                   data={entries}
-                  filterPlaceholder="Filter ledger…"
+                  filterDefinitions={LEDGER_FILTER_DEFINITIONS}
                 />
               )}
             </CardContent>

@@ -83,6 +83,12 @@
         "src/components/ui/card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
       }
     },
+    "lite/checkbox": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/checkbox.tsx": "sha256:91b736a1b0fffd2f328960861be23e07631ba3d0c48e7dce85e4ba3698ba5b67"
+      }
+    },
     "lite/table": {
       "version": "0.1.0",
       "files": {
@@ -95,10 +101,32 @@
         "src/components/ui/input.tsx": "sha256:39fadb9d6916a7c6dda9c4bc0e3f7454ef02df0a50ff6b137e64b09b82b019b8"
       }
     },
-    "lite/data-table": {
-      "version": "0.1.1",
+    "lite/label": {
+      "version": "0.1.0",
       "files": {
-        "src/components/ui/data-table.tsx": "sha256:5defe7cf434119b5f747851fbdcb71e14313df3e14ffa526fd2662976eb8b483"
+        "src/components/ui/label.tsx": "sha256:1287d61955d50681c37640d7534f3dd2341ebe3053e9385dd7979cdfb838305a"
+      }
+    },
+    "lite/popover": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/popover.tsx": "sha256:bd2f27326c5e372228876d094fa2dc01aa10f03ad0bc3a2bf8eda3fecac07048"
+      }
+    },
+    "lite/separator": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/separator.tsx": "sha256:7cdc3757d62638224c93f641e3b6c9e36d2a763325042a365408b84d48e34682"
+      }
+    },
+    "lite/data-table": {
+      "version": "0.1.2",
+      "files": {
+        "src/lib/table-filter-types.ts": "sha256:7dbe5967cdb28c236ed5dd2909aec47f861dc613be2e905015bc8df1ad86a6d2",
+        "src/components/ui/sortable-header.tsx": "sha256:767bb138c9c0ba0a6f68b95734c84845234ce25a35940746a328dd4f760c9cd4",
+        "src/components/ui/table-sort-control.tsx": "sha256:12c53574687df2f9b5032321bf2c261aa3424ee97b17f1dee705f3f3b758407f",
+        "src/components/ui/table-filter-toolbar.tsx": "sha256:02ee1752d9f4af369924611a078e512ef09dc657b15d91008324b5435c7e94f7",
+        "src/components/ui/data-table.tsx": "sha256:71b53f4dc9eaa7c06bdcfc732d149cab1235002029ffd6c308bd68b257a061fe"
       }
     },
     "lite/dialog": {
@@ -119,12 +147,6 @@
         "src/components/ui/empty-state.tsx": "sha256:8f445050a5d80cf514dc00df7c770930604292b6459bdffb48dbc690586cd806"
       }
     },
-    "lite/label": {
-      "version": "0.1.0",
-      "files": {
-        "src/components/ui/label.tsx": "sha256:1287d61955d50681c37640d7534f3dd2341ebe3053e9385dd7979cdfb838305a"
-      }
-    },
     "lite/field": {
       "version": "0.1.1",
       "files": {
@@ -135,12 +157,6 @@
       "version": "0.1.0",
       "files": {
         "src/components/ui/select.tsx": "sha256:d49d61dc00a0a5eaabefca09ead0adb557fc538b1dad5d1d54669d682e37dbe0"
-      }
-    },
-    "lite/separator": {
-      "version": "0.1.0",
-      "files": {
-        "src/components/ui/separator.tsx": "sha256:7cdc3757d62638224c93f641e3b6c9e36d2a763325042a365408b84d48e34682"
       }
     },
     "lite/sheet": {

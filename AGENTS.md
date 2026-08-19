@@ -38,9 +38,10 @@ unknown types, bare names), and refuses mutation of published version
 hashes.
 
 `check:registry-agreement` is the cheap-vs-real CLI gate: the pinned
-`shadcn` CLI adding every published recipe from a locally served
+`shadcn` CLI adding every live-catalog recipe from a locally served
 `/r/{name}.json` must place files byte-identical to `planAdd`. CI-only
-— not in pre-commit.
+— not in pre-commit. Hashed-but-retired slugs (e.g. `lite/form@0.1.0`)
+are not served.
 
 `check:app-lint` is the odd one: it checks every `starters/*/app/src` —
 the seed payloads — against `framework/toolchain/app-biome.json`, the

@@ -19,9 +19,9 @@ Check resolves `@tanstack/table-core` at `build/lib/index.d.ts` so
 ## Follow-on: DIY theme (no next-themes)
 
 FOUC-safe `sfab-theme` boot script in `formatIndexHtml`, `lite/theme-toggle@0.1.0`
-(`src/lib/theme.ts` + sun/moon cycle in the shell header), Appearance card
-(Light / Dark / System) on base/erp/heavy settings. No new kernel pin —
-host gzip should not move.
+(`src/lib/theme.ts` + sun/moon cycle Button). Seeded in every starter.
+Wire `ThemeToggle` into the sidebar user-menu footer (same slot as
+sfab-starter). No Appearance card on settings. No new kernel pin.
 
 ## Recipe
 
@@ -40,3 +40,13 @@ balance). Other tables left on `lite/table`.
 and `getPaginationRowModel` (prev/next). ERP/Heavy parties, balances, and
 party ledger use it. Filter state is internal — no unused controlled
 props. No URL pagination — Lite APIs are not paginated.
+
+## Follow-on: starter filter/sort toolbar
+
+`lite/data-table@0.1.2` matches sfab-starter list chrome: sort popover,
+filter popover with chips (text + enum), sortable headers, row count,
+prev/next pagination. New files in the recipe (`table-filter-types`,
+`sortable-header`, `table-sort-control`, `table-filter-toolbar`).
+`0.1.0` / `0.1.1` stay hashed. ERP seed gained `lite/checkbox` and
+`lite/popover` as toolbar deps. Still client-side only — no server
+pagination, no ResourceTable row-action column.

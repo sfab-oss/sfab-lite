@@ -22,6 +22,8 @@ const catalogPath = join(registryRoot, "src/generated/catalog.json");
 const publishedPath = join(registryRoot, "published.json");
 const sourceRegistryPath = join(registryRoot, "registry.json");
 const schemaPath = join(registryRoot, SHADCN_REGISTRY_ITEM_SCHEMA.vendoredPath);
+// Hashed in published.json, omitted from catalog.items / registry.json.
+const RETIRED_FROM_LIVE = new Set(["form"]);
 
 function hash(text) {
   return `sha256:${createHash("sha256").update(text, "utf8").digest("hex")}`;
@@ -88,6 +90,9 @@ for (const slug of readdirSync(recipesRoot).sort()) {
       fileHashes[file.path] = hash(text);
     }
     published[`${item.name}@${version}`] = { files: fileHashes };
+    if (RETIRED_FROM_LIVE.has(slug)) {
+      continue;
+    }
     const current = catalog.items[item.name];
     if (current && current.version > version) {
       continue;

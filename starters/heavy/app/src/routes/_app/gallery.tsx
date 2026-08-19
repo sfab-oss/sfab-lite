@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { useForm } from "react-hook-form";
 import { ShellPageFrame } from "../../components/layout/shell";
 import {
   Accordion,
@@ -101,7 +100,6 @@ import {
   FieldGroup,
   FieldLabel,
 } from "../../components/ui/field";
-import { Form } from "../../components/ui/form";
 import {
   HoverCard,
   HoverCardContent,
@@ -223,15 +221,6 @@ function DirectionProbe() {
   return <span className="text-muted-foreground text-xs">dir={direction}</span>;
 }
 
-function FormProbe() {
-  const form = useForm();
-  return (
-    <Form {...form}>
-      <p className="text-muted-foreground text-sm">Form provider</p>
-    </Form>
-  );
-}
-
 function GallerySection({
   title,
   children,
@@ -260,8 +249,7 @@ function GalleryPage() {
         <div className="space-y-1">
           <h2 className="font-semibold text-2xl tracking-tight">Gallery</h2>
           <p className="text-muted-foreground text-sm">
-            Every published catalog recipe, imported as a client root. Ugly is
-            fine.
+            Every live catalog recipe, imported as a client root. Ugly is fine.
           </p>
           <p className={mobileClass}>useIsMobile={String(mobile)} · cn wired</p>
         </div>
@@ -463,10 +451,6 @@ function GalleryPage() {
               </Field>
               <Textarea placeholder="Notes" />
             </FieldGroup>
-          </GallerySection>
-
-          <GallerySection title="form">
-            <FormProbe />
           </GallerySection>
 
           <GallerySection title="hover-card">
