@@ -15,7 +15,6 @@ export const ERP_SEED_RECIPES = [
   "lite/dropdown-menu",
   "lite/empty-state",
   "lite/field",
-  "lite/form",
   "lite/input",
   "lite/label",
   "lite/select",

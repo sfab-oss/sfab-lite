@@ -95,12 +95,6 @@
         "src/components/ui/field.tsx": "sha256:e06dce50fa7722b24151768c4d9c5e0fc0be6a41a93d2fea1d35cc98b524d818"
       }
     },
-    "lite/form": {
-      "version": "0.1.0",
-      "files": {
-        "src/components/ui/form.tsx": "sha256:06683794b03c4345f0c8b224c5dea2b9a48a4f1c15b84437dfbf0ba7691eb338"
-      }
-    },
     "lite/input": {
       "version": "0.1.0",
       "files": {

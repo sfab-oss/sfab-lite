@@ -89,9 +89,9 @@ const config: KnipConfig = {
         // Emit walks this alias by name (`findApiTypeAlias`); the SPA client
         // imports `src/generated/api` instead of `typeof` the live server.
         "app/src/server.ts": ["exports", "types"],
-        // Registry recipes are copied verbatim; unused files/exports stay so
+        // Registry recipes are copied verbatim; unused exports stay so
         // provenance hashes match the catalog.
-        "app/src/components/ui/**/*.tsx": ["exports", "files"],
+        "app/src/components/ui/**/*.tsx": ["exports"],
         "app/src/hooks/use-mobile.ts": ["exports"],
       },
     },
@@ -101,7 +101,7 @@ const config: KnipConfig = {
       ignoreDependencies: ["tailwindcss"],
       ignoreIssues: {
         "app/src/server.ts": ["exports", "types"],
-        "app/src/components/ui/**/*.tsx": ["exports", "files"],
+        "app/src/components/ui/**/*.tsx": ["exports"],
         "app/src/hooks/use-mobile.ts": ["exports"],
       },
     },
@@ -111,7 +111,7 @@ const config: KnipConfig = {
       ignoreDependencies: ["tailwindcss"],
       ignoreIssues: {
         "app/src/server.ts": ["exports", "types"],
-        "app/src/components/ui/**/*.tsx": ["exports", "files"],
+        "app/src/components/ui/**/*.tsx": ["exports"],
         "app/src/hooks/use-mobile.ts": ["exports"],
       },
     },
