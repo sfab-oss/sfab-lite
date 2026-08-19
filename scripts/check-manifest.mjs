@@ -12,6 +12,7 @@ import { validateManifest } from "../framework/toolchain/src/validate-manifest.t
 import { BASE_SEED_RECIPES } from "../registry/src/base-seed.ts";
 import { CATALOG } from "../registry/src/catalog.ts";
 import { ERP_SEED_RECIPES } from "../registry/src/erp-seed.ts";
+import { HEAVY_SEED_RECIPES } from "../registry/src/heavy-seed.ts";
 import { assemble, contentHash } from "../registry/src/lite.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -21,6 +22,10 @@ const redPath = join(repoRoot, "scripts/fixtures/manifest-red/manifest.json");
 const RECIPE_LISTS = {
   base: { recipes: BASE_SEED_RECIPES, assembleScript: "assemble-base-starter" },
   erp: { recipes: ERP_SEED_RECIPES, assembleScript: "assemble-erp-starter" },
+  heavy: {
+    recipes: HEAVY_SEED_RECIPES,
+    assembleScript: "assemble-heavy-starter",
+  },
 };
 
 function load(path) {

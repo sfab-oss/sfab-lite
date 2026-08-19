@@ -15,6 +15,12 @@ const STARTER_CHOICES = [
     description: "Parties, ledger, and balances",
     isDefault: false,
   },
+  {
+    id: "heavy",
+    label: "Heavy",
+    description: "ERP plus full catalog gallery",
+    isDefault: false,
+  },
 ] as const;
 
 export type StarterId = (typeof STARTER_CHOICES)[number]["id"];

@@ -1,6 +1,7 @@
 export { BASE_SEED_RECIPES } from "./base-seed.js";
 export { CATALOG } from "./catalog.js";
 export { ERP_SEED_RECIPES } from "./erp-seed.js";
+export { HEAVY_SEED_RECIPES } from "./heavy-seed.js";
 export type {
   AssembleErr,
   AssembleOk,

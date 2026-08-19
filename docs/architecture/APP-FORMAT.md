@@ -102,7 +102,7 @@ The hosted compile path does not run it.
 
 ### Starter-package packaging
 
-In this repo each starter payload lives under `starters/<id>/app/` (packages `-lite/starter-base`, `-lite/starter-erp`). The
+In this repo each starter payload lives under `starters/<id>/app/` (packages `-lite/starter-base`, `-lite/starter-erp`, `-lite/starter-heavy`). The
 manifest's `root` field names that subdirectory for the packer. A
 hosted app's tree *is* the root; seeded apps currently inherit
 `root: "app"` from the starter — a packaging leak, ignored at serve,
@@ -474,7 +474,7 @@ direction gate forbids `framework/` from importing `factory/` or
 `pnpm check:manifest` validates each `starters/<id>/manifest.json` against
 v0, fails closed if a committed invalid fixture validates, and fails
 when a starter drifts from its seed recipe list (`BASE_SEED_RECIPES` /
-`ERP_SEED_RECIPES`): committed `recipes` must equal
+`ERP_SEED_RECIPES` / `HEAVY_SEED_RECIPES`): committed `recipes` must equal
 `assemble(CATALOG, …)` and every seed recipe file under
 `starters/<id>/app/` must hash to the catalog. Extra catalog
 items are add-only. Provenance is a gate, not a claim. That red fixture

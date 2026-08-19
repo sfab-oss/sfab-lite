@@ -46,8 +46,8 @@ analogue), not framework mechanisms. Nothing is ever forced.
 Two follow-ups this decision creates (named, not built here):
 
 1. **Multiple templates.** `starters/<name>` each with its own
-   manifest; create takes a template id. Follow-up 1 is in progress
-   (`base` + catalog landed; `heavy` still to land).
+   manifest; create takes a template id. Follow-up 1 is closed
+   (`base`, `erp`, and `heavy` are in the catalog).
 2. **Cross-cutting wiring for domain modules.** A module needs a
    route mounted, a nav entry, a generated migration. Copying source
    cannot wire those, and [ADR-0008](0008-declarative-manifest-no-app-plugin-system.md)
