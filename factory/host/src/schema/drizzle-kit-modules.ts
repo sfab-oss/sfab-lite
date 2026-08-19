@@ -1,40 +1,18 @@
 /**
  * Patched drizzle-kit `api.mjs` + drizzle-orm import closure for the schema
- * probe. The map is not in the Worker script — it lives on KERNEL_R2 at
- * `tools/drizzle-kit/<kit>-<orm>/` (see upload-drizzle-kit-r2.mjs).
+ * probe. Committed as `generated/drizzle-kit-modules.json` (path → source
+ * string) and imported at build time so Vite never flattens or executes
+ * `api.mjs`. Drift-gated by `check:drizzle-kit-modules`.
  */
+import modulesJson from "../../generated/drizzle-kit-modules.json" with {
+  type: "json",
+};
+
 export const DRIZZLE_KIT_VERSION = "0.31.10";
 export const DRIZZLE_ORM_VERSION = "0.45.2";
 
 export function drizzleKitToolVersion(): string {
   return `${DRIZZLE_KIT_VERSION}-${DRIZZLE_ORM_VERSION}`;
-}
-
-export function drizzleKitModulesKey(): string {
-  return `tools/drizzle-kit/${drizzleKitToolVersion()}/modules.json`;
-}
-
-export function drizzleKitManifestKey(): string {
-  return `tools/drizzle-kit/${drizzleKitToolVersion()}/manifest.json`;
-}
-
-export function missingDrizzleKitModulesMessage(
-  version = drizzleKitToolVersion()
-): string {
-  return `drizzle-kit modules not uploaded for ${version} — run upload`;
-}
-
-export type DrizzleKitLoaderModules =
-  | { ok: true; modules: Record<string, { js: string }> }
-  | { ok: false; error: string };
-
-let cached: {
-  version: string;
-  modules: Record<string, { js: string }>;
-} | null = null;
-
-export function resetDrizzleKitModulesCache(): void {
-  cached = null;
 }
 
 function isModuleMap(value: unknown): value is Record<string, string> {
@@ -63,40 +41,14 @@ function toLoaderModules(
   return modules;
 }
 
-export interface DrizzleKitR2 {
-  head: (key: string) => Promise<unknown>;
-  get: (key: string) => Promise<{ text: () => Promise<string> } | null>;
+if (!isModuleMap(modulesJson)) {
+  throw new Error(
+    `drizzle-kit modules map is invalid for ${drizzleKitToolVersion()}`
+  );
 }
 
-export async function drizzleKitLoaderModules(env: {
-  KERNEL_R2: DrizzleKitR2;
-}): Promise<DrizzleKitLoaderModules> {
-  const version = drizzleKitToolVersion();
-  if (cached?.version === version) {
-    return { ok: true, modules: cached.modules };
-  }
+const LOADER_MODULES = toLoaderModules(modulesJson);
 
-  const missing = missingDrizzleKitModulesMessage(version);
-  const manifest = await env.KERNEL_R2.head(drizzleKitManifestKey());
-  if (!manifest) {
-    return { ok: false, error: missing };
-  }
-  const object = await env.KERNEL_R2.get(drizzleKitModulesKey());
-  if (!object) {
-    return { ok: false, error: missing };
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await object.text());
-  } catch {
-    return { ok: false, error: missing };
-  }
-  if (!isModuleMap(parsed)) {
-    return { ok: false, error: missing };
-  }
-
-  const modules = toLoaderModules(parsed);
-  cached = { version, modules };
-  return { ok: true, modules };
+export function drizzleKitLoaderModules(): Record<string, { js: string }> {
+  return LOADER_MODULES;
 }
