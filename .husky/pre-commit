@@ -14,5 +14,6 @@ pnpm check:dead-code
 pnpm check:kernel
 pnpm check:seed
 pnpm check:drizzle-kit-modules
+pnpm check:modules
 pnpm check:route-tree
 pnpm check:template-snapshot

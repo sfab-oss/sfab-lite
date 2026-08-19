@@ -8,8 +8,8 @@ const config: KnipConfig = {
     ".": {
       // check-cycles.mjs is the madge gate; see its header for the AppAgent ↔
       // AppThread exclude rationale (intrinsic root/facet class-name cycle).
-      entry: ["scripts/**/*.mjs!"],
-      project: ["scripts/**/*.mjs"],
+      entry: ["scripts/**/*.mjs!", "framework/modules/scripts/**/*.mjs!"],
+      project: ["scripts/**/*.mjs", "framework/modules/scripts/**/*.mjs"],
       // check-bundle-size.mjs runs `pnpm exec wrangler` with cwd set to each
       // app, so it resolves from that app's node_modules where wrangler is a
       // real dependency. Declaring it at the root would be the wrong fix.

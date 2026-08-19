@@ -1,0 +1,19 @@
+{
+  "name": "pdf-lib",
+  "version": "1.17.1",
+  "plane": "server",
+  "runtime": "^0",
+  "loaderKey": "pdf-lib.js",
+  "esmFile": "pdf-lib.esm.js",
+  "stubPath": "/node_modules/pdf-lib/index.d.ts",
+  "rawBytes": 833573,
+  "gzipBytes": 217297,
+  "stubBytes": 734,
+  "sha256": "sha256:9c49b40dcf473e44b1e438301702b2436d9273eef34a2abf1daa53abe5c652f5",
+  "stubSha256": "sha256:acac7f111f78177e0ccd816cc1d6f9f7815479110ee53e9756c7741589a9b936",
+  "esbuild": "0.28.1",
+  "evidence": [
+    "docs/engineering/making-it-fit.md",
+    "docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md"
+  ]
+}
