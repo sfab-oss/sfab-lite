@@ -12,6 +12,10 @@ react-query / RHF: one shared client chunk, not a per-app npm dep.
 
 Host gzip after pin: **4.00 MiB / 41.9%** (was 3.97 MiB / 41.7%).
 
+Check resolves `@tanstack/table-core` at `build/lib/index.d.ts` so
+`export *` from `@tanstack/react-table` can see `ColumnDef`. Local starter
+`tsc` uses node_modules and hid the miss.
+
 ## Follow-on: DIY theme (no next-themes)
 
 FOUC-safe `sfab-theme` boot script in `formatIndexHtml`, `lite/theme-toggle@0.1.0`
