@@ -1,6 +1,6 @@
 {
   "extends": "@sfab-lite/tsconfig/tanstack-start.json",
-  "include": ["src", "vite.config.ts"],
+  "include": ["src", "vite.config.ts", "generated"],
   "exclude": ["src/**/*.test.ts", "dist"],
   "compilerOptions": {
     "paths": {

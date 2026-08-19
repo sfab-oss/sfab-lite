@@ -193,10 +193,21 @@ script pushed `factory/host` to 9.84 MiB gzip (103% of the 10 MB Worker
 limit). Not the check worker — that isolate is the 128 MB budget. See
 [ADR-0014](../decisions/0014-adapter-contract-db-storage-code-host.md).
 
+**Addendum 2026-08-19.** The map moved into the host Worker bundle as
+`factory/host/generated/drizzle-kit-modules.json` (imported at build time;
+sources stay strings; `check:drizzle-kit-modules` regenerate-and-diffs).
+The upload-cap constraint that forced R2 on 2026-08-16 no longer binds
+(host ~41.7% after build was split out and pierre was client-only; map
+~0.6 MiB gzip → ~48%). Only the current kit+orm pin is ever consumed, so
+there is no version-retention requirement for an R2 keyspace. Wins: pin
+bump is atomic with deploy, first schema probe per isolate loses the R2
+round-trip, local `dev` loses the bucket-seeding step. The Loader-child
+pass-sources mechanism is unchanged.
+
 ### 9. One aux worker per framework verb (host is a composer)
 
 Wasm cannot be fetched from R2 and compiled at runtime in Workers, so
-the kernel / drizzle-kit R2 trick does not apply to `esbuild-wasm`.
+the kernel R2 trick does not apply to `esbuild-wasm`.
 Measured 2026-08-16 on main (`76bae79`): host upload **9.28 MiB gzip =
 97.3%** of the 10 MB ceiling. Composition: `esbuild-wasm` **3.68 MiB
 (38%)** via `@cloudflare/worker-bundler` through the in-host build

@@ -6,11 +6,13 @@
  * never hits hanji rename prompts: rewrite `drizzle-orm/*` to relative paths,
  * `createRequire("file:///probe/api.mjs")`, silent create/delete resolvers.
  *
- * Writes `.tmp/drizzle-kit/modules.json` (module path → source) for
- * `upload-drizzle-kit-r2.mjs`. Not imported by the Worker — that would put
- * 3.56 MiB into the script and blow the 10 MB gzip limit.
+ * Writes `generated/drizzle-kit-modules.json` (module path → source string).
+ * The host Worker imports that JSON at build time so Vite never flattens or
+ * executes `api.mjs` itself. Drift-gated by `check:drizzle-kit-modules`.
  *
  * Re-run when the pinned drizzle-kit / drizzle-orm versions change.
+ *
+ * Flags: `--force` ignore stamp; `--out=<path>` write elsewhere (check gate).
  */
 
 import { createHash } from "node:crypto";
@@ -24,15 +26,23 @@ import {
 import { createRequire } from "node:module";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseCli } from "./parse-cli.mjs";
 
 const require = createRequire(import.meta.url);
 const scriptPath = fileURLToPath(import.meta.url);
 const hostRoot = join(dirname(scriptPath), "..");
-const tmpDir = join(hostRoot, ".tmp/drizzle-kit");
-const outPath = join(tmpDir, "modules.json");
-const stampPath = join(tmpDir, "stamp.json");
+const stampDir = join(hostRoot, ".tmp/drizzle-kit");
+const stampPath = join(stampDir, "stamp.json");
+const defaultOutPath = join(hostRoot, "generated/drizzle-kit-modules.json");
 const PINNED_KIT = "0.31.10";
 const PINNED_ORM = "0.45.2";
+
+const { values } = parseCli({
+  force: { type: "boolean", default: false },
+  out: { type: "string" },
+});
+const force = values.force;
+const outPath = values.out ? values.out : defaultOutPath;
 
 const ORM_SPEC = "drizzle-orm";
 
@@ -213,7 +223,12 @@ const stamp = {
   drizzleOrm: ormPkg.version,
   script: createHash("sha256").update(readFileSync(scriptPath)).digest("hex"),
 };
-if (existsSync(outPath) && existsSync(stampPath)) {
+if (
+  !force &&
+  outPath === defaultOutPath &&
+  existsSync(outPath) &&
+  existsSync(stampPath)
+) {
   try {
     const previous = JSON.parse(readFileSync(stampPath, "utf8"));
     if (
@@ -239,9 +254,12 @@ for (const [abs, source] of ormFiles) {
   modules[`vendor/drizzle-orm/${rel}`] = source;
 }
 
-mkdirSync(tmpDir, { recursive: true });
+mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, `${JSON.stringify(modules)}\n`);
-writeFileSync(stampPath, `${JSON.stringify(stamp, null, 2)}\n`);
+if (outPath === defaultOutPath) {
+  mkdirSync(stampDir, { recursive: true });
+  writeFileSync(stampPath, `${JSON.stringify(stamp, null, 2)}\n`);
+}
 const bytes = Buffer.byteLength(JSON.stringify(modules));
 console.log(
   `prepare-drizzle-kit-api: ${Object.keys(modules).length} modules, ${(bytes / 1_048_576).toFixed(2)} MiB → ${toPosix(relative(hostRoot, outPath))}`

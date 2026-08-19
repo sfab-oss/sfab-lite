@@ -22,7 +22,7 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
 `pnpm check:generated`, `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
-`pnpm check:seed`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
+`pnpm check:seed`, `pnpm check:drizzle-kit-modules`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
 `pnpm check:registry-agreement`.
 
 `check:generated` fails when the generated format files under
@@ -60,6 +60,12 @@ re-runs that starter's pack and fails if the committed seed no longer matches
 imports seeds at build time because the host Worker has no filesystem. Editing a
 starter without re-baking would leave every other gate green while the factory
 kept seeding the old source.
+
+`check:drizzle-kit-modules` is the same idea for
+`factory/host/generated/drizzle-kit-modules.json`: re-runs
+`prepare-drizzle-kit-api.mjs` and fails if the committed map no longer matches
+the pinned drizzle-kit / drizzle-orm sources. The host imports the map at build
+time for the schema-probe Loader child.
 
 `check:route-tree` is the same idea for each
 `starters/<id>/app/src/routeTree.gen.ts`: re-runs that starter's
