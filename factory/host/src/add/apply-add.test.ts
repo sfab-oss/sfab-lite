@@ -5,6 +5,8 @@ import { applyAdd } from "./apply-add.ts";
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const BARE_NAME = /bare names are a hard error/;
+const ARRAY_BUFFER_BYTES = /Uint8Array<ArrayBuffer>/;
+const RESPONSE_RAW_BYTES = /new Response\(bytes/;
 const TREE = {
   "manifest.json": `${JSON.stringify(seed.manifest, null, 2)}\n`,
 };
@@ -49,6 +51,10 @@ test("add lite/pdf-invoice writes modules and the exact pdf-lib pin", () => {
   assert.deepEqual(manifest.modules, [{ name: "pdf-lib", version: "1.17.1" }]);
   const pkg = JSON.parse(result.files["package.json"] ?? "{}");
   assert.equal(pkg.dependencies["pdf-lib"], "1.17.1");
+  const helper = result.files["src/pdf/invoice.ts"] ?? "";
+  const route = result.files["src/hono/org-protected/pdf-invoice.ts"] ?? "";
+  assert.match(helper, ARRAY_BUFFER_BYTES);
+  assert.match(route, RESPONSE_RAW_BYTES);
 });
 
 test("add lite/field leaves modules empty", () => {
