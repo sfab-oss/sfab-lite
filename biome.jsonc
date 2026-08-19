@@ -36,7 +36,10 @@
       "!!**/registry/recipes/toggle-group/0.1.0",
       "!!**/scripts/fixtures",
       // tsr emits any / ts-nocheck; keep out of repo Biome (and app-biome).
-      "!!**/starters/*/app/src/routeTree.gen.ts"
+      "!!**/starters/*/app/src/routeTree.gen.ts",
+      // Baked by generate-format-files and compared byte-for-byte by
+      // check:generated. The FOUC theme boot script is compact on purpose.
+      "!!**/starters/*/app/index.html"
     ]
   },
   // Same assist/noise offs as starter — presets turn these on; not worth
