@@ -233,6 +233,29 @@ to an empty stub in the `ssr` environment. Measured 2026-08-17: host
 unchanged (it already loaded those chunks lazily). Harness-only —
 nothing under `framework/` imports pierre.
 
+### 11. Catalog modules: cheap stubs at check, Loader ESM at serve (2026-08-19)
+
+**P2 — full pdf-lib `.d.ts` overlay does not fit 128 MB.** Throwaway
+`sfab-lite-check-exp`, 50 spaced cold `/check`s, ERP seed. `exceededMemory`:
+control **3/50**, pdf-lib **19/50** (distinct fast 4–5 s CPU band),
+pdfjs-dist **1/50**, both **27/50**. Overlay wiring itself worked (0
+diagnostics, no store leak). The named fallback is typed stubs, not the
+128-file P1 slice. A hosted 50-shot stub-overlay probe is a follow-up
+publish gate.
+
+**P3 — pdf-lib@1.17.1 boots as extra Loader ESM with no workerd patches.**
+esbuild 0.28.1, `--bundle --format=esm --platform=neutral --target=es2022`
+plus workerd/worker/browser conditions: **833 573 raw / 217 297 gzip-9**,
+sha256 `9c49b40dcf473e44b1e438301702b2436d9273eef34a2abf1daa53abe5c652f5`.
+Child must keep `compatibilityDate: "2026-07-23"` + explicit
+`nodejs_compat`; a date ≥ 2026-08-04 rejects the flag as redundant.
+Create/merge/stamp/fill: 48/48 tail `ok`, 0 `exceededMemory`.
+
+Do not embed that ESM in the host Worker (version-retention; host already
+~47.6%). Git is source of truth; CI uploads `modules/<name>@<version>/`
+next to kernel chunks. See
+[ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md).
+
 ## Measured and rejected — do not re-derive these
 
 | Idea | Why it fails | Evidence |
@@ -247,6 +270,7 @@ nothing under `framework/` imports pierre.
 | A bigger Worker | 128 MB on Free and Paid alike; no 2026 increase | Cloudflare docs |
 | TypeScript 7 / `tsgo` (~2.9x less memory) | Pin stays 6.0.3. Local disk `tsc` vs `tsgo` 7.0.0-dev.20260707.2 on the materialized VFS+seed: **1.14× RSS** (523 vs 459 MB), ~2.5× user time. The ~2.9× figure is not this program or this metric. | [`../notes/2026-08-13-tsgo-forecast.md`](../notes/2026-08-13-tsgo-forecast.md) |
 | Tailwind oxide `Scanner` in the build worker (replace `extractCandidates`) | The only non-native build is `@tailwindcss/oxide-wasm32-wasi` (1.72 MB wasm, 0.55 MB gzip) and its loader needs `node:worker_threads` + `readFileSync` for wasi-threads; Workers `nodejs_compat` has neither and wasm must be a static import. `tailwindcss` `compile()` itself does no scanning. The 137-line JS extractor in `framework/verbs/src/build/css-extract.ts` stays, with its documented misses. | package inspection 2026-08-17, hand-rolled audit |
+| Overlay pdf-lib's real `.d.ts` closure into the check isolate | Production `exceededMemory` **19/50**, fast 4–5 s CPU, vs control 3/50. Local +7.7 MB ranked it small. Typed stubs are the fallback. | P2 2026-08-19, `sfab-lite-check-exp` |
 
 ## Still open
 
