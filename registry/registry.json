@@ -710,12 +710,12 @@
       ],
       "files": [
         {
-          "path": "recipes/pdf-invoice/0.1.0/invoice.ts",
+          "path": "recipes/pdf-invoice/0.1.1/invoice.ts",
           "type": "registry:file",
           "target": "src/pdf/invoice.ts"
         },
         {
-          "path": "recipes/pdf-invoice/0.1.0/pdf-invoice.ts",
+          "path": "recipes/pdf-invoice/0.1.1/pdf-invoice.ts",
           "type": "registry:file",
           "target": "src/hono/org-protected/pdf-invoice.ts"
         }

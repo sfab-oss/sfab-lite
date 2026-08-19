@@ -268,6 +268,13 @@
       "pdf-invoice.ts": "sha256:33f5de83e0482eab5f7b80a90babb8c3c647cd7a435ebfd3bab34ece8a239507"
     }
   },
+  "lite/pdf-invoice@0.1.1": {
+    "files": {
+      "registry-item.json": "sha256:0c1473ef61746437d86f15815b5469df6275f346a71ecf92459436e553703d2e",
+      "invoice.ts": "sha256:f24315d720e751b35fa561f75576064ca826f0c29a32788d138b1cbb530bdf77",
+      "pdf-invoice.ts": "sha256:fea80a775f39e52848864cc6e0d4a3d198d7acd2c00fe5bb1ef572196babaa26"
+    }
+  },
   "lite/popover@0.1.0": {
     "files": {
       "registry-item.json": "sha256:724c046a5f6849e83da9855f86edaa76cc251c5e67e47516d18cc0c050a4337b",
