@@ -29,5 +29,5 @@ export class PDFDocument {
   static create(): Promise<PDFDocument>;
   addPage(size?: [number, number]): PDFPage;
   embedFont(font: string): Promise<PDFFont>;
-  save(): Promise<Uint8Array>;
+  save(): Promise<Uint8Array<ArrayBuffer>>;
 }

@@ -21,9 +21,15 @@ function formatCents(amountCents: number): string {
   return `${sign}${dollars}.${String(cents).padStart(2, "0")}`;
 }
 
+function asArrayBufferBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const out = new Uint8Array(new ArrayBuffer(bytes.byteLength));
+  out.set(bytes);
+  return out;
+}
+
 export async function renderInvoicePdf(
   input: InvoiceInput
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([612, 792]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -47,5 +53,5 @@ export async function renderInvoicePdf(
   }
   y -= 12;
   page.drawText(`Total ${formatCents(total)}`, { x: 72, y, size: 12, font });
-  return doc.save();
+  return asArrayBufferBytes(await doc.save());
 }
