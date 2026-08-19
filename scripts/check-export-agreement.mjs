@@ -392,6 +392,7 @@ const CLIENT_ONLY_PACKAGES = new Set([
   "@radix-ui/react-icons",
   "@tanstack/react-query",
   "@tanstack/react-router",
+  "@tanstack/react-table",
   "class-variance-authority",
   "clsx",
   "react-hook-form",

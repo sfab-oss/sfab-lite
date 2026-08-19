@@ -1,5 +1,6 @@
 import { TrashIcon } from "@radix-ui/react-icons";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { ShellPageFrame } from "../../../components/layout/shell";
 import { DeletePartyDialog } from "../../../components/parties/delete-party-dialog";
@@ -14,16 +15,12 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import {
+  DataTable,
+  DataTableColumnHeader,
+} from "../../../components/ui/data-table";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Skeleton } from "../../../components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../../components/ui/table";
 import {
   useAddCharge,
   useAddPayment,
@@ -36,6 +33,47 @@ import { PARTY_KIND_LABEL } from "../../../lib/party-kind";
 export const Route = createFileRoute("/_app/parties/$id")({
   component: PartyDetailPage,
 });
+
+interface LedgerRow {
+  id: string;
+  kind: string;
+  amountCents: number;
+  memo: string | null;
+}
+
+const ledgerColumns: ColumnDef<LedgerRow>[] = [
+  {
+    accessorKey: "kind",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Kind" />
+    ),
+    cell: ({ row }) => <span className="capitalize">{row.original.kind}</span>,
+  },
+  {
+    accessorKey: "amountCents",
+    header: ({ column }) => (
+      <DataTableColumnHeader
+        className="justify-end"
+        column={column}
+        title="Amount"
+      />
+    ),
+    cell: ({ row }) => (
+      <div className="text-right tabular-nums">
+        {formatCents(row.original.amountCents)}
+      </div>
+    ),
+  },
+  {
+    accessorKey: "memo",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Memo" />
+    ),
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">{row.original.memo ?? "—"}</span>
+    ),
+  },
+];
 
 function PartyDetailPage() {
   const { id } = Route.useParams();
@@ -156,28 +194,11 @@ function PartyDetailPage() {
               {entries.length === 0 ? (
                 <EmptyState title="No lines yet" />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Kind</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Memo</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {entries.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="capitalize">{row.kind}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {formatCents(row.amountCents)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {row.memo ?? "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <DataTable
+                  columns={ledgerColumns}
+                  data={entries}
+                  filterPlaceholder="Filter ledger…"
+                />
               )}
             </CardContent>
           </Card>

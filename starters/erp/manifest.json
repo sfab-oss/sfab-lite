@@ -83,6 +83,24 @@
         "src/components/ui/card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
       }
     },
+    "lite/table": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/table.tsx": "sha256:18e5f174572c8c8485d9ee9b3b1d003be5cf62d60bed7981d41ceb9be7b8aa1f"
+      }
+    },
+    "lite/input": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/input.tsx": "sha256:39fadb9d6916a7c6dda9c4bc0e3f7454ef02df0a50ff6b137e64b09b82b019b8"
+      }
+    },
+    "lite/data-table": {
+      "version": "0.1.1",
+      "files": {
+        "src/components/ui/data-table.tsx": "sha256:5defe7cf434119b5f747851fbdcb71e14313df3e14ffa526fd2662976eb8b483"
+      }
+    },
     "lite/dialog": {
       "version": "0.1.0",
       "files": {
@@ -111,12 +129,6 @@
       "version": "0.1.1",
       "files": {
         "src/components/ui/field.tsx": "sha256:e06dce50fa7722b24151768c4d9c5e0fc0be6a41a93d2fea1d35cc98b524d818"
-      }
-    },
-    "lite/input": {
-      "version": "0.1.0",
-      "files": {
-        "src/components/ui/input.tsx": "sha256:39fadb9d6916a7c6dda9c4bc0e3f7454ef02df0a50ff6b137e64b09b82b019b8"
       }
     },
     "lite/select": {
@@ -161,10 +173,11 @@
         "src/components/ui/sidebar.tsx": "sha256:4b39d38caaadd6f3115eec675de202edf7e561978770b560991c0b0e6d7a5e42"
       }
     },
-    "lite/table": {
+    "lite/theme-toggle": {
       "version": "0.1.0",
       "files": {
-        "src/components/ui/table.tsx": "sha256:18e5f174572c8c8485d9ee9b3b1d003be5cf62d60bed7981d41ceb9be7b8aa1f"
+        "src/lib/theme.ts": "sha256:d50c1870665cfc38e177425e804f0f16ef7b641e99559292ad67842b3cf0c5de",
+        "src/components/theme-toggle.tsx": "sha256:a7ad826c4674f342c6d8d4280ed6ecfec670e7dd7fb1a61200a6e610d5b05f45"
       }
     }
   }

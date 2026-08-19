@@ -98,7 +98,9 @@ const config: KnipConfig = {
     "starters/base": {
       entry: ["scripts/*.mjs"],
       project: ["src/**/*.ts", "scripts/**/*.mjs", "app/src/**/*.{ts,tsx}"],
-      ignoreDependencies: ["tailwindcss"],
+      // Kernel FORMAT_PINS land in every starter package.json; base has no
+      // list page that imports the table chunk yet.
+      ignoreDependencies: ["tailwindcss", "@tanstack/react-table"],
       ignoreIssues: {
         "app/src/server.ts": ["exports", "types"],
         "app/src/components/ui/**/*.tsx": ["exports"],

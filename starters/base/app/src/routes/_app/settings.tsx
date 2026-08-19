@@ -24,6 +24,7 @@ import { Input } from "../../components/ui/input";
 import { Skeleton } from "../../components/ui/skeleton";
 import { invalidateSession, useSession } from "../../hooks/use-session";
 import { authClient } from "../../lib/auth-client";
+import { type Theme, useTheme } from "../../lib/theme";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -166,6 +167,17 @@ function SettingsPage() {
               </Card>
               <Card>
                 <CardHeader>
+                  <CardTitle>Appearance</CardTitle>
+                  <CardDescription>
+                    Light, dark, or follow the system preference.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AppearanceControls />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
                   <CardTitle>Account</CardTitle>
                   <CardDescription>The signed-in user.</CardDescription>
                 </CardHeader>
@@ -181,5 +193,29 @@ function SettingsPage() {
         </div>
       </div>
     </ShellPageFrame>
+  );
+}
+
+const APPEARANCE_MODES: { value: Theme; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "System" },
+];
+
+function AppearanceControls() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="flex flex-wrap gap-2">
+      {APPEARANCE_MODES.map((mode) => (
+        <Button
+          key={mode.value}
+          onClick={() => setTheme(mode.value)}
+          type="button"
+          variant={theme === mode.value ? "default" : "outline"}
+        >
+          {mode.label}
+        </Button>
+      ))}
+    </div>
   );
 }

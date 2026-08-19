@@ -101,6 +101,18 @@
       "context-menu.tsx": "sha256:442e75d44bd64386ee47ff69f9a97fac9541d1e8d5ef76bfe27810e3869dfb23"
     }
   },
+  "lite/data-table@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:cf0560c673a04fb2c1cc44a281f8ac382cf0508d9973c08b107dc7b1238a15da",
+      "data-table.tsx": "sha256:7f8dee71b7ae7f23a94aa4fa3d6673eb4ad0445ec46160e7b293d9e3825d03b2"
+    }
+  },
+  "lite/data-table@0.1.1": {
+    "files": {
+      "registry-item.json": "sha256:01e6632864e7d2ee0dd8ebd75010292eb6a36939c1561ad110440c1f59389785",
+      "data-table.tsx": "sha256:5defe7cf434119b5f747851fbdcb71e14313df3e14ffa526fd2662976eb8b483"
+    }
+  },
   "lite/dialog@0.1.0": {
     "files": {
       "registry-item.json": "sha256:6d43e8229ab9ab9210b68134be2f23a83138dbd776c9e8938c933d97f40001e7",
@@ -339,6 +351,13 @@
     "files": {
       "registry-item.json": "sha256:704db43d26dac0f86fd8b34eed1daee98245c73210a3be2cc57bea75509969d4",
       "textarea.tsx": "sha256:42300b930ccb18a1445e7fb2e3d14b9495ece627d36983f699a51d5ff90f6505"
+    }
+  },
+  "lite/theme-toggle@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:60a7d4072fbaca5e93a104c8002f00c753814d400639db7fb26ff70ad6357eda",
+      "theme.ts": "sha256:d50c1870665cfc38e177425e804f0f16ef7b641e99559292ad67842b3cf0c5de",
+      "theme-toggle.tsx": "sha256:a7ad826c4674f342c6d8d4280ed6ecfec670e7dd7fb1a61200a6e610d5b05f45"
     }
   },
   "lite/toast@0.1.0": {

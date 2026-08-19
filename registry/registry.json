@@ -286,6 +286,29 @@
       }
     },
     {
+      "name": "data-table",
+      "type": "registry:ui",
+      "title": "Data Table",
+      "description": "TanStack Table v8 over lite/table: sorting, client filter toolbar, and prev/next pagination. Use with kernel @tanstack/react-table. Assumes lite/table, lite/button, and lite/input.",
+      "registryDependencies": [
+        "@lite/utils",
+        "@lite/table",
+        "@lite/button",
+        "@lite/input"
+      ],
+      "files": [
+        {
+          "path": "recipes/data-table/0.1.1/data-table.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/data-table.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "dialog",
       "type": "registry:ui",
       "title": "Dialog",
@@ -973,6 +996,31 @@
           "path": "recipes/textarea/0.1.0/textarea.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/textarea.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
+      "name": "theme-toggle",
+      "type": "registry:ui",
+      "title": "Theme Toggle",
+      "description": "DIY light/dark/system theme (localStorage sfab-theme) plus a sun/moon Button. No next-themes. Assumes lite/button is present.",
+      "registryDependencies": [
+        "@lite/button"
+      ],
+      "files": [
+        {
+          "path": "recipes/theme-toggle/0.1.0/theme.ts",
+          "type": "registry:lib",
+          "target": "src/lib/theme.ts"
+        },
+        {
+          "path": "recipes/theme-toggle/0.1.0/theme-toggle.tsx",
+          "type": "registry:ui",
+          "target": "src/components/theme-toggle.tsx"
         }
       ],
       "meta": {

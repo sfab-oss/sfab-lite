@@ -1,0 +1,18 @@
+{
+  "name": "lite/data-table",
+  "type": "registry:ui",
+  "title": "Data Table",
+  "description": "Thin TanStack Table v8 wrapper over lite/table (useReactTable, flexRender, sorting). Use with kernel @tanstack/react-table. Assumes src/lib/utils exports cn and lite/table + lite/button are present.",
+  "registryDependencies": ["lite/utils", "lite/table", "lite/button"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "data-table.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/data-table.tsx"
+    }
+  ]
+}
