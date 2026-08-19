@@ -197,6 +197,12 @@
         "src/components/ui/field.tsx": "sha256:55e26b1d524846614a743f550a189dd087256d4eae53fdc767d961e3ffe7dbd1"
       }
     },
+    "lite/form": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/form.tsx": "sha256:06683794b03c4345f0c8b224c5dea2b9a48a4f1c15b84437dfbf0ba7691eb338"
+      }
+    },
     "lite/hover-card": {
       "version": "0.1.0",
       "files": {

@@ -1,0 +1,18 @@
+{
+  "name": "lite/form",
+  "type": "registry:ui",
+  "title": "Form",
+  "description": "react-hook-form FormProvider helpers (FormField, FormControl, FormMessage). Use with kernel react-hook-form and @hookform/resolvers/zod. Assumes src/lib/utils exports cn and lite/label is present.",
+  "registryDependencies": ["lite/utils", "lite/label"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "form.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/form.tsx"
+    }
+  ]
+}

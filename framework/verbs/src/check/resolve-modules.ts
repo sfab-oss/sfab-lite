@@ -127,6 +127,9 @@ const PACKAGE_ENTRY: Record<string, string> = {
   "class-variance-authority":
     "/node_modules/class-variance-authority/dist/index.d.ts",
   "tailwind-merge": "/node_modules/tailwind-merge/dist/types.d.ts",
+  "react-hook-form": "/node_modules/react-hook-form/dist/index.d.ts",
+  "@hookform/resolvers/zod":
+    "/node_modules/@hookform/resolvers/zod/dist/index.d.ts",
   zod: "/node_modules/zod/index.d.ts",
 };
 
@@ -150,6 +153,8 @@ const KNOWN_PACKAGES = [
   "clsx",
   "class-variance-authority",
   "tailwind-merge",
+  "react-hook-form",
+  "@hookform/resolvers",
   "@types/react",
   "@types/react-dom",
 ] as const;

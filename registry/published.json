@@ -143,6 +143,12 @@
       "field.tsx": "sha256:55e26b1d524846614a743f550a189dd087256d4eae53fdc767d961e3ffe7dbd1"
     }
   },
+  "lite/form@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:14b91023097668c704445a9eecbedebfe0706655b8bd971cba3d4606671dcbc6",
+      "form.tsx": "sha256:06683794b03c4345f0c8b224c5dea2b9a48a4f1c15b84437dfbf0ba7691eb338"
+    }
+  },
   "lite/hover-card@0.1.0": {
     "files": {
       "registry-item.json": "sha256:9c76ad6d64d7da2acdd7dede407143fe4cf2234bcd308193f9704a08bf37723a",
