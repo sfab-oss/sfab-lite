@@ -7,7 +7,7 @@ import {
   partyUpdateSchema,
 } from "../../contract/parties";
 import { balancesByParty, runningBalance } from "../../db/balances";
-import { ledgerEntry, party } from "../../db/schema";
+import { invoice, ledgerEntry, party } from "../../db/schema";
 import { createId } from "../../db/utils";
 import type { AppEnv } from "../types";
 import { jsonBody } from "../validate";
@@ -156,7 +156,7 @@ export const partyRoutes = new Hono<AppEnv>()
     const orgId = c.get("orgId");
     const db = c.get("db");
 
-    const [existing] = await db
+    const [entry] = await db
       .select({ id: ledgerEntry.id })
       .from(ledgerEntry)
       .where(
@@ -164,8 +164,18 @@ export const partyRoutes = new Hono<AppEnv>()
       )
       .limit(1);
 
-    if (existing) {
+    if (entry) {
       return c.json({ error: "has_entries" as const }, 409);
+    }
+
+    const [openInvoice] = await db
+      .select({ id: invoice.id })
+      .from(invoice)
+      .where(and(eq(invoice.partyId, id), eq(invoice.organizationId, orgId)))
+      .limit(1);
+
+    if (openInvoice) {
+      return c.json({ error: "has_invoices" as const }, 409);
     }
 
     const [deleted] = await db

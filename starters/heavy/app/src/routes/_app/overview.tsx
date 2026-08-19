@@ -19,6 +19,16 @@ const SECTIONS = [
     description: "Customers and vendors, with a running balance.",
   },
   {
+    to: "/items" as const,
+    title: "Items",
+    description: "Catalog rows you put on invoices.",
+  },
+  {
+    to: "/invoices" as const,
+    title: "Invoices",
+    description: "Draft, send, and mark invoices paid.",
+  },
+  {
     to: "/balances" as const,
     title: "Open balances",
     description: "Everyone who still owes, or is owed.",
@@ -37,7 +47,7 @@ function OverviewPage() {
             Welcome to {orgName}
           </h2>
           <p className="text-muted-foreground text-sm">
-            Parties and their ledgers live here.
+            Parties, items, and invoices live here.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">

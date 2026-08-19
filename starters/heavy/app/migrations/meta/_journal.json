@@ -15,6 +15,13 @@
       "when": 1752000000001,
       "tag": "0002_erp",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1752000000002,
+      "tag": "0003_ar",
+      "breakpoints": true
     }
   ]
 }

@@ -78,7 +78,7 @@ export function useDeleteParty() {
       if (!res.ok) {
         throw new Error(
           res.status === 409
-            ? "That party has ledger entries and cannot be deleted."
+            ? "That party has ledger entries or invoices and cannot be deleted."
             : `delete party ${res.status}`
         );
       }

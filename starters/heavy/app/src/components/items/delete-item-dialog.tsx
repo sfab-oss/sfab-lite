@@ -9,17 +9,17 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 
-export function DeletePartyDialog({
+export function DeleteItemDialog({
   open,
   onOpenChange,
-  partyName,
+  itemName,
   pending,
   error,
   onConfirm,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  partyName: string;
+  itemName: string;
   pending: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -28,10 +28,9 @@ export function DeletePartyDialog({
     <AlertDialog onOpenChange={onOpenChange} open={open}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {partyName}?</AlertDialogTitle>
+          <AlertDialogTitle>Delete {itemName}?</AlertDialogTitle>
           <AlertDialogDescription>
-            Parties with ledger entries or invoices cannot be deleted. This
-            cannot be undone.
+            Items on invoice lines cannot be deleted. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}

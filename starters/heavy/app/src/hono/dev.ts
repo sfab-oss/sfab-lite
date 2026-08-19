@@ -4,6 +4,9 @@ import { createMiddleware } from "hono/factory";
 import { seedSchema } from "../contract/dev";
 import {
   account,
+  invoice,
+  invoiceLine,
+  item,
   ledgerEntry,
   member,
   organization,
@@ -146,6 +149,47 @@ async function insertSeedGraph(
       memo: "Partial payment",
     },
   ]);
+
+  const catalog = [
+    {
+      id: crypto.randomUUID(),
+      organizationId,
+      name: "Widget A",
+      sku: "WDG-A",
+      unitPriceCents: 1999,
+    },
+    {
+      id: crypto.randomUUID(),
+      organizationId,
+      name: "Service hour",
+      sku: "SVC-HR",
+      unitPriceCents: 15_000,
+    },
+  ];
+  await db.insert(item).values(catalog);
+
+  const firstItem = catalog[0];
+  if (!firstItem) {
+    return "empty";
+  }
+
+  const draftId = crypto.randomUUID();
+  await db.insert(invoice).values({
+    id: draftId,
+    organizationId,
+    partyId: customer.id,
+    status: "draft",
+    memo: "Opening order",
+  });
+  await db.insert(invoiceLine).values({
+    id: crypto.randomUUID(),
+    organizationId,
+    invoiceId: draftId,
+    itemId: firstItem.id,
+    quantity: 3,
+    unitPriceCents: firstItem.unitPriceCents,
+  });
+
   return "ok";
 }
 

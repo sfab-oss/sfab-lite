@@ -22,7 +22,10 @@ import { Route as AppOverviewRouteImport } from "./routes/_app/overview"
 import { Route as AppGalleryRouteImport } from "./routes/_app/gallery"
 import { Route as AppBalancesRouteImport } from "./routes/_app/balances"
 import { Route as AppPartiesIndexRouteImport } from "./routes/_app/parties/index"
+import { Route as AppItemsIndexRouteImport } from "./routes/_app/items/index"
+import { Route as AppInvoicesIndexRouteImport } from "./routes/_app/invoices/index"
 import { Route as AppPartiesIdRouteImport } from "./routes/_app/parties/$id"
+import { Route as AppInvoicesIdRouteImport } from "./routes/_app/invoices/$id"
 
 const SignUpRoute = SignUpRouteImport.update({
   id: "/sign-up",
@@ -73,9 +76,24 @@ const AppPartiesIndexRoute = AppPartiesIndexRouteImport.update({
   path: "/parties/",
   getParentRoute: () => AppRoute,
 } as any)
+const AppItemsIndexRoute = AppItemsIndexRouteImport.update({
+  id: "/items/",
+  path: "/items/",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesIndexRoute = AppInvoicesIndexRouteImport.update({
+  id: "/invoices/",
+  path: "/invoices/",
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPartiesIdRoute = AppPartiesIdRouteImport.update({
   id: "/parties/$id",
   path: "/parties/$id",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInvoicesIdRoute = AppInvoicesIdRouteImport.update({
+  id: "/invoices/$id",
+  path: "/invoices/$id",
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -88,7 +106,10 @@ export interface FileRoutesByFullPath {
   "/gallery": typeof AppGalleryRoute
   "/overview": typeof AppOverviewRoute
   "/settings": typeof AppSettingsRoute
+  "/invoices/$id": typeof AppInvoicesIdRoute
   "/parties/$id": typeof AppPartiesIdRoute
+  "/invoices": typeof AppInvoicesIndexRoute
+  "/items": typeof AppItemsIndexRoute
   "/parties": typeof AppPartiesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -100,7 +121,10 @@ export interface FileRoutesByTo {
   "/gallery": typeof AppGalleryRoute
   "/overview": typeof AppOverviewRoute
   "/settings": typeof AppSettingsRoute
+  "/invoices/$id": typeof AppInvoicesIdRoute
   "/parties/$id": typeof AppPartiesIdRoute
+  "/invoices": typeof AppInvoicesIndexRoute
+  "/items": typeof AppItemsIndexRoute
   "/parties": typeof AppPartiesIndexRoute
 }
 export interface FileRoutesById {
@@ -114,7 +138,10 @@ export interface FileRoutesById {
   "/_app/gallery": typeof AppGalleryRoute
   "/_app/overview": typeof AppOverviewRoute
   "/_app/settings": typeof AppSettingsRoute
+  "/_app/invoices/$id": typeof AppInvoicesIdRoute
   "/_app/parties/$id": typeof AppPartiesIdRoute
+  "/_app/invoices/": typeof AppInvoicesIndexRoute
+  "/_app/items/": typeof AppItemsIndexRoute
   "/_app/parties/": typeof AppPartiesIndexRoute
 }
 export interface FileRouteTypes {
@@ -128,7 +155,10 @@ export interface FileRouteTypes {
     | "/gallery"
     | "/overview"
     | "/settings"
+    | "/invoices/$id"
     | "/parties/$id"
+    | "/invoices"
+    | "/items"
     | "/parties"
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -140,7 +170,10 @@ export interface FileRouteTypes {
     | "/gallery"
     | "/overview"
     | "/settings"
+    | "/invoices/$id"
     | "/parties/$id"
+    | "/invoices"
+    | "/items"
     | "/parties"
   id:
     | "__root__"
@@ -153,7 +186,10 @@ export interface FileRouteTypes {
     | "/_app/gallery"
     | "/_app/overview"
     | "/_app/settings"
+    | "/_app/invoices/$id"
     | "/_app/parties/$id"
+    | "/_app/invoices/"
+    | "/_app/items/"
     | "/_app/parties/"
   fileRoutesById: FileRoutesById
 }
@@ -237,11 +273,32 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof AppPartiesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    "/_app/items/": {
+      id: "/_app/items/"
+      path: "/items"
+      fullPath: "/items"
+      preLoaderRoute: typeof AppItemsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/invoices/": {
+      id: "/_app/invoices/"
+      path: "/invoices"
+      fullPath: "/invoices"
+      preLoaderRoute: typeof AppInvoicesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     "/_app/parties/$id": {
       id: "/_app/parties/$id"
       path: "/parties/$id"
       fullPath: "/parties/$id"
       preLoaderRoute: typeof AppPartiesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/invoices/$id": {
+      id: "/_app/invoices/$id"
+      path: "/invoices/$id"
+      fullPath: "/invoices/$id"
+      preLoaderRoute: typeof AppInvoicesIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -252,7 +309,10 @@ interface AppRouteChildren {
   AppGalleryRoute: typeof AppGalleryRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppInvoicesIdRoute: typeof AppInvoicesIdRoute
   AppPartiesIdRoute: typeof AppPartiesIdRoute
+  AppInvoicesIndexRoute: typeof AppInvoicesIndexRoute
+  AppItemsIndexRoute: typeof AppItemsIndexRoute
   AppPartiesIndexRoute: typeof AppPartiesIndexRoute
 }
 
@@ -261,7 +321,10 @@ const AppRouteChildren: AppRouteChildren = {
   AppGalleryRoute: AppGalleryRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppInvoicesIdRoute: AppInvoicesIdRoute,
   AppPartiesIdRoute: AppPartiesIdRoute,
+  AppInvoicesIndexRoute: AppInvoicesIndexRoute,
+  AppItemsIndexRoute: AppItemsIndexRoute,
   AppPartiesIndexRoute: AppPartiesIndexRoute,
 }
 

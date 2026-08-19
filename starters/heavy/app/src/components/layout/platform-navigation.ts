@@ -1,6 +1,8 @@
 import {
   CounterClockwiseClockIcon,
+  CubeIcon,
   DashboardIcon,
+  FileTextIcon,
   GearIcon,
   HomeIcon,
   PersonIcon,
@@ -18,6 +20,8 @@ export function getPlatformNavigationItems(): PlatformNavigationItem[] {
   return [
     { title: "Overview", url: "/overview", icon: HomeIcon },
     { title: "Parties", url: "/parties", icon: PersonIcon },
+    { title: "Items", url: "/items", icon: CubeIcon },
+    { title: "Invoices", url: "/invoices", icon: FileTextIcon },
     {
       title: "Open balances",
       url: "/balances",
