@@ -19,7 +19,8 @@ Composition: `esbuild-wasm` **3.68 MiB (38%)**, pulled in by
 3.50 MiB (36%); ~390 lazy chunks 2.45 MiB (25%, mostly shiki grammars
 via `@pierre/diffs` — parked). Cloudflare counts every uploaded
 module. Wasm cannot be fetched from R2 and compiled at runtime in
-Workers, so the kernel / drizzle-kit R2 trick does not apply. A host
+Workers, so the kernel-from-R2 trick (also used for drizzle-kit until
+2026-08-19, when its map moved into the host bundle) does not apply. A host
 that cannot deploy takes the app loop with it.
 
 ## Decision
@@ -71,8 +72,9 @@ each verb runs in its own aux worker; the host composes.
   still be a failed prod deploy; that is the failure mode this
   decision exists to prevent.
 - **Wasm from R2** — impossible on Workers: WebAssembly cannot be
-  fetched and compiled at runtime the way kernel / drizzle-kit JS
-  modules can.
+  fetched and compiled at runtime the way old-version kernel JS
+  chunks can (drizzle-kit used this path too until 2026-08-19; its
+  map now ships in the host bundle).
 
 ## Related
 
