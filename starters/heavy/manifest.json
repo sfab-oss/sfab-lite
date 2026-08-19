@@ -156,9 +156,9 @@
       }
     },
     "lite/data-table": {
-      "version": "0.1.0",
+      "version": "0.1.1",
       "files": {
-        "src/components/ui/data-table.tsx": "sha256:7f8dee71b7ae7f23a94aa4fa3d6673eb4ad0445ec46160e7b293d9e3825d03b2"
+        "src/components/ui/data-table.tsx": "sha256:a12f1a0ce1a90a32135dd7b57884431d086ff222240e858d5e665f347e1af502"
       }
     },
     "lite/dialog": {

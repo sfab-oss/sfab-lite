@@ -289,15 +289,16 @@
       "name": "data-table",
       "type": "registry:ui",
       "title": "Data Table",
-      "description": "Thin TanStack Table v8 wrapper over lite/table (useReactTable, flexRender, sorting). Use with kernel @tanstack/react-table. Assumes src/lib/utils exports cn and lite/table + lite/button are present.",
+      "description": "TanStack Table v8 over lite/table: sorting, client filter toolbar (filterValue/onFilterChange), and prev/next pagination. Use with kernel @tanstack/react-table. Assumes lite/table, lite/button, and lite/input.",
       "registryDependencies": [
         "@lite/utils",
         "@lite/table",
-        "@lite/button"
+        "@lite/button",
+        "@lite/input"
       ],
       "files": [
         {
-          "path": "recipes/data-table/0.1.0/data-table.tsx",
+          "path": "recipes/data-table/0.1.1/data-table.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/data-table.tsx"
         }

@@ -91,8 +91,12 @@ function PartiesPage() {
     );
   } else {
     body = (
-      <div className="min-h-0 flex-1 overflow-auto">
-        <DataTable columns={columns} data={rows} />
+      <div className="min-h-0 flex-1 overflow-auto p-3">
+        <DataTable
+          columns={columns}
+          data={rows}
+          filterPlaceholder="Filter parties…"
+        />
       </div>
     );
   }

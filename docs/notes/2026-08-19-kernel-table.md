@@ -28,3 +28,10 @@ sorting), radix caret icons. Seeded into ERP + heavy (not base).
 
 ERP/Heavy `routes/_app/parties/index.tsx` uses the data-table (name / kind /
 balance). Other tables left on `lite/table`.
+
+## Follow-on: ResourceTable-level client chrome
+
+`lite/data-table@0.1.1` adds client `getFilteredRowModel` (search Input /
+`filterValue`+`onFilterChange`) and `getPaginationRowModel` (prev/next).
+ERP/Heavy parties, balances, and party ledger use it. No URL pagination —
+Lite APIs are not paginated.
