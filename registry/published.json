@@ -113,6 +113,16 @@
       "data-table.tsx": "sha256:5defe7cf434119b5f747851fbdcb71e14313df3e14ffa526fd2662976eb8b483"
     }
   },
+  "lite/data-table@0.1.2": {
+    "files": {
+      "registry-item.json": "sha256:e8fd5c7bf45a30a6cf2f7c22c1114da27c7d29591b0adb606d67472ed1fc3cc0",
+      "table-filter-types.ts": "sha256:7dbe5967cdb28c236ed5dd2909aec47f861dc613be2e905015bc8df1ad86a6d2",
+      "sortable-header.tsx": "sha256:767bb138c9c0ba0a6f68b95734c84845234ce25a35940746a328dd4f760c9cd4",
+      "table-sort-control.tsx": "sha256:12c53574687df2f9b5032321bf2c261aa3424ee97b17f1dee705f3f3b758407f",
+      "table-filter-toolbar.tsx": "sha256:02ee1752d9f4af369924611a078e512ef09dc657b15d91008324b5435c7e94f7",
+      "data-table.tsx": "sha256:71b53f4dc9eaa7c06bdcfc732d149cab1235002029ffd6c308bd68b257a061fe"
+    }
+  },
   "lite/dialog@0.1.0": {
     "files": {
       "registry-item.json": "sha256:6d43e8229ab9ab9210b68134be2f23a83138dbd776c9e8938c933d97f40001e7",

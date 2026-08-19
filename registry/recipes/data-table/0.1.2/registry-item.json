@@ -1,0 +1,48 @@
+{
+  "name": "lite/data-table",
+  "type": "registry:ui",
+  "title": "Data Table",
+  "description": "TanStack Table v8 over lite/table with sortable headers, a filter/sort toolbar (chips + popovers), and prev/next pagination. Use with kernel @tanstack/react-table.",
+  "registryDependencies": [
+    "lite/utils",
+    "lite/table",
+    "lite/button",
+    "lite/input",
+    "lite/badge",
+    "lite/checkbox",
+    "lite/label",
+    "lite/popover",
+    "lite/separator"
+  ],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "table-filter-types.ts",
+      "type": "registry:lib",
+      "target": "src/lib/table-filter-types.ts"
+    },
+    {
+      "path": "sortable-header.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/sortable-header.tsx"
+    },
+    {
+      "path": "table-sort-control.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/table-sort-control.tsx"
+    },
+    {
+      "path": "table-filter-toolbar.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/table-filter-toolbar.tsx"
+    },
+    {
+      "path": "data-table.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/data-table.tsx"
+    }
+  ]
+}

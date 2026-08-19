@@ -1,6 +1,6 @@
 # @sfab-lite/starter-heavy
 
-Named **heavy** starter — ERP domain floor plus every published `@lite`
+Named **heavy** starter — ERP domain floor plus every live `@lite`
 catalog recipe imported from `/gallery`. Probe seed for host gzip and
 check-client cost; default create stays `@sfab-lite/starter-base`.
 
@@ -20,9 +20,10 @@ pnpm --filter @sfab-lite/starter-heavy generate-routes
 pnpm --filter @sfab-lite/starter-heavy bake-seed
 ```
 
-`HEAVY_SEED_RECIPES` is the full published catalog (`catalogNames(CATALOG)`).
+`HEAVY_SEED_RECIPES` is the live catalog (`catalogNames(CATALOG)`).
 The gallery route is the client-root reachability surface for those UI
 modules — do not leave assembled files unused under `src/components/ui/`.
+`lite/form@0.1.0` is hashed but not live; it is not assembled here.
 
 ## Standalone
 

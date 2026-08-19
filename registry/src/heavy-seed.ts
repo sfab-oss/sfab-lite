@@ -1,6 +1,6 @@
 /**
  * Catalog names copied into `starters/heavy` at bake time
- * (`assemble-heavy-starter` → `seed.json`). Full published catalog —
+ * (`assemble-heavy-starter` → `seed.json`). Live catalog —
  * the gallery route imports every assembled UI module as a client root.
  *
  * Equals `catalogNames(CATALOG)` — inlined so Node `--experimental-strip-types`

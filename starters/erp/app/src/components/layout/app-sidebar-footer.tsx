@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useSession } from "../../hooks/use-session";
 import { authClient } from "../../lib/auth-client";
+import { ThemeToggle } from "../theme-toggle";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import {
   DropdownMenu,
@@ -116,6 +117,10 @@ export function AppSidebarFooter() {
                 </div>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <div className="flex items-center gap-1 p-1">
+              <ThemeToggle />
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled={signingOut} onClick={signOut}>
               <ExitIcon className="mr-2 size-4" />

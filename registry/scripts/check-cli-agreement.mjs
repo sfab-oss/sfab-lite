@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Cheap-vs-real registry agreement: the real shadcn CLI (pinned) adding
- * every published recipe from our served /r/{name}.json must place files
+ * every live-catalog recipe from our served /r/{name}.json must place files
  * byte-identical to planAdd.
  *
  * CI-only (installs a scratch project and runs the CLI). Pin: shadcn@4.17.0.

@@ -289,16 +289,41 @@
       "name": "data-table",
       "type": "registry:ui",
       "title": "Data Table",
-      "description": "TanStack Table v8 over lite/table: sorting, client filter toolbar, and prev/next pagination. Use with kernel @tanstack/react-table. Assumes lite/table, lite/button, and lite/input.",
+      "description": "TanStack Table v8 over lite/table with sortable headers, a filter/sort toolbar (chips + popovers), and prev/next pagination. Use with kernel @tanstack/react-table.",
       "registryDependencies": [
         "@lite/utils",
         "@lite/table",
         "@lite/button",
-        "@lite/input"
+        "@lite/input",
+        "@lite/badge",
+        "@lite/checkbox",
+        "@lite/label",
+        "@lite/popover",
+        "@lite/separator"
       ],
       "files": [
         {
-          "path": "recipes/data-table/0.1.1/data-table.tsx",
+          "path": "recipes/data-table/0.1.2/table-filter-types.ts",
+          "type": "registry:lib",
+          "target": "src/lib/table-filter-types.ts"
+        },
+        {
+          "path": "recipes/data-table/0.1.2/sortable-header.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/sortable-header.tsx"
+        },
+        {
+          "path": "recipes/data-table/0.1.2/table-sort-control.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/table-sort-control.tsx"
+        },
+        {
+          "path": "recipes/data-table/0.1.2/table-filter-toolbar.tsx",
+          "type": "registry:ui",
+          "target": "src/components/ui/table-filter-toolbar.tsx"
+        },
+        {
+          "path": "recipes/data-table/0.1.2/data-table.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/data-table.tsx"
         }
@@ -441,27 +466,6 @@
           "path": "recipes/field/0.1.1/field.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/field.tsx"
-        }
-      ],
-      "meta": {
-        "liteProfile": 1,
-        "liteRuntime": ">=0.4.0"
-      }
-    },
-    {
-      "name": "form",
-      "type": "registry:ui",
-      "title": "Form",
-      "description": "react-hook-form FormProvider helpers (FormField, FormControl, FormMessage). Use with kernel react-hook-form and @hookform/resolvers/zod. Assumes src/lib/utils exports cn and lite/label is present.",
-      "registryDependencies": [
-        "@lite/utils",
-        "@lite/label"
-      ],
-      "files": [
-        {
-          "path": "recipes/form/0.1.0/form.tsx",
-          "type": "registry:ui",
-          "target": "src/components/ui/form.tsx"
         }
       ],
       "meta": {

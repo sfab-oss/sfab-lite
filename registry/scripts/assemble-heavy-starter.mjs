@@ -4,9 +4,16 @@
  * provenance onto starters/heavy/manifest.json `recipes`.
  *
  * `check:manifest` fails when the committed tree or provenance drifts from
- * this assembly.
+ * this assembly. Paths that left provenance (retired live-catalog slugs)
+ * are deleted so orphans do not linger on disk.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateManifest } from "../../framework/toolchain/src/validate-manifest.ts";
@@ -27,15 +34,32 @@ if (!assembled.ok) {
   process.exit(1);
 }
 
+const previous = JSON.parse(readFileSync(manifestPath, "utf8"));
+const previousRecipePaths = new Set();
+for (const entry of Object.values(previous.recipes ?? {})) {
+  for (const rel of Object.keys(entry.files ?? {})) {
+    previousRecipePaths.add(rel);
+  }
+}
+
 for (const [path, content] of Object.entries(assembled.writes)) {
   const abs = join(appRoot, path);
   mkdirSync(dirname(abs), { recursive: true });
   writeFileSync(abs, content);
 }
 
-const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+for (const rel of previousRecipePaths) {
+  if (rel in assembled.writes) {
+    continue;
+  }
+  const abs = join(appRoot, rel);
+  if (existsSync(abs)) {
+    unlinkSync(abs);
+  }
+}
+
 const validated = validateManifest({
-  ...manifest,
+  ...previous,
   recipes: assembled.provenance,
 });
 if (!validated.ok) {
