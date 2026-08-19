@@ -11,6 +11,7 @@ export const ERP_SEED_RECIPES = [
   "lite/breadcrumb",
   "lite/button",
   "lite/card",
+  "lite/data-table",
   "lite/dialog",
   "lite/dropdown-menu",
   "lite/empty-state",

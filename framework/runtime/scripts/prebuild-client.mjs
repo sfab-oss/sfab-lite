@@ -391,6 +391,14 @@ await vendorPkg({
   importKeys: ["@tanstack/react-query"],
 });
 
+await vendorPkg({
+  name: "@tanstack/react-table",
+  entrySource: `export * from "@tanstack/react-table";\n`,
+  outfileName: "tanstack-table.js",
+  external: ["react", "react/jsx-runtime"],
+  importKeys: ["@tanstack/react-table"],
+});
+
 // The app's only icon set. A finite, complete library rather than a subset:
 // the agent cannot discover which icons a subset holds, and would learn the
 // boundary one typecheck error at a time. All 318 cost 89.5 KB in the types

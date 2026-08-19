@@ -83,6 +83,18 @@
         "src/components/ui/card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
       }
     },
+    "lite/table": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/table.tsx": "sha256:18e5f174572c8c8485d9ee9b3b1d003be5cf62d60bed7981d41ceb9be7b8aa1f"
+      }
+    },
+    "lite/data-table": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/data-table.tsx": "sha256:7f8dee71b7ae7f23a94aa4fa3d6673eb4ad0445ec46160e7b293d9e3825d03b2"
+      }
+    },
     "lite/dialog": {
       "version": "0.1.0",
       "files": {
@@ -159,12 +171,6 @@
       "version": "0.1.1",
       "files": {
         "src/components/ui/sidebar.tsx": "sha256:4b39d38caaadd6f3115eec675de202edf7e561978770b560991c0b0e6d7a5e42"
-      }
-    },
-    "lite/table": {
-      "version": "0.1.0",
-      "files": {
-        "src/components/ui/table.tsx": "sha256:18e5f174572c8c8485d9ee9b3b1d003be5cf62d60bed7981d41ceb9be7b8aa1f"
       }
     }
   }

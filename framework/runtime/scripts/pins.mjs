@@ -45,6 +45,7 @@ export const UNIVERSE_EXTRA_PINS = {
   "tailwind-merge": "3.3.1",
   "react-hook-form": "7.81.0",
   "@hookform/resolvers": "5.4.0",
+  "@tanstack/react-table": "8.21.3",
 };
 
 /**

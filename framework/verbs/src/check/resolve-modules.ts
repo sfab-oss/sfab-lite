@@ -123,6 +123,8 @@ const PACKAGE_ENTRY: Record<string, string> = {
     "/node_modules/@tanstack/react-router/dist/esm/index.d.ts",
   "@tanstack/react-query":
     "/node_modules/@tanstack/react-query/build/modern/index.d.ts",
+  "@tanstack/react-table":
+    "/node_modules/@tanstack/react-table/build/lib/index.d.ts",
   clsx: "/node_modules/clsx/clsx.d.ts",
   "class-variance-authority":
     "/node_modules/class-variance-authority/dist/index.d.ts",
@@ -147,6 +149,8 @@ const KNOWN_PACKAGES = [
   "@tanstack/router-core",
   "@tanstack/react-query",
   "@tanstack/query-core",
+  "@tanstack/react-table",
+  "@tanstack/table-core",
   "@base-ui/react",
   "@base-ui/utils",
   "@radix-ui/react-icons",
