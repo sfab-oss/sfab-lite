@@ -115,3 +115,36 @@ export function moduleTypesForManifest(
 export function catalogPins(): string[] {
   return CATALOG_MODULES.map(catalogPinSpec).sort();
 }
+
+export function modulesFromCatalogPins(
+  pins: Iterable<string>
+): ManifestModule[] {
+  const byName = new Map<string, ManifestModule>();
+  for (const pin of pins) {
+    const parsed = parseCatalogPin(pin);
+    if (!parsed) {
+      continue;
+    }
+    const entry = catalogEntry(parsed.name, parsed.version);
+    if (!entry) {
+      continue;
+    }
+    byName.set(entry.name, { name: entry.name, version: entry.version });
+  }
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function modulesFromRecipeNames(
+  recipeNames: Iterable<string>,
+  dependenciesByRecipe: Readonly<Record<string, readonly string[]>>
+): ManifestModule[] {
+  const pins: string[] = [];
+  for (const name of recipeNames) {
+    const deps = dependenciesByRecipe[name];
+    if (deps == null) {
+      continue;
+    }
+    pins.push(...deps);
+  }
+  return modulesFromCatalogPins(pins);
+}

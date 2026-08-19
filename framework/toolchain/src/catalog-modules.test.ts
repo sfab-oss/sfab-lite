@@ -5,6 +5,7 @@ import {
   catalogModuleR2Prefix,
   catalogPins,
   isAllowedCatalogDependency,
+  modulesFromRecipeNames,
   moduleTypesForManifest,
   parseCatalogPin,
 } from "./catalog-modules.ts";
@@ -37,4 +38,25 @@ test("moduleTypesForManifest overlays the cheap stub, not the .d.ts closure", ()
   assert.ok(stub.includes("StandardFonts"));
   assert.equal(Object.keys(overlay).length, 1);
   assert.equal(stub.includes("cjs/"), false);
+});
+
+test("modulesFromRecipeNames keeps only catalog pins for listed recipes", () => {
+  assert.deepEqual(
+    modulesFromRecipeNames(["lite/pdf-invoice", "lite/field"], {
+      "lite/pdf-invoice": ["pdf-lib@1.17.1"],
+    }),
+    [{ name: "pdf-lib", version: "1.17.1" }]
+  );
+  assert.deepEqual(
+    modulesFromRecipeNames(["lite/field"], {
+      "lite/pdf-invoice": ["pdf-lib@1.17.1"],
+    }),
+    []
+  );
+  assert.deepEqual(
+    modulesFromRecipeNames(["lite/pdf-invoice"], {
+      "lite/pdf-invoice": ["lodash@4.17.21", "pdf-lib@1.17.1"],
+    }),
+    [{ name: "pdf-lib", version: "1.17.1" }]
+  );
 });

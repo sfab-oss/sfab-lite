@@ -486,6 +486,19 @@ export function catalogNames(catalog: Catalog): string[] {
   return Object.keys(catalog.items).sort();
 }
 
+export function recipeCatalogDependencies(
+  catalog: Catalog
+): Record<string, readonly string[]> {
+  const out: Record<string, readonly string[]> = {};
+  for (const [name, entry] of Object.entries(catalog.items)) {
+    const deps = entry?.item.dependencies;
+    if (deps != null && deps.length > 0) {
+      out[name] = deps;
+    }
+  }
+  return out;
+}
+
 export function catalogNameForSlug(slug: string): string {
   return `${LITE_PREFIX}${slug}`;
 }

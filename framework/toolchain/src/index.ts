@@ -32,6 +32,8 @@ export {
   catalogPinSpec,
   catalogPins,
   isAllowedCatalogDependency,
+  modulesFromCatalogPins,
+  modulesFromRecipeNames,
   moduleTypesForManifest,
   parseCatalogPin,
 } from "./catalog-modules.js";

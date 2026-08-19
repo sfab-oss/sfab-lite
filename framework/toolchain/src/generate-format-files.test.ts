@@ -134,6 +134,21 @@ test("modules: [] leaves generated dependencies unchanged", () => {
   assert.deepEqual(pkg.dependencies, { react: "19.2.8" });
 });
 
+test("mergeModulePins ignores non-catalog modules", () => {
+  const files = generate(
+    {
+      ...validManifest(),
+      modules: [{ name: "lodash", version: "4.17.21" }],
+    },
+    {
+      dependencies: { react: "19.2.8" },
+      devDependencies: {},
+    }
+  );
+  const pkg = JSON.parse(files[GENERATED_ARTIFACTS.packageJson] ?? "{}");
+  assert.deepEqual(pkg.dependencies, { react: "19.2.8" });
+});
+
 test("tsconfig keeps types: [] and include: src", () => {
   const files = generate();
   const tsconfig = JSON.parse(files[GENERATED_ARTIFACTS.tsconfig] ?? "{}");

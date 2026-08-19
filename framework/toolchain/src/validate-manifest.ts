@@ -1,3 +1,4 @@
+import { catalogEntry } from "@sfab-lite/core/catalog-modules";
 import { z } from "zod";
 import type {
   AdapterTarget,
@@ -95,7 +96,24 @@ const moduleSchema = exactObject(
     version: exactVersion(),
   },
   "expected an object"
-);
+).superRefine((value, ctx) => {
+  const entry = catalogEntry(value.name);
+  if (!entry) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["name"],
+      message: `unknown catalog module "${value.name}"`,
+    });
+    return;
+  }
+  if (entry.version !== value.version) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["version"],
+      message: `catalog pin for "${value.name}" must be ${entry.version} (got ${value.version})`,
+    });
+  }
+});
 
 const recipeFilesSchema = z
   .record(
