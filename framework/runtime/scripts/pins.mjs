@@ -43,6 +43,8 @@ export const UNIVERSE_EXTRA_PINS = {
   clsx: "2.1.1",
   "class-variance-authority": "0.7.1",
   "tailwind-merge": "3.3.1",
+  "react-hook-form": "7.81.0",
+  "@hookform/resolvers": "5.4.0",
 };
 
 /**

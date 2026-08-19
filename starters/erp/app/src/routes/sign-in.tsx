@@ -1,5 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { AuthShell } from "../components/layout/auth-shell";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
@@ -10,7 +13,12 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "../components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { invalidateSession } from "../hooks/use-session";
 import { authClient } from "../lib/auth-client";
@@ -19,24 +27,30 @@ export const Route = createFileRoute("/sign-in")({
   component: SignInPage,
 });
 
+const signInSchema = z.object({
+  email: z.email(),
+  password: z.string().min(1),
+});
+
+type SignInValues = z.infer<typeof signInSchema>;
+
 function SignInPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setPending(true);
+  const form = useForm<SignInValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  async function onSubmit(values: SignInValues) {
     setError(null);
 
     const { error: failure } = await authClient.signIn.email({
-      email,
-      password,
+      email: values.email,
+      password: values.password,
     });
 
-    setPending(false);
     if (failure) {
       setError(failure.message ?? "Sign-in failed");
       return;
@@ -54,38 +68,57 @@ function SignInPage() {
           <CardDescription>Email and password</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <FieldGroup className="gap-4">
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  autoComplete="email"
-                  id="email"
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  type="email"
-                  value={email}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input
-                  autoComplete="current-password"
-                  id="password"
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  type="password"
-                  value={password}
-                />
-              </Field>
+              <Controller
+                control={form.control}
+                name="email"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                    <Input
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      autoComplete="email"
+                      id={field.name}
+                      type="email"
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="password"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                    <Input
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      autoComplete="current-password"
+                      id={field.name}
+                      type="password"
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
             </FieldGroup>
             {error ? (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
-            <Button disabled={pending} type="submit">
-              {pending ? "Signing in…" : "Sign in"}
+            <Button disabled={form.formState.isSubmitting} type="submit">
+              {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
           <p className="mt-4 text-muted-foreground text-sm">

@@ -388,11 +388,13 @@ const KERNEL_SURFACE_PACKAGES = new Set([
  */
 const CLIENT_ONLY_PACKAGES = new Set([
   "@base-ui/react",
+  "@hookform/resolvers",
   "@radix-ui/react-icons",
   "@tanstack/react-query",
   "@tanstack/react-router",
   "class-variance-authority",
   "clsx",
+  "react-hook-form",
   "tailwind-merge",
 ]);
 
@@ -400,7 +402,7 @@ const CLIENT_ONLY_PACKAGES = new Set([
  * Packages whose hosted runtime is only the server import map. Client map
  * coverage does not count for these.
  */
-const SERVER_ONLY_PACKAGES = new Set(["drizzle-orm", "zod"]);
+const SERVER_ONLY_PACKAGES = new Set(["drizzle-orm"]);
 
 /**
  * Packages where the types VFS intentionally ships the whole package so every

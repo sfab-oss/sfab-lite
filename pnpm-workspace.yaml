@@ -38,5 +38,15 @@ allowBuilds:
 overrides:
   brace-expansion: "5.0.7"
 
+# @hookform/resolvers@5 imports zod in its types but omits the peer; without
+# this, pnpm can hoist better-auth's zod 3 next to the resolver.
+packageExtensions:
+  "@hookform/resolvers":
+    peerDependencies:
+      zod: "*"
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
 patchedDependencies:
   '@cloudflare/think@0.13.0': patches/@cloudflare__think@0.13.0.patch

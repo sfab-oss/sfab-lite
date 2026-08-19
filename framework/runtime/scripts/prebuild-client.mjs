@@ -134,7 +134,7 @@ const chunks = [
   },
 ];
 
-/** Map a react/react-dom bare specifier to a relative flat client chunk path. */
+/** Map a shared client bare specifier to a relative flat chunk path. */
 function toClientFlatKey(spec) {
   if (spec === "react") {
     return "./react.js";
@@ -148,7 +148,42 @@ function toClientFlatKey(spec) {
   if (spec === "react-dom" || spec.startsWith("react-dom/")) {
     return "./react-dom.js";
   }
+  if (spec === "react-hook-form") {
+    return "./rhf.js";
+  }
+  if (spec === "zod") {
+    return "./zod.js";
+  }
   return spec;
+}
+
+const FLAT_CLIENT_EXTERNAL_RE =
+  /^(react|react-dom|react\/jsx-runtime|react-hook-form|zod)(\/.*)?$/;
+
+/**
+ * Only mark specs listed in this chunk's `external` as flat client externals.
+ * Matching every known flat key would make a `react-hook-form` vendor entry
+ * resolve to itself (`export * from "./rhf.js"`).
+ */
+function flatClientExternalsPlugin(external) {
+  const allowed = new Set(external);
+  return {
+    name: "flat-client-externals",
+    setup(build) {
+      build.onResolve({ filter: FLAT_CLIENT_EXTERNAL_RE }, (args) => {
+        const hit = [...allowed].some(
+          (e) => args.path === e || args.path.startsWith(`${e}/`)
+        );
+        if (!hit) {
+          return;
+        }
+        return {
+          path: toClientFlatBare(args.path),
+          external: true,
+        };
+      });
+    },
+  };
 }
 
 /** Flat filename without ./ — what the external plugin stamps onto __require(). */
@@ -285,26 +320,7 @@ async function vendorPkg(opts) {
       external,
       metafile: true,
       plugins: [
-        ...(external.length
-          ? [
-              {
-                name: "flat-client-externals",
-                setup(build) {
-                  build.onResolve(
-                    {
-                      filter: /^(react|react-dom|react\/jsx-runtime)(\/.*)?$/,
-                    },
-                    (args) => ({
-                      // Bare flat name (not ./) so CJS __require("react.js")
-                      // matches what rewriteExternalRequires maps.
-                      path: toClientFlatBare(args.path),
-                      external: true,
-                    })
-                  );
-                },
-              },
-            ]
-          : []),
+        ...(external.length ? [flatClientExternalsPlugin(external)] : []),
         universeResolvePlugin(),
       ],
     });
@@ -319,6 +335,8 @@ async function vendorPkg(opts) {
         'from "./react-dom-client.js"'
       )
       .replace(/from\s+["']react-dom["']/g, 'from "./react-dom.js"')
+      .replace(/from\s+["']react-hook-form["']/g, 'from "./rhf.js"')
+      .replace(/from\s+["']zod["']/g, 'from "./zod.js"')
       // esbuild external plugin may already have emitted bare flat names.
       .replace(/from\s+["']react\.js["']/g, 'from "./react.js"')
       .replace(/from\s+["']jsx-runtime\.js["']/g, 'from "./jsx-runtime.js"')
@@ -326,7 +344,9 @@ async function vendorPkg(opts) {
         /from\s+["']react-dom-client\.js["']/g,
         'from "./react-dom-client.js"'
       )
-      .replace(/from\s+["']react-dom\.js["']/g, 'from "./react-dom.js"');
+      .replace(/from\s+["']react-dom\.js["']/g, 'from "./react-dom.js"')
+      .replace(/from\s+["']rhf\.js["']/g, 'from "./rhf.js"')
+      .replace(/from\s+["']zod\.js["']/g, 'from "./zod.js"');
     // CJS shims inside the bundle call __require("react.js") — rewrite the
     // stub so those resolve to the ESM flat chunk (vendorPkg previously skipped this).
     source = rewriteExternalRequires(source, external);
@@ -388,6 +408,37 @@ await vendorPkg({
   entrySource: `export * from "clsx";\nexport { default } from "clsx";\n`,
   outfileName: "clsx.js",
   importKeys: ["clsx"],
+});
+
+// Client zod so forms can `import { z } from "zod"` and zodResolver can share
+// one chunk with the server pin (server still serves its own zod.js).
+await vendorPkg({
+  name: "zod",
+  entrySource: `export * from "zod";\n`,
+  outfileName: "zod.js",
+  importKeys: ["zod"],
+});
+
+await vendorPkg({
+  name: "react-hook-form",
+  entrySource: `export * from "react-hook-form";\n`,
+  outfileName: "rhf.js",
+  external: ["react", "react-dom", "react/jsx-runtime"],
+  importKeys: ["react-hook-form"],
+});
+
+await vendorPkg({
+  name: "@hookform/resolvers/zod",
+  entrySource: `export * from "@hookform/resolvers/zod";\n`,
+  outfileName: "hookform-resolvers-zod.js",
+  external: [
+    "react",
+    "react-dom",
+    "react/jsx-runtime",
+    "react-hook-form",
+    "zod",
+  ],
+  importKeys: ["@hookform/resolvers/zod"],
 });
 
 await vendorPkg({

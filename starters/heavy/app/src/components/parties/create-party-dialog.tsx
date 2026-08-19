@@ -10,40 +10,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import {
-  BLANK_PARTY_FORM,
-  PartyForm,
-  type PartyFormValues,
-} from "./party-form";
+import { PartyForm } from "./party-form";
 
 export function CreatePartyDialog() {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<PartyFormValues>(BLANK_PARTY_FORM);
+  const [formKey, setFormKey] = useState(0);
   const create = useCreateParty();
-
-  function onSubmit() {
-    create.mutate(
-      {
-        name: form.name,
-        kind: form.kind,
-        email: form.email.trim() || null,
-        taxId: form.taxId.trim() || null,
-      },
-      {
-        onSuccess: () => {
-          setForm(BLANK_PARTY_FORM);
-          setOpen(false);
-        },
-      }
-    );
-  }
 
   return (
     <Dialog
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
-          setForm(BLANK_PARTY_FORM);
+          setFormKey((key) => key + 1);
         }
       }}
       open={open}
@@ -58,11 +37,25 @@ export function CreatePartyDialog() {
           <DialogDescription>Someone you charge or pay</DialogDescription>
         </DialogHeader>
         <PartyForm
-          onChange={setForm}
-          onSubmit={onSubmit}
+          key={formKey}
+          onSubmit={(values) => {
+            create.mutate(
+              {
+                name: values.name,
+                kind: values.kind,
+                email: values.email,
+                taxId: values.taxId,
+              },
+              {
+                onSuccess: () => {
+                  setFormKey((key) => key + 1);
+                  setOpen(false);
+                },
+              }
+            );
+          }}
           pending={create.isPending}
           submitLabel="Create party"
-          value={form}
         />
       </DialogContent>
     </Dialog>

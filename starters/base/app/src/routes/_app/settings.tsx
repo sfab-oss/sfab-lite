@@ -1,6 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { ShellPageFrame } from "../../components/layout/shell";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
@@ -11,7 +14,12 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "../../components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
 import { Skeleton } from "../../components/ui/skeleton";
 import { invalidateSession, useSession } from "../../hooks/use-session";
@@ -21,33 +29,43 @@ export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
 });
 
+const orgNameSchema = z.object({
+  name: z.string().min(1).max(200),
+});
+
+type OrgNameValues = z.infer<typeof orgNameSchema>;
+
 function SettingsPage() {
   const queryClient = useQueryClient();
   const session = useSession();
   const organization = session.data?.organization;
 
-  const [name, setName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [pending, setPending] = useState(false);
 
-  const value = name ?? organization?.name ?? "";
+  const form = useForm<OrgNameValues>({
+    resolver: zodResolver(orgNameSchema),
+    defaultValues: { name: organization?.name ?? "" },
+  });
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
+  useEffect(() => {
+    if (organization?.name != null) {
+      form.reset({ name: organization.name });
+    }
+  }, [organization?.name, form.reset]);
+
+  async function onSubmit(values: OrgNameValues) {
     if (!organization) {
       return;
     }
-    setPending(true);
     setError(null);
     setSaved(false);
 
     const { error: failure } = await authClient.organization.update({
       organizationId: organization.id,
-      data: { name: value },
+      data: { name: values.name },
     });
 
-    setPending(false);
     if (failure) {
       setError(failure.message ?? "Could not save changes");
       return;
@@ -55,7 +73,6 @@ function SettingsPage() {
 
     await invalidateSession();
     await queryClient.invalidateQueries();
-    setName(null);
     setSaved(true);
   }
 
@@ -80,26 +97,35 @@ function SettingsPage() {
                 <CardContent>
                   <form
                     className="flex max-w-md flex-col gap-4"
-                    onSubmit={onSubmit}
+                    onSubmit={form.handleSubmit(onSubmit)}
                   >
                     <FieldGroup className="gap-4">
-                      <Field>
-                        <FieldLabel
-                          className="text-muted-foreground"
-                          htmlFor="org-name"
-                        >
-                          Name
-                        </FieldLabel>
-                        <Input
-                          id="org-name"
-                          onChange={(event) => {
-                            setName(event.target.value);
-                            setSaved(false);
-                          }}
-                          required
-                          value={value}
-                        />
-                      </Field>
+                      <Controller
+                        control={form.control}
+                        name="name"
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel
+                              className="text-muted-foreground"
+                              htmlFor={field.name}
+                            >
+                              Name
+                            </FieldLabel>
+                            <Input
+                              {...field}
+                              aria-invalid={fieldState.invalid}
+                              id={field.name}
+                              onChange={(event) => {
+                                field.onChange(event);
+                                setSaved(false);
+                              }}
+                            />
+                            {fieldState.invalid && (
+                              <FieldError errors={[fieldState.error]} />
+                            )}
+                          </Field>
+                        )}
+                      />
                       <Field>
                         <FieldLabel
                           className="text-muted-foreground"
@@ -121,8 +147,13 @@ function SettingsPage() {
                       </Alert>
                     ) : null}
                     <div className="flex items-center gap-3">
-                      <Button disabled={pending || !organization} type="submit">
-                        {pending ? "Saving…" : "Save changes"}
+                      <Button
+                        disabled={form.formState.isSubmitting || !organization}
+                        type="submit"
+                      >
+                        {form.formState.isSubmitting
+                          ? "Saving…"
+                          : "Save changes"}
                       </Button>
                       {saved ? (
                         <span className="text-muted-foreground text-sm">

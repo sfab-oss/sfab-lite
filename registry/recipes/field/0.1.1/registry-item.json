@@ -1,0 +1,18 @@
+{
+  "name": "lite/field",
+  "type": "registry:ui",
+  "title": "Field",
+  "description": "Form field layout (group, label, description, error). Use with react-hook-form Controller. Assumes src/lib/utils exports cn and lite/label is present.",
+  "registryDependencies": ["lite/utils", "lite/label"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "field.tsx",
+      "type": "registry:ui",
+      "target": "src/components/ui/field.tsx"
+    }
+  ]
+}

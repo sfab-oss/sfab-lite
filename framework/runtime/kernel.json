@@ -35,6 +35,9 @@
     "tanstack-query.js",
     "radix-icons.js",
     "clsx.js",
+    "zod.js",
+    "rhf.js",
+    "hookform-resolvers-zod.js",
     "cva.js",
     "tailwind-merge.js",
     "hono-client.js",
@@ -50,6 +53,9 @@
     "@tanstack/react-query": "./tanstack-query.js",
     "@radix-ui/react-icons": "./radix-icons.js",
     "clsx": "./clsx.js",
+    "zod": "./zod.js",
+    "react-hook-form": "./rhf.js",
+    "@hookform/resolvers/zod": "./hookform-resolvers-zod.js",
     "class-variance-authority": "./cva.js",
     "tailwind-merge": "./tailwind-merge.js",
     "hono/client": "./hono-client.js",
@@ -119,6 +125,9 @@
     "client/tanstack-query.js": "sha256:4e282af9f59d2d990ff9535659c64a01e19e40d34ddbf2c09efe7b94d8ccd458",
     "client/radix-icons.js": "sha256:8d213002e7caece0abb635473a37e1670fa81697cf5e55587e4a5a96bf3e0169",
     "client/clsx.js": "sha256:1aeea24e623521bd83abe109fad95707df919ba9c0a85dfce9673a7f98c2cb9d",
+    "client/zod.js": "sha256:41101327e94750f37fba2d4b7d1ae34aea1f40a372c0f33486e1adfe575162dc",
+    "client/rhf.js": "sha256:78b339a3b362aa02dfc8ecb25736b76a2bef32a4f62d5affbc5c97b404a10c82",
+    "client/hookform-resolvers-zod.js": "sha256:b3ce5fc39f26f64ee83d273f91f0c3b761340c6b855c833d6e7ef0f3e2db530d",
     "client/cva.js": "sha256:f2e1b0729df28ed9377e9ddf3b89797a4a4582c0ce6208d3a172aedd9e8f9f94",
     "client/tailwind-merge.js": "sha256:3994632fbf457911c244c2a7f84069d9222a277654bb67b8da19fcf6387f0dcb",
     "client/hono-client.js": "sha256:7a9707209f3f725adcad71ea6ea4df3bfe317057684ab0478ef30763d6bca1e2",
@@ -126,9 +135,9 @@
     "client/base-ui-react.js": "sha256:5c152675dfebc289fe95806e230d5e8d961d10b17106eacced0b06908a4fe345"
   },
   "typesVfs": {
-    "fileCount": 2500,
-    "rawBytes": 9618019,
-    "gzipBytes": 1253553,
+    "fileCount": 2564,
+    "rawBytes": 9877233,
+    "gzipBytes": 1299763,
     "packages": {
       "@base-ui/react": 1151,
       "@base-ui/utils": 10,
@@ -141,6 +150,7 @@
       "@floating-ui/dom": 1,
       "@floating-ui/react-dom": 1,
       "@floating-ui/utils": 2,
+      "@hookform/resolvers": 3,
       "@radix-ui/react-icons": 320,
       "@standard-schema/spec": 1,
       "@tanstack/history": 1,
@@ -161,11 +171,12 @@
       "jose": 31,
       "kysely": 265,
       "nanostores": 13,
+      "react-hook-form": 33,
       "reselect": 1,
       "tailwind-merge": 1,
       "tiny-invariant": 1,
       "tiny-warning": 1,
-      "zod": 234
+      "zod": 260
     }
   },
   "cssVfs": {
@@ -202,6 +213,9 @@
     "@tanstack/react-query": 106981,
     "@radix-ui/react-icons": 489823,
     "clsx": 632,
+    "zod": 523007,
+    "react-hook-form": 96957,
+    "@hookform/resolvers/zod": 4845,
     "class-variance-authority": 2768,
     "tailwind-merge": 91325,
     "hono/client": 11187,
@@ -217,6 +231,9 @@
     "tanstack-query.js": 20947,
     "radix-icons.js": 101911,
     "clsx.js": 334,
+    "zod.js": 76887,
+    "rhf.js": 20307,
+    "hookform-resolvers-zod.js": 1619,
     "cva.js": 896,
     "tailwind-merge.js": 14577,
     "hono-client.js": 3368,
@@ -224,12 +241,12 @@
     "base-ui-react.js": 269583
   },
   "totals": {
-    "raw": 7953249,
-    "gzip": 1397297,
-    "typesGzip": 1253553,
+    "raw": 8578058,
+    "gzip": 1496110,
+    "typesGzip": 1299763,
     "cssGzip": 13148,
-    "clientGzip": 666413,
-    "hostBakeGzip": 2663998
+    "clientGzip": 765226,
+    "hostBakeGzip": 2809021
   },
   "killThresholdGzip": 10485760,
   "underGzipKill": true,
