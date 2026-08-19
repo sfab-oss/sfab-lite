@@ -12,6 +12,12 @@ react-query / RHF: one shared client chunk, not a per-app npm dep.
 
 Host gzip after pin: **4.00 MiB / 41.9%** (was 3.97 MiB / 41.7%).
 
+## Follow-on: DIY theme (no next-themes)
+
+FOUC-safe `sfab-theme` boot script in `formatIndexHtml`, `lite/theme-toggle@0.1.0`
+(`src/lib/theme.ts` + sun/moon toggle), Appearance card on base/erp/heavy.
+No new kernel pin — host gzip should not move.
+
 ## Recipe
 
 `lite/data-table@0.1.0` — thin `DataTable` + `DataTableColumnHeader` over

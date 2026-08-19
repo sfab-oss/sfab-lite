@@ -1003,6 +1003,31 @@
       }
     },
     {
+      "name": "theme-toggle",
+      "type": "registry:ui",
+      "title": "Theme Toggle",
+      "description": "DIY light/dark/system theme (localStorage sfab-theme) plus a sun/moon Button. No next-themes. Assumes lite/button is present.",
+      "registryDependencies": [
+        "@lite/button"
+      ],
+      "files": [
+        {
+          "path": "recipes/theme-toggle/0.1.0/theme.ts",
+          "type": "registry:lib",
+          "target": "src/lib/theme.ts"
+        },
+        {
+          "path": "recipes/theme-toggle/0.1.0/theme-toggle.tsx",
+          "type": "registry:ui",
+          "target": "src/components/theme-toggle.tsx"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "toast",
       "type": "registry:ui",
       "title": "Toast",

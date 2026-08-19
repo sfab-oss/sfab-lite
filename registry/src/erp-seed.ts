@@ -24,6 +24,7 @@ export const ERP_SEED_RECIPES = [
   "lite/sidebar",
   "lite/skeleton",
   "lite/table",
+  "lite/theme-toggle",
   "lite/tooltip",
   "lite/use-mobile",
   "lite/utils",

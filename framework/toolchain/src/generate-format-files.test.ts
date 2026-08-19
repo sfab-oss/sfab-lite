@@ -152,4 +152,6 @@ test("formatIndexHtml injects stylesheet and import map for pack", () => {
   assert.ok(html.includes('type="importmap"'));
   assert.ok(html.includes("/kernel/0.4.0/client/react.js"));
   assert.ok(html.includes('src="./assets/app.js"'));
+  assert.ok(html.includes("sfab-theme"));
+  assert.ok(html.includes('classList.toggle("dark"'));
 });

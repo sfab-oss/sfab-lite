@@ -1299,6 +1299,38 @@
         "src/components/ui/textarea.tsx": "import type * as React from \"react\";\nimport { cn } from \"../../lib/utils\";\n\nfunction Textarea({ className, ...props }: React.ComponentProps<\"textarea\">) {\n  return (\n    <textarea\n      className={cn(\n        \"field-sizing-content flex min-h-16 w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-base shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40\",\n        className\n      )}\n      data-slot=\"textarea\"\n      {...props}\n    />\n  );\n}\n\nexport { Textarea };\n"
       }
     },
+    "lite/theme-toggle": {
+      "version": "0.1.0",
+      "item": {
+        "name": "lite/theme-toggle",
+        "type": "registry:ui",
+        "title": "Theme Toggle",
+        "description": "DIY light/dark/system theme (localStorage sfab-theme) plus a sun/moon Button. No next-themes. Assumes lite/button is present.",
+        "registryDependencies": [
+          "lite/button"
+        ],
+        "files": [
+          {
+            "path": "theme.ts",
+            "type": "registry:lib",
+            "target": "src/lib/theme.ts"
+          },
+          {
+            "path": "theme-toggle.tsx",
+            "type": "registry:ui",
+            "target": "src/components/theme-toggle.tsx"
+          }
+        ],
+        "meta": {
+          "liteProfile": 1,
+          "liteRuntime": ">=0.4.0"
+        }
+      },
+      "contents": {
+        "src/lib/theme.ts": "import { useSyncExternalStore } from \"react\";\n\nexport type Theme = \"light\" | \"dark\" | \"system\";\n\nconst THEME_STORAGE_KEY = \"sfab-theme\";\n\nconst listeners = new Set<() => void>();\n\nfunction isTheme(value: string | null): value is Theme {\n  return value === \"light\" || value === \"dark\" || value === \"system\";\n}\n\nfunction readStored(): Theme {\n  try {\n    const raw = localStorage.getItem(THEME_STORAGE_KEY);\n    return isTheme(raw) ? raw : \"system\";\n  } catch {\n    return \"system\";\n  }\n}\n\nfunction systemPrefersDark(): boolean {\n  return window.matchMedia(\"(prefers-color-scheme: dark)\").matches;\n}\n\nfunction resolveDark(theme: Theme): boolean {\n  return theme === \"dark\" || (theme === \"system\" && systemPrefersDark());\n}\n\nfunction applyTheme(theme: Theme): void {\n  const dark = resolveDark(theme);\n  document.documentElement.classList.toggle(\"dark\", dark);\n  document.documentElement.style.colorScheme = dark ? \"dark\" : \"light\";\n}\n\nfunction getTheme(): Theme {\n  return readStored();\n}\n\nfunction setTheme(theme: Theme): void {\n  try {\n    localStorage.setItem(THEME_STORAGE_KEY, theme);\n  } catch {\n    // ignore quota / private mode\n  }\n  applyTheme(theme);\n  for (const listener of listeners) {\n    listener();\n  }\n}\n\nfunction subscribe(listener: () => void): () => void {\n  listeners.add(listener);\n  const mq = window.matchMedia(\"(prefers-color-scheme: dark)\");\n  const onSystem = () => {\n    if (readStored() === \"system\") {\n      applyTheme(\"system\");\n      listener();\n    }\n  };\n  mq.addEventListener(\"change\", onSystem);\n  return () => {\n    listeners.delete(listener);\n    mq.removeEventListener(\"change\", onSystem);\n  };\n}\n\nexport function useTheme(): {\n  theme: Theme;\n  setTheme: (theme: Theme) => void;\n  resolvedDark: boolean;\n} {\n  const theme = useSyncExternalStore(\n    subscribe,\n    getTheme,\n    (): Theme => \"system\"\n  );\n  return {\n    theme,\n    setTheme,\n    resolvedDark: resolveDark(theme),\n  };\n}\n",
+        "src/components/theme-toggle.tsx": "import { MoonIcon, SunIcon } from \"@radix-ui/react-icons\";\nimport { type Theme, useTheme } from \"../lib/theme\";\nimport { Button } from \"./ui/button\";\n\nconst CYCLE: Theme[] = [\"system\", \"light\", \"dark\"];\n\nfunction ThemeToggle({ className }: { className?: string }) {\n  const { theme, setTheme, resolvedDark } = useTheme();\n\n  function onClick() {\n    const index = CYCLE.indexOf(theme);\n    setTheme(CYCLE[(index + 1) % CYCLE.length] ?? \"system\");\n  }\n\n  return (\n    <Button\n      aria-label={`Theme: ${theme}`}\n      className={className}\n      onClick={onClick}\n      size=\"icon\"\n      title={`Theme: ${theme}`}\n      type=\"button\"\n      variant=\"ghost\"\n    >\n      {resolvedDark ? (\n        <MoonIcon className=\"size-4\" />\n      ) : (\n        <SunIcon className=\"size-4\" />\n      )}\n    </Button>\n  );\n}\n\nexport { ThemeToggle };\n"
+      }
+    },
     "lite/toast": {
       "version": "0.1.0",
       "item": {

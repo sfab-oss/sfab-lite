@@ -18,6 +18,7 @@ export const BASE_SEED_RECIPES = [
   "lite/sheet",
   "lite/sidebar",
   "lite/skeleton",
+  "lite/theme-toggle",
   "lite/tooltip",
   "lite/use-mobile",
   "lite/utils",

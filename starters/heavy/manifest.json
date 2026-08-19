@@ -347,6 +347,13 @@
         "src/components/ui/tabs.tsx": "sha256:24ea554a585f88f9f02e3e40f1ae58a03f3f72370d48f9476b4fabffd997bc39"
       }
     },
+    "lite/theme-toggle": {
+      "version": "0.1.0",
+      "files": {
+        "src/lib/theme.ts": "sha256:d50c1870665cfc38e177425e804f0f16ef7b641e99559292ad67842b3cf0c5de",
+        "src/components/theme-toggle.tsx": "sha256:a7ad826c4674f342c6d8d4280ed6ecfec670e7dd7fb1a61200a6e610d5b05f45"
+      }
+    },
     "lite/toast": {
       "version": "0.1.0",
       "files": {

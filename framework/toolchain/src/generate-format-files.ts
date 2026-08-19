@@ -261,6 +261,7 @@ export function formatIndexHtml(opts: {
       `    <script type="importmap">${JSON.stringify({ imports: opts.importMap })}</script>`
     );
   }
+  const themeBoot = `    <script>(function(){try{var k="sfab-theme",s=localStorage.getItem(k),m=s==="light"||s==="dark"||s==="system"?s:"system",d=m==="dark"||(m==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);document.documentElement.style.colorScheme=d?"dark":"light";}catch(e){}})();</script>`;
   const extraBlock = extra.length > 0 ? `${extra.join("\n")}\n` : "";
   return `<!doctype html>
 <html lang="en">
@@ -269,6 +270,7 @@ export function formatIndexHtml(opts: {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${escapeHtml(opts.title)}</title>
     <link rel="icon" href="data:,">
+${themeBoot}
 ${extraBlock}  </head>
   <body>
     <div id="root"></div>

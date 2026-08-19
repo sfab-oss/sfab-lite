@@ -347,6 +347,13 @@
       "textarea.tsx": "sha256:42300b930ccb18a1445e7fb2e3d14b9495ece627d36983f699a51d5ff90f6505"
     }
   },
+  "lite/theme-toggle@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:60a7d4072fbaca5e93a104c8002f00c753814d400639db7fb26ff70ad6357eda",
+      "theme.ts": "sha256:d50c1870665cfc38e177425e804f0f16ef7b641e99559292ad67842b3cf0c5de",
+      "theme-toggle.tsx": "sha256:a7ad826c4674f342c6d8d4280ed6ecfec670e7dd7fb1a61200a6e610d5b05f45"
+    }
+  },
   "lite/toast@0.1.0": {
     "files": {
       "registry-item.json": "sha256:0ee3f482e156cff80b49726fcd1be93850cf6e37319796cf101aeebfea5552d4",

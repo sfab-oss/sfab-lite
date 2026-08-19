@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ShellPageFrame } from "../../components/layout/shell";
+import { ThemeToggle } from "../../components/theme-toggle";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import {
@@ -24,6 +25,7 @@ import { Input } from "../../components/ui/input";
 import { Skeleton } from "../../components/ui/skeleton";
 import { invalidateSession, useSession } from "../../hooks/use-session";
 import { authClient } from "../../lib/auth-client";
+import { type Theme, useTheme } from "../../lib/theme";
 
 export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
@@ -91,7 +93,7 @@ function SettingsPage() {
                 <CardHeader>
                   <CardTitle>Organization</CardTitle>
                   <CardDescription>
-                    Members and app data belong to this organization.
+                    Parties and ledger lines belong to this organization.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -165,6 +167,20 @@ function SettingsPage() {
                 </CardContent>
               </Card>
               <Card>
+                <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+                  <div className="space-y-1.5">
+                    <CardTitle>Appearance</CardTitle>
+                    <CardDescription>
+                      Light, dark, or follow the system preference.
+                    </CardDescription>
+                  </div>
+                  <ThemeToggle />
+                </CardHeader>
+                <CardContent>
+                  <AppearanceControls />
+                </CardContent>
+              </Card>
+              <Card>
                 <CardHeader>
                   <CardTitle>Account</CardTitle>
                   <CardDescription>The signed-in user.</CardDescription>
@@ -181,5 +197,29 @@ function SettingsPage() {
         </div>
       </div>
     </ShellPageFrame>
+  );
+}
+
+const APPEARANCE_MODES: { value: Theme; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "system", label: "System" },
+];
+
+function AppearanceControls() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="flex flex-wrap gap-2">
+      {APPEARANCE_MODES.map((mode) => (
+        <Button
+          key={mode.value}
+          onClick={() => setTheme(mode.value)}
+          type="button"
+          variant={theme === mode.value ? "default" : "outline"}
+        >
+          {mode.label}
+        </Button>
+      ))}
+    </div>
   );
 }
