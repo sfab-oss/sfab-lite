@@ -69,10 +69,10 @@ const SERVED_PACKAGE_ROOTS: ReadonlySet<string> = new Set(
 
 const SERVED_SURFACE =
   `An app may import the base runtime (${[...SERVED_PACKAGE_ROOTS].sort().join(", ")}), ` +
-  "registry-copied source under src/, and its own files.";
+  "registry-copied source under src/, catalog modules enabled via apps_add, and its own files.";
 
 const CLOSED_RESOLVE_FIX =
-  "Fix: write it in-tree, or use a registry recipe. npm packages cannot be added to a lite app.";
+  "Fix: write it in-tree, add a registry recipe, or apps_add a recipe that enables a catalog module (for example lite/pdf-invoice for pdf-lib). Unknown npm packages cannot be added to a lite app.";
 
 const CLIENT_TREE_REL = "src/{routes,components,hooks,lib}";
 

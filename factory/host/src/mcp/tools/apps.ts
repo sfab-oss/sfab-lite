@@ -130,8 +130,10 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
     {
       description:
         "Copy an @lite registry recipe into the app workspace and record " +
-        "provenance on manifest.recipes. Bare names are a hard error. " +
-        "Re-adding overwrites target files; the PR diff is the review surface.",
+        "provenance on manifest.recipes. Recipes that list a catalog pin " +
+        "also write manifest.modules (host-written; do not edit it). Bare " +
+        "names are a hard error. Re-adding overwrites target files; the " +
+        "PR diff is the review surface.",
       inputSchema: {
         appId,
         name: z
