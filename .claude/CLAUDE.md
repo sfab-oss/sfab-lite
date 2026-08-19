@@ -22,7 +22,7 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
 `pnpm check:generated`, `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
-`pnpm check:seed`, `pnpm check:drizzle-kit-modules`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
+`pnpm check:seed`, `pnpm check:drizzle-kit-modules`, `pnpm check:modules`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
 `pnpm check:registry-agreement`.
 
 `check:generated` fails when the generated format files under
@@ -33,9 +33,9 @@ Regenerate with `pnpm --filter @sfab-lite/starter-<id> generate`; do not
 hand-edit.
 
 `check:registry` validates every published recipe against the lite
-profile, fails closed on committed red fixtures (`dependencies` key,
-unknown types, bare names), and refuses mutation of published version
-hashes.
+profile, fails closed on committed red fixtures (`dependencies` that
+are not an exact catalog pin, unknown types, bare names), and refuses
+mutation of published version hashes.
 
 `check:registry-agreement` is the cheap-vs-real CLI gate: the pinned
 `shadcn` CLI adding every live-catalog recipe from a locally served
@@ -67,6 +67,12 @@ kept seeding the old source.
 `prepare-drizzle-kit-api.mjs` and fails if the committed map no longer matches
 the pinned drizzle-kit / drizzle-orm sources. The host imports the map at build
 time for the schema-probe Loader child.
+
+`check:modules` is the same idea for catalog-module artifacts
+(`framework/modules/<name>@<version>/` plus the generated stubs JSON):
+re-runs the isolated pdf-lib esbuild and fails if committed ESM / stub /
+hashes drift. The host must not import the ESM (R2 at serve); check
+overlays only the cheap stubs.
 
 `check:route-tree` is the same idea for each
 `starters/<id>/app/src/routeTree.gen.ts`: re-runs that starter's

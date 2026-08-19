@@ -40,6 +40,7 @@ import {
   auxServiceHeaders,
   callBuild,
 } from "./call-build.js";
+import { checkRequestBody } from "./check-request.js";
 import {
   type CdStages,
   type CdStageTimings,
@@ -88,12 +89,7 @@ export async function callCheck(
 }> {
   const t0 = Date.now();
   let lastError: unknown;
-  const payload = JSON.stringify({
-    appId,
-    files: tree.files,
-    manifest: tree.manifest,
-    forceCold,
-  });
+  const payload = JSON.stringify(checkRequestBody(appId, tree, forceCold));
 
   for (let attempt = 1; attempt <= CHECK_ATTEMPTS; attempt++) {
     try {

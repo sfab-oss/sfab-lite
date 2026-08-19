@@ -20,6 +20,24 @@ export type {
 export { APP_BIOME_CONFIG } from "./app-biome-config.js";
 export type { BuildRequest, BundleRequest } from "./build.js";
 export type {
+  CatalogModuleEntry,
+  CatalogModulePlane,
+} from "./catalog-modules.js";
+export {
+  CATALOG_MODULES,
+  CATALOG_RUNTIME_LINE,
+  catalogEntry,
+  catalogLoaderKey,
+  catalogModuleR2Prefix,
+  catalogPinSpec,
+  catalogPins,
+  isAllowedCatalogDependency,
+  modulesFromCatalogPins,
+  modulesFromRecipeNames,
+  moduleTypesForManifest,
+  parseCatalogPin,
+} from "./catalog-modules.js";
+export type {
   CheckDiagnostic,
   CheckFailure,
   CheckRequest,

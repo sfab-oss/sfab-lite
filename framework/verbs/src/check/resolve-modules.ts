@@ -69,10 +69,10 @@ const SERVED_PACKAGE_ROOTS: ReadonlySet<string> = new Set(
 
 const SERVED_SURFACE =
   `An app may import the base runtime (${[...SERVED_PACKAGE_ROOTS].sort().join(", ")}), ` +
-  "registry-copied source under src/, and its own files.";
+  "registry-copied source under src/, catalog modules enabled via apps_add, and its own files.";
 
 const CLOSED_RESOLVE_FIX =
-  "Fix: write it in-tree, or use a registry recipe. npm packages cannot be added to a lite app.";
+  "Fix: write it in-tree, add a registry recipe, or apps_add a recipe that enables a catalog module (for example lite/pdf-invoice for pdf-lib). Unknown npm packages cannot be added to a lite app.";
 
 const CLIENT_TREE_REL = "src/{routes,components,hooks,lib}";
 
@@ -173,11 +173,24 @@ export interface ResolveOpts {
   clientPrefixes: readonly string[];
 }
 
+function catalogModuleOverlaid(
+  name: string,
+  overlay: Map<string, string>
+): boolean {
+  const pkg = packageRoot(name);
+  const rest = name === pkg ? "" : name.slice(pkg.length + 1);
+  return (
+    firstExisting(candidatesForPackage(pkg, rest), (p) => overlay.get(p)) !=
+    null
+  );
+}
+
 function bareAllowed(
   name: string,
   containingFile: string | undefined,
   typeOnly: boolean,
-  clientPrefixes: readonly string[]
+  clientPrefixes: readonly string[],
+  overlay: Map<string, string>
 ): boolean {
   if (isVfsInternal(containingFile)) {
     return true;
@@ -190,7 +203,7 @@ function bareAllowed(
     // server type). Value imports may not.
     return typeOnly && KERNEL_SERVED.has(name);
   }
-  return KERNEL_SERVED.has(name);
+  return KERNEL_SERVED.has(name) || catalogModuleOverlaid(name, overlay);
 }
 
 function candidatesForPackage(pkg: string, rest: string): string[] {
@@ -378,7 +391,7 @@ export function resolvePackage(
 ): string | undefined {
   const typeOnly = opts.typeOnly === true;
   const clientPrefixes = opts.clientPrefixes;
-  if (!bareAllowed(name, containingFile, typeOnly, clientPrefixes)) {
+  if (!bareAllowed(name, containingFile, typeOnly, clientPrefixes, overlay)) {
     return;
   }
   const read: VfsRead = (p) => readVfs(p, overlay);
@@ -395,8 +408,17 @@ export function resolvePackage(
     }
   }
 
-  for (const pkg of KNOWN_PACKAGES) {
-    const resolved = resolveKnownPackage(name, pkg, read);
+  const pkg = packageRoot(name);
+  const rest = name === pkg ? "" : name.slice(pkg.length + 1);
+  const overlayHit = firstExisting(candidatesForPackage(pkg, rest), (p) =>
+    overlay.get(p)
+  );
+  if (overlayHit) {
+    return overlayHit;
+  }
+
+  for (const known of KNOWN_PACKAGES) {
+    const resolved = resolveKnownPackage(name, known, read);
     if (resolved) {
       return resolved;
     }

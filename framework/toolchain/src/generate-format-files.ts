@@ -7,6 +7,7 @@
  * See `docs/architecture/APP-FORMAT.md` §4.
  */
 
+import { catalogEntry } from "@sfab-lite/core/catalog-modules";
 import type { ManifestV0 } from "./manifest.js";
 
 export interface FormatPins {
@@ -280,6 +281,21 @@ ${extraBlock}  </head>
 `;
 }
 
+function mergeModulePins(
+  pins: Readonly<Record<string, string>>,
+  modules: ManifestV0["modules"]
+): Record<string, string> {
+  const out: Record<string, string> = { ...pins };
+  for (const mod of modules) {
+    const entry = catalogEntry(mod.name, mod.version);
+    if (!entry) {
+      continue;
+    }
+    out[entry.name] = entry.version;
+  }
+  return out;
+}
+
 function sortedPins(
   pins: Readonly<Record<string, string>>
 ): Record<string, string> {
@@ -310,7 +326,9 @@ export function generateFormatFiles(
       dev: "vite",
       build: "vite build",
     },
-    dependencies: sortedPins(pins.dependencies),
+    dependencies: sortedPins(
+      mergeModulePins(pins.dependencies, manifest.modules)
+    ),
     devDependencies: sortedPins(pins.devDependencies),
   };
   const files: Record<string, string> = {

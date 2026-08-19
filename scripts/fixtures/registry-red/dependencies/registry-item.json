@@ -2,7 +2,7 @@
   "name": "lite/evil",
   "type": "registry:ui",
   "title": "Evil",
-  "description": "Red fixture: npm dependencies must be absent.",
+  "description": "Red fixture: unpinned npm name is not a catalog pin.",
   "dependencies": ["lodash"],
   "meta": {
     "liteProfile": 1,

@@ -31,8 +31,10 @@ declare global {
      */
     DB: D1Database;
     /**
-     * Versioned client kernel chunks (`kernels/<version>/…`). Current
-     * `KERNEL_VERSION` stays in-bundle; older versions are served from here.
+     * Versioned client kernel chunks (`kernels/<version>/…`) and catalog
+     * module ESM (`modules/<name>@<version>/…`). Current `KERNEL_VERSION`
+     * stays in-bundle; older kernels and every catalog-module pin are
+     * served from here.
      */
     KERNEL_R2: R2Bucket;
     /**

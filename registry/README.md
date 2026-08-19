@@ -18,10 +18,11 @@ We reuse the shadcn **item format** and the standard served registry
 | sha256 | `sha256:cdf0fba75a26ebf594018264eff2d55407ec14deb3071d0fce0e2b20848e5d44` |
 | Pin statement | `src/pin.ts` |
 
-Lite's profile: allowed types only, no npm `dependencies` /
-`devDependencies` keys, `lite/` catalog names, required
-`meta.liteProfile: 1`. Upstream schema changes are adopted by replacing
-the vendored file on our schedule.
+Lite's profile: allowed types only, npm `dependencies` only when every
+entry is a catalog module at the catalog's exact pin
+(`pdf-lib@1.17.1`), no `devDependencies`, `lite/` catalog names, required
+`meta.liteProfile: 1`. Unknown npm names stay red. Upstream schema
+changes are adopted by replacing the vendored file on our schedule.
 
 ## Resolver and namespace
 
@@ -92,8 +93,12 @@ No modified-since-add warnings.
 CLI: `registry validate` on the generated source registry, then `add
 @lite/<slug>` against a locally served `/r/{name}.json` for every
 published recipe, asserting placement equals `planAdd` (nothing extra,
-same file bodies). The CLI strips leading `biome-ignore-all` comments;
-those headers live on a new recipe version so app lint still runs, and
+same file bodies). Catalog module pins are pre-installed into scratch
+before the per-recipe loop so the CLI (no `--no-deps`; it only skips
+already-listed *bare* names) hits a warm npm cache. `package.json` /
+`package-lock.json` mutations from that install are ignored — the CLI
+rewrites exact pins to carets. The CLI strips leading
+`biome-ignore-all` comments; those headers live on a new recipe version so app lint still runs, and
 the agreement check ignores them when comparing. Published versions
 are immutable — do not edit a shipped `0.1.0` tree.
 
@@ -129,4 +134,6 @@ until a screen imports it.
 
 The rest of the catalog is add-only. See `registry/recipes/`. Calendar,
 carousel, chart, command, resizable, and sonner stay out: they need
-npm packages the kernel does not serve.
+npm packages the kernel does not serve. `lite/pdf-invoice` is add-only
+too (not in any starter seed or the heavy gallery); it enables the
+`pdf-lib@1.17.1` catalog module.

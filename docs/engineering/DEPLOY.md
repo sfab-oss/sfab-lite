@@ -216,6 +216,9 @@ has not been exercised, because it needs real credentials.
 2. Upload the current kernel's client chunks (idempotent — no-ops when the
    version manifest already exists):
    `pnpm upload-kernel-r2 -- --remote`
+   Catalog-module ESM is the same bucket, keyspace `modules/<name>@<version>/`,
+   uploaded on the same deploy job:
+   `pnpm upload-modules-r2 -- --remote`
 3. `wrangler deploy` all four workers (aux workers — check, lint, build —
    before the host, so the binding targets exist on first deploy).
 4. Set the secrets above. `ADMIN_TOKEN` four times, same value.
@@ -241,7 +244,8 @@ module map ships in the host Worker bundle (see
 [`engineering/making-it-fit.md`](engineering/making-it-fit.md) §8); it is not
 an R2 upload.
 
-Local Miniflare: `pnpm upload-kernel-r2` defaults to `--local`.
+Local Miniflare: `pnpm upload-kernel-r2` and `pnpm upload-modules-r2`
+default to `--local`.
 
 **Anything memory-related must be verified here, not locally** — local workerd
 applies no memory limit at all, so `wrangler dev` cannot observe an OOM. Use

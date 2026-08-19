@@ -11,7 +11,7 @@ check units in the check-plumbing PR; generated `package.json` /
 `tsconfig` / `index.html` / `components.json` and image v0 in the
 image PR; the starter rebuild on this tree in the starter-rebuild PR.
 
-Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0015](../decisions/0015-one-worker-per-verb.md);
+Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md);
 close-out: [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md).
 Names:
 [`../engineering/terminology.md`](../engineering/terminology.md).
@@ -24,13 +24,18 @@ There is no `lite.config.ts` and no app-level plugin API.
 
 Code enters an app four ways, and only four: the **base runtime**
 (platform-resolved; today the frozen kernel), **registry recipes**
-(source copied into the tree), **catalog modules** (none yet), and
-**agent-written source**. There is no `npm install` in the happy path.
+(source copied into the tree), **catalog modules** (opt-in ESM served
+from `KERNEL_R2` at `modules/<name>@<version>/`; enable only by
+`apps_add` of a recipe that lists a catalog pin), and **agent-written
+source**. There is no `npm install` in the happy path.
 
 Check enforces that closed import surface. A bare specifier the base
-runtime does not serve fails with a named `LITE-RESOLVE` diagnostic.
-Types for transitive packages may still sit in the types VFS so served
+runtime does not serve — and that is not a declared catalog module with
+its stub overlaid for that run — fails with a named `LITE-RESOLVE`
+diagnostic. Types for transitive packages may still sit in the types VFS so served
 packages' `.d.ts` can resolve; they are not an app import surface.
+Catalog-module check types are cheap stubs overlaid per run, not the
+package's `.d.ts` closure ([ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md)).
 
 ## 2. App directory layout
 
@@ -79,7 +84,7 @@ does not require the RFC names.
 
 | Path | Who writes it | Drift |
 | --- | --- | --- |
-| `manifest.json` | Owner + host (`runtime`, `recipes`) | schema-validated |
+| `manifest.json` | Owner + host (`runtime`, `recipes`, `modules`) | schema-validated |
 | `src/**` except `src/generated/` and adapter shims | Owner / agent / `add` | lint + check |
 | `migrations/*.sql` | `db:generate` (offline) | CI drift vs `meta/` |
 | `src/routeTree.gen.ts` | Owner / agent (`tsr generate` on the template; edit with route files on hosted apps) | template drift check; not host-readonly |
@@ -152,7 +157,7 @@ before the starter rebuild is churn. New fields wrap that core.
     "exclude": ["src/worker.ts"]
   },
   "capabilities": [],              // closed list; known: "storage"
-  "modules": [],                   // catalog modules; none exist
+  "modules": [],                   // catalog modules; host-written via `add`
   "recipes": {}                    // provenance, written by `add`
 }
 ```
@@ -181,7 +186,7 @@ change; other trees remain valid v0 strings.
 | `inject` | yes | host at seed | Dest (app-tree path) → source (package-relative). |
 | `source` | yes | host / owner | What the packer walks. |
 | `capabilities` | yes | owner | Closed list. Known value: `"storage"`. Empty is valid (ERP starter). Unknown values fail validation. |
-| `modules` | yes | owner | `{ name, version }[]` with **exact** versions. Empty in M1. |
+| `modules` | yes | **host (`add`)** | `{ name, version }[]` with **exact** versions. Written from the catalog pin when a recipe lists `dependencies`. Empty until an enabling recipe is added. Owner / agent must not edit. |
 | `recipes` | yes | **host (`add`)** | Map of `lite/…` → `{ version, files }`. Empty object is valid. |
 
 Unknown keys fail at every object the schema names. Omitting a
@@ -197,6 +202,8 @@ The owner / agent must not edit these; the host overwrites them:
 - `recipes` — written by `add` (version + per-file `sha256:` at copy
   time). Re-adding overwrites files; provenance records what landed.
   The PR diff is the review surface.
+- `modules` — written by `add` from the recipe's catalog `dependencies`
+  (exact pin). Same overwrite rule as `recipes`; not a bare-enable verb.
 
 Generated files (§4) are host-authoritative by the same rule, and are
 not manifest fields: their paths are fixed by this format.

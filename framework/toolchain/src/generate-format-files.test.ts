@@ -106,6 +106,49 @@ test("package.json takes name and exact pins, no ranges", () => {
   assert.equal(text.includes("~"), false);
 });
 
+test("package.json merges manifest.modules at the exact catalog version", () => {
+  const files = generate(
+    {
+      ...validManifest(),
+      modules: [{ name: "pdf-lib", version: "1.17.1" }],
+    },
+    {
+      dependencies: { react: "19.2.8" },
+      devDependencies: {},
+    }
+  );
+  const pkg = JSON.parse(files[GENERATED_ARTIFACTS.packageJson] ?? "{}");
+  assert.deepEqual(pkg.dependencies, {
+    "pdf-lib": "1.17.1",
+    react: "19.2.8",
+  });
+  assert.equal(JSON.stringify(pkg.dependencies).includes("^"), false);
+});
+
+test("modules: [] leaves generated dependencies unchanged", () => {
+  const files = generate(validManifest(), {
+    dependencies: { react: "19.2.8" },
+    devDependencies: {},
+  });
+  const pkg = JSON.parse(files[GENERATED_ARTIFACTS.packageJson] ?? "{}");
+  assert.deepEqual(pkg.dependencies, { react: "19.2.8" });
+});
+
+test("mergeModulePins ignores non-catalog modules", () => {
+  const files = generate(
+    {
+      ...validManifest(),
+      modules: [{ name: "lodash", version: "4.17.21" }],
+    },
+    {
+      dependencies: { react: "19.2.8" },
+      devDependencies: {},
+    }
+  );
+  const pkg = JSON.parse(files[GENERATED_ARTIFACTS.packageJson] ?? "{}");
+  assert.deepEqual(pkg.dependencies, { react: "19.2.8" });
+});
+
 test("tsconfig keeps types: [] and include: src", () => {
   const files = generate();
   const tsconfig = JSON.parse(files[GENERATED_ARTIFACTS.tsconfig] ?? "{}");

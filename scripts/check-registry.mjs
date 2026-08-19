@@ -4,8 +4,8 @@
  * drift, committed red fixtures, and immutable version retention.
  *
  * Red fixtures are the making-it-fit lesson: if the validator started
- * accepting `dependencies`, unknown types, or a bare registryDependencies
- * name, this gate fails closed.
+ * accepting a non-catalog `dependencies` pin, unknown types, or a bare
+ * registryDependencies name, this gate fails closed.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -41,8 +41,18 @@ process.stdout.write(baked.stdout);
 const reds = [
   {
     file: join(redRoot, "dependencies/registry-item.json"),
-    needle: "dependencies key must be absent",
+    needle: "expected an exact catalog pin name@version",
     label: "dependencies",
+  },
+  {
+    file: join(redRoot, "dependencies-unknown/registry-item.json"),
+    needle: "unknown catalog module",
+    label: "dependencies-unknown",
+  },
+  {
+    file: join(redRoot, "dependencies-wrong-pin/registry-item.json"),
+    needle: 'catalog pin for "pdf-lib" must be 1.17.1',
+    label: "dependencies-wrong-pin",
   },
   {
     file: join(redRoot, "unknown-type/registry-item.json"),

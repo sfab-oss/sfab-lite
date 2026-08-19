@@ -10,11 +10,12 @@
     "./check": "./src/check.ts",
     "./lint": "./src/lint.ts",
     "./build": "./src/build.ts",
-    "./request": "./src/request.ts"
+    "./request": "./src/request.ts",
+    "./catalog-modules": "./src/catalog-modules.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test --experimental-strip-types src/validate-manifest.test.ts src/generate-format-files.test.ts src/request-parsers.test.ts"
+    "test": "node --test --experimental-strip-types src/validate-manifest.test.ts src/generate-format-files.test.ts src/request-parsers.test.ts src/catalog-modules.test.ts"
   },
   "dependencies": {
     "zod": "4.3.5"

@@ -1,4 +1,5 @@
 export {
   type OverlaidTree,
+  type OverlayFormatOptions,
   overlayFormatFiles,
-} from "./overlay-format-files.js";
+} from "./overlay-format-files.ts";

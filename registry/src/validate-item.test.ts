@@ -3,7 +3,10 @@ import { test } from "node:test";
 import { validateItem } from "./lite.ts";
 import type { RecipeItem } from "./types.ts";
 
-const DEPENDENCIES_ABSENT = /dependencies key must be absent/;
+const DEPENDENCIES_PIN = /expected an exact catalog pin name@version/;
+const DEPENDENCIES_UNKNOWN = /unknown catalog module "lodash"/;
+const DEPENDENCIES_WRONG = /catalog pin for "pdf-lib" must be 1.17.1/;
+const DEPENDENCIES_EMPTY = /non-empty array of catalog pins/;
 const UNKNOWN_THEME = /unknown item type "registry:theme"/;
 const BARE_NAME = /bare names are a hard error/;
 const MIGRATION_TARGET = /must not target applied-migration files/;
@@ -42,9 +45,32 @@ test("a complete lite item validates", () => {
   assert.equal(result.ok, true);
 });
 
-test("dependencies key is rejected even when empty", () => {
+test("unpinned dependencies are rejected", () => {
+  const hit = messages(base({ dependencies: ["lodash"] })).join("\n");
+  assert.match(hit, DEPENDENCIES_PIN);
+});
+
+test("unknown catalog module names stay red", () => {
+  const hit = messages(base({ dependencies: ["lodash@4.17.21"] })).join("\n");
+  assert.match(hit, DEPENDENCIES_UNKNOWN);
+});
+
+test("wrong catalog pins stay red", () => {
+  const hit = messages(base({ dependencies: ["pdf-lib@9.9.9"] })).join("\n");
+  assert.match(hit, DEPENDENCIES_WRONG);
+});
+
+test("empty dependencies arrays are rejected", () => {
   const hit = messages(base({ dependencies: [] })).join("\n");
-  assert.match(hit, DEPENDENCIES_ABSENT);
+  assert.match(hit, DEPENDENCIES_EMPTY);
+});
+
+test("the catalog pdf-lib pin is accepted", () => {
+  const result = validateItem(base({ dependencies: ["pdf-lib@1.17.1"] }));
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(result.item.dependencies, ["pdf-lib@1.17.1"]);
+  }
 });
 
 test("unknown item types are rejected", () => {

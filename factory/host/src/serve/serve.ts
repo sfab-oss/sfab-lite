@@ -36,6 +36,7 @@ import {
   PrefixedR2Bucket,
   storagePrefixForTarget,
 } from "./app-storage.js";
+import { catalogLoaderModules } from "./catalog-modules.js";
 import { kernelModules } from "./kernel-modules.js";
 
 export type { ServeTarget } from "../registry/serve-target.js";
@@ -310,12 +311,22 @@ async function serveApiRoute(
     );
   }
 
+  const catalog = await catalogLoaderModules(
+    env.KERNEL_R2,
+    build.manifest?.modules,
+    build.manifest?.runtime
+  );
+  if (!catalog.ok) {
+    return catalog.response;
+  }
+
   const worker = env.LOADER.get(workerKey, async () => ({
     compatibilityDate: "2026-07-23",
     compatibilityFlags: ["nodejs_compat"],
     mainModule: "index.js",
     modules: {
       ...kernelModules(),
+      ...catalog.modules,
       "index.js": build.serverBundle,
     },
     env: loaderEnv,

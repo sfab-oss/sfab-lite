@@ -16,6 +16,11 @@ export const checkRequestSchema = z.object({
   files: filesSchema,
   manifest: requestManifestSchema,
   forceCold: z.boolean({ error: "body.forceCold must be boolean" }).optional(),
+  moduleTypes: z
+    .record(z.string(), z.string(), {
+      error: "body.moduleTypes (path→text) required when present",
+    })
+    .optional(),
 });
 
 /** Parsed app-format v0 of the tree being checked — never the starter's. */

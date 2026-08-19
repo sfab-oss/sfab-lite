@@ -700,6 +700,32 @@
       }
     },
     {
+      "name": "pdf-invoice",
+      "type": "registry:block",
+      "title": "PDF invoice",
+      "description": "Server helper that renders a one-page invoice PDF via pdf-lib, plus an org-protected Hono route that returns the bytes. Enable the catalog module by adding this recipe. Mount pdfInvoiceRoutes under org-protected yourself.",
+      "registryDependencies": [],
+      "dependencies": [
+        "pdf-lib@1.17.1"
+      ],
+      "files": [
+        {
+          "path": "recipes/pdf-invoice/0.1.0/invoice.ts",
+          "type": "registry:file",
+          "target": "src/pdf/invoice.ts"
+        },
+        {
+          "path": "recipes/pdf-invoice/0.1.0/pdf-invoice.ts",
+          "type": "registry:file",
+          "target": "src/hono/org-protected/pdf-invoice.ts"
+        }
+      ],
+      "meta": {
+        "liteProfile": 1,
+        "liteRuntime": ">=0.4.0"
+      }
+    },
+    {
       "name": "popover",
       "type": "registry:ui",
       "title": "Popover",

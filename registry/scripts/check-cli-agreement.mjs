@@ -5,6 +5,11 @@
  * byte-identical to planAdd.
  *
  * CI-only (installs a scratch project and runs the CLI). Pin: shadcn@4.17.0.
+ *
+ * Catalog module pins are pre-installed into scratch so the CLI's npm
+ * install (no `--no-deps`; `oa()` only skips *bare* names already in
+ * package.json) hits a warm cache. `package.json` / `package-lock.json`
+ * mutations from that install are not placement drift.
  */
 import { spawn, spawnSync } from "node:child_process";
 import {
@@ -21,6 +26,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseCatalogPin } from "../../framework/toolchain/src/catalog-modules.ts";
 import { CATALOG } from "../src/catalog.ts";
 import {
   catalogNames,
@@ -52,6 +58,7 @@ function snapshotTree(root, prefix = "") {
 
 const PINNED_CLI = "4.17.0";
 const RE_SERVED_ITEM = /^\/r\/(.+)\.json$/;
+const CLI_DEP_NOISE = new Set(["package.json", "package-lock.json"]);
 const registryRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRegistry = join(registryRoot, "registry.json");
 const pkg = JSON.parse(
@@ -193,6 +200,47 @@ try {
     )}\n`
   );
 
+  const catalogPins = new Set();
+  for (const name of catalogNames(CATALOG)) {
+    for (const dep of CATALOG.items[name]?.item.dependencies ?? []) {
+      catalogPins.add(dep);
+    }
+  }
+  if (catalogPins.size > 0) {
+    const pkg = JSON.parse(readFileSync(join(scratch, "package.json"), "utf8"));
+    pkg.dependencies = {};
+    for (const pin of [...catalogPins].sort()) {
+      const parsed = parseCatalogPin(pin);
+      if (!parsed) {
+        failures.push(`catalog pin ${pin} is not name@version`);
+        continue;
+      }
+      pkg.dependencies[parsed.name] = parsed.version;
+    }
+    writeFileSync(
+      join(scratch, "package.json"),
+      `${JSON.stringify(pkg, null, 2)}\n`
+    );
+    const installed = spawnSync(
+      "npm",
+      [
+        "install",
+        "--ignore-scripts",
+        "--save-exact",
+        ...[...catalogPins].sort(),
+      ],
+      { cwd: scratch, encoding: "utf8" }
+    );
+    if (installed.status !== 0) {
+      console.error(installed.stdout);
+      console.error(installed.stderr);
+      console.error(
+        "check:registry-agreement — pre-install of catalog pins failed"
+      );
+      process.exit(installed.status ?? 1);
+    }
+  }
+
   for (const name of catalogNames(CATALOG)) {
     const planned = planAdd(name, CATALOG, {});
     if (!planned.ok) {
@@ -238,6 +286,9 @@ try {
         continue;
       }
       if (Object.hasOwn(planned.writes, path)) {
+        continue;
+      }
+      if (CLI_DEP_NOISE.has(path)) {
         continue;
       }
       failures.push(`${name}: CLI wrote extra ${path}`);

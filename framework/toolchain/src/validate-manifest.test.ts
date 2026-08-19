@@ -175,6 +175,38 @@ test("module version ranges fail", () => {
   );
 });
 
+test("unknown catalog module names fail closed", () => {
+  const body = valid({
+    modules: [{ name: "lodash", version: "4.17.21" }],
+  });
+  assert.equal(
+    issueAt(body, "modules[0].name"),
+    'unknown catalog module "lodash"'
+  );
+});
+
+test("wrong catalog pins fail closed", () => {
+  const body = valid({
+    modules: [{ name: "pdf-lib", version: "9.9.9" }],
+  });
+  assert.equal(
+    issueAt(body, "modules[0].version"),
+    'catalog pin for "pdf-lib" must be 1.17.1 (got 9.9.9)'
+  );
+});
+
+test("the catalog pdf-lib pin validates", () => {
+  const result = validateManifest(
+    valid({ modules: [{ name: "pdf-lib", version: "1.17.1" }] })
+  );
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(result.manifest.modules, [
+      { name: "pdf-lib", version: "1.17.1" },
+    ]);
+  }
+});
+
 test("bad snapshot hash shape fails", () => {
   const body = valid({
     recipes: {
@@ -202,6 +234,7 @@ test("generated artifact paths and host-authoritative fields are part of the sch
   assert.equal(GENERATED_ARTIFACTS.dbIndex, "src/db/index.ts");
   assert.equal(GENERATED_ARTIFACTS.storageIndex, "src/storage/index.ts");
   assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("runtime"));
+  assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("modules"));
   assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("recipes"));
   assert.deepEqual([...MANIFEST_CAPABILITIES], ["storage"]);
 });

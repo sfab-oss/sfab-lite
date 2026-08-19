@@ -30,6 +30,7 @@ export interface RecipeItem {
   title: string;
   description: string;
   registryDependencies: string[];
+  dependencies?: string[];
   files: RecipeFile[];
   meta: RecipeMeta;
 }

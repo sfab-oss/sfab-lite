@@ -14,6 +14,10 @@
     "includes": [
       "!!**/framework/runtime/vendor",
       "!!**/framework/runtime/kernel.json",
+      "!!**/framework/modules/**/*.esm.js",
+      "!!**/framework/modules/**/index.d.ts",
+      "!!**/framework/modules/**/manifest.json",
+      "!!**/framework/toolchain/src/generated/catalog-modules.json",
       "!!**/framework/runtime/results",
       "!!**/framework/runtime/scripts/.shims",
       "!!**/framework/runtime/scripts/.shims-client",
