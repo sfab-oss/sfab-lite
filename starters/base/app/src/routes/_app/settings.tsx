@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { type Resolver, useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ShellPageFrame } from "../../components/layout/shell";
 import { Alert, AlertDescription } from "../../components/ui/alert";
@@ -14,8 +14,12 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "../../components/ui/field";
-import { Form } from "../../components/ui/form";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
 import { Skeleton } from "../../components/ui/skeleton";
 import { invalidateSession, useSession } from "../../hooks/use-session";
@@ -31,10 +35,6 @@ const orgNameSchema = z.object({
 
 type OrgNameValues = z.infer<typeof orgNameSchema>;
 
-const orgNameResolver = zodResolver(
-  orgNameSchema as never
-) as Resolver<OrgNameValues>;
-
 function SettingsPage() {
   const queryClient = useQueryClient();
   const session = useSession();
@@ -42,10 +42,9 @@ function SettingsPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [pending, setPending] = useState(false);
 
   const form = useForm<OrgNameValues>({
-    resolver: orgNameResolver,
+    resolver: zodResolver(orgNameSchema),
     defaultValues: { name: organization?.name ?? "" },
   });
 
@@ -59,7 +58,6 @@ function SettingsPage() {
     if (!organization) {
       return;
     }
-    setPending(true);
     setError(null);
     setSaved(false);
 
@@ -68,7 +66,6 @@ function SettingsPage() {
       data: { name: values.name },
     });
 
-    setPending(false);
     if (failure) {
       setError(failure.message ?? "Could not save changes");
       return;
@@ -98,68 +95,73 @@ function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Form {...form}>
-                    <form
-                      className="flex max-w-md flex-col gap-4"
-                      onSubmit={form.handleSubmit(onSubmit)}
-                    >
-                      <FieldGroup className="gap-4">
-                        <Field
-                          data-invalid={
-                            !!form.formState.errors.name || undefined
-                          }
+                  <form
+                    className="flex max-w-md flex-col gap-4"
+                    onSubmit={form.handleSubmit(onSubmit)}
+                  >
+                    <FieldGroup className="gap-4">
+                      <Controller
+                        control={form.control}
+                        name="name"
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel
+                              className="text-muted-foreground"
+                              htmlFor={field.name}
+                            >
+                              Name
+                            </FieldLabel>
+                            <Input
+                              {...field}
+                              aria-invalid={fieldState.invalid}
+                              id={field.name}
+                              onChange={(event) => {
+                                field.onChange(event);
+                                setSaved(false);
+                              }}
+                            />
+                            {fieldState.invalid && (
+                              <FieldError errors={[fieldState.error]} />
+                            )}
+                          </Field>
+                        )}
+                      />
+                      <Field>
+                        <FieldLabel
+                          className="text-muted-foreground"
+                          htmlFor="org-slug"
                         >
-                          <FieldLabel
-                            className="text-muted-foreground"
-                            htmlFor="org-name"
-                          >
-                            Name
-                          </FieldLabel>
-                          <Input
-                            aria-invalid={
-                              !!form.formState.errors.name || undefined
-                            }
-                            id="org-name"
-                            {...form.register("name", {
-                              onChange: () => setSaved(false),
-                            })}
-                          />
-                        </Field>
-                        <Field>
-                          <FieldLabel
-                            className="text-muted-foreground"
-                            htmlFor="org-slug"
-                          >
-                            Slug
-                          </FieldLabel>
-                          <Input
-                            disabled
-                            id="org-slug"
-                            readOnly
-                            value={organization?.slug ?? ""}
-                          />
-                        </Field>
-                      </FieldGroup>
-                      {error ? (
-                        <Alert variant="destructive">
-                          <AlertDescription>{error}</AlertDescription>
-                        </Alert>
+                          Slug
+                        </FieldLabel>
+                        <Input
+                          disabled
+                          id="org-slug"
+                          readOnly
+                          value={organization?.slug ?? ""}
+                        />
+                      </Field>
+                    </FieldGroup>
+                    {error ? (
+                      <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                    <div className="flex items-center gap-3">
+                      <Button
+                        disabled={form.formState.isSubmitting || !organization}
+                        type="submit"
+                      >
+                        {form.formState.isSubmitting
+                          ? "Saving…"
+                          : "Save changes"}
+                      </Button>
+                      {saved ? (
+                        <span className="text-muted-foreground text-sm">
+                          Saved.
+                        </span>
                       ) : null}
-                      <div className="flex items-center gap-3">
-                        <Button
-                          disabled={pending || !organization}
-                          type="submit"
-                        >
-                          {pending ? "Saving…" : "Save changes"}
-                        </Button>
-                        {saved ? (
-                          <span className="text-muted-foreground text-sm">
-                            Saved.
-                          </span>
-                        ) : null}
-                      </div>
-                    </form>
-                  </Form>
+                    </div>
+                  </form>
                 </CardContent>
               </Card>
               <Card>

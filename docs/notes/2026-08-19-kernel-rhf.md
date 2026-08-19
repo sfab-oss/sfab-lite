@@ -23,7 +23,12 @@ Host gzip after pin: **3.97 MiB / 41.7%** (was 3.87 MiB / 40.6%).
 `lite/form@0.1.0` — shadcn Form helpers on `@base-ui/react` merge/useRender,
 relative imports, kernel `react-hook-form`. Seeded into base / ERP / heavy.
 
+`lite/field@0.1.1` — same layout as 0.1.0 plus `FieldError` so SPA forms can
+match sfab-starter (`Controller` + `fieldState` + `FieldError`).
+
 ## Starter usage
 
-ERP/Heavy `party-form` and all three starters' settings org-name form use
-`useForm` + `zodResolver`. Other dialogs left alone.
+Every starter form uses `useForm` + `zodResolver` + `Controller` +
+`FieldError`: sign-in, sign-up, onboarding, settings org-name, ERP/Heavy
+`party-form` and `ledger-dialog`. `lite/form` stays in the seed for the
+shadcn Form helpers; screens follow the starter Controller pattern.

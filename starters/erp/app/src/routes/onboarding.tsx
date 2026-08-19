@@ -1,5 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { AuthShell } from "../components/layout/auth-shell";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
@@ -7,6 +10,7 @@ import { Card, CardContent } from "../components/ui/card";
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "../components/ui/field";
@@ -34,26 +38,31 @@ export const Route = createFileRoute("/onboarding")({
   component: OnboardingPage,
 });
 
+const onboardingSchema = z.object({
+  name: z.string().min(1).max(200),
+  slug: z.string().min(1),
+});
+
+type OnboardingValues = z.infer<typeof onboardingSchema>;
+
 function OnboardingPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugEdited, setSlugEdited] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setPending(true);
+  const form = useForm<OnboardingValues>({
+    resolver: zodResolver(onboardingSchema),
+    defaultValues: { name: "", slug: "" },
+  });
+
+  async function onSubmit(values: OnboardingValues) {
     setError(null);
 
     const { data, error: failure } = await authClient.organization.create({
-      name,
-      slug: slug || slugify(name),
+      name: values.name,
+      slug: values.slug || slugify(values.name),
     });
 
     if (failure) {
-      setPending(false);
       setError(failure.message ?? "Could not create organization");
       return;
     }
@@ -63,7 +72,6 @@ function OnboardingPage() {
     }
 
     await invalidateSession();
-    setPending(false);
     await navigate({ to: "/overview" });
   }
 
@@ -74,45 +82,62 @@ function OnboardingPage() {
     >
       <Card>
         <CardContent className="pt-6">
-          <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <FieldGroup className="gap-4">
-              <Field>
-                <FieldLabel htmlFor="org-name">Name</FieldLabel>
-                <Input
-                  id="org-name"
-                  onChange={(event) => {
-                    setName(event.target.value);
-                    if (!slugEdited) {
-                      setSlug(slugify(event.target.value));
-                    }
-                  }}
-                  required
-                  value={name}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="org-slug">Slug</FieldLabel>
-                <Input
-                  id="org-slug"
-                  onChange={(event) => {
-                    setSlugEdited(true);
-                    setSlug(event.target.value);
-                  }}
-                  required
-                  value={slug}
-                />
-                <FieldDescription>
-                  Used in URLs. Lowercase letters, numbers, and dashes.
-                </FieldDescription>
-              </Field>
+              <Controller
+                control={form.control}
+                name="name"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                    <Input
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      id={field.name}
+                      onChange={(event) => {
+                        field.onChange(event);
+                        if (!form.getFieldState("slug").isDirty) {
+                          form.setValue("slug", slugify(event.target.value));
+                        }
+                      }}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="slug"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Slug</FieldLabel>
+                    <Input
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      id={field.name}
+                    />
+                    <FieldDescription>
+                      Used in URLs. Lowercase letters, numbers, and dashes.
+                    </FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
             </FieldGroup>
             {error ? (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
-            <Button disabled={pending} type="submit">
-              {pending ? "Creating…" : "Continue"}
+            <Button disabled={form.formState.isSubmitting} type="submit">
+              {form.formState.isSubmitting ? "Creating…" : "Continue"}
             </Button>
           </form>
         </CardContent>

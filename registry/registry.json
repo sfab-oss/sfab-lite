@@ -408,14 +408,14 @@
       "name": "field",
       "type": "registry:ui",
       "title": "Field",
-      "description": "Form field layout (group, label, description). Use when building a party form or any labeled control cluster. Assumes src/lib/utils exports cn and lite/label is present.",
+      "description": "Form field layout (group, label, description, error). Use with react-hook-form Controller. Assumes src/lib/utils exports cn and lite/label is present.",
       "registryDependencies": [
         "@lite/utils",
         "@lite/label"
       ],
       "files": [
         {
-          "path": "recipes/field/0.1.0/field.tsx",
+          "path": "recipes/field/0.1.1/field.tsx",
           "type": "registry:ui",
           "target": "src/components/ui/field.tsx"
         }

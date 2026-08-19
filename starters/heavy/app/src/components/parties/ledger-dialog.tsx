@@ -1,4 +1,7 @@
-import { type FormEvent, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { parseCents } from "../../lib/money";
 import { Button } from "../ui/button";
 import {
@@ -9,8 +12,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "../ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
+
+const ledgerSchema = z.object({
+  amount: z.string().refine((value) => parseCents(value) > 0, {
+    message: "Enter an amount",
+  }),
+  memo: z.string(),
+});
+
+type LedgerValues = z.infer<typeof ledgerSchema>;
+
+const BLANK_LEDGER: LedgerValues = { amount: "", memo: "" };
 
 export function LedgerDialog({
   title,
@@ -29,26 +43,14 @@ export function LedgerDialog({
   ) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [memo, setMemo] = useState("");
-  const amountCents = parseCents(amount);
+  const form = useForm<LedgerValues>({
+    resolver: zodResolver(ledgerSchema),
+    defaultValues: BLANK_LEDGER,
+  });
 
-  function submit(event: FormEvent) {
-    event.preventDefault();
-    if (amountCents <= 0) {
-      return;
-    }
-    onSubmit(
-      {
-        amountCents,
-        memo: memo.trim() || null,
-      },
-      () => {
-        setAmount("");
-        setMemo("");
-        setOpen(false);
-      }
-    );
+  function close() {
+    form.reset(BLANK_LEDGER);
+    setOpen(false);
   }
 
   return (
@@ -56,8 +58,7 @@ export function LedgerDialog({
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
-          setAmount("");
-          setMemo("");
+          form.reset(BLANK_LEDGER);
         }
       }}
       open={open}
@@ -70,40 +71,71 @@ export function LedgerDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={submit}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={form.handleSubmit((values) => {
+            onSubmit(
+              {
+                amountCents: parseCents(values.amount),
+                memo: values.memo.trim() || null,
+              },
+              close
+            );
+          })}
+        >
           <FieldGroup className="gap-4">
-            <Field>
-              <FieldLabel
-                className="text-muted-foreground"
-                htmlFor={`${title}-amount`}
-              >
-                Amount
-              </FieldLabel>
-              <Input
-                id={`${title}-amount`}
-                inputMode="decimal"
-                onChange={(event) => setAmount(event.target.value)}
-                placeholder="0.00"
-                required
-                value={amount}
-              />
-            </Field>
-            <Field>
-              <FieldLabel
-                className="text-muted-foreground"
-                htmlFor={`${title}-memo`}
-              >
-                Memo
-              </FieldLabel>
-              <Input
-                id={`${title}-memo`}
-                onChange={(event) => setMemo(event.target.value)}
-                value={memo}
-              />
-            </Field>
+            <Controller
+              control={form.control}
+              name="amount"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel
+                    className="text-muted-foreground"
+                    htmlFor={field.name}
+                  >
+                    Amount
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    id={field.name}
+                    inputMode="decimal"
+                    placeholder="0.00"
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+            <Controller
+              control={form.control}
+              name="memo"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel
+                    className="text-muted-foreground"
+                    htmlFor={field.name}
+                  >
+                    Memo
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    aria-invalid={fieldState.invalid}
+                    id={field.name}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
           </FieldGroup>
           <div className="flex justify-end">
-            <Button disabled={pending || amountCents <= 0} type="submit">
+            <Button
+              disabled={pending || form.formState.isSubmitting}
+              type="submit"
+            >
               {pending ? "Saving…" : submitLabel}
             </Button>
           </div>

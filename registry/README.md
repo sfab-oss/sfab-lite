@@ -124,5 +124,5 @@ until a screen imports it.
 | `lite/alert-dialog` | delete party |
 
 The rest of the catalog is add-only. See `registry/recipes/`. Calendar,
-carousel, chart, command, form, resizable, and sonner stay out: they need
+carousel, chart, command, resizable, and sonner stay out: they need
 npm packages the kernel does not serve.

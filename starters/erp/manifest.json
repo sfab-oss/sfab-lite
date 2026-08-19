@@ -108,9 +108,9 @@
       }
     },
     "lite/field": {
-      "version": "0.1.0",
+      "version": "0.1.1",
       "files": {
-        "src/components/ui/field.tsx": "sha256:55e26b1d524846614a743f550a189dd087256d4eae53fdc767d961e3ffe7dbd1"
+        "src/components/ui/field.tsx": "sha256:e06dce50fa7722b24151768c4d9c5e0fc0be6a41a93d2fea1d35cc98b524d818"
       }
     },
     "lite/form": {

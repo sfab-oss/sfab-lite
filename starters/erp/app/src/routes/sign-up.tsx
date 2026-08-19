@@ -1,5 +1,8 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
 import { AuthShell } from "../components/layout/auth-shell";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
@@ -13,6 +16,7 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "../components/ui/field";
@@ -24,26 +28,32 @@ export const Route = createFileRoute("/sign-up")({
   component: SignUpPage,
 });
 
+const signUpSchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.email(),
+  password: z.string().min(8),
+});
+
+type SignUpValues = z.infer<typeof signUpSchema>;
+
 function SignUpPage() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    setPending(true);
+  const form = useForm<SignUpValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: { name: "", email: "", password: "" },
+  });
+
+  async function onSubmit(values: SignUpValues) {
     setError(null);
 
     const { error: failure } = await authClient.signUp.email({
-      name,
-      email,
-      password,
+      name: values.name,
+      email: values.email,
+      password: values.password,
     });
 
-    setPending(false);
     if (failure) {
       setError(failure.message ?? "Sign-up failed");
       return;
@@ -61,50 +71,76 @@ function SignUpPage() {
           <CardDescription>Email and password</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={form.handleSubmit(onSubmit)}
+          >
             <FieldGroup className="gap-4">
-              <Field>
-                <FieldLabel htmlFor="name">Name</FieldLabel>
-                <Input
-                  autoComplete="name"
-                  id="name"
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                  value={name}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  autoComplete="email"
-                  id="email"
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  type="email"
-                  value={email}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <Input
-                  autoComplete="new-password"
-                  id="password"
-                  minLength={8}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  type="password"
-                  value={password}
-                />
-                <FieldDescription>At least 8 characters.</FieldDescription>
-              </Field>
+              <Controller
+                control={form.control}
+                name="name"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                    <Input
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      autoComplete="name"
+                      id={field.name}
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="email"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                    <Input
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      autoComplete="email"
+                      id={field.name}
+                      type="email"
+                    />
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="password"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                    <Input
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      autoComplete="new-password"
+                      id={field.name}
+                      type="password"
+                    />
+                    <FieldDescription>At least 8 characters.</FieldDescription>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
             </FieldGroup>
             {error ? (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : null}
-            <Button disabled={pending} type="submit">
-              {pending ? "Creating…" : "Create account"}
+            <Button disabled={form.formState.isSubmitting} type="submit">
+              {form.formState.isSubmitting ? "Creating…" : "Create account"}
             </Button>
           </form>
           <p className="mt-4 text-muted-foreground text-sm">
