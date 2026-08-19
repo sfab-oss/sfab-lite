@@ -1,9 +1,8 @@
 /**
  * Create an app: D1 row first (`creating`), then bootstrap live AppDataDO +
- * async seed via code host (TEMPLATE_SEED → main → CD → live_sha).
+ * async seed via code host (starter seed → main → CD → live_sha).
  */
 
-import TEMPLATE_SEED from "@sfab-lite/template/seed" with { type: "json" };
 import { publishOrgEvent } from "@/org-events.js";
 import { createDb } from "../../db/index.js";
 import { listPullRequests } from "../../forge/forge.js";
@@ -38,12 +37,21 @@ import { reconcileCreatingApps } from "../../registry/create-reconcile.js";
 import { listWorkspacesForApp } from "../../registry/workspace-registry.js";
 import { deleteAppObjectStorage } from "../../serve/app-storage.js";
 import type { AppCtx, OrgCtx } from "../../serve/routes.js";
+import { defaultStarter, getStarter } from "../../starters/catalog.js";
 
 export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   const { organizationId } = rc;
   const requested = body.name?.trim();
   if (requested && requested.length > APP_NAME_MAX_LENGTH) {
     return protectedError("name_too_long");
+  }
+
+  const starter =
+    body.template === undefined || body.template === ""
+      ? defaultStarter()
+      : getStarter(body.template);
+  if (!starter) {
+    return protectedError("unknown_template");
   }
 
   const db = createDb(rc.env);
@@ -58,13 +66,14 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   const { app: created } = await insertCreatingAppWithDefaultWorkspace(db, {
     organizationId,
     name,
+    template: starter.id,
   });
   const appId = created.id;
   const data = liveAppDataStub(rc.env, appId);
   const create = appCreateStub(rc.env, appId);
 
   try {
-    await data.bootstrap(TEMPLATE_SEED.migrations);
+    await data.bootstrap(starter.seed.migrations);
   } catch (e) {
     const failed = await markCreateFailed(db, appId);
     if (failed) {
@@ -97,6 +106,7 @@ export async function handleCreateApp(rc: OrgCtx, body: CreateAppBody) {
   return createAccepted(appId, start.jobId, {
     organizationId,
     name,
+    template: starter.id,
     appStatus: "creating",
   });
 }

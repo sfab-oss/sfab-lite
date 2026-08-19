@@ -11,7 +11,7 @@ no `@tanstack/react-start`, no Vite router plugin on the hosted compile.
 
 `src/router.tsx` mounts the generated tree. Template-only `tsr generate`
 (`@tanstack/router-cli` 1.129.0, matching kernel `@tanstack/react-router`)
-lives on `@sfab-lite/template`. Hosted agents edit the route file and the
+lives on `@sfab-lite/starter-erp`. Hosted agents edit the route file and the
 gen file together; the gen file is **not** host-readonly.
 
 ## Check classification

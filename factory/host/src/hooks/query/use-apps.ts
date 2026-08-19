@@ -49,7 +49,12 @@ export function useAppAttempt(
 export function useCreateApp() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name?: string) => createApp(name),
+    mutationFn: (input?: { name?: string; template?: string } | string) => {
+      if (typeof input === "string" || input === undefined) {
+        return createApp(input);
+      }
+      return createApp(input.name, input.template);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: appsQueryKey }),
   });
 }

@@ -1,0 +1,141 @@
+{
+  "format": 0,
+  "name": "base",
+  "runtime": "^0",
+  "adapter": "cloudflare",
+  "root": "app",
+  "server": {
+    "entry": "src/server.ts",
+    "exportName": "app"
+  },
+  "client": {
+    "entry": "src/router.tsx",
+    "styles": "src/styles.css"
+  },
+  "html": "index.html",
+  "safelist": "safelist.txt",
+  "migrations": "migrations",
+  "schema": "src/db/schema.ts",
+  "inject": {
+    "biome.json": "../../framework/toolchain/app-biome.json"
+  },
+  "source": {
+    "dirs": ["src", "migrations"],
+    "extensions": [".ts", ".tsx", ".css", ".sql", ".json", ".hash"],
+    "files": [
+      "safelist.txt",
+      "package.json",
+      "tsconfig.json",
+      "components.json",
+      "index.html",
+      "vite.config.ts"
+    ],
+    "exclude": ["src/worker.ts"]
+  },
+  "capabilities": [],
+  "modules": [],
+  "recipes": {
+    "lite/utils": {
+      "version": "0.1.0",
+      "files": {
+        "src/lib/utils.ts": "sha256:4acbc7165a8d54738ff62b51414e772c08fe78434e524e6d8770180d3ba2925f"
+      }
+    },
+    "lite/alert": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/alert.tsx": "sha256:9e432612d54adb582badc08abb386d867cb125e6eb7bc225a2bac1fe1289caae"
+      }
+    },
+    "lite/avatar": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/avatar.tsx": "sha256:d641caf031342481001515d48cb2c5a7c96bed60759a7953505b9894c19783ac"
+      }
+    },
+    "lite/breadcrumb": {
+      "version": "0.1.1",
+      "files": {
+        "src/components/ui/breadcrumb.tsx": "sha256:fbf367c48a8a9874bcb1cc731e2062c24506462f6744e6e3d3583d08714fedd1"
+      }
+    },
+    "lite/button": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/button.tsx": "sha256:521cf3ca8073d605f5d056047fe981ffaf1cc78fa9c45feabec4499721964932"
+      }
+    },
+    "lite/card": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/card.tsx": "sha256:817b93633ea8df69dfd618c99c979dc92e1a8eac21c59bc8085f14bec8b30b0a"
+      }
+    },
+    "lite/dropdown-menu": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/dropdown-menu.tsx": "sha256:c2f12da320a8b56d32e42510bf42ddfdaa6e9201b8c5256a38c7ae2940c66d67"
+      }
+    },
+    "lite/empty-state": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/empty-state.tsx": "sha256:8f445050a5d80cf514dc00df7c770930604292b6459bdffb48dbc690586cd806"
+      }
+    },
+    "lite/label": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/label.tsx": "sha256:1287d61955d50681c37640d7534f3dd2341ebe3053e9385dd7979cdfb838305a"
+      }
+    },
+    "lite/field": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/field.tsx": "sha256:55e26b1d524846614a743f550a189dd087256d4eae53fdc767d961e3ffe7dbd1"
+      }
+    },
+    "lite/input": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/input.tsx": "sha256:39fadb9d6916a7c6dda9c4bc0e3f7454ef02df0a50ff6b137e64b09b82b019b8"
+      }
+    },
+    "lite/separator": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/separator.tsx": "sha256:7cdc3757d62638224c93f641e3b6c9e36d2a763325042a365408b84d48e34682"
+      }
+    },
+    "lite/sheet": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/sheet.tsx": "sha256:78ab5f170cd532e8a144388fd3c355b017bd33ecf086a9dde2263bfa2fd25b38"
+      }
+    },
+    "lite/use-mobile": {
+      "version": "0.1.0",
+      "files": {
+        "src/hooks/use-mobile.ts": "sha256:8959cc32720b0c4b1e5222373b44f973f9c562aa4c12249cfacce0645e6c8737"
+      }
+    },
+    "lite/skeleton": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/skeleton.tsx": "sha256:420a5a4b2ebe8c09e475de5bde1448e07df38f36d931077a5abfe1bc7ec907db"
+      }
+    },
+    "lite/tooltip": {
+      "version": "0.1.0",
+      "files": {
+        "src/components/ui/tooltip.tsx": "sha256:729d12b8533e0eef83b6f966e91c5b525f51f2b4a81df969e9644a1978cde74c"
+      }
+    },
+    "lite/sidebar": {
+      "version": "0.1.1",
+      "files": {
+        "src/components/ui/sidebar.tsx": "sha256:4b39d38caaadd6f3115eec675de202edf7e561978770b560991c0b0e6d7a5e42"
+      }
+    }
+  }
+}

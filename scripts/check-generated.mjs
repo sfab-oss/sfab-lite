@@ -1,12 +1,8 @@
 #!/usr/bin/env node
 /**
- * Drift gate for generated format files under starters/erp/app/.
- *
- * Committed bytes must equal generateFormatFiles(starter manifest, current
- * pins). Failure names the file and says to regenerate, not hand-edit.
- * check:manifest keeps owning manifest.recipes — do not merge the gates.
+ * Drift gate for generated format files under every starters/<id>/app/.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { FORMAT_PINS } from "../framework/runtime/scripts/pins.mjs";
@@ -15,54 +11,71 @@ import { validateManifest } from "../framework/toolchain/src/validate-manifest.t
 import { LITE_REGISTRY_URL_PATTERN } from "../registry/src/pin.ts";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const starterPath = join(repoRoot, "starters/erp/manifest.json");
-const appRoot = join(repoRoot, "starters/erp/app");
+const startersRoot = join(repoRoot, "starters");
 
-function load(path) {
+const starterIds = readdirSync(startersRoot, { withFileTypes: true })
+  .filter((d) => d.isDirectory())
+  .map((d) => d.name)
+  .sort();
+
+let failed = false;
+
+for (const id of starterIds) {
+  const starterPath = join(startersRoot, id, "manifest.json");
+  const appRoot = join(startersRoot, id, "app");
+  let starter;
   try {
-    return JSON.parse(readFileSync(path, "utf8"));
+    starter = JSON.parse(readFileSync(starterPath, "utf8"));
   } catch (err) {
-    console.error(`check:generated — cannot read ${path}: ${err.message}`);
-    process.exit(1);
-  }
-}
-
-const starter = load(starterPath);
-const validated = validateManifest(starter);
-if (!validated.ok) {
-  console.error(
-    "check:generated — starters/erp/manifest.json failed v0 schema (run check:manifest)"
-  );
-  process.exit(1);
-}
-
-const expected = generateFormatFiles(validated.manifest, FORMAT_PINS, {
-  registryUrl: LITE_REGISTRY_URL_PATTERN,
-});
-const failures = [];
-for (const [rel, want] of Object.entries(expected)) {
-  let got;
-  try {
-    got = readFileSync(join(appRoot, rel), "utf8");
-  } catch {
-    failures.push(`${rel}: missing — regenerate, do not hand-edit`);
+    console.error(
+      `check:generated — cannot read ${starterPath}: ${err.message}`
+    );
+    failed = true;
     continue;
   }
-  if (got !== want) {
-    failures.push(`${rel}: regenerate, do not hand-edit`);
+
+  const validated = validateManifest(starter);
+  if (!validated.ok) {
+    console.error(
+      `check:generated — starters/${id}/manifest.json failed v0 schema (run check:manifest)`
+    );
+    failed = true;
+    continue;
   }
+
+  const expected = generateFormatFiles(validated.manifest, FORMAT_PINS, {
+    registryUrl: LITE_REGISTRY_URL_PATTERN,
+  });
+  const failures = [];
+  for (const [rel, want] of Object.entries(expected)) {
+    let got;
+    try {
+      got = readFileSync(join(appRoot, rel), "utf8");
+    } catch {
+      failures.push(`${rel}: missing — regenerate, do not hand-edit`);
+      continue;
+    }
+    if (got !== want) {
+      failures.push(`${rel}: regenerate, do not hand-edit`);
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error(
+      `check:generated — starters/${id} drifted from the generator:`
+    );
+    for (const failure of failures) {
+      console.error(`  ${failure}`);
+    }
+    failed = true;
+    continue;
+  }
+
+  console.log(
+    `generated ok: starters/${id} ${Object.keys(expected).join(", ")}`
+  );
 }
 
-if (failures.length > 0) {
-  console.error(
-    "check:generated — committed files drifted from the generator:"
-  );
-  for (const failure of failures) {
-    console.error(`  ${failure}`);
-  }
+if (failed) {
   process.exit(1);
 }
-
-console.log(
-  `generated ok: ${Object.keys(expected).join(", ")} match generateFormatFiles`
-);

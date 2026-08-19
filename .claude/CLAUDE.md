@@ -8,7 +8,7 @@ House rules and index for this repo.
 ## What this is
 
 Edge-native **lite factory**: host + check + lint + build workers, frozen kernel, and
-starter-lite template. Packages are `@sfab-lite/*`.
+starter packages (`base`, `erp`). Packages are `@sfab-lite/*`.
 
 **Lite** means the hosted template / frozen-kernel sub-apps — not skimpy
 factory tooling. Architecture:
@@ -26,10 +26,10 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:registry-agreement`.
 
 `check:generated` fails when the generated format files under
-`starters/erp/app/` (`package.json`, `tsconfig.json`, `index.html`,
+`starters/<id>/app/` (`package.json`, `tsconfig.json`, `index.html`,
 `components.json`, `src/db/index.ts`, and `src/storage/index.ts` when
 the manifest declares storage) drift from `generateFormatFiles`.
-Regenerate with `pnpm --filter @sfab-lite/template generate`; do not
+Regenerate with `pnpm --filter @sfab-lite/starter-<id> generate`; do not
 hand-edit.
 
 `check:registry` validates every published recipe against the lite
@@ -42,28 +42,29 @@ hashes.
 `/r/{name}.json` must place files byte-identical to `planAdd`. CI-only
 — not in pre-commit.
 
-`check:app-lint` is the odd one: it checks `starters/erp/app/src` —
-the seed payload — against `framework/toolchain/app-biome.json`, the config the
-factory's lint worker applies to app sources. That config cannot `extends`
-the shared preset (the worker runs Biome in WASM, which has no package
-resolution), so this gate is what keeps the two from drifting and a
-freshly seeded app from lighting up on code its owner never touched.
+`check:app-lint` is the odd one: it checks every `starters/*/app/src` —
+the seed payloads — against `framework/toolchain/app-biome.json`, the
+config the factory's lint worker applies to app sources. That config
+cannot `extends` the shared preset (the worker runs Biome in WASM, which
+has no package resolution), so this gate is what keeps them from
+drifting and a freshly seeded app from lighting up on code its owner
+never touched.
 
 `check:kernel` rebuilds `@sfab-lite/kernel` from its isolated
 `framework/runtime/universe` install and fails if committed vendor /
 generated / `kernel.json` artifacts drift.
 
-`check:seed` is the same idea for `starters/erp/generated/seed.json`:
-re-runs the template pack and fails if the committed seed no longer matches
-`starters/erp/app/src`. The seed lives in the template package; the factory
-imports it at build time because the host Worker has no filesystem. Editing the
-template without re-baking would leave every other gate green while the factory
+`check:seed` is the same idea for each `starters/<id>/generated/seed.json`:
+re-runs that starter's pack and fails if the committed seed no longer matches
+`starters/<id>/app/src`. The seed lives in the starter package; the factory
+imports seeds at build time because the host Worker has no filesystem. Editing a
+starter without re-baking would leave every other gate green while the factory
 kept seeding the old source.
 
-`check:route-tree` is the same idea for
-`starters/erp/app/src/routeTree.gen.ts`: re-runs the template's
+`check:route-tree` is the same idea for each
+`starters/<id>/app/src/routeTree.gen.ts`: re-runs that starter's
 `generate-routes` (`tsr generate` + banner rewrite) and fails if the
-committed tree no longer matches `app/src/routes/`. Template-only — hosted
+committed tree no longer matches `app/src/routes/`. Starter-only — hosted
 apps have no `tsr`; agents there edit the gen file by hand together with
 the route files.
 
@@ -118,7 +119,8 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
 | `factory/lint` | Biome lint worker (HTTP shell over `@sfab-lite/verbs/lint`) |
 | `factory/build` | Compile worker (HTTP shell over `@sfab-lite/verbs/build`) |
 | `factory/ui` | Shared factory UI primitives (shadcn, icons, ai-elements) |
-| `starters/erp` | Starter-lite seed in `app/` (independently runnable) |
+| `starters/base` | Default create seed (`@sfab-lite/starter-base`) |
+| `starters/erp` | Named ERP seed (`@sfab-lite/starter-erp`) |
 | `framework/runtime` | Frozen universe + prebuild (owns universe pins) |
 | `framework/toolchain` | Shared contracts (app-format schema, check/lint wire types, app-biome) |
 | `framework/verbs` | Framework verbs: check, lint, build, format overlay |

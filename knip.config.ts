@@ -95,6 +95,16 @@ const config: KnipConfig = {
         "app/src/hooks/use-mobile.ts": ["exports"],
       },
     },
+    "starters/base": {
+      entry: ["scripts/*.mjs"],
+      project: ["src/**/*.ts", "scripts/**/*.mjs", "app/src/**/*.{ts,tsx}"],
+      ignoreDependencies: ["tailwindcss"],
+      ignoreIssues: {
+        "app/src/server.ts": ["exports", "types"],
+        "app/src/components/ui/**/*.tsx": ["exports"],
+        "app/src/hooks/use-mobile.ts": ["exports"],
+      },
+    },
     "framework/runtime": {
       // Prebuild CLI + vendor entry modules are the reachability roots.
       // Generated megabyte blobs stay out of project so knip never parses them.

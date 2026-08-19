@@ -18,9 +18,9 @@
  * That is the factory's job at publish time; this is only the source seed.
  *
  * Usage:
- *   pnpm --filter @sfab-lite/template pack
- *   pnpm --filter @sfab-lite/template bake-seed
- *   pnpm --filter @sfab-lite/template pack -- --out=<file>
+ *   pnpm --filter @sfab-lite/starter-erp pack
+ *   pnpm --filter @sfab-lite/starter-erp bake-seed
+ *   pnpm --filter @sfab-lite/starter-erp pack -- --out=<file>
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";

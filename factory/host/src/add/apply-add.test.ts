@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import { applyAdd } from "./apply-add.ts";
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/;

@@ -9,7 +9,7 @@
  *
  * Bundled by the companion .mjs runner (esbuild) so Node can load workspace TS.
  */
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import {
   type LsStore,
   liveLanguageServices,

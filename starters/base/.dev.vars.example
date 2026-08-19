@@ -1,0 +1,19 @@
+# Local secrets for `wrangler dev` — copy to .dev.vars (gitignored).
+BETTER_AUTH_SECRET=dev-secret-change-me-min-32-chars!!
+
+# Authorizes POST /api/dev/seed. The factory sets this per app; standalone you
+# pick one, and seeding is refused while it is unset. Send it literally — this
+# file is read by wrangler, not by your shell, so it exports nothing:
+#   curl -X POST http://localhost:8787/api/dev/seed \
+#        -H 'x-sfab-seed: dev-seed-token-change-me' \
+#        -H 'content-type: application/json' -d '{"password":"whatever-you-like"}'
+SEED_TOKEN=dev-seed-token-change-me
+
+# Optional: pin the auth base URL. In the factory the host sets this per app.
+# Leave unset for standalone dev and the request origin is used (allowlisted).
+# BETTER_AUTH_URL=http://127.0.0.1:5173
+
+# Optional: the app's public mount path. The factory sets this to /a/<appId>
+# so each app's cookies are scoped to itself on the shared origin. Leave unset
+# for standalone dev, where the app owns the whole origin.
+# APP_BASE_PATH=/a/app_example

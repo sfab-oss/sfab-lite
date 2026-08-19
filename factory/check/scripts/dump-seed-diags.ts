@@ -1,4 +1,4 @@
-import seed from "@sfab-lite/template/seed" with { type: "json" };
+import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import { runCheck } from "@sfab-lite/verbs/check";
 import { SEED_MANIFEST } from "./seed-manifest.ts";
 

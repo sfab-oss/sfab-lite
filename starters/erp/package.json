@@ -1,5 +1,5 @@
 {
-  "name": "@sfab-lite/template",
+  "name": "@sfab-lite/starter-erp",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "dev:ui": "vite --port 5173",
     "build": "vite build",
     "preview": "pnpm build && wrangler dev --port 8787",
-    "db:migrate": "wrangler d1 migrations apply sfab-lite-template --local",
+    "db:migrate": "wrangler d1 migrations apply sfab-lite-starter-erp --local",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && pnpm db:migrate",
     "pack": "node scripts/pack.mjs",
     "bake-seed": "node scripts/pack.mjs --out=generated/seed.json",

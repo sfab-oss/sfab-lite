@@ -19,7 +19,7 @@
       "!!**/framework/runtime/scripts/.shims-client",
       // Baked by bake-template-snapshot.mjs and compared byte-for-byte by
       // check:template-snapshot. Formatting it here would desync the two.
-      "!!**/starters/erp/app/migrations/meta",
+      "!!**/starters/*/app/migrations/meta",
       // Baked by bake-catalog.mjs and compared byte-for-byte by
       // check:registry. Formatting it here would desync the two.
       "!!**/registry/registry.json",
@@ -36,7 +36,7 @@
       "!!**/registry/recipes/toggle-group/0.1.0",
       "!!**/scripts/fixtures",
       // tsr emits any / ts-nocheck; keep out of repo Biome (and app-biome).
-      "!!**/starters/erp/app/src/routeTree.gen.ts"
+      "!!**/starters/*/app/src/routeTree.gen.ts"
     ]
   },
   // Same assist/noise offs as starter — presets turn these on; not worth

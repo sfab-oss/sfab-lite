@@ -1,0 +1,14 @@
+# CSS safelist for the factory's Tailwind compile — one class per line.
+#
+# The factory finds your classes by scanning source for string literals, so
+# a class it cannot see as a literal never makes it into the published CSS.
+# List those here. Blank lines and `#` comments are ignored.
+#
+# You need this when a class name is assembled at runtime, e.g.
+#   const tone = danger ? "destructive" : "primary";
+#   <div className={`bg-${tone} text-${tone}-foreground`} />   // invisible
+# Prefer writing the full class names out (`danger ? "bg-destructive" : …`)
+# so the extractor can see them; reach for this file when you cannot.
+#
+# Empty by design: the template has no dynamic class names. Anything the
+# extractor misses beyond this file is a documented limitation, not silent.
