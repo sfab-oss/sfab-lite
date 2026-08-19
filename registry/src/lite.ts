@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { RecipeProvenance } from "@sfab-lite/core";
+import { catalogEntry, parseCatalogPin } from "@sfab-lite/core/catalog-modules";
 import type {
   Catalog,
   CatalogEntry,
@@ -51,6 +52,7 @@ const LITE_ITEM_KEYS = new Set([
   "title",
   "description",
   "registryDependencies",
+  "dependencies",
   "files",
   "meta",
 ]);
@@ -293,6 +295,60 @@ function validateRegistryDependencies(
   return ok ? out : null;
 }
 
+function validateCatalogDependencies(
+  issues: Issue[],
+  value: unknown
+): string[] | null {
+  if (value === undefined) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length === 0) {
+    add(
+      issues,
+      "dependencies",
+      "expected a non-empty array of catalog pins (name@version)"
+    );
+    return null;
+  }
+  const out: string[] = [];
+  let ok = true;
+  for (const [i, item] of value.entries()) {
+    const path = `dependencies[${i}]`;
+    if (typeof item !== "string") {
+      add(issues, path, "expected a string");
+      ok = false;
+      continue;
+    }
+    const parsed = parseCatalogPin(item);
+    if (!parsed) {
+      add(
+        issues,
+        path,
+        "expected an exact catalog pin name@version (no ranges)"
+      );
+      ok = false;
+      continue;
+    }
+    const entry = catalogEntry(parsed.name);
+    if (!entry) {
+      add(issues, path, `unknown catalog module "${parsed.name}"`);
+      ok = false;
+      continue;
+    }
+    if (entry.version !== parsed.version) {
+      add(
+        issues,
+        path,
+        `catalog pin for "${parsed.name}" must be ${entry.version} (got ${parsed.version})`
+      );
+      ok = false;
+      continue;
+    }
+    out.push(item);
+  }
+  return ok ? out : null;
+}
+
 export function validateItem(input: unknown): ItemValidation {
   const issues: Issue[] = [];
   if (!isPlainObject(input)) {
@@ -300,13 +356,6 @@ export function validateItem(input: unknown): ItemValidation {
       ok: false,
       issues: [{ path: "", message: "expected a JSON object" }],
     };
-  }
-  if ("dependencies" in input) {
-    add(
-      issues,
-      "dependencies",
-      "dependencies key must be absent (npm cannot enter a lite recipe)"
-    );
   }
   if ("devDependencies" in input) {
     add(
@@ -341,6 +390,7 @@ export function validateItem(input: unknown): ItemValidation {
     issues,
     input.registryDependencies
   );
+  const dependencies = validateCatalogDependencies(issues, input.dependencies);
   const files = validateFiles(issues, input.files);
   const meta = validateMeta(issues, input.meta);
 
@@ -353,6 +403,7 @@ export function validateItem(input: unknown): ItemValidation {
     title === null ||
     description === null ||
     registryDependencies === null ||
+    dependencies === null ||
     files === null ||
     meta === null
   ) {
@@ -367,6 +418,7 @@ export function validateItem(input: unknown): ItemValidation {
     title,
     description,
     registryDependencies,
+    ...(dependencies.length > 0 ? { dependencies } : {}),
     files,
     meta,
   };
@@ -449,6 +501,9 @@ export function toBuiltRegistryItem(
     description: entry.item.description,
     registryDependencies:
       entry.item.registryDependencies.map(namespacedAddress),
+    ...(entry.item.dependencies && entry.item.dependencies.length > 0
+      ? { dependencies: entry.item.dependencies }
+      : {}),
     files: entry.item.files.map((file) => ({
       path: file.target,
       type: file.type,

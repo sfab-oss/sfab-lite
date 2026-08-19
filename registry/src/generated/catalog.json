@@ -904,6 +904,39 @@
         "src/components/ui/pagination.tsx": "// biome-ignore-all lint/a11y/noRedundantRoles: shadcn registry stock\n// biome-ignore-all lint/a11y/useSemanticElements: shadcn registry stock\n\nimport {\n  ChevronLeftIcon,\n  ChevronRightIcon,\n  DotsHorizontalIcon,\n} from \"@radix-ui/react-icons\";\nimport type * as React from \"react\";\nimport { cn } from \"../../lib/utils\";\nimport { Button } from \"./button\";\n\nfunction Pagination({ className, ...props }: React.ComponentProps<\"nav\">) {\n  return (\n    <nav\n      aria-label=\"pagination\"\n      className={cn(\"mx-auto flex w-full justify-center\", className)}\n      data-slot=\"pagination\"\n      role=\"navigation\"\n      {...props}\n    />\n  );\n}\n\nfunction PaginationContent({\n  className,\n  ...props\n}: React.ComponentProps<\"ul\">) {\n  return (\n    <ul\n      className={cn(\"flex items-center gap-1\", className)}\n      data-slot=\"pagination-content\"\n      {...props}\n    />\n  );\n}\n\nfunction PaginationItem({ ...props }: React.ComponentProps<\"li\">) {\n  return <li data-slot=\"pagination-item\" {...props} />;\n}\n\ntype PaginationLinkProps = {\n  isActive?: boolean;\n} & Pick<React.ComponentProps<typeof Button>, \"size\"> &\n  React.ComponentProps<\"a\">;\n\nfunction PaginationLink({\n  className,\n  isActive,\n  size = \"icon\",\n  ...props\n}: PaginationLinkProps) {\n  return (\n    <Button\n      className={cn(className)}\n      nativeButton={false}\n      render={\n        <a\n          aria-current={isActive ? \"page\" : undefined}\n          data-active={isActive}\n          data-slot=\"pagination-link\"\n          {...props}\n        />\n      }\n      size={size}\n      variant={isActive ? \"outline\" : \"ghost\"}\n    />\n  );\n}\n\nfunction PaginationPrevious({\n  className,\n  text = \"Previous\",\n  ...props\n}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {\n  return (\n    <PaginationLink\n      aria-label=\"Go to previous page\"\n      className={cn(\"pl-2!\", className)}\n      size=\"default\"\n      {...props}\n    >\n      <ChevronLeftIcon data-icon=\"inline-start\" />\n      <span className=\"hidden sm:block\">{text}</span>\n    </PaginationLink>\n  );\n}\n\nfunction PaginationNext({\n  className,\n  text = \"Next\",\n  ...props\n}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {\n  return (\n    <PaginationLink\n      aria-label=\"Go to next page\"\n      className={cn(\"pr-2!\", className)}\n      size=\"default\"\n      {...props}\n    >\n      <span className=\"hidden sm:block\">{text}</span>\n      <ChevronRightIcon data-icon=\"inline-end\" />\n    </PaginationLink>\n  );\n}\n\nfunction PaginationEllipsis({\n  className,\n  ...props\n}: React.ComponentProps<\"span\">) {\n  return (\n    <span\n      aria-hidden\n      className={cn(\n        \"flex size-9 items-center justify-center [&_svg:not([class*='size-'])]:size-4\",\n        className\n      )}\n      data-slot=\"pagination-ellipsis\"\n      {...props}\n    >\n      <DotsHorizontalIcon />\n      <span className=\"sr-only\">More pages</span>\n    </span>\n  );\n}\n\nexport {\n  Pagination,\n  PaginationContent,\n  PaginationEllipsis,\n  PaginationItem,\n  PaginationLink,\n  PaginationNext,\n  PaginationPrevious,\n};\n"
       }
     },
+    "lite/pdf-invoice": {
+      "version": "0.1.0",
+      "item": {
+        "name": "lite/pdf-invoice",
+        "type": "registry:block",
+        "title": "PDF invoice",
+        "description": "Server helper that renders a one-page invoice PDF via pdf-lib, plus an org-protected Hono route that returns the bytes. Enable the catalog module by adding this recipe. Mount pdfInvoiceRoutes under org-protected yourself.",
+        "registryDependencies": [],
+        "dependencies": [
+          "pdf-lib@1.17.1"
+        ],
+        "files": [
+          {
+            "path": "invoice.ts",
+            "type": "registry:file",
+            "target": "src/pdf/invoice.ts"
+          },
+          {
+            "path": "pdf-invoice.ts",
+            "type": "registry:file",
+            "target": "src/hono/org-protected/pdf-invoice.ts"
+          }
+        ],
+        "meta": {
+          "liteProfile": 1,
+          "liteRuntime": ">=0.4.0"
+        }
+      },
+      "contents": {
+        "src/pdf/invoice.ts": "import { PDFDocument, StandardFonts } from \"pdf-lib\";\n\nexport interface InvoiceLine {\n  description: string;\n  amountCents: number;\n}\n\nexport interface InvoiceInput {\n  number: string;\n  partyName: string;\n  lines: InvoiceLine[];\n}\n\nexport const PDF_CONTENT_TYPE = \"application/pdf\";\n\nfunction formatCents(amountCents: number): string {\n  const sign = amountCents < 0 ? \"-\" : \"\";\n  const abs = Math.abs(amountCents);\n  const dollars = Math.floor(abs / 100);\n  const cents = abs % 100;\n  return `${sign}${dollars}.${String(cents).padStart(2, \"0\")}`;\n}\n\nexport async function renderInvoicePdf(\n  input: InvoiceInput\n): Promise<Uint8Array> {\n  const doc = await PDFDocument.create();\n  const page = doc.addPage([612, 792]);\n  const font = await doc.embedFont(StandardFonts.Helvetica);\n  const { height } = page.getSize();\n  let y = height - 72;\n  page.drawText(`Invoice ${input.number}`, { x: 72, y, size: 18, font });\n  y -= 28;\n  page.drawText(input.partyName, { x: 72, y, size: 12, font });\n  y -= 36;\n  let total = 0;\n  for (const line of input.lines) {\n    page.drawText(line.description, { x: 72, y, size: 11, font });\n    page.drawText(formatCents(line.amountCents), {\n      x: 420,\n      y,\n      size: 11,\n      font,\n    });\n    total += line.amountCents;\n    y -= 18;\n  }\n  y -= 12;\n  page.drawText(`Total ${formatCents(total)}`, { x: 72, y, size: 12, font });\n  return doc.save();\n}\n",
+        "src/hono/org-protected/pdf-invoice.ts": "import { Hono } from \"hono\";\nimport { PDF_CONTENT_TYPE, renderInvoicePdf } from \"../../pdf/invoice\";\nimport type { AppEnv } from \"../types\";\n\nexport const pdfInvoiceRoutes = new Hono<AppEnv>().get(\"/\", async (c) => {\n  const bytes = await renderInvoicePdf({\n    number: \"INV-0001\",\n    partyName: c.get(\"orgId\"),\n    lines: [\n      { description: \"Professional services\", amountCents: 120_000 },\n      { description: \"Support\", amountCents: 15_000 },\n    ],\n  });\n  return new Response(bytes, {\n    status: 200,\n    headers: { \"Content-Type\": PDF_CONTENT_TYPE },\n  });\n});\n"
+      }
+    },
     "lite/popover": {
       "version": "0.1.0",
       "item": {

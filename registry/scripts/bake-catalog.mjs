@@ -114,6 +114,9 @@ const sourceItems = Object.entries(catalog.items)
       description: entry.item.description,
       registryDependencies:
         entry.item.registryDependencies.map(namespacedAddress),
+      ...(entry.item.dependencies && entry.item.dependencies.length > 0
+        ? { dependencies: entry.item.dependencies }
+        : {}),
       files: entry.item.files.map((file) => ({
         path: `recipes/${slug}/${entry.version}/${file.path}`,
         type: file.type,

@@ -2,8 +2,8 @@
   "name": "lite/evil",
   "type": "registry:ui",
   "title": "Evil",
-  "description": "Red fixture: unpinned npm name is not a catalog pin.",
-  "dependencies": ["lodash"],
+  "description": "Red fixture: catalog name at the wrong version.",
+  "dependencies": ["pdf-lib@9.9.9"],
   "meta": {
     "liteProfile": 1,
     "liteRuntime": ">=0.4.0"

@@ -2,8 +2,8 @@
   "name": "lite/evil",
   "type": "registry:ui",
   "title": "Evil",
-  "description": "Red fixture: unpinned npm name is not a catalog pin.",
-  "dependencies": ["lodash"],
+  "description": "Red fixture: unknown npm name at a valid pin shape.",
+  "dependencies": ["lodash@4.17.21"],
   "meta": {
     "liteProfile": 1,
     "liteRuntime": ">=0.4.0"
