@@ -280,6 +280,17 @@ ${extraBlock}  </head>
 `;
 }
 
+function mergeModulePins(
+  pins: Readonly<Record<string, string>>,
+  modules: ManifestV0["modules"]
+): Record<string, string> {
+  const out: Record<string, string> = { ...pins };
+  for (const mod of modules) {
+    out[mod.name] = mod.version;
+  }
+  return out;
+}
+
 function sortedPins(
   pins: Readonly<Record<string, string>>
 ): Record<string, string> {
@@ -310,7 +321,9 @@ export function generateFormatFiles(
       dev: "vite",
       build: "vite build",
     },
-    dependencies: sortedPins(pins.dependencies),
+    dependencies: sortedPins(
+      mergeModulePins(pins.dependencies, manifest.modules)
+    ),
     devDependencies: sortedPins(pins.devDependencies),
   };
   const files: Record<string, string> = {

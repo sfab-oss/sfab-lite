@@ -2,6 +2,11 @@
  * In-worker server compile via worker-bundler + kernel externals.
  * Server entry + export name come from the tree's manifest.
  */
+import type { ManifestV0 } from "@sfab-lite/core";
+import {
+  catalogEntry,
+  catalogLoaderKey,
+} from "@sfab-lite/core/catalog-modules";
 import { createWorker } from "@cloudflare/worker-bundler";
 import {
   KERNEL_PATHS,
@@ -80,8 +85,15 @@ function pickMainJs(result: Awaited<ReturnType<typeof createWorker>>): string {
 }
 
 /** Normalize worker-bundler output to flat kernel keys (seed does the same). */
-function normalizeFlatImports(source: string): string {
-  return source
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeFlatImports(
+  source: string,
+  extraVirtualModules: Record<string, string> = {}
+): string {
+  let out = source
     .replace(/from\s+["']hono(?:\/[^"']*)?["']/g, 'from "hono.js"')
     .replace(
       /from\s+["']drizzle-orm(?:\/[^"']*)?["']/g,
@@ -96,6 +108,17 @@ function normalizeFlatImports(source: string): string {
     .replace(/from\s+["']react\/jsx-runtime["']/g, 'from "jsx-runtime.js"')
     .replace(/from\s+["']react-dom["']/g, 'from "react-dom.js"')
     .replace(/from\s+["']react-dom\/server["']/g, 'from "react-dom-server.js"');
+  for (const [bare, stub] of Object.entries(extraVirtualModules)) {
+    const from = stub.match(/from\s+("[^"]+")/)?.[1];
+    if (!from) {
+      continue;
+    }
+    out = out.replace(
+      new RegExp(`from\\s+["']${escapeRegExp(bare)}["']`, "g"),
+      `from ${from}`
+    );
+  }
+  return out;
 }
 
 /**
@@ -109,18 +132,19 @@ function normalizeFlatImports(source: string): string {
 export async function bundleWithKernel(
   files: Record<string, string>,
   entryPoint: string,
-  extraExternals: string[] = []
+  extraExternals: string[] = [],
+  extraVirtualModules: Record<string, string> = {}
 ): Promise<{ js: string; mainModule: string; warnings: unknown[] }> {
   const result = await createWorker({
     files,
     entryPoint,
     bundle: true,
     externals: [...KERNEL_EXTERNALS, ...extraExternals],
-    virtualModules: KERNEL_VIRTUAL_MODULES,
+    virtualModules: { ...KERNEL_VIRTUAL_MODULES, ...extraVirtualModules },
     jsx: "transform",
   });
   return {
-    js: normalizeFlatImports(pickMainJs(result)),
+    js: normalizeFlatImports(pickMainJs(result), extraVirtualModules),
     mainModule: result.mainModule,
     warnings: result.warnings ?? [],
   };
@@ -133,6 +157,27 @@ export interface CompileServerResult {
   serverSurfaceHash: string;
   mainModule: string;
   warnings: unknown[];
+}
+
+export function catalogServerExtras(manifest: ManifestV0): {
+  externals: string[];
+  virtualModules: Record<string, string>;
+} {
+  const externals: string[] = [];
+  const virtualModules: Record<string, string> = {};
+  for (const declared of manifest.modules) {
+    const entry = catalogEntry(declared.name, declared.version);
+    if (entry?.plane !== "server") {
+      continue;
+    }
+    const loaderKey = catalogLoaderKey(declared.name);
+    if (!loaderKey) {
+      continue;
+    }
+    externals.push(loaderKey);
+    virtualModules[declared.name] = reexport(loaderKey, false);
+  }
+  return { externals, virtualModules };
 }
 
 /**
@@ -151,8 +196,14 @@ export async function compileServer(
   // Synthetic entry — host serves assets; LOADER only runs the Hono API.
   files[SERVER_ENTRY] = serverEntrySource(tree);
 
+  const extras = catalogServerExtras(tree.manifest);
   const t0 = performance.now();
-  const bundled = await bundleWithKernel(files, SERVER_ENTRY);
+  const bundled = await bundleWithKernel(
+    files,
+    SERVER_ENTRY,
+    extras.externals,
+    extras.virtualModules
+  );
   const compileMs = performance.now() - t0;
 
   return {

@@ -18,6 +18,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply sfab-lite-factory --local",
     "upload-kernel-r2": "node scripts/upload-kernel-r2.mjs",
+    "upload-modules-r2": "node scripts/upload-modules-r2.mjs",
     "prepare-drizzle-kit-api": "node scripts/prepare-drizzle-kit-api.mjs",
     "bake-template-snapshot": "node --experimental-strip-types scripts/bake-template-snapshot.mjs"
   },

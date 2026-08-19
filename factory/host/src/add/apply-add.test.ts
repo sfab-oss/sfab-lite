@@ -37,6 +37,30 @@ test("add lite/field copies deps and writes sha256 provenance", () => {
   assert.equal(typeof pkg.dependencies?.react, "string");
 });
 
+test("add lite/pdf-invoice writes modules and the exact pdf-lib pin", () => {
+  const result = applyAdd("lite/pdf-invoice", TREE);
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+  assert.ok(result.files["src/pdf/invoice.ts"]);
+  assert.ok(result.files["src/hono/org-protected/pdf-invoice.ts"]);
+  const manifest = JSON.parse(result.files["manifest.json"] ?? "{}");
+  assert.deepEqual(manifest.modules, [{ name: "pdf-lib", version: "1.17.1" }]);
+  const pkg = JSON.parse(result.files["package.json"] ?? "{}");
+  assert.equal(pkg.dependencies["pdf-lib"], "1.17.1");
+});
+
+test("add lite/field leaves modules empty", () => {
+  const result = applyAdd("lite/field", TREE);
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+  const manifest = JSON.parse(result.files["manifest.json"] ?? "{}");
+  assert.deepEqual(manifest.modules, []);
+});
+
 test("bare names never copy files", () => {
   const result = applyAdd("button", {});
   assert.equal(result.ok, false);

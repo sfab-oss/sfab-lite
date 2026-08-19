@@ -185,6 +185,41 @@ function bumpVersion(st: AppLsState, path: string): void {
   st.versions.set(path, (st.versions.get(path) ?? 0) + 1);
 }
 
+/**
+ * Overlay catalog-module stubs onto the VFS for this run. Keys live under
+ * `/node_modules/` so they survive `resetAppOverlay` (which only clears
+ * `/app/*`) and must be stripped before the handler returns — otherwise the
+ * next run on this isolate would inherit them.
+ */
+function applyModuleTypesOverlay(
+  st: AppLsState,
+  moduleTypes: Record<string, string> | undefined
+): string[] {
+  if (moduleTypes == null) {
+    return [];
+  }
+  const keys: string[] = [];
+  for (const [rawPath, text] of Object.entries(moduleTypes)) {
+    const path = normalizePath(rawPath);
+    if (!path.startsWith("/node_modules/")) {
+      continue;
+    }
+    st.overlay.set(path, text);
+    bumpVersion(st, path);
+    st.snapshots.delete(path);
+    keys.push(path);
+  }
+  return keys;
+}
+
+function stripModuleTypesOverlay(st: AppLsState, keys: string[]): void {
+  for (const path of keys) {
+    st.overlay.delete(path);
+    st.snapshots.delete(path);
+    bumpVersion(st, path);
+  }
+}
+
 /** Sync `/app/*` overlay to the request file map; returns bumped paths. */
 function syncOverlay(
   st: AppLsState,
@@ -342,6 +377,21 @@ export function runCheck(
   }
 
   ctx.bumpedFiles = syncOverlay(st, body.files).bumpedFiles;
+  const overlayKeys = applyModuleTypesOverlay(st, body.moduleTypes);
+  try {
+    return runUnits(ctx, body, afterUnit);
+  } finally {
+    stripModuleTypesOverlay(st, overlayKeys);
+  }
+}
+
+function runUnits(
+  ctx: RunCtx,
+  body: CheckRequest,
+  afterUnit: AfterUnit | undefined
+): CheckResult {
+  const { st } = ctx;
+  const clientPrefixes = st.clientPrefixes;
   applyHonoOverlay(st.overlay, st.versions, null);
   ctx.allDiags.push(...transactionFloorDiagnostics(body.files));
 

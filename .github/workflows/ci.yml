@@ -132,6 +132,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:drizzle-kit-modules
 
+      # Catalog-module ESM + stubs are committed artifacts. Without this,
+      # bumping a pin (or the build flags) and forgetting to regenerate ships
+      # a stale R2 upload with every other gate green.
+      - name: modules
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:modules
+
       # The template's snapshot is what a seeded app's first `db:generate`
       # diffs against. Editing the template schema without re-baking it would
       # have that first migration propose creating tables the seed already
@@ -228,6 +235,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @sfab-lite/factory upload-kernel-r2 -- --remote
+
+      - name: Upload catalog modules to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm --filter @sfab-lite/factory upload-modules-r2 -- --remote
 
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v4

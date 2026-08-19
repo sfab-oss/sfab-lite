@@ -202,6 +202,7 @@ test("generated artifact paths and host-authoritative fields are part of the sch
   assert.equal(GENERATED_ARTIFACTS.dbIndex, "src/db/index.ts");
   assert.equal(GENERATED_ARTIFACTS.storageIndex, "src/storage/index.ts");
   assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("runtime"));
+  assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("modules"));
   assert.ok(HOST_AUTHORITATIVE_FIELDS.includes("recipes"));
   assert.deepEqual([...MANIFEST_CAPABILITIES], ["storage"]);
 });

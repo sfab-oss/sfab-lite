@@ -1,9 +1,10 @@
-import type { ManifestV0 } from "@sfab-lite/core";
+import type { ManifestModule, ManifestV0 } from "@sfab-lite/core";
+import { parseCatalogPin } from "@sfab-lite/core/catalog-modules";
 import { generateFormatFiles } from "@sfab-lite/core/generate-format-files";
 import { validateManifest } from "@sfab-lite/core/validate-manifest";
 import { FORMAT_PINS } from "@sfab-lite/kernel/pins";
 import catalogJson from "@sfab-lite/registry/catalog" with { type: "json" };
-import { type Catalog, planAdd } from "@sfab-lite/registry/lite";
+import { type Catalog, planAdd, resolveAdd } from "@sfab-lite/registry/lite";
 import { LITE_REGISTRY_URL_PATTERN } from "@sfab-lite/registry/pin";
 
 const CATALOG = catalogJson as Catalog;
@@ -11,6 +12,50 @@ const LEADING_SLASHES = /^\/+/;
 
 function rel(path: string): string {
   return path.replace(LEADING_SLASHES, "");
+}
+
+function currentModules(parsed: Record<string, unknown>): ManifestModule[] {
+  if (!Array.isArray(parsed.modules)) {
+    return [];
+  }
+  const out: ManifestModule[] = [];
+  for (const item of parsed.modules) {
+    if (
+      item &&
+      typeof item === "object" &&
+      "name" in item &&
+      "version" in item &&
+      typeof item.name === "string" &&
+      typeof item.version === "string"
+    ) {
+      out.push({ name: item.name, version: item.version });
+    }
+  }
+  return out;
+}
+
+function mergeModulesFromAdd(
+  current: ManifestModule[],
+  name: string
+): ManifestModule[] {
+  const resolved = resolveAdd(name, CATALOG);
+  if (!resolved.ok) {
+    return current;
+  }
+  const byName = new Map(current.map((mod) => [mod.name, mod]));
+  for (const entry of resolved.entries) {
+    for (const dep of entry.item.dependencies ?? []) {
+      const parsed = parseCatalogPin(dep);
+      if (!parsed) {
+        continue;
+      }
+      byName.set(parsed.name, {
+        name: parsed.name,
+        version: parsed.version,
+      });
+    }
+  }
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function readManifest(
@@ -77,6 +122,7 @@ export function applyAdd(
       ? { ...(parsed.recipes as ManifestV0["recipes"]) }
       : {};
   parsed.recipes = { ...currentRecipes, ...planned.provenance };
+  parsed.modules = mergeModulesFromAdd(currentModules(parsed), name);
 
   const validated = validateManifest(parsed);
   if (!validated.ok) {

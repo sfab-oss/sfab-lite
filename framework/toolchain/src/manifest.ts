@@ -29,6 +29,7 @@ export type ManifestCapability = (typeof MANIFEST_CAPABILITIES)[number];
 export const HOST_AUTHORITATIVE_FIELDS = [
   "format",
   "runtime",
+  "modules",
   "recipes",
 ] as const;
 

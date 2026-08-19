@@ -4,6 +4,7 @@
  * detection. Bundled by the companion .mjs runner so Node can load
  * workspace TS.
  */
+import { moduleTypesForManifest } from "@sfab-lite/core/catalog-modules";
 import { TEMPLATE_MANIFEST } from "@sfab-lite/starter-erp";
 import seed from "@sfab-lite/starter-erp/seed" with { type: "json" };
 import { type LsStore, runCheck } from "@sfab-lite/verbs/check";
@@ -32,19 +33,25 @@ const store: LsStore = new Map();
 
 function check(
   label: string,
-  files: Record<string, string>
+  files: Record<string, string>,
+  extras?: {
+    modules?: typeof SEED_MANIFEST.modules;
+    moduleTypes?: Record<string, string>;
+  }
 ): {
   clean: boolean;
   diagnostics: { code: number; message: string; file?: string }[];
   threw?: string;
 } {
   try {
+    const modules = extras?.modules ?? SEED_MANIFEST.modules;
     const result = runCheck(
       {
         appId: `side-proof-${label}`,
         files,
-        manifest: SEED_MANIFEST,
+        manifest: { ...SEED_MANIFEST, modules },
         forceCold: true,
+        ...(extras?.moduleTypes ? { moduleTypes: extras.moduleTypes } : {}),
       },
       { store }
     );
@@ -328,6 +335,83 @@ if (txResult.clean || !txHit) {
     "FAIL: .transaction( on app sources must fail with the LITE-TX floor diagnostic",
     txResult.diagnostics
   );
+  failed = true;
+}
+
+const PDF_HELPER = `
+import { PDFDocument, StandardFonts } from "pdf-lib";
+
+export async function renderInvoicePdf(input: {
+  number: string;
+  partyName: string;
+  lines: { description: string; amountCents: number }[];
+}): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([612, 792]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const { height } = page.getSize();
+  page.drawText(\`Invoice \${input.number}\`, {
+    x: 72,
+    y: height - 72,
+    size: 18,
+    font,
+  });
+  page.drawText(input.partyName, { x: 72, y: height - 100, size: 12, font });
+  return doc.save();
+}
+`;
+
+const pdfModules = [{ name: "pdf-lib", version: "1.17.1" }] as const;
+const pdfFiles = {
+  ...baseFiles,
+  "src/pdf/invoice.ts": PDF_HELPER,
+};
+
+const pdfResolve = check("14-pdf-lib-without-module", pdfFiles);
+const pdfResolveHit = pdfResolve.diagnostics.some(
+  (d) =>
+    d.message.includes("LITE-RESOLVE") &&
+    d.message.includes('"pdf-lib"') &&
+    (d.file?.includes("pdf/invoice") ?? false)
+);
+if (pdfResolve.clean || !pdfResolveHit) {
+  console.error(
+    "FAIL: importing pdf-lib without a declared module must be LITE-RESOLVE",
+    pdfResolve.diagnostics
+  );
+  failed = true;
+}
+const pdfResolveState = store.get("side-proof-14-pdf-lib-without-module");
+if (
+  [...(pdfResolveState?.overlay.keys() ?? [])].some((k) =>
+    k.includes("pdf-lib")
+  )
+) {
+  console.error("FAIL: pdf-lib overlay must not leak when modules is empty");
+  failed = true;
+}
+
+const pdfOverlay = check("15-pdf-lib-stub-overlay", pdfFiles, {
+  modules: [...pdfModules],
+  moduleTypes: moduleTypesForManifest([...pdfModules]),
+});
+const helperDiags = pdfOverlay.diagnostics.filter((d) =>
+  d.file?.includes("pdf/invoice")
+);
+if (helperDiags.length > 0) {
+  console.error(
+    "FAIL: declared pdf-lib + stub must typecheck the invoice helper",
+    helperDiags
+  );
+  failed = true;
+}
+const pdfOverlayState = store.get("side-proof-15-pdf-lib-stub-overlay");
+if (
+  [...(pdfOverlayState?.overlay.keys() ?? [])].some((k) =>
+    k.startsWith("/node_modules/pdf-lib")
+  )
+) {
+  console.error("FAIL: pdf-lib stub overlay must be stripped after runCheck");
   failed = true;
 }
 
