@@ -125,6 +125,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:seed
 
+      # Schema-probe drizzle-kit map is a committed host bundle constant.
+      # Without this, bumping the kit/orm pin (or the prepare script) and
+      # forgetting to regenerate ships a stale map with every other gate green.
+      - name: drizzle-kit-modules
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:drizzle-kit-modules
+
       # The template's snapshot is what a seeded app's first `db:generate`
       # diffs against. Editing the template schema without re-baking it would
       # have that first migration propose creating tables the seed already
@@ -221,16 +228,6 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @sfab-lite/factory upload-kernel-r2 -- --remote
-
-      # Schema-probe Loader child fetches patched drizzle-kit api.mjs from
-      # KERNEL_R2 (not the Worker script). Idempotent on the version
-      # manifest; prepare runs inside the script. Before deploy so a
-      # missing object cannot ship.
-      - name: Upload drizzle-kit modules to R2
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: pnpm --filter @sfab-lite/factory upload-drizzle-kit-r2 -- --remote
 
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v4
