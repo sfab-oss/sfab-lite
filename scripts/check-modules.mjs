@@ -89,21 +89,15 @@ try {
     process.exit(1);
   }
 
-  const originalEsm = readFileSync(join(committedDir, "pdf-lib.esm.js"));
+  const esmPath = join(outDir, "pdf-lib.esm.js");
   writeFileSync(
-    join(committedDir, "pdf-lib.esm.js"),
-    Buffer.concat([originalEsm, Buffer.from("\n")])
+    esmPath,
+    Buffer.concat([readFileSync(esmPath), Buffer.from("\n")])
   );
-  let redFailed = false;
-  try {
-    const red = driftAgainst(outDir, catalogJson);
-    redFailed = red.includes("pdf-lib.esm.js");
-  } finally {
-    writeFileSync(join(committedDir, "pdf-lib.esm.js"), originalEsm);
-  }
-  if (!redFailed) {
+  const red = driftAgainst(outDir, catalogJson);
+  if (!red.includes("pdf-lib.esm.js")) {
     console.error(
-      "check:modules — red-test did not fail after mutating pdf-lib.esm.js"
+      "check:modules — red-test did not fail after mutating the tmp pdf-lib.esm.js"
     );
     process.exit(1);
   }
