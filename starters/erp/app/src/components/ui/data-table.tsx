@@ -33,8 +33,6 @@ import {
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  filterValue?: string;
-  onFilterChange?: (value: string) => void;
   filterPlaceholder?: string;
   pageSize?: number;
 }
@@ -76,32 +74,22 @@ function DataTableColumnHeader<TData, TValue>({
 function DataTable<TData, TValue>({
   columns,
   data,
-  filterValue,
-  onFilterChange,
   filterPlaceholder = "Filter…",
   pageSize = 10,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [internalFilter, setInternalFilter] = useState("");
+  const [globalFilter, setGlobalFilter] = useState("");
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize,
   });
-
-  const globalFilter = onFilterChange ? (filterValue ?? "") : internalFilter;
 
   const table = useReactTable({
     data,
     columns,
     state: { sorting, globalFilter, pagination },
     onSortingChange: setSorting,
-    onGlobalFilterChange: onFilterChange
-      ? (updater) => {
-          const next =
-            typeof updater === "function" ? updater(globalFilter) : updater;
-          onFilterChange(String(next ?? ""));
-        }
-      : setInternalFilter,
+    onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -119,12 +107,7 @@ function DataTable<TData, TValue>({
         <Input
           className="max-w-sm"
           onChange={(event) => {
-            const value = event.target.value;
-            if (onFilterChange) {
-              onFilterChange(value);
-            } else {
-              setInternalFilter(value);
-            }
+            setGlobalFilter(event.target.value);
             table.setPageIndex(0);
           }}
           placeholder={filterPlaceholder}

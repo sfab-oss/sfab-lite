@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { ShellPageFrame } from "../../components/layout/shell";
-import { ThemeToggle } from "../../components/theme-toggle";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import {
@@ -167,14 +166,11 @@ function SettingsPage() {
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-                  <div className="space-y-1.5">
-                    <CardTitle>Appearance</CardTitle>
-                    <CardDescription>
-                      Light, dark, or follow the system preference.
-                    </CardDescription>
-                  </div>
-                  <ThemeToggle />
+                <CardHeader>
+                  <CardTitle>Appearance</CardTitle>
+                  <CardDescription>
+                    Light, dark, or follow the system preference.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <AppearanceControls />

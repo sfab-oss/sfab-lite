@@ -289,7 +289,7 @@
       "name": "data-table",
       "type": "registry:ui",
       "title": "Data Table",
-      "description": "TanStack Table v8 over lite/table: sorting, client filter toolbar (filterValue/onFilterChange), and prev/next pagination. Use with kernel @tanstack/react-table. Assumes lite/table, lite/button, and lite/input.",
+      "description": "TanStack Table v8 over lite/table: sorting, client filter toolbar, and prev/next pagination. Use with kernel @tanstack/react-table. Assumes lite/table, lite/button, and lite/input.",
       "registryDependencies": [
         "@lite/utils",
         "@lite/table",

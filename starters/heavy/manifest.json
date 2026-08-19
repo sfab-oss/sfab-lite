@@ -158,7 +158,7 @@
     "lite/data-table": {
       "version": "0.1.1",
       "files": {
-        "src/components/ui/data-table.tsx": "sha256:a12f1a0ce1a90a32135dd7b57884431d086ff222240e858d5e665f347e1af502"
+        "src/components/ui/data-table.tsx": "sha256:5defe7cf434119b5f747851fbdcb71e14313df3e14ffa526fd2662976eb8b483"
       }
     },
     "lite/dialog": {

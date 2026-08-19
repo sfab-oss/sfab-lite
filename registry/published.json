@@ -109,8 +109,8 @@
   },
   "lite/data-table@0.1.1": {
     "files": {
-      "registry-item.json": "sha256:33c832adf42a5eec902b97725143fc020da41db68e58dd9c2af86efcb9f87788",
-      "data-table.tsx": "sha256:a12f1a0ce1a90a32135dd7b57884431d086ff222240e858d5e665f347e1af502"
+      "registry-item.json": "sha256:01e6632864e7d2ee0dd8ebd75010292eb6a36939c1561ad110440c1f59389785",
+      "data-table.tsx": "sha256:5defe7cf434119b5f747851fbdcb71e14313df3e14ffa526fd2662976eb8b483"
     }
   },
   "lite/dialog@0.1.0": {

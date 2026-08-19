@@ -15,8 +15,9 @@ Host gzip after pin: **4.00 MiB / 41.9%** (was 3.97 MiB / 41.7%).
 ## Follow-on: DIY theme (no next-themes)
 
 FOUC-safe `sfab-theme` boot script in `formatIndexHtml`, `lite/theme-toggle@0.1.0`
-(`src/lib/theme.ts` + sun/moon toggle), Appearance card on base/erp/heavy.
-No new kernel pin — host gzip should not move.
+(`src/lib/theme.ts` + sun/moon cycle in the shell header), Appearance card
+(Light / Dark / System) on base/erp/heavy settings. No new kernel pin —
+host gzip should not move.
 
 ## Recipe
 
@@ -31,7 +32,7 @@ balance). Other tables left on `lite/table`.
 
 ## Follow-on: ResourceTable-level client chrome
 
-`lite/data-table@0.1.1` adds client `getFilteredRowModel` (search Input /
-`filterValue`+`onFilterChange`) and `getPaginationRowModel` (prev/next).
-ERP/Heavy parties, balances, and party ledger use it. No URL pagination —
-Lite APIs are not paginated.
+`lite/data-table@0.1.1` adds client `getFilteredRowModel` (search Input)
+and `getPaginationRowModel` (prev/next). ERP/Heavy parties, balances, and
+party ledger use it. Filter state is internal — no unused controlled
+props. No URL pagination — Lite APIs are not paginated.
