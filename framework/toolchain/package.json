@@ -11,7 +11,8 @@
     "./lint": "./src/lint.ts",
     "./build": "./src/build.ts",
     "./request": "./src/request.ts",
-    "./catalog-modules": "./src/catalog-modules.ts"
+    "./catalog-modules": "./src/catalog-modules.ts",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
