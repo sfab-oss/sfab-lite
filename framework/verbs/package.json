@@ -9,7 +9,8 @@
     "./lint": "./src/lint/index.ts",
     "./build": "./src/build/index.ts",
     "./format": "./src/format/index.ts",
-    "./db": "./src/db/index.ts"
+    "./db": "./src/db/index.ts",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

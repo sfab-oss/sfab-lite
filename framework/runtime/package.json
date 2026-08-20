@@ -8,7 +8,8 @@
     "./pins": {
       "types": "./scripts/pins.d.ts",
       "default": "./scripts/pins.mjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "install-universe": "node scripts/ensure-universe.mjs",

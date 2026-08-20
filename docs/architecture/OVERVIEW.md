@@ -129,6 +129,8 @@ serve reads only through it.
 
 - [ADR-0001](../decisions/0001-edge-native-lite-architecture.md) … [ADR-0015](../decisions/0015-one-worker-per-verb.md)
 - [`APP-FORMAT.md`](APP-FORMAT.md) — app layout, manifest v0, generated members, check units, image
+- [`HOST-SURFACES.md`](HOST-SURFACES.md) — framework / host-kit / factory-only map; seed contract
+- [`../engineering/consuming-framework.md`](../engineering/consuming-framework.md) — consuming `framework/*` from another checkout
 - [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md) — what landed, what carried forward
 - [`../engineering/terminology.md`](../engineering/terminology.md)
 - [`../engineering/agent-surfaces.md`](../engineering/agent-surfaces.md)
