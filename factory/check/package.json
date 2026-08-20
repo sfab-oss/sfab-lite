@@ -33,12 +33,12 @@
   "dependencies": {
     "@sfab-lite/core": "workspace:*",
     "@sfab-lite/kernel": "workspace:*",
-    "@sfab-lite/starter-erp": "workspace:*",
     "@sfab-lite/verbs": "workspace:*",
     "typescript": "6.0.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260721.1",
+    "@sfab-lite/starter-erp": "workspace:*",
     "wrangler": "4.113.0"
   }
 }
