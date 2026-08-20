@@ -71,9 +71,6 @@ importers:
       '@sfab-lite/kernel':
         specifier: workspace:*
         version: link:../../framework/runtime
-      '@sfab-lite/starter-erp':
-        specifier: workspace:*
-        version: link:../../starters/erp
       '@sfab-lite/verbs':
         specifier: workspace:*
         version: link:../../framework/verbs
@@ -84,6 +81,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: 5.20260721.1
         version: 5.20260721.1
+      '@sfab-lite/starter-erp':
+        specifier: workspace:*
+        version: link:../../starters/erp
       wrangler:
         specifier: 4.113.0
         version: 4.113.0(@cloudflare/workers-types@5.20260721.1)
