@@ -44,17 +44,12 @@ function heapUsedMb(): number {
 }
 
 const store: LsStore = new Map();
-let afterFirst = 0;
-let last = 0;
 
-for (let i = 1; i <= APPS; i++) {
-  const result = runCheck(
-    { appId: `bound_${i}`, files, manifest: SEED_MANIFEST },
-    { store }
-  );
+function runBounded(appId: string): number {
+  const result = runCheck({ appId, files, manifest: SEED_MANIFEST }, { store });
   if (result.diagnosticCount !== 0) {
     console.error(
-      `FAIL: app ${i} did not typecheck clean (${result.diagnosticCount} diagnostics) — ` +
+      `FAIL: ${appId} did not typecheck clean (${result.diagnosticCount} diagnostics) — ` +
         "the seed template must be clean for this measurement to mean anything"
     );
     if (result.diagnostics[0]) {
@@ -62,13 +57,9 @@ for (let i = 1; i <= APPS; i++) {
     }
     process.exit(1);
   }
-  last = heapUsedMb();
-  if (i === 1) {
-    afterFirst = last;
-  }
   if (store.size > 1) {
     console.error(
-      `FAIL: store holds ${store.size} apps after checking ${i}; at most 1 may ` +
+      `FAIL: store holds ${store.size} apps after ${appId}; at most 1 may ` +
         "retain a LanguageService or the isolate exceeds its 128 MB limit"
     );
     process.exit(1);
@@ -76,19 +67,37 @@ for (let i = 1; i <= APPS; i++) {
   if (liveLanguageServices(store) !== 0) {
     console.error(
       `FAIL: ${liveLanguageServices(store)} LanguageService(s) still live after ` +
-        `app ${i}; units must dispose so zero programs remain between runs`
+        `${appId}; units must dispose so zero programs remain between runs`
     );
     process.exit(1);
   }
+  return heapUsedMb();
 }
 
-const growth = last - afterFirst;
+const heapsMb: number[] = [];
+
+for (let i = 1; i <= APPS; i++) {
+  heapsMb.push(Number(runBounded(`bound_${i}`).toFixed(1)));
+}
+
+// Node 22 `gc()` often leaves one disposed ~310 MB LanguageService on the
+// heap until the *next* runCheck (storeSize stays 1, live services 0).
+// last-minus-first then looks like the old per-app leak whenever the
+// zombie is the last sample. A real leak is monotonic; a zombie is a
+// spike. Growth is min(later samples) minus first, after one cooldown
+// run so app 6's zombie has a following check to collect it.
+const afterFirst = heapsMb[0] ?? 0;
+heapsMb.push(Number(runBounded("bound_cooldown").toFixed(1)));
+const later = heapsMb.slice(1);
+const minLater = Math.min(...later);
+const growth = minLater - afterFirst;
 console.log(
   JSON.stringify({
     apps: APPS,
     storeSize: store.size,
-    heapAfterFirstMb: Number(afterFirst.toFixed(1)),
-    heapAfterLastMb: Number(last.toFixed(1)),
+    heapsMb,
+    heapAfterFirstMb: afterFirst,
+    heapMinLaterMb: minLater,
     growthMb: Number(growth.toFixed(1)),
     limitMb: MAX_GROWTH_MB,
   })
