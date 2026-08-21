@@ -2,14 +2,10 @@
 /**
  * Verb-level independence (D-005) as a CI contract.
  *
- * A consumer of `framework/*` as libraries — no `factory/` in the load
- * graph — must validate a starter manifest and run `lint` + `check`
- * against `starters/base`. The Node load path still esbuild-bundles
- * verbs (raw-TS `.js` specifiers); that is the documented consumer
- * recipe, not a factory import.
- *
- * Red fixture: bundling scripts/fixtures/verb-red/leak.ts must show a
- * `factory/` input, or the detector is blind.
+ * Orchestrator over the committed consumer host
+ * (`scripts/fixtures/verb-consumer/run.mjs`): resolve framework
+ * packages, red-test the factory-segment detector, then bundle+run
+ * the proof scripts against `starters/base`.
  *
  * CI-only — runCheck on the base seed is ~10s and needs the kernel
  * universe (esbuild). Not in pre-commit.
@@ -26,7 +22,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseArgs } from "node:util";
+import { bundle, locateSrc } from "./fixtures/verb-consumer/run.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..");
@@ -64,8 +60,6 @@ const PACKAGE_IDS = [
   },
   { id: "@sfab-lite/kernel", resolve: (id) => kernelRequire.resolve(id) },
 ];
-const WASM_PATH = /\.wasm$/;
-const ANY_PATH = /.*/;
 
 /** @param {string} p */
 function posixRel(p) {
@@ -86,28 +80,6 @@ function loadEsbuild() {
   } catch {
     return null;
   }
-}
-
-function wasmAsModulePlugin() {
-  return {
-    name: "wasm-as-webassembly-module",
-    /** @param {{ onResolve: Function, onLoad: Function }} b */
-    setup(b) {
-      b.onResolve({ filter: WASM_PATH }, (args) => {
-        const resolved = verbsRequire.resolve(args.path, {
-          paths: [args.resolveDir],
-        });
-        return { path: resolved, namespace: "wasm-module" };
-      });
-      b.onLoad({ filter: ANY_PATH, namespace: "wasm-module" }, (args) => ({
-        contents: `
-        import { readFileSync } from "node:fs";
-        export default new WebAssembly.Module(readFileSync(${JSON.stringify(args.path)}));
-      `,
-        loader: "js",
-      }));
-    },
-  };
 }
 
 /**
@@ -140,37 +112,6 @@ function resolvedFrameworkEntry(entry) {
   return { id, rel };
 }
 
-/**
- * @param {{
- *   build: (opts: Record<string, unknown>) => Promise<{ metafile: { inputs: Record<string, unknown> } }>
- * }} esbuild
- * @param {string} entry
- * @param {string} outfile
- */
-async function bundleEntry(esbuild, entry, outfile) {
-  const verbsSrc = join(
-    dirname(verbsRequire.resolve("@sfab-lite/verbs/lint")),
-    ".."
-  );
-  const coreSrc = dirname(
-    coreRequire.resolve("@sfab-lite/core/validate-manifest")
-  );
-  return await esbuild.build({
-    entryPoints: [entry],
-    bundle: true,
-    platform: "node",
-    format: "esm",
-    outfile,
-    metafile: true,
-    external: ["typescript", "@sfab-lite/kernel"],
-    alias: {
-      "@sfab-lite/verbs": verbsSrc,
-      "@sfab-lite/core": coreSrc,
-    },
-    plugins: [wasmAsModulePlugin()],
-  });
-}
-
 /** @param {Record<string, unknown>} inputs */
 function factoryInputs(inputs) {
   return Object.keys(inputs).filter((p) => hasFactorySegment(p));
@@ -178,14 +119,23 @@ function factoryInputs(inputs) {
 
 /**
  * @param {{
- *   build: (opts: Record<string, unknown>) => Promise<{ metafile: { inputs: Record<string, unknown> } }>
- * }} esbuild
+ *   esbuild: { build: Function }
+ *   verbsSrc: string
+ *   coreSrc: string
+ * }} host
  * @param {string} entry
  * @param {string} outfile
  * @param {boolean} expectFactory
  */
-async function bundleAndCheckGraph(esbuild, entry, outfile, expectFactory) {
-  const result = await bundleEntry(esbuild, entry, outfile);
+async function bundleAndCheckGraph(host, entry, outfile, expectFactory) {
+  const result = await bundle({
+    esbuild: host.esbuild,
+    entry,
+    outfile,
+    verbsSrc: host.verbsSrc,
+    coreSrc: host.coreSrc,
+    require: verbsRequire,
+  });
   const leaks = factoryInputs(result.metafile.inputs);
   if (expectFactory) {
     if (leaks.length === 0) {
@@ -232,12 +182,6 @@ function runNode(argv, cwd) {
   }
 }
 
-const { values } = parseArgs({
-  options: {
-    "expect-factory": { type: "boolean", default: false },
-  },
-});
-
 const esbuild = loadEsbuild();
 if (!esbuild) {
   console.error(
@@ -247,36 +191,22 @@ if (!esbuild) {
   process.exit(2);
 }
 
-const outDir = mkdtempSync(join(tmpdir(), "verb-independence-"));
-// Bundles that keep `@sfab-lite/kernel` and `typescript` external must
-// live under a workspace package so Node's ESM walk finds them.
-const runDir = join(repoRoot, "framework/verbs/.tmp");
-mkdirSync(runDir, { recursive: true });
+const { verbsSrc, coreSrc } = locateSrc(verbsRequire);
+const host = { esbuild, verbsSrc, coreSrc };
 
-if (values["expect-factory"]) {
-  await bundleAndCheckGraph(esbuild, RED_LEAK, join(outDir, "leak.mjs"), true);
-  process.exit(0);
-}
+const scratchDir = mkdtempSync(join(tmpdir(), "verb-independence-"));
+// Outfile for kernel/typescript-external bundles must sit under a
+// workspace package that declares those deps (Node ESM walks from the
+// outfile). The consumer recipe is the same: write into the app package.
+const verbsOutDir = join(repoRoot, "framework/verbs/.tmp");
+mkdirSync(verbsOutDir, { recursive: true });
 
 for (const entry of PACKAGE_IDS) {
   const { id, rel } = resolvedFrameworkEntry(entry);
   console.log(`resolve ${id} -> ${rel}`);
 }
 
-const red = spawnSync(
-  process.execPath,
-  [fileURLToPath(import.meta.url), "--expect-factory"],
-  { encoding: "utf8", cwd: repoRoot, env: process.env }
-);
-if (red.status !== 0) {
-  process.stderr.write(red.stderr ?? "");
-  process.stdout.write(red.stdout ?? "");
-  console.error(
-    `check:verb-independence — red fixture exited ${red.status}, expected 0`
-  );
-  process.exit(1);
-}
-process.stdout.write(red.stdout ?? "");
+await bundleAndCheckGraph(host, RED_LEAK, join(scratchDir, "leak.mjs"), true);
 
 {
   const href = pathToFileURL(
@@ -286,14 +216,16 @@ process.stdout.write(red.stdout ?? "");
   const input = JSON.parse(readFileSync(BASE_MANIFEST, "utf8"));
   const result = validateManifest(input);
   if (!result.ok) {
-    console.error("check:verb-independence — manifest validate failed");
+    console.error(
+      "check:verb-independence — unbundled manifest validate failed"
+    );
     for (const i of result.issues) {
       console.error(`  ${i.path}: ${i.message}`);
     }
     process.exit(1);
   }
   console.log(
-    "MANIFEST-VALIDATE PASS:",
+    "MANIFEST-VALIDATE (unbundled) PASS:",
     JSON.stringify({
       name: result.manifest.name,
       format: result.manifest.format,
@@ -303,18 +235,27 @@ process.stdout.write(red.stdout ?? "");
   );
 }
 
-const lintOut = join(runDir, "proof-lint.mjs");
+const manifestOut = join(scratchDir, "proof-manifest.mjs");
 await bundleAndCheckGraph(
-  esbuild,
+  host,
+  join(CONSUMER, "proof-manifest.ts"),
+  manifestOut,
+  false
+);
+runNode([manifestOut, BASE_MANIFEST], repoRoot);
+
+const lintOut = join(verbsOutDir, "proof-lint.mjs");
+await bundleAndCheckGraph(
+  host,
   join(CONSUMER, "proof-lint.ts"),
   lintOut,
   false
 );
 runNode([lintOut, BASE_SEED], repoRoot);
 
-const checkOut = join(runDir, "proof-check.mjs");
+const checkOut = join(verbsOutDir, "proof-check.mjs");
 await bundleAndCheckGraph(
-  esbuild,
+  host,
   join(CONSUMER, "proof-check.ts"),
   checkOut,
   false
@@ -322,5 +263,5 @@ await bundleAndCheckGraph(
 runNode([checkOut, BASE_SEED], repoRoot);
 
 console.log(
-  "verb-independence ok (resolve + red fixture + manifest + lint + check, no factory/ in graph)"
+  "verb-independence ok (resolve + red fixture + unbundled+bundled manifest + lint + check, no factory/ in graph)"
 );
