@@ -20,10 +20,15 @@ import { SEED_MANIFEST } from "./seed-manifest.ts";
 /** Distinct apps to check. Must exceed 2 — the bug needs a second app. */
 const APPS = 6;
 /**
- * Heap growth allowed from the first app's program to the last, in MB.
- * With the fix the observed per-app delta is 1-2 MB; without it, ~320 MB.
- * Sized for that gap, not for the current number, so normal drift cannot trip
- * it and a real regression cannot slip under it.
+ * At least one later sample must sit within this many MB of the first.
+ * Node 22 `gc()` often leaves one disposed ~310 MB LanguageService on the
+ * heap until the next runCheck (storeSize 1, live services 0) — a spike,
+ * not a leak. last-minus-first then looks like the old per-app leak
+ * (~320 MB) whenever that zombie is the last sample. min(later) − first
+ * survives those spikes. A monotonic extra program still fails: every
+ * later sample is ~+310. A staircase of <+50 MB/app is invisible here
+ * (old last-minus-first would have accumulated it); that is accepted —
+ * the 50 was sized for the 1–2 vs ~320 gap, not as a cumulative budget.
  */
 const MAX_GROWTH_MB = 50;
 
@@ -80,14 +85,7 @@ for (let i = 1; i <= APPS; i++) {
   heapsMb.push(Number(runBounded(`bound_${i}`).toFixed(1)));
 }
 
-// Node 22 `gc()` often leaves one disposed ~310 MB LanguageService on the
-// heap until the *next* runCheck (storeSize stays 1, live services 0).
-// last-minus-first then looks like the old per-app leak whenever the
-// zombie is the last sample. A real leak is monotonic; a zombie is a
-// spike. Growth is min(later samples) minus first, after one cooldown
-// run so app 6's zombie has a following check to collect it.
 const afterFirst = heapsMb[0] ?? 0;
-heapsMb.push(Number(runBounded("bound_cooldown").toFixed(1)));
 const later = heapsMb.slice(1);
 const minLater = Math.min(...later);
 const growth = minLater - afterFirst;
@@ -105,8 +103,9 @@ console.log(
 
 if (growth > MAX_GROWTH_MB) {
   console.error(
-    `FAIL: heap grew ${growth.toFixed(1)} MB across ${APPS} distinct apps ` +
-      `(limit ${MAX_GROWTH_MB} MB) — a program is being retained per app`
+    `FAIL: no later sample is within ${MAX_GROWTH_MB} MB of first ` +
+      `(minLater ${minLater.toFixed(1)} − first ${afterFirst.toFixed(1)} = ` +
+      `${growth.toFixed(1)} MB) — every later check retained an extra program`
   );
   process.exit(1);
 }
