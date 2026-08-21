@@ -20,7 +20,7 @@ vs app plane, reserved words):
 
 From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
-`pnpm check:cycles`, `pnpm check:direction`, `pnpm check:manifest`,
+`pnpm check:cycles`, `pnpm check:direction`, `pnpm check:verb-independence`, `pnpm check:manifest`,
 `pnpm check:generated`, `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
 `pnpm check:seed`, `pnpm check:drizzle-kit-modules`, `pnpm check:modules`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
 `pnpm check:registry-agreement`.
@@ -101,6 +101,13 @@ drizzle-using server files must be 0 diagnostics under both the real drizzle
 both (codes may differ). Heap is recorded, not gated. It needs
 `--max-old-space-size=8192` and several LanguageService programs, so it
 runs in CI only — not in pre-commit.
+
+`check:verb-independence` is the consume-as-libraries gate (D-005):
+`@sfab-lite/{core,verbs,kernel}` resolve under `framework/`, esbuild-bundle
+of lint + check against `starters/base` has zero `factory/` inputs, and a
+committed red fixture that imports factory *must* show `factory/` in the
+graph (or the detector is blind). Needs kernel universe esbuild and ~10s
+for `runCheck`. CI-only — not in pre-commit.
 
 Part of that budget is bought by
 `framework/runtime/scripts/trim-drizzle-dialects.mjs`, which drops drizzle's pg /

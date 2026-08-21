@@ -10,6 +10,13 @@ code in the consumer's dependency graph.
 This is the pre-publishing consumption path. When dist builds and
 published packages exist, most of the caveats below disappear.
 
+CI re-runs the contract as `pnpm check:verb-independence` (after
+`check:kernel`, not in pre-commit): resolve the three packages under
+`framework/`, esbuild-bundle lint + check against `starters/base` with
+zero `factory/` in the metafile, and a red fixture that *must* pull
+`factory/` into the graph so a blind detector cannot go green. The
+proof scripts live at `scripts/fixtures/verb-consumer/`.
+
 ## Layout
 
 Vendor this repo (or a sparse checkout of `framework/` plus a starter

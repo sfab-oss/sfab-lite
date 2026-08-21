@@ -49,6 +49,7 @@ surface revalidates it, and revisions must name what moved and why.
 - Consuming the framework from another checkout today (git/workspace
   path) is proven and documented in
   [`../engineering/consuming-framework.md`](../engineering/consuming-framework.md).
+  `pnpm check:verb-independence` is the CI contract (red-tested).
 
 ## Related
 
