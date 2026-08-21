@@ -111,6 +111,15 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:kernel
 
+      # D-005: consume framework/* as libraries against starters/base, zero
+      # factory/ in the graph. Needs kernel universe esbuild (previous step)
+      # and ~10s for runCheck; CI-only, not pre-commit.
+      - name: verb-independence
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: pnpm check:verb-independence
+
       # routeTree.gen.ts is committed tsr output. Without this, editing
       # starters/erp/app/src/routes/ and forgetting generate-routes ships a
       # seed whose route tree no longer matches its route files.

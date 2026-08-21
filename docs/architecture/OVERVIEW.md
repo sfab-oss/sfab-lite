@@ -95,7 +95,8 @@ recipes, catalog modules (none yet), agent-written source — with no
 [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)
 (runtime is platform-resolved, pinned by line),
 [ADR-0007](../decisions/0007-harness-depends-on-framework-never-the-reverse.md)
-(harness → framework, `check:direction`),
+(harness → framework, `check:direction`; consume-as-libraries,
+`check:verb-independence`),
 [ADR-0008](../decisions/0008-declarative-manifest-no-app-plugin-system.md)
 (declarative manifest, generated root files, no plugin API),
 [ADR-0009](../decisions/0009-registry-shadcn-format-served-lite-namespace.md)

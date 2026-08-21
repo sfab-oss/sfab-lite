@@ -10,6 +10,16 @@ code in the consumer's dependency graph.
 This is the pre-publishing consumption path. When dist builds and
 published packages exist, most of the caveats below disappear.
 
+CI re-runs the contract as `pnpm check:verb-independence` (after
+`check:kernel`, not in pre-commit) using the committed host at
+`scripts/fixtures/verb-consumer/run.mjs` and the proof scripts next to
+it (`proof-manifest.ts`, `proof-lint.ts`, `proof-check.ts`). Resolve
+the three packages under `framework/`, bundle those proofs against
+`starters/base` with zero `factory/` in the metafile, and a red fixture
+that *must* pull `factory/` into the graph so a blind detector cannot
+go green. The unbundled `validateManifest` import is a separate
+assertion (core loads on Node without esbuild).
+
 ## Layout
 
 Vendor this repo (or a sparse checkout of `framework/` plus a starter
@@ -63,10 +73,16 @@ pnpm --filter @sfab-lite/kernel install-universe
 pnpm --filter @sfab-lite/kernel exec node scripts/prebuild.mjs
 
 cd app
-node proof-manifest.ts   # direct Node import of @sfab-lite/core/validate-manifest
-node run.mjs lint.ts <path-to-seed.json>
-NODE_OPTIONS=--max-old-space-size=8192 node run.mjs check.ts <path-to-seed.json>
+# copy scripts/fixtures/verb-consumer/{run.mjs,proof-*.ts} here
+node --experimental-strip-types proof-manifest.ts <path-to-manifest.json>
+node run.mjs proof-lint.ts <path-to-seed.json>
+NODE_OPTIONS=--max-old-space-size=8192 node run.mjs proof-check.ts <path-to-seed.json>
 ```
+
+`run.mjs` writes `app/.tmp/`. That location is load-bearing: Node ESM
+resolves the two externals (`typescript`, `@sfab-lite/kernel`) from
+the **outfile path**, not cwd. Put the outfile inside the package that
+declares those dependencies. A bundle in `/tmp` cannot see them.
 
 Kernel scripts resolve from their own package location — there is no
 repo-root path assumption; `prebuild` output matches the committed
@@ -77,10 +93,12 @@ artifacts (git stays clean).
 1. **`@sfab-lite/verbs` is not naively Node-importable.** Its internal
    imports use `.js` specifiers against `.ts` sources, which Workers
    bundlers resolve but Node type-stripping does not. Until dist builds
-   exist, a Node consumer bundles with esbuild, aliasing
-   `@sfab-lite/verbs` and `@sfab-lite/core` to their `src/` directories
-   and keeping `typescript` and `@sfab-lite/kernel` external — the same
-   shape as `factory/check/scripts/esbuild-proof-flags.mjs`.
+   exist, use the committed host `scripts/fixtures/verb-consumer/run.mjs`
+   (JS API `bundle` / CLI). It aliases `@sfab-lite/verbs` and
+   `@sfab-lite/core` to their `src/` directories and keeps `typescript`
+   and `@sfab-lite/kernel` external. The factory's
+   `esbuild-proof-flags.mjs` is a different host (CLI flags, repo-relative
+   paths, no wasm plugin) and is not the consume recipe.
 2. **Lint's wasm import is Workers-shaped.**
    `run-lint.ts` imports `@biomejs/wasm-web/…_bg.wasm` expecting a
    `WebAssembly.Module` (a Cloudflare module rule). On Node, add an
