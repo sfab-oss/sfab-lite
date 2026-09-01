@@ -34,7 +34,7 @@ function n(e2) {
 
 // universe/node_modules/.pnpm/@hookform+resolvers@5.4.0_react-hook-form@7.81.0_react@19.2.8_/node_modules/@hookform/resolvers/zod/dist/zod.mjs
 import { appendErrors as n2 } from "./rhf.js";
-import * as o2 from "zod/v4/core";
+import * as o2 from "./zod-v4-core.js";
 function t2() {
   return t2 = Object.assign ? Object.assign.bind() : function(r2) {
     for (var e2 = 1; e2 < arguments.length; e2++) {

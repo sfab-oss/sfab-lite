@@ -7,7 +7,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import {
   getUniverseRequire,
@@ -151,7 +151,13 @@ function toClientFlatKey(spec) {
   if (spec === "react-hook-form") {
     return "./rhf.js";
   }
-  if (spec === "zod") {
+  // @hookform/resolvers/zod imports "zod/v4/core" (parse, $ZodError). That
+  // namespace is not the same as `export * from "zod"` — aliasing it onto
+  // zod.js leaves $ZodError undefined and forms throw. Serve a facade.
+  if (spec === "zod/v4/core") {
+    return "./zod-v4-core.js";
+  }
+  if (spec === "zod" || spec.startsWith("zod/")) {
     return "./zod.js";
   }
   return spec;
@@ -336,7 +342,9 @@ async function vendorPkg(opts) {
       )
       .replace(/from\s+["']react-dom["']/g, 'from "./react-dom.js"')
       .replace(/from\s+["']react-hook-form["']/g, 'from "./rhf.js"')
+      .replace(/from\s+["']zod\/v4\/core["']/g, 'from "./zod-v4-core.js"')
       .replace(/from\s+["']zod["']/g, 'from "./zod.js"')
+      .replace(/from\s+["']zod\/[^"']+["']/g, 'from "./zod.js"')
       // esbuild external plugin may already have emitted bare flat names.
       .replace(/from\s+["']react\.js["']/g, 'from "./react.js"')
       .replace(/from\s+["']jsx-runtime\.js["']/g, 'from "./jsx-runtime.js"')
@@ -346,6 +354,7 @@ async function vendorPkg(opts) {
       )
       .replace(/from\s+["']react-dom\.js["']/g, 'from "./react-dom.js"')
       .replace(/from\s+["']rhf\.js["']/g, 'from "./rhf.js"')
+      .replace(/from\s+["']zod-v4-core\.js["']/g, 'from "./zod-v4-core.js"')
       .replace(/from\s+["']zod\.js["']/g, 'from "./zod.js"');
     // CJS shims inside the bundle call __require("react.js") — rewrite the
     // stub so those resolve to the ESM flat chunk (vendorPkg previously skipped this).
@@ -372,6 +381,57 @@ async function vendorPkg(opts) {
     );
     bailouts.push(name);
     return false;
+  }
+}
+
+const EXPORT_IDENT_RE = /^[A-Za-z_$][\w$]*$/;
+
+/**
+ * `zod.js` is `export * from "zod"` (classic). `@hookform/resolvers/zod`
+ * needs the `zod/v4/core` namespace (`parse`, `$ZodError`). Re-export that
+ * namespace from the already-bundled `core` object so the browser does not
+ * duplicate the chunk and instanceof stays on one copy.
+ */
+async function writeZodV4CoreFacade() {
+  const coreHref = pathToFileURL(require.resolve("zod/v4/core")).href;
+  const coreMod = await import(coreHref);
+  const names = Object.keys(coreMod)
+    .filter((k) => EXPORT_IDENT_RE.test(k) && k !== "default")
+    .sort();
+  for (const required of ["$ZodError", "parse", "parseAsync"]) {
+    if (!names.includes(required)) {
+      throw new Error(
+        `zod/v4/core is missing ${required}; refusing to emit a lying facade`
+      );
+    }
+  }
+  const lines = ['import { core } from "./zod.js";'];
+  for (const name of names) {
+    lines.push(`export const ${name} = core[${JSON.stringify(name)}];`);
+  }
+  const source = `${lines.join("\n")}\n`;
+  const outfileName = "zod-v4-core.js";
+  const outfile = join(outDir, outfileName);
+  writeFileSync(outfile, source);
+  const bytes = Buffer.byteLength(source);
+  sizesRaw["zod/v4/core"] = bytes;
+  clientChunkFiles.push(outfileName);
+  hashes[outfileName] =
+    `sha256:${createHash("sha256").update(source).digest("hex")}`;
+  chunkExportNames[outfileName] = names;
+  importMap["zod/v4/core"] = `./${outfileName}`;
+  console.log(`client wrote ${outfileName} (${bytes} bytes)`);
+}
+
+function assertNoBareZodSubpathImports() {
+  const BARE_ZOD_SUBPATH = /from\s+["']zod\//;
+  for (const file of clientChunkFiles) {
+    const source = readFileSync(join(outDir, file), "utf8");
+    if (BARE_ZOD_SUBPATH.test(source)) {
+      throw new Error(
+        `${file} still imports a bare zod/ subpath; map it in toClientFlatKey`
+      );
+    }
   }
 }
 
@@ -426,6 +486,7 @@ await vendorPkg({
   outfileName: "zod.js",
   importKeys: ["zod"],
 });
+await writeZodV4CoreFacade();
 
 await vendorPkg({
   name: "react-hook-form",
@@ -546,6 +607,8 @@ export { useMediaQuery } from "@base-ui/react/unstable-use-media-query";
 if (!baseUiOk) {
   bailouts.push("@base-ui/react/* → bundle into app (B)");
 }
+
+assertNoBareZodSubpathImports();
 
 const filesExport = Object.fromEntries(
   clientChunkFiles.map((f) => [f, readFileSync(join(outDir, f), "utf8")])
