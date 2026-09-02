@@ -1,10 +1,8 @@
+import type { FileSystem } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
 import type { CommandContext, ExecResult } from "just-bash";
-import { bridgeBashFs } from "../code-host/bash-fs-bridge.js";
-import { createR2CodeHost } from "../code-host/r2-code-host.js";
-import { onBranchPushed } from "../forge/forge.js";
-import { parsePushArgs } from "./git-push-args.js";
-import { gitShow } from "./git-show.js";
+import { parsePushArgs } from "./git-push-args.ts";
+import { gitShow } from "./git-show.ts";
 
 const AUTHOR = { name: "sfab-agent", email: "agent@sfab.dev" };
 const TOKEN_RE = /token[=:]\S+/gi;
@@ -20,9 +18,16 @@ function fail(stderr: string, exitCode = 1): ExecResult {
   return { stdout: "", stderr, exitCode };
 }
 
+async function r2Host(env: Env) {
+  const { createR2CodeHost } = await import("../code-host/r2-code-host.ts");
+  return createR2CodeHost(env);
+}
+
 export interface GitCommandDeps {
   env: Env;
   appId: string;
+  /** Same view as AppAgent `#workspaceGit()` — not just-bash `ctx.fs`. */
+  workspaceFs: FileSystem;
 }
 
 function takeFlag(
@@ -164,7 +169,6 @@ async function gitRemote(
 
 async function gitPush(
   deps: GitCommandDeps,
-  ctx: CommandContext,
   rest: string[]
 ): Promise<ExecResult> {
   const parsed = parsePushArgs(rest);
@@ -176,10 +180,9 @@ async function gitPush(
     return fail(`git push: refused — ${MAIN_MERGE_ONLY}`, 1);
   }
 
-  const fs = bridgeBashFs(ctx.fs);
-  const host = createR2CodeHost(deps.env);
+  const host = await r2Host(deps.env);
   await host.credentialsForAgent(deps.appId);
-  const pushed = await host.receivePush(deps.appId, fs, {
+  const pushed = await host.receivePush(deps.appId, deps.workspaceFs, {
     dir: "/",
     ref: branch,
   });
@@ -187,6 +190,7 @@ async function gitPush(
     ? `push: ${branch} updated (${pushed.sha.slice(0, 12)})\n`
     : `push: ${branch} unchanged\n`;
 
+  const { onBranchPushed } = await import("../forge/forge.ts");
   await onBranchPushed(deps.env, deps.appId, branch, pushed.sha);
   return ok(refLine);
 }
@@ -225,17 +229,15 @@ async function gitInit(git: ReturnType<typeof createGit>): Promise<ExecResult> {
 
 async function gitCloneOrPull(
   deps: GitCommandDeps,
-  ctx: CommandContext,
   cmd: string,
   rest: string[]
 ): Promise<ExecResult> {
   if (cmd === "clone" && !rest[0]) {
     return fail("git clone: missing url\n", 1);
   }
-  const fs = bridgeBashFs(ctx.fs);
-  const host = createR2CodeHost(deps.env);
+  const host = await r2Host(deps.env);
   await host.credentialsForAgent(deps.appId);
-  await host.cloneTo(deps.appId, fs, "/");
+  await host.cloneTo(deps.appId, deps.workspaceFs, "/");
   if (cmd === "clone") {
     return ok("Cloned into workspace\n");
   }
@@ -245,8 +247,7 @@ async function gitCloneOrPull(
 type GitFn = (
   git: ReturnType<typeof createGit>,
   rest: string[],
-  deps: GitCommandDeps,
-  ctx: CommandContext
+  deps: GitCommandDeps
 ) => Promise<ExecResult>;
 
 const GIT_HANDLERS: Record<string, GitFn> = {
@@ -258,22 +259,21 @@ const GIT_HANDLERS: Record<string, GitFn> = {
   branch: (git, rest) => gitBranch(git, rest),
   checkout: (git, rest) => gitCheckout(git, rest),
   diff: (git) => gitDiff(git),
-  show: (_git, rest, _deps, ctx) => gitShow(bridgeBashFs(ctx.fs), rest),
+  show: (_git, rest, deps) => gitShow(deps.workspaceFs, rest),
   init: (git) => gitInit(git),
   remote: (git, rest) => gitRemote(git, rest),
-  clone: (_git, rest, deps, ctx) => gitCloneOrPull(deps, ctx, "clone", rest),
-  fetch: (_git, rest, deps, ctx) => gitCloneOrPull(deps, ctx, "fetch", rest),
-  pull: (_git, rest, deps, ctx) => gitCloneOrPull(deps, ctx, "pull", rest),
-  push: (_git, rest, deps, ctx) => gitPush(deps, ctx, rest),
+  clone: (_git, rest, deps) => gitCloneOrPull(deps, "clone", rest),
+  fetch: (_git, rest, deps) => gitCloneOrPull(deps, "fetch", rest),
+  pull: (_git, rest, deps) => gitCloneOrPull(deps, "pull", rest),
+  push: (_git, rest, deps) => gitPush(deps, rest),
 };
 
 export async function runGitCommand(
   deps: GitCommandDeps,
   args: string[],
-  ctx: CommandContext
+  _ctx: CommandContext
 ): Promise<ExecResult> {
-  const fs = bridgeBashFs(ctx.fs);
-  const git = createGit(fs, "/");
+  const git = createGit(deps.workspaceFs, "/");
   const [cmd, ...rest] = args;
   if (!cmd) {
     return fail("git: missing command\n", 1);
@@ -283,7 +283,7 @@ export async function runGitCommand(
     return fail(`git ${cmd}: not supported in this shell\n`, 1);
   }
   try {
-    return await handler(git, rest, deps, ctx);
+    return await handler(git, rest, deps);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const scrubbed = msg.replace(TOKEN_RE, "token=***");

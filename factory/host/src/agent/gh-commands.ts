@@ -1,11 +1,6 @@
+import type { FileSystem } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
-import {
-  type CommandContext,
-  type CustomCommand,
-  defineCommand,
-  type ExecResult,
-} from "just-bash";
-import { bridgeBashFs } from "../code-host/bash-fs-bridge.js";
+import { type CustomCommand, defineCommand, type ExecResult } from "just-bash";
 import {
   closePullRequest,
   createPullRequest,
@@ -36,6 +31,7 @@ function fail(stderr: string, exitCode = 1): ExecResult {
 export interface GhCommandDeps {
   env: Env;
   appId: string;
+  workspaceFs: FileSystem;
 }
 
 function takeOption(
@@ -53,9 +49,8 @@ function takeOption(
   };
 }
 
-async function currentBranch(ctx: CommandContext): Promise<string | null> {
-  const fs = bridgeBashFs(ctx.fs);
-  const git = createGit(fs, "/");
+async function currentBranch(deps: GhCommandDeps): Promise<string | null> {
+  const git = createGit(deps.workspaceFs, "/");
   const listed = await git.branch({ list: true });
   if ("current" in listed && typeof listed.current === "string") {
     return listed.current;
@@ -157,7 +152,6 @@ async function ghPrChecks(
 
 async function ghPrCreate(
   deps: GhCommandDeps,
-  ctx: CommandContext,
   rest: string[]
 ): Promise<ExecResult> {
   const titleOpt = takeOption(rest, "--title");
@@ -168,7 +162,7 @@ async function ghPrCreate(
   }
   let head = headOpt.value;
   if (!head) {
-    head = await currentBranch(ctx);
+    head = await currentBranch(deps);
   }
   if (!head || head === "main") {
     return fail(
@@ -246,8 +240,7 @@ async function ghPrClose(
 
 async function runGhCommand(
   deps: GhCommandDeps,
-  args: string[],
-  ctx: CommandContext
+  args: string[]
 ): Promise<ExecResult> {
   const parsed = parseGhArgs(args);
   if (!parsed.ok) {
@@ -279,7 +272,7 @@ async function runGhCommand(
       case "checks":
         return await ghPrChecks(deps, parsed.rest);
       case "create":
-        return await ghPrCreate(deps, ctx, parsed.rest);
+        return await ghPrCreate(deps, parsed.rest);
       case "diff":
         return await ghPrDiff(deps, parsed.rest);
       case "merge":
@@ -299,7 +292,5 @@ async function runGhCommand(
 }
 
 export function createGhCommand(deps: GhCommandDeps): CustomCommand {
-  return defineCommand("gh", async (args, ctx) =>
-    runGhCommand(deps, args, ctx)
-  );
+  return defineCommand("gh", async (args) => runGhCommand(deps, args));
 }
