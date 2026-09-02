@@ -75,6 +75,38 @@ describe("bare-browse", () => {
   });
 });
 
+function assertEnoent(err: unknown): boolean {
+  assert.ok(err instanceof Error);
+  assert.equal((err as Error & { code?: string }).code, "ENOENT");
+  return true;
+}
+
+describe("createGitFs errno contract", () => {
+  it("unlink of a missing path throws with code ENOENT", async () => {
+    const gitFs = createGitFs(new InMemoryFs());
+    await assert.rejects(
+      () => gitFs.promises.unlink("/.git/shallow"),
+      assertEnoent
+    );
+  });
+
+  it("rmdir of a missing path throws with code ENOENT", async () => {
+    const gitFs = createGitFs(new InMemoryFs());
+    await assert.rejects(
+      () => gitFs.promises.rmdir("/.git/refs/heads"),
+      assertEnoent
+    );
+  });
+
+  it("readdir of a missing path throws with code ENOENT", async () => {
+    const gitFs = createGitFs(new InMemoryFs());
+    await assert.rejects(
+      () => gitFs.promises.readdir("/missing"),
+      assertEnoent
+    );
+  });
+});
+
 describe("createGitFs + isomorphic-git on a bare repo", () => {
   const BARE = { dir: "/", gitdir: "/" } as const;
 
