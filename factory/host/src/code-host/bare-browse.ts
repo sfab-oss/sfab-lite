@@ -60,75 +60,71 @@ function defaultMode(
   return 0o10_0644;
 }
 
+async function withErrno<T>(path: string, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (err) {
+    throw fsError(path, "ENOENT", err);
+  }
+}
+
 export function createGitFs(fs: FileSystem) {
   return {
     promises: {
-      async readFile(
+      readFile(
         path: string,
         options?: { encoding?: string } | string
       ): Promise<Uint8Array | string> {
         const encoding =
           typeof options === "string" ? options : options?.encoding;
-        try {
+        return withErrno(path, async () => {
           if (encoding === "utf8" || encoding === "utf-8") {
             return await fs.readFile(path);
           }
           return await fs.readFileBytes(path);
-        } catch (err) {
-          throw fsError(path, "ENOENT", err);
-        }
+        });
       },
 
-      async writeFile(path: string, data: Uint8Array | string): Promise<void> {
-        if (typeof data === "string") {
-          await fs.writeFile(path, data);
-          return;
-        }
-        await fs.writeFileBytes(path, data);
+      writeFile(path: string, data: Uint8Array | string): Promise<void> {
+        return withErrno(path, async () => {
+          if (typeof data === "string") {
+            await fs.writeFile(path, data);
+            return;
+          }
+          await fs.writeFileBytes(path, data);
+        });
       },
 
       unlink(path: string): Promise<void> {
-        return fs.rm(path);
+        return withErrno(path, () => fs.rm(path));
       },
 
       readdir(path: string): Promise<string[]> {
-        return fs.readdir(path);
+        return withErrno(path, () => fs.readdir(path));
       },
 
       mkdir(path: string): Promise<void> {
-        return fs.mkdir(path, { recursive: true });
+        return withErrno(path, () => fs.mkdir(path, { recursive: true }));
       },
 
       rmdir(path: string): Promise<void> {
-        return fs.rm(path);
+        return withErrno(path, () => fs.rm(path));
       },
 
-      async stat(path: string): Promise<GitStat> {
-        try {
-          return new GitStat(await fs.stat(path));
-        } catch (err) {
-          throw fsError(path, "ENOENT", err);
-        }
+      stat(path: string): Promise<GitStat> {
+        return withErrno(path, async () => new GitStat(await fs.stat(path)));
       },
 
-      async lstat(path: string): Promise<GitStat> {
-        try {
-          return new GitStat(await fs.lstat(path));
-        } catch (err) {
-          throw fsError(path, "ENOENT", err);
-        }
+      lstat(path: string): Promise<GitStat> {
+        return withErrno(path, async () => new GitStat(await fs.lstat(path)));
       },
 
-      async readlink(path: string): Promise<string> {
-        try {
-          return await fs.readlink(path);
-        } catch (err) {
-          throw fsError(path, "ENOENT", err);
-        }
+      readlink(path: string): Promise<string> {
+        return withErrno(path, () => fs.readlink(path));
       },
 
-      symlink(): Promise<void> {
-        return Promise.reject(new Error("symlink not supported"));
+      symlink(target: string, path: string): Promise<void> {
+        return withErrno(path, () => fs.symlink(target, path));
       },
     },
   };
