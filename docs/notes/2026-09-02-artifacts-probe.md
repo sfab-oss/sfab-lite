@@ -8,7 +8,9 @@ build / forge**. Cloudflare Artifacts is the vendor git product.
 
 ## How
 
-Throwaway Worker in `scratch/alw-862-artifacts-probe/` (gitignored).
+Throwaway Worker lived in the manager workspace
+`scratch/alw-862-artifacts-probe/` (gitignored there; **not** ignored
+by this repo). Do not copy that Worker into `sfab-lite`.
 Wrangler **4.113.0**, OAuth login with `artifacts (write)`. Binding:
 
 ```jsonc
@@ -34,8 +36,9 @@ Flat object, not a nested repo handle:
 `token`.
 
 - **remote:** `https://<accountId>.artifacts.cloudflare.net/git/sfab-lite-apps/<repo>`
-- **token:** prefix `art_v2_`, expiry in `?expires=` (Unix). Docs samples
-  still show `art_v1_`.
+- **token:** prefix `art_v2_`. The token **string** includes
+  `?expires=` (Unix), not the remote URL. Docs samples still show
+  `art_v1_`.
 - Namespace `sfab-lite-apps` did not need a separate create call; first
   repo created it.
 
