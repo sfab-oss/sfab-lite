@@ -36,7 +36,11 @@ export interface ArtifactsRepoHandle {
   createToken: (
     scope?: ArtifactsTokenScope,
     ttl?: number
-  ) => Promise<string | { token: string }>;
+  ) => Promise<
+    | string
+    | { token: string }
+    | { plaintext: string; expiresAt?: string | number }
+  >;
 }
 
 export interface ArtifactsBinding {
@@ -44,9 +48,7 @@ export interface ArtifactsBinding {
     name: string,
     opts?: { description?: string; setDefaultBranch?: string }
   ) => Promise<ArtifactsRepoInfo>;
-  get: (
-    name: string
-  ) => Promise<ArtifactsRepoHandle | ArtifactsRepoInfo | null | undefined>;
+  get: (name: string) => Promise<ArtifactsRepoHandle | ArtifactsRepoInfo>;
 }
 
 export interface ArtifactsCodeHostPorts {
@@ -59,14 +61,14 @@ function unwrapToken(value: unknown): string {
   if (typeof value === "string" && value.length > 0) {
     return value;
   }
-  if (
-    value &&
-    typeof value === "object" &&
-    "token" in value &&
-    typeof value.token === "string" &&
-    value.token.length > 0
-  ) {
-    return value.token;
+  if (value && typeof value === "object") {
+    const rec = value as Record<string, unknown>;
+    if (typeof rec.plaintext === "string" && rec.plaintext.length > 0) {
+      return rec.plaintext;
+    }
+    if (typeof rec.token === "string" && rec.token.length > 0) {
+      return rec.token;
+    }
   }
   throw new Error("createToken: unexpected token shape");
 }
@@ -103,37 +105,6 @@ async function writeTreeFiles(
     }
     await fs.writeFile(abs, content);
   }
-}
-
-async function collectWorkTree(
-  fs: FileSystem,
-  dir: string
-): Promise<Record<string, string>> {
-  const files: Record<string, string> = {};
-  async function walk(abs: string, rel: string): Promise<void> {
-    let names: string[];
-    try {
-      names = await fs.readdir(abs);
-    } catch {
-      return;
-    }
-    for (const name of names) {
-      if (name === ".git" || name === "." || name === "..") {
-        continue;
-      }
-      const childAbs = abs === "/" ? `/${name}` : `${abs}/${name}`;
-      const childRel = rel ? `${rel}/${name}` : name;
-      const st = await fs.lstat(childAbs);
-      if (st.type === "directory") {
-        await walk(childAbs, childRel);
-      } else {
-        files[childRel] = await fs.readFile(childAbs);
-      }
-    }
-  }
-  const root = dir === "/" ? "/" : dir.replace(TRAILING_SLASH, "");
-  await walk(root, "");
-  return files;
 }
 
 async function treeFromGit(
@@ -173,8 +144,12 @@ export function artifactsCodeHost(ports: ArtifactsCodeHostPorts): CodeHost {
   async function loadRepo(
     appId: string
   ): Promise<ArtifactsRepoHandle | ArtifactsRepoInfo | null> {
-    const found = await artifacts.get(appId);
-    return found ?? null;
+    try {
+      const found = await artifacts.get(appId);
+      return found ?? null;
+    } catch {
+      return null;
+    }
   }
 
   async function mintToken(
@@ -340,9 +315,12 @@ export function artifactsCodeHost(ports: ArtifactsCodeHostPorts): CodeHost {
       const prev = await git.tip(sessionRead, ref);
       const sessionWrite = await mintToken(appId, "write");
       await git.push(sessionWrite, sourceFs, dir, ref);
-      const files =
-        (await treeFromGit(sourceFs, workSha, gitdir)) ??
-        (await collectWorkTree(sourceFs, dir));
+      const files = await treeFromGit(sourceFs, workSha, gitdir);
+      if (!files) {
+        throw new Error(
+          `receivePush: could not read committed tree for ${workSha}`
+        );
+      }
       await cacheTree(appId, workSha, files);
       const advancedMain = ref === "main" && prev !== workSha;
       return { advancedMain, sha: workSha };
@@ -387,7 +365,9 @@ export function artifactsCodeHost(ports: ArtifactsCodeHostPorts): CodeHost {
       if (cached) {
         return cached;
       }
-      await this.ensureRepo(appId);
+      if (!(await loadRepo(appId))) {
+        return null;
+      }
       const session = await mintToken(appId, "read");
       const scratch = new InMemoryFs();
       await git.fetchInto(session, scratch, "/");

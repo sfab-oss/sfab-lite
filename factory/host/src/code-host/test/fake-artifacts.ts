@@ -191,12 +191,16 @@ class FakeRepoHandle implements ArtifactsRepoHandle {
     return Promise.resolve({ ...this.#info });
   }
 
-  createToken(_scope?: ArtifactsTokenScope, ttl = 900): Promise<string> {
+  createToken(
+    _scope?: ArtifactsTokenScope,
+    ttl = 900
+  ): Promise<{ plaintext: string; expiresAt: number }> {
     this.#tokenSeq += 1;
-    const expires = Math.floor(Date.now() / 1000) + ttl;
-    return Promise.resolve(
-      `art_v2_test_${this.#info.name}_${this.#tokenSeq}?expires=${expires}`
-    );
+    const expiresAt = Math.floor(Date.now() / 1000) + ttl;
+    return Promise.resolve({
+      plaintext: `art_v2_test_${this.#info.name}_${this.#tokenSeq}?expires=${expiresAt}`,
+      expiresAt,
+    });
   }
 }
 
@@ -239,7 +243,11 @@ export function createFakeArtifacts(): {
     },
 
     get(name) {
-      return Promise.resolve(repos.get(name) ?? null);
+      const handle = repos.get(name);
+      if (!handle) {
+        return Promise.reject(new Error(`Artifacts repo not found: ${name}`));
+      }
+      return Promise.resolve(handle);
     },
   };
 

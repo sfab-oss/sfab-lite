@@ -43,6 +43,13 @@ describe("artifactsCodeHost", () => {
     assert.deepEqual(fake.created, ["app_1"]);
   });
 
+  it("readTreeAt does not create a repo on a cache miss for an unknown app", async () => {
+    const { fake, host } = hostFromFake();
+    assert.equal(await host.readTreeAt("ghost", "a".repeat(40)), null);
+    assert.deepEqual(fake.created, []);
+    assert.equal(fake.tokensMinted, 0);
+  });
+
   it("commitTree pushes, caches the tree, and readTreeAt does not need a git fetch", async () => {
     const { fake, host, trees } = hostFromFake();
     const files = {
