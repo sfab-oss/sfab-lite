@@ -1,4 +1,5 @@
 import type { AppAgent } from "./agent/app-agent.js";
+import type { ArtifactsBinding } from "./code-host/artifacts-code-host.js";
 import type { AppCreateDO } from "./durable-objects/app-create-do.js";
 import type { AppDataDO } from "./durable-objects/app-data-do.js";
 import type { OrgEvents } from "./durable-objects/org-events-do.js";
@@ -38,13 +39,19 @@ declare global {
      */
     KERNEL_R2: R2Bucket;
     /**
-     * Code host stand-in: bare repos under `repos/{appId}/` and immutable
-     * builds under `builds/{appId}/{sha}.json`. App object storage (opt-in
-     * `capabilities: ["storage"]`) lives under `apps/{appId}/{generation}/`
-     * on this same bucket — prefixes do not overlap. Remote bucket name:
+     * Immutable builds under `builds/{appId}/{sha}.json`, derived tree cache
+     * under `trees/{appId}/{sha}.json`, and app object storage (opt-in
+     * `capabilities: ["storage"]`) under `apps/{appId}/{generation}/`.
+     * Git remotes live on `ARTIFACTS`, not this bucket. Remote bucket name:
      * `sfab-lite-code`.
      */
     CODE_R2: R2Bucket;
+    /**
+     * Cloudflare Artifacts namespace `sfab-lite-apps` — control plane for
+     * per-app git remotes. Binding name is the vendor product; product nouns
+     * stay code host / repo.
+     */
+    ARTIFACTS: ArtifactsBinding;
     /** Service binding → sfab-lite-check */
     CHECK: Fetcher;
     /** Service binding → sfab-lite-lint */

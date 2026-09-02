@@ -431,9 +431,12 @@ sits in the deferred backlog; it is not a v0 target.
   "manifest": { /* snapshot of manifest.json at pack time */ },
   "server": "server.js",
   "client": ["client/chunk-….js"],
-  "migrations": ["0001_auth.sql", "0002_erp.sql"]
+  "migrations": [{ "id": "0001_auth", "sql": "CREATE TABLE …" }]
 }
 ```
+
+Serve bootstraps SQLite from `migrations` `{id, sql}[]` on the image;
+it does not git-fetch at request time. Filename-only lists are refused.
 
 The image references the base runtime; it does not contain it.
 

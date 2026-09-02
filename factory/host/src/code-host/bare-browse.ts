@@ -1,5 +1,5 @@
+import type { FileSystem } from "@cloudflare/shell";
 import { listFiles, readBlob } from "isomorphic-git";
-import type { GitWorkFs } from "./code-host.js";
 import { fsError } from "./fs-error.ts";
 
 const BARE = { dir: "/", gitdir: "/" } as const;
@@ -60,16 +60,7 @@ function defaultMode(
   return 0o10_0644;
 }
 
-function readOnlyError(op: string) {
-  return fsError(`${op} not supported on bare browse fs`, "EROFS");
-}
-
-/**
- * isomorphic-git's FileSystem binder requires write/unlink/mkdir/rmdir/symlink
- * at construct time even for listFiles/readBlob. Stub those; keep the read
- * surface the object walk actually uses.
- */
-export function createGitFs(fs: GitWorkFs) {
+export function createGitFs(fs: FileSystem) {
   return {
     promises: {
       async readFile(
@@ -88,24 +79,28 @@ export function createGitFs(fs: GitWorkFs) {
         }
       },
 
-      writeFile(): Promise<void> {
-        return Promise.reject(readOnlyError("writeFile"));
+      async writeFile(path: string, data: Uint8Array | string): Promise<void> {
+        if (typeof data === "string") {
+          await fs.writeFile(path, data);
+          return;
+        }
+        await fs.writeFileBytes(path, data);
       },
 
-      unlink(): Promise<void> {
-        return Promise.reject(readOnlyError("unlink"));
+      unlink(path: string): Promise<void> {
+        return fs.rm(path);
       },
 
       readdir(path: string): Promise<string[]> {
         return fs.readdir(path);
       },
 
-      mkdir(): Promise<void> {
-        return Promise.reject(readOnlyError("mkdir"));
+      mkdir(path: string): Promise<void> {
+        return fs.mkdir(path, { recursive: true });
       },
 
-      rmdir(): Promise<void> {
-        return Promise.reject(readOnlyError("rmdir"));
+      rmdir(path: string): Promise<void> {
+        return fs.rm(path);
       },
 
       async stat(path: string): Promise<GitStat> {
@@ -133,7 +128,7 @@ export function createGitFs(fs: GitWorkFs) {
       },
 
       symlink(): Promise<void> {
-        return Promise.reject(readOnlyError("symlink"));
+        return Promise.reject(new Error("symlink not supported"));
       },
     },
   };
@@ -144,7 +139,7 @@ export function createGitFs(fs: GitWorkFs) {
  * Walks trees only — does not materialize blob contents.
  */
 export async function listPathsInBare(
-  bare: GitWorkFs,
+  bare: FileSystem,
   sha: string
 ): Promise<string[] | null> {
   const fs = createGitFs(bare);
@@ -160,7 +155,7 @@ export async function listPathsInBare(
  * Read one file blob at a commit against a bare repo FS.
  */
 export async function readFileInBare(
-  bare: GitWorkFs,
+  bare: FileSystem,
   sha: string,
   filepath: string
 ): Promise<string | null> {

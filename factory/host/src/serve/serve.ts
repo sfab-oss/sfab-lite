@@ -12,17 +12,15 @@ import { RpcTarget } from "cloudflare:workers";
 import { SERVER_SURFACE_HASH } from "@sfab-lite/kernel";
 import { getAgentByName } from "agents";
 import type { AppBuild } from "../code-host/build-store.js";
-import { imageServeHeaders } from "../code-host/build-store.js";
-import { createR2BuildStore } from "../code-host/r2-build-store.js";
-import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import {
+  createBuildStore,
+  imageServeHeaders,
+} from "../code-host/build-store.js";
 import type { AppDataDO } from "../durable-objects/app-data-do.js";
 import { getLiveSha } from "../forge/cd.js";
 import { getPullRequestByNumber } from "../forge/forge.js";
 import { mimeFromPath } from "../lib/workspace-files/mime.ts";
-import {
-  type AppMigration,
-  collectMigrations,
-} from "../registry/app-migrations.js";
+import type { AppMigration } from "../registry/app-migrations.js";
 import { appDataStub } from "../registry/app-stub.js";
 import {
   dataIdForTarget,
@@ -136,7 +134,7 @@ async function loadBuild(
     if (!pr.previewSha) {
       return { ok: false, error: "no_preview_build" };
     }
-    const build = await createR2BuildStore(env).getBuild(appId, pr.previewSha);
+    const build = await createBuildStore(env).getBuild(appId, pr.previewSha);
     if (!build) {
       return { ok: false, error: "no_preview_build" };
     }
@@ -148,7 +146,7 @@ async function loadBuild(
   if (!sha) {
     return { ok: false, error: "no_live_build" };
   }
-  const build = await createR2BuildStore(env).getBuild(appId, sha);
+  const build = await createBuildStore(env).getBuild(appId, sha);
   if (!build) {
     return { ok: false, error: "no_live_build" };
   }
@@ -242,18 +240,13 @@ function buildPathContext(
  */
 async function ensureDataMigrated(
   env: Env,
-  appId: string,
   dataId: string,
   build: AppBuild
 ): Promise<void> {
-  if (build.manifest == null) {
-    throw new Error("ensureDataMigrated: missing manifest");
+  if (build.image !== 0) {
+    throw new Error("ensureDataMigrated: missing image");
   }
-  const sourceFiles = await createR2CodeHost(env).readTreeAt(appId, build.sha);
-  if (!sourceFiles) {
-    return;
-  }
-  const migrations = collectMigrations(sourceFiles, build.manifest);
+  const migrations = build.migrations;
   if (migrations.length === 0) {
     return;
   }
@@ -424,7 +417,7 @@ async function bootstrapServeData(
 ): Promise<Response | null> {
   if (target.mode === "preview") {
     try {
-      await ensureDataMigrated(env, target.appId, dataId, build);
+      await ensureDataMigrated(env, dataId, build);
     } catch {
       return Response.json(
         {

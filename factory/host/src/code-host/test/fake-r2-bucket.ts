@@ -1,14 +1,12 @@
-import type {
-  ObjectStore,
-  ObjectStoreBody,
-  ObjectStoreHead,
-  ObjectStoreList,
-  ObjectStoreListOptions,
-  ObjectStorePutOptions,
-  ObjectStorePutValue,
-} from "../object-store.ts";
+type FakePutValue =
+  | ReadableStream
+  | ArrayBuffer
+  | ArrayBufferView
+  | string
+  | null
+  | Blob;
 
-function toBytes(value: ObjectStorePutValue): Uint8Array {
+function toBytes(value: FakePutValue): Uint8Array {
   if (value == null) {
     return new Uint8Array();
   }
@@ -35,12 +33,12 @@ function etagFor(bytes: Uint8Array): string {
   return hash.toString(16).padStart(8, "0");
 }
 
-export class FakeR2Object implements ObjectStoreBody {
+export class FakeR2Object {
   readonly key: string;
   readonly size: number;
   readonly uploaded: Date;
   readonly etag: string;
-  readonly httpMetadata?: ObjectStoreHead["httpMetadata"];
+  readonly httpMetadata?: R2HTTPMetadata | Headers;
   readonly customMetadata?: Record<string, string>;
   readonly #bytes: Uint8Array;
 
@@ -49,7 +47,7 @@ export class FakeR2Object implements ObjectStoreBody {
     bytes: Uint8Array,
     uploaded: Date,
     etag: string,
-    httpMetadata?: ObjectStoreHead["httpMetadata"],
+    httpMetadata?: R2HTTPMetadata | Headers,
     customMetadata?: Record<string, string>
   ) {
     this.key = key;
@@ -80,6 +78,10 @@ export class FakeR2Object implements ObjectStoreBody {
   text(): Promise<string> {
     return Promise.resolve(new TextDecoder().decode(this.#bytes));
   }
+
+  json(): Promise<unknown> {
+    return this.text().then((text) => JSON.parse(text) as unknown);
+  }
 }
 
 interface Stored {
@@ -90,16 +92,16 @@ interface Stored {
   customMetadata?: Record<string, string>;
 }
 
-export type FakeR2PutOptions = ObjectStorePutOptions;
+export type FakeR2PutOptions = R2PutOptions;
 
-export class FakeR2Bucket implements ObjectStore {
+export class FakeR2Bucket {
   readonly puts: string[] = [];
   readonly listCalls: { prefix?: string; limit?: number }[] = [];
   readonly #store = new Map<string, Stored>();
 
   put(
     key: string,
-    value: ObjectStorePutValue,
+    value: FakePutValue,
     options?: FakeR2PutOptions
   ): Promise<FakeR2Object> {
     const bytes = toBytes(value);
@@ -137,18 +139,23 @@ export class FakeR2Bucket implements ObjectStore {
     return Promise.resolve();
   }
 
-  list(options?: ObjectStoreListOptions): Promise<ObjectStoreList> {
+  list(options?: R2ListOptions): Promise<{
+    objects: FakeR2Object[];
+    truncated: boolean;
+    cursor?: string;
+    delimitedPrefixes: string[];
+  }> {
     const prefix = options?.prefix ?? "";
     const delimiter = options?.delimiter;
     const limit = options?.limit ?? 1000;
     this.listCalls.push({ prefix: options?.prefix, limit: options?.limit });
-    const startAfter = options?.cursor ?? options?.startAfter;
+    const startAfter = options?.cursor ?? undefined;
     const keys = [...this.#store.keys()]
       .filter((k) => k.startsWith(prefix))
       .sort((a, b) => a.localeCompare(b));
     const after = startAfter ? keys.filter((k) => k > startAfter) : keys;
 
-    const objects: ObjectStoreHead[] = [];
+    const objects: FakeR2Object[] = [];
     const prefixes = new Set<string>();
     let lastKey: string | undefined;
 

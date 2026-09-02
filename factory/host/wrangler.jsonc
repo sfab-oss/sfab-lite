@@ -52,12 +52,21 @@
       "binding": "KERNEL_R2",
       "bucket_name": "sfab-lite-kernel"
     },
-    // Bare repos (`repos/{appId}/`) + immutable builds (`builds/{appId}/{sha}.json`)
-    // + opt-in app object storage (`apps/{appId}/{generation}/`). Prefixes do
-    // not overlap. Create once: `wrangler r2 bucket create sfab-lite-code`.
+    // Immutable builds (`builds/{appId}/{sha}.json`) + derived tree cache
+    // (`trees/{appId}/{sha}.json`) + opt-in app object storage
+    // (`apps/{appId}/{generation}/`). Git lives on the ARTIFACTS binding.
+    // Prefixes do not overlap. Create once:
+    // `wrangler r2 bucket create sfab-lite-code`.
     {
       "binding": "CODE_R2",
       "bucket_name": "sfab-lite-code"
+    }
+  ],
+  "artifacts": [
+    {
+      "binding": "ARTIFACTS",
+      "namespace": "sfab-lite-apps",
+      "remote": true
     }
   ],
   "durable_objects": {

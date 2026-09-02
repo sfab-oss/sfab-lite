@@ -1,4 +1,4 @@
-import { createR2CodeHost } from "../../code-host/r2-code-host.js";
+import { createCodeHost } from "../../code-host/artifacts-code-host.js";
 import { getLiveSha } from "../../forge/cd.js";
 import { protectedError } from "../../hono/reply.js";
 import { appCreateStub } from "../../registry/app-stub.js";
@@ -11,7 +11,7 @@ export async function handleGetLive(rc: AppCtx) {
   if (!liveSha) {
     return protectedError("no_live_build", 404);
   }
-  const sourceFiles = await createR2CodeHost(rc.env).readTreeAt(appId, liveSha);
+  const sourceFiles = await createCodeHost(rc.env).readTreeAt(appId, liveSha);
   if (!sourceFiles) {
     return protectedError("no_live_build", 404);
   }

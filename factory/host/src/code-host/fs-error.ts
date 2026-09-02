@@ -1,6 +1,6 @@
 export type FsErrno = Error & { code: string };
 
-export function errorCode(err: unknown): string | undefined {
+function errorCode(err: unknown): string | undefined {
   if (typeof err !== "object" || err === null || !("code" in err)) {
     return;
   }

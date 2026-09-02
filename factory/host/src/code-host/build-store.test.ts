@@ -55,7 +55,10 @@ function imageBuild() {
     serverSurfaceHash: "sha256:surface",
     runtime: "0.4.0",
     manifest: MANIFEST,
-    migrations: ["0001_auth.sql", "0002_erp.sql"],
+    migrations: [
+      { id: "0001_auth", sql: "CREATE TABLE user (id TEXT);" },
+      { id: "0002_erp", sql: "CREATE TABLE party (id TEXT);" },
+    ],
   });
 }
 
@@ -65,20 +68,19 @@ describe("assertPutBuild", () => {
   });
 
   it("refuses an image-less record", () => {
-    const legacy = parseStoredBuild({
-      sha: "old",
-      serverBundle: "export default {}",
-      assets: { "index.html": "<html></html>" },
-      kernelVersion: "0.4.0",
-      serverSurfaceHash: null,
-    });
-    assert.ok(legacy);
-    assert.throws(() => assertPutBuild(legacy), ImageRequiredError);
+    assert.throws(
+      () =>
+        assertPutBuild({
+          ...imageBuild(),
+          image: null,
+        } as unknown as ReturnType<typeof imageBuild>),
+      ImageRequiredError
+    );
   });
 });
 
 describe("parseStoredBuild", () => {
-  it("fills image: null for legacy kernelVersion records", () => {
+  it("returns null for legacy kernelVersion records", () => {
     const parsed = parseStoredBuild({
       sha: "old",
       serverBundle: "export default {}",
@@ -86,10 +88,7 @@ describe("parseStoredBuild", () => {
       kernelVersion: "0.4.0",
       serverSurfaceHash: null,
     });
-    assert.ok(parsed);
-    assert.equal(parsed.image, null);
-    assert.equal(parsed.runtime, "0.4.0");
-    assert.equal(parsed.manifest, null);
+    assert.equal(parsed, null);
   });
 
   it("returns image v0 fields for new records", () => {
@@ -100,6 +99,7 @@ describe("parseStoredBuild", () => {
     assert.equal(parsed.runtime, "0.4.0");
     assert.equal(parsed.server, IMAGE_SERVER_KEY);
     assert.deepEqual(parsed.manifest?.recipes, MANIFEST.recipes);
+    assert.deepEqual(parsed.migrations, stored.migrations);
   });
 });
 
@@ -132,10 +132,11 @@ describe("toAppBuild", () => {
     assert.deepEqual(mismatch.manifest.recipes, planted.recipes);
   });
 
-  it("records asset keys and migration file names", () => {
+  it("records asset keys and migration id+sql", () => {
     const build = imageBuild();
     assert.deepEqual(build.client, ["assets/app.css", "assets/app.js"]);
-    assert.deepEqual(build.migrations, ["0001_auth.sql", "0002_erp.sql"]);
+    assert.equal(build.migrations[0]?.id, "0001_auth");
+    assert.ok(build.migrations[0]?.sql.includes("CREATE TABLE"));
   });
 });
 
@@ -144,20 +145,6 @@ describe("imageServeHeaders", () => {
     assert.deepEqual(imageServeHeaders(imageBuild()), {
       "X-Sfab-Runtime": "0.4.0",
       "X-Sfab-Image": "0",
-    });
-  });
-
-  it("exposes runtime only for legacy", () => {
-    const legacy = parseStoredBuild({
-      sha: "old",
-      serverBundle: "x",
-      assets: { "index.html": "y" },
-      kernelVersion: "0.3.0",
-      serverSurfaceHash: null,
-    });
-    assert.ok(legacy);
-    assert.deepEqual(imageServeHeaders(legacy), {
-      "X-Sfab-Runtime": "0.3.0",
     });
   });
 });

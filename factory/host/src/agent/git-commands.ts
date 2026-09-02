@@ -5,7 +5,7 @@ import { parsePushArgs } from "./git-push-args.ts";
 import { gitShow } from "./git-show.ts";
 
 const AUTHOR = { name: "sfab-agent", email: "agent@sfab.dev" };
-const TOKEN_RE = /token[=:]\S+/gi;
+const TOKEN_RE = /token[=:]\S+|art_v2_\S+/gi;
 
 const MAIN_MERGE_ONLY =
   "main is merge-only. Push a feature branch, open a PR with `gh pr create`, wait for checks, then `gh pr merge`.\n";
@@ -18,9 +18,11 @@ function fail(stderr: string, exitCode = 1): ExecResult {
   return { stdout: "", stderr, exitCode };
 }
 
-async function r2Host(env: Env) {
-  const { createR2CodeHost } = await import("../code-host/r2-code-host.ts");
-  return createR2CodeHost(env);
+async function codeHost(env: Env) {
+  const { createCodeHost } = await import(
+    "../code-host/artifacts-code-host.ts"
+  );
+  return createCodeHost(env);
 }
 
 export interface GitCommandDeps {
@@ -180,8 +182,7 @@ async function gitPush(
     return fail(`git push: refused — ${MAIN_MERGE_ONLY}`, 1);
   }
 
-  const host = await r2Host(deps.env);
-  await host.credentialsForAgent(deps.appId);
+  const host = await codeHost(deps.env);
   const pushed = await host.receivePush(deps.appId, deps.workspaceFs, {
     dir: "/",
     ref: branch,
@@ -235,8 +236,7 @@ async function gitCloneOrPull(
   if (cmd === "clone" && !rest[0]) {
     return fail("git clone: missing url\n", 1);
   }
-  const host = await r2Host(deps.env);
-  await host.credentialsForAgent(deps.appId);
+  const host = await codeHost(deps.env);
   await host.cloneTo(deps.appId, deps.workspaceFs, "/");
   if (cmd === "clone") {
     return ok("Cloned into workspace\n");

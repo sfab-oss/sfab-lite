@@ -1,31 +1,22 @@
 /**
  * Code host port — Git remotes for each app (repo SoT).
  *
- * Builds live on BuildStore. Cloudflare Artifacts is a future adapter behind
- * these seams; the product noun is always "code host" / "repo" / "build",
- * never "Artifacts".
+ * Builds live on BuildStore. Cloudflare Artifacts is the vendor git
+ * product behind this seam; the product noun is always "code host" /
+ * "repo" / "build" / "forge", never "Artifacts".
  */
 
 import type { FileSystem } from "@cloudflare/shell";
 
-/** Shell FileSystem plus the optional R2 prefix walk `copyTree` uses. */
-export interface GitWorkFs extends FileSystem {
-  listFilesUnder?: (dir: string) => Promise<string[]>;
-}
+export type GitWorkFs = FileSystem;
 
 export interface CodeHostRepo {
   remoteUrl: string;
   repoId: string;
 }
 
-export interface CodeHostCredentials {
-  username: string;
-  token: string;
-}
-
 export interface CodeHost {
   ensureRepo: (appId: string) => Promise<CodeHostRepo>;
-  credentialsForAgent: (appId: string) => Promise<CodeHostCredentials>;
   tipSha: (appId: string, ref?: string) => Promise<string | null>;
   /** Branch names under `refs/heads` (e.g. `main`, `feat/foo`). */
   listBranches: (appId: string) => Promise<string[]>;
@@ -56,7 +47,7 @@ export interface CodeHost {
     ancestorSha: string,
     descendantSha: string
   ) => Promise<boolean>;
-  /** Checkout / archive the tree at `sha` from the bare repo. */
+  /** Checkout / archive the tree at `sha` from the derived tree store. */
   readTreeAt: (
     appId: string,
     sha: string
@@ -69,8 +60,4 @@ export interface CodeHost {
     sha: string,
     path: string
   ) => Promise<string | null>;
-}
-
-export function remoteUrlFor(appId: string): string {
-  return `https://code-host.internal/${encodeURIComponent(appId)}.git`;
 }

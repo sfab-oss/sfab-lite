@@ -36,7 +36,7 @@ data.
 | **Template** | Seed source for a new app (`starters/<id>/app/` — `base`, `erp`, or `heavy`). |
 | **App** | Unit the factory creates and runs. Served at `/a/:appId`. |
 | **Repo** | Per-app Git repository via the **code host**. Code source of truth. |
-| **Code host** | Port over Cloudflare Artifacts (R2 stand-in today). |
+| **Code host** | Port over Cloudflare Artifacts (git remotes). |
 | **Forge** | PR + checks + merge layer (architecture name; UI may say PRs / Checks). |
 | **Workspace** | Isolated agent computer for one app (AppAgent DO `ws_…`, checkout + threads + WIP). Console **Workspaces** tab lists them; WIP serve is `/a/:workspaceId/workspace`. |
 | **Think workspace** / **checkout** | The mutable file tree inside a Workspace (Think / MCP FS). Not a console screen name. |

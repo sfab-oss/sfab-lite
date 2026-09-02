@@ -2,16 +2,18 @@
  * Immutable build store — bundles keyed by appId + sha.
  *
  * Separate from CodeHost so Git remotes and build backends can diverge
- * (e.g. Cloudflare Artifacts vs R2) behind replaceable adapters.
+ * behind replaceable adapters. Cloudflare Artifacts is the vendor git
+ * product; this store is still R2. Product nouns stay code host / repo /
+ * build / forge.
  *
- * AppBuild is the image: new writes must carry image v0. Reads tolerate
- * legacy records (no `image` field) by filling `image: null` so existing
- * live apps keep serving. Do not backfill — the next CD writes an image.
+ * AppBuild is the image: writes and reads require image v0. Pre-cutover
+ * records fail closed (parse returns null).
  */
 
 import type { ManifestV0 } from "@sfab-lite/core";
 import { validateManifest } from "@sfab-lite/core/validate-manifest";
 import { z } from "zod";
+import type { AppMigration } from "../registry/app-migrations.ts";
 
 export const APP_IMAGE_VERSION = 0;
 export const IMAGE_SERVER_KEY = "server.js";
@@ -22,16 +24,7 @@ interface ImageV0 {
   manifest: ManifestV0;
   server: string;
   client: string[];
-  migrations: string[];
-}
-
-interface ImageLegacy {
-  image: null;
-  runtime: string;
-  manifest: null;
-  server: null;
-  client: null;
-  migrations: null;
+  migrations: AppMigration[];
 }
 
 export type AppBuild = {
@@ -39,7 +32,7 @@ export type AppBuild = {
   serverBundle: string;
   assets: Record<string, string>;
   serverSurfaceHash: string | null;
-} & (ImageV0 | ImageLegacy);
+} & ImageV0;
 
 export interface BuildStore {
   putBuild: (appId: string, build: AppBuild) => Promise<void>;
@@ -66,6 +59,10 @@ export function assertPutBuild(build: AppBuild): void {
 }
 
 const stringRecordSchema = z.record(z.string(), z.string());
+const migrationSchema = z.object({
+  id: z.string(),
+  sql: z.string(),
+});
 
 const storedBuildSchema = z
   .object({
@@ -73,69 +70,47 @@ const storedBuildSchema = z
     serverBundle: z.string(),
     assets: stringRecordSchema,
     serverSurfaceHash: z.string().nullable().optional(),
-    runtime: z.string().optional(),
-    kernelVersion: z.string().optional(),
-    image: z.literal(APP_IMAGE_VERSION).optional(),
-    manifest: z.unknown().optional(),
+    runtime: z.string(),
+    image: z.literal(APP_IMAGE_VERSION),
+    manifest: z.unknown(),
     server: z.string().optional(),
     client: z.array(z.string()).optional(),
-    migrations: z.array(z.string()).optional(),
+    migrations: z.array(migrationSchema),
   })
   .passthrough();
 
-/**
- * Normalize a stored JSON record. Legacy builds (kernelVersion, no image)
- * become image: null so serve keeps working. New writes never take this path.
- */
 export function parseStoredBuild(raw: unknown): AppBuild | null {
   const parsed = storedBuildSchema.safeParse(raw);
   if (!parsed.success) {
     return null;
   }
   const record = parsed.data;
-  let runtime = "";
-  if (typeof record.runtime === "string" && record.runtime !== "") {
-    runtime = record.runtime;
-  } else if (typeof record.kernelVersion === "string") {
-    runtime = record.kernelVersion;
+  const manifest = validateManifest(record.manifest);
+  if (!manifest.ok) {
+    return null;
+  }
+  if (record.runtime === "") {
+    return null;
   }
   const serverSurfaceHash =
     typeof record.serverSurfaceHash === "string"
       ? record.serverSurfaceHash
       : null;
-  const base = {
+  const server =
+    typeof record.server === "string" && record.server !== ""
+      ? record.server
+      : IMAGE_SERVER_KEY;
+  return {
     sha: record.sha,
     serverBundle: record.serverBundle,
     assets: record.assets,
     serverSurfaceHash,
-    runtime,
-  };
-  if (record.image === APP_IMAGE_VERSION) {
-    const manifest = validateManifest(record.manifest);
-    if (manifest.ok) {
-      const client = record.client ?? [];
-      const migrations = record.migrations ?? [];
-      const server =
-        typeof record.server === "string" && record.server !== ""
-          ? record.server
-          : IMAGE_SERVER_KEY;
-      return {
-        ...base,
-        image: APP_IMAGE_VERSION,
-        manifest: manifest.manifest,
-        server,
-        client,
-        migrations,
-      };
-    }
-  }
-  return {
-    ...base,
-    image: null,
-    manifest: null,
-    server: null,
-    client: null,
-    migrations: null,
+    runtime: record.runtime,
+    image: APP_IMAGE_VERSION,
+    manifest: manifest.manifest,
+    server,
+    client: record.client ?? [],
+    migrations: record.migrations,
   };
 }
 
@@ -146,7 +121,7 @@ export function toAppBuild(input: {
   serverSurfaceHash: string | null;
   runtime: string;
   manifest: ManifestV0;
-  migrations: string[];
+  migrations: AppMigration[];
 }): AppBuild {
   return {
     sha: input.sha,
@@ -165,11 +140,33 @@ export function toAppBuild(input: {
 }
 
 export function imageServeHeaders(build: AppBuild): Record<string, string> {
-  const headers: Record<string, string> = {
+  return {
     "X-Sfab-Runtime": build.runtime,
+    "X-Sfab-Image": String(APP_IMAGE_VERSION),
   };
-  if (build.image === APP_IMAGE_VERSION) {
-    headers["X-Sfab-Image"] = String(APP_IMAGE_VERSION);
-  }
-  return headers;
+}
+
+function buildKey(appId: string, sha: string): string {
+  return `builds/${appId}/${sha}.json`;
+}
+
+export function createBuildStore(env: Pick<Env, "CODE_R2">): BuildStore {
+  const bucket = env.CODE_R2;
+
+  return {
+    async putBuild(appId: string, build: AppBuild): Promise<void> {
+      assertPutBuild(build);
+      await bucket.put(buildKey(appId, build.sha), JSON.stringify(build), {
+        httpMetadata: { contentType: "application/json" },
+      });
+    },
+
+    async getBuild(appId: string, sha: string): Promise<AppBuild | null> {
+      const obj = await bucket.get(buildKey(appId, sha));
+      if (!obj) {
+        return null;
+      }
+      return parseStoredBuild(await obj.json());
+    },
+  };
 }
