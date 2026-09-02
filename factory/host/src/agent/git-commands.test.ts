@@ -2,9 +2,17 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
+import {
+  InMemoryFs as BashInMemoryFs,
+  type CommandContext,
+  type IFileSystem,
+} from "just-bash";
+import { runGitCommand } from "./git-commands.ts";
 import { gitShow } from "./git-show.ts";
 
 const AUTHOR = { name: "test", email: "test@example.com" };
+const SERVER = 'export function fetch() { return new Response("ok"); }\n';
+const STOCK = "export const n = 1;\n";
 
 async function seedWork(): Promise<{
   fs: InMemoryFs;
@@ -19,6 +27,28 @@ async function seedWork(): Promise<{
   await git.add({ filepath: "." });
   const { oid } = await git.commit({ message: "init", author: AUTHOR });
   return { fs, oid };
+}
+
+function sparseCtx(fs: IFileSystem): CommandContext {
+  return { fs, cwd: "/", env: new Map(), stdin: "" } as CommandContext;
+}
+
+async function copyDir(
+  from: InMemoryFs,
+  to: IFileSystem,
+  dir: string
+): Promise<void> {
+  const names = await from.readdir(dir);
+  for (const name of names) {
+    const path = dir === "/" ? `/${name}` : `${dir}/${name}`;
+    const st = await from.lstat(path);
+    if (st.type === "directory") {
+      await to.mkdir(path, { recursive: true });
+      await copyDir(from, to, path);
+    } else {
+      await to.writeFile(path, await from.readFileBytes(path));
+    }
+  }
 }
 
 describe("git show", () => {
@@ -85,5 +115,48 @@ describe("git show", () => {
     const result = await gitShow(fs, ["HEAD:blob.bin"]);
     assert.equal(result.exitCode, 1);
     assert.ok(result.stderr.includes("binary file"));
+  });
+});
+
+describe("runGitCommand workspace FS", () => {
+  it("does not treat unread seed files as deleted on a sparse bash overlay", async () => {
+    const workspace = new InMemoryFs();
+    const git = createGit(workspace, "/");
+    await git.init({ defaultBranch: "main" });
+    await workspace.mkdir("/src", { recursive: true });
+    await workspace.writeFile("/src/server.ts", SERVER);
+    await git.add({ filepath: "." });
+    await git.commit({ message: "init", author: AUTHOR });
+    await workspace.writeFile("/src/stock.ts", STOCK);
+
+    const overlay = new BashInMemoryFs();
+    await copyDir(workspace, overlay, "/.git");
+    await overlay.mkdir("/src", { recursive: true });
+    await overlay.writeFile("/src/stock.ts", STOCK);
+
+    const deps = {
+      env: {} as unknown as Env,
+      appId: "app_test",
+      workspaceFs: workspace,
+    };
+    const ctx = sparseCtx(overlay);
+
+    const status = await runGitCommand(deps, ["status"], ctx);
+    assert.equal(status.exitCode, 0, status.stderr);
+    assert.equal(status.stdout.includes("src/server.ts"), false, status.stdout);
+    assert.ok(status.stdout.includes("src/stock.ts"), status.stdout);
+
+    const add = await runGitCommand(deps, ["add", "."], ctx);
+    assert.equal(add.exitCode, 0, add.stderr);
+    const commit = await runGitCommand(
+      deps,
+      ["commit", "-m", "add stock"],
+      ctx
+    );
+    assert.equal(commit.exitCode, 0, commit.stderr);
+
+    const show = await runGitCommand(deps, ["show", "HEAD:src/server.ts"], ctx);
+    assert.equal(show.exitCode, 0, show.stderr);
+    assert.equal(show.stdout, SERVER);
   });
 });
