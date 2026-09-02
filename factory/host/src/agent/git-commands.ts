@@ -237,10 +237,11 @@ async function gitCloneOrPull(
     return fail("git clone: missing url\n", 1);
   }
   const host = await codeHost(deps.env);
-  await host.cloneTo(deps.appId, deps.workspaceFs, "/");
   if (cmd === "clone") {
+    await host.cloneTo(deps.appId, deps.workspaceFs, "/");
     return ok("Cloned into workspace\n");
   }
+  await host.fetchGitdir(deps.appId, deps.workspaceFs, "/");
   return ok(`${cmd}: updated workspace from origin\n`);
 }
 

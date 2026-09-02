@@ -15,7 +15,6 @@ import type { TreeStore } from "./tree-store.ts";
 import { createTreeStore } from "./tree-store.ts";
 
 const AUTHOR = { name: "sfab-lite", email: "forge@sfab.dev" };
-const TRAILING_SLASH = /\/$/;
 const TOKEN_TTL_SECONDS = 900;
 const HEADS = "refs/heads/";
 
@@ -89,22 +88,6 @@ async function repoInfo(
     throw new Error("ARTIFACTS.get: handle missing info()");
   }
   return value;
-}
-
-async function writeTreeFiles(
-  fs: GitWorkFs,
-  files: Record<string, string>,
-  dir = "/"
-): Promise<void> {
-  const prefix = dir === "/" ? "" : dir.replace(TRAILING_SLASH, "");
-  for (const [rel, content] of Object.entries(files)) {
-    const abs = `${prefix}/${rel}`.replaceAll("//", "/");
-    const lastSlash = abs.lastIndexOf("/");
-    if (lastSlash > 0) {
-      await fs.mkdir(abs.slice(0, lastSlash), { recursive: true });
-    }
-    await fs.writeFile(abs, content);
-  }
 }
 
 async function treeFromGit(
@@ -233,6 +216,16 @@ export function artifactsCodeHost(ports: ArtifactsCodeHostPorts): CodeHost {
       return refs.map((r) => r.name);
     },
 
+    async fetchGitdir(
+      appId: string,
+      targetFs: GitWorkFs,
+      dir = "/"
+    ): Promise<{ sha: string | null }> {
+      await this.ensureRepo(appId);
+      const session = await mintToken(appId, "read");
+      return await git.fetchInto(session, targetFs, dir);
+    },
+
     async cloneTo(
       appId: string,
       targetFs: GitWorkFs,
@@ -241,26 +234,23 @@ export function artifactsCodeHost(ports: ArtifactsCodeHostPorts): CodeHost {
       const { remoteUrl } = await this.ensureRepo(appId);
       const session = await mintToken(appId, "read");
       const fetched = await git.fetchInto(session, targetFs, dir);
-      const sha = fetched.sha ?? (await git.tip(session, "main"));
-      if (sha) {
-        const files = await treeAt(appId, sha, targetFs, gitdirOf(dir));
-        if (!files) {
+      const shell = createGit(targetFs, dir);
+      if (fetched.sha) {
+        try {
+          await shell.checkout({ ref: "main" });
+        } catch (cause) {
           throw new Error(
-            `cloneTo: checkout failed for ${appId} at ${sha.slice(0, 12)}`
+            `cloneTo: checkout failed for ${appId} at ${fetched.sha.slice(0, 12)}`,
+            { cause }
           );
         }
-        await writeTreeFiles(targetFs, files, dir);
-      }
-      const shell = createGit(targetFs, dir);
-      if (sha) {
-        await shell.add({ filepath: "." });
       }
       try {
         await shell.remote({ add: { name: "origin", url: remoteUrl } });
       } catch {
         /* origin already present */
       }
-      return { sha };
+      return fetched;
     },
 
     async commitTree(
