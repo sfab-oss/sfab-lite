@@ -1,3 +1,4 @@
+import type { FileSystem } from "@cloudflare/shell";
 import { lintPasses } from "@sfab-lite/core";
 import {
   appendJournalEntry,
@@ -71,6 +72,8 @@ export interface ShellCommandDeps {
   appId: string;
   /** AppAgent DO name — computer pair for default `pnpm seed`. */
   workspaceId: string;
+  /** Same view as AppAgent `#workspaceGit()` — not just-bash `ctx.fs`. */
+  workspaceFs: FileSystem;
   /** Host bypass for generated format members (does not consult agent policy). */
   writeGenerated?: (path: string, content: string) => Promise<void>;
 }

@@ -495,6 +495,7 @@ export class AppAgent extends Think<Env> {
           env: this.env,
           appId,
           workspaceId: this.name,
+          workspaceFs: new WorkspaceFileSystem(this.#fs),
           writeGenerated: (path, content) =>
             this.#fs.writeGenerated(path, content),
         }),

@@ -2,6 +2,7 @@ import {
   createWorkspaceStateBackend,
   STATE_SYSTEM_PROMPT,
   STATE_TYPES,
+  WorkspaceFileSystem,
   type WorkspaceFsLike,
 } from "@cloudflare/shell";
 import { Think } from "@cloudflare/think";
@@ -61,6 +62,7 @@ export class AppThread extends Think<Env> {
         env: this.env,
         appId,
         workspaceId: parent.name,
+        workspaceFs: new WorkspaceFileSystem(this.workspace),
         writeGenerated: (path, content) => parent.writeGenerated(path, content),
       }),
     };
