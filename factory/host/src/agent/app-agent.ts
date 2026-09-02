@@ -8,7 +8,7 @@ import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
-import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import { createCodeHost } from "../code-host/artifacts-code-host.js";
 import { createDb } from "../db/index.js";
 import { getLiveSha } from "../forge/cd.js";
 import { collectMigrations } from "../registry/app-migrations.js";
@@ -583,7 +583,7 @@ export class AppAgent extends Think<Env> {
       "current" in listed && typeof listed.current === "string"
         ? listed.current
         : null;
-    const remote = await createR2CodeHost(this.env).listBranches(
+    const remote = await createCodeHost(this.env).listBranches(
       await this.#appId()
     );
     const branches = [...new Set([...local, ...remote])].sort((a, b) =>

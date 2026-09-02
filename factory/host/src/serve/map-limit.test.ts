@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { mapLimit } from "./copy-tree.ts";
+import { mapLimit } from "./map-limit.ts";
 
 describe("mapLimit", () => {
   it("returns results in input order", async () => {

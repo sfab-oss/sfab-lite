@@ -19,8 +19,8 @@ import {
 import type { OverlaidTree } from "@sfab-lite/verbs/format";
 import { eq } from "drizzle-orm";
 import { appBuildFromCompile } from "../code-host/app-image.js";
-import { createR2BuildStore } from "../code-host/r2-build-store.js";
-import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import { createCodeHost } from "../code-host/artifacts-code-host.js";
+import { createBuildStore } from "../code-host/build-store.js";
 import { createDb } from "../db/index.js";
 import { app as appTable } from "../db/schema.js";
 import { publishOrgEvent } from "../org-events.js";
@@ -34,7 +34,6 @@ import {
   liveAppDataStub,
 } from "../registry/app-stub.js";
 import { probeSchema } from "../schema/schema-probe.js";
-import { legacySchemaGateFailure } from "../schema/schema-snapshots.js";
 import {
   type AppCompileResult,
   auxServiceHeaders,
@@ -124,8 +123,7 @@ interface SchemaGateFailure {
     | "schema_unsafe"
     | "schema_probe_failed"
     | "schema_snapshot_unreadable"
-    | "schema_history_changed"
-    | "schema_meta_legacy";
+    | "schema_history_changed";
   message: string;
   detail: unknown;
 }
@@ -135,11 +133,6 @@ async function validateSchema(
   files: Record<string, string>,
   manifest: ManifestV0
 ): Promise<SchemaGateFailure | null> {
-  const legacy = legacySchemaGateFailure(files, manifest);
-  if (legacy) {
-    return { ...legacy, detail: null };
-  }
-
   let prev: KitSnapshot;
   try {
     prev = latestSnapshot(files, manifest);
@@ -462,9 +455,10 @@ async function runCdInner(
 ): Promise<CdInnerResult> {
   const signal = opts?.signal;
   const advanceLive = opts?.advanceLive !== false;
+  const builds = createBuildStore(env);
 
   if (advanceLive && !opts?.forceColdCheck) {
-    const existing = await createR2BuildStore(env).getBuild(appId, sha);
+    const existing = await builds.getBuild(appId, sha);
     if (existing) {
       return await promoteExistingBuild(env, appId, sha, sourceFiles, timings, {
         signal,
@@ -481,7 +475,6 @@ async function runCdInner(
   }
 
   const writeStarted = Date.now();
-  const builds = createR2BuildStore(env);
   await builds.putBuild(
     appId,
     appBuildFromCompile(sha, built.tree, built.compiled)
@@ -562,7 +555,7 @@ export async function ensureLiveMatchesMain(
   appId: string,
   opts?: { forceColdCheck?: boolean; signal?: AbortSignal }
 ): Promise<EnsureLiveResult> {
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   const tip = await host.tipSha(appId, "main");
   if (!tip) {
     return { status: "in_sync", tip: null };

@@ -3,7 +3,7 @@
  */
 import { and, desc, eq, max } from "drizzle-orm";
 import { monotonicFactory } from "ulid";
-import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import { createCodeHost } from "../code-host/artifacts-code-host.js";
 import { createDb, type Db } from "../db/index.js";
 import { checkRun, pullRequest } from "../db/schema.js";
 import { prDataId } from "../registry/app-data-ids.js";
@@ -162,7 +162,7 @@ export async function createPullRequest(
     return { ok: false, error: "base_must_be_main" };
   }
 
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   const headSha = await host.tipSha(appId, headBranch);
   if (!headSha) {
     return { ok: false, error: "head_branch_missing" };
@@ -289,7 +289,7 @@ async function startCheckRun(
   input: { prId: string | null; sha: string; name?: string }
 ): Promise<CheckRunRecord> {
   const name = input.name ?? "cd";
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   const sourceFiles = await host.readTreeAt(appId, input.sha);
   if (!sourceFiles) {
     return insertCompletedCheckRun(env, {
@@ -441,7 +441,7 @@ export async function mergePullRequest(
     return { ok: false, error: "checks_failed" };
   }
 
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   const headTip = await host.tipSha(appId, pr.headBranch);
   if (!headTip) {
     return { ok: false, error: "head_branch_missing" };
@@ -558,7 +558,7 @@ export async function readTreeAtRef(
     }
   | { ok: false; error: string }
 > {
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   const branches = await host.listBranches(appId);
   const sha = await host.tipSha(appId, ref);
   if (!sha) {
@@ -581,7 +581,7 @@ export async function readFileAtSha(
   | { ok: true; ref: string; sha: string; path: string; content: string }
   | { ok: false; error: string }
 > {
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   const content = await host.readFileAt(appId, sha, path);
   if (content == null) {
     return { ok: false, error: "file_not_found" };
@@ -611,7 +611,7 @@ export async function prDiffSummary(
   if (!pr) {
     return { ok: false, error: "pr_not_found" };
   }
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   const baseSha = await host.tipSha(appId, pr.baseBranch);
   const headPaths = await host.listPathsAt(appId, pr.headSha);
   if (!headPaths) {

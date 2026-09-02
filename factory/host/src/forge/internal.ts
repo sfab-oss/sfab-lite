@@ -5,7 +5,7 @@
  * orphaning a `creating` row. Auth is a derived capability token.
  */
 
-import { createR2CodeHost } from "../code-host/r2-code-host.js";
+import { createCodeHost } from "../code-host/artifacts-code-host.js";
 import { createDb } from "../db/index.js";
 import { publishOrgEvent } from "../org-events.js";
 import { overlayFormatFiles } from "../overlay-format-files.js";
@@ -42,7 +42,7 @@ async function handleRunCreate(
   jobId: string
 ): Promise<Response> {
   const stub = appCreateStub(rc.env, appId);
-  const host = createR2CodeHost(rc.env);
+  const host = createCodeHost(rc.env);
   const startedAtMs = Date.now();
   const timings: CreateStageTimings = {};
 

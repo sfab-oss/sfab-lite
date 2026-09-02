@@ -16,8 +16,6 @@ export function appBuildFromCompile(
     serverSurfaceHash: compiled.compiled.serverSurfaceHash,
     runtime: compiled.compiled.kernelVersion,
     manifest: tree.manifest,
-    migrations: collectMigrations(tree.files, tree.manifest).map(
-      (migration) => `${migration.id}.sql`
-    ),
+    migrations: collectMigrations(tree.files, tree.manifest),
   });
 }

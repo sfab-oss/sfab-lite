@@ -1,14 +1,11 @@
 import type { ManifestV0 } from "@sfab-lite/core";
-import { mapLimit } from "../code-host/copy-tree.ts";
-import type {
-  ObjectStore,
-  ObjectStoreBody,
-  ObjectStoreHead,
-  ObjectStoreListOptions,
-  ObjectStorePutOptions,
-  ObjectStorePutValue,
-} from "../code-host/object-store.ts";
 import type { ServeTarget } from "../registry/serve-target.js";
+import { mapLimit } from "./map-limit.ts";
+
+type AppObjectBucket = Pick<
+  R2Bucket,
+  "head" | "get" | "put" | "delete" | "list"
+>;
 
 const DELETE_CONCURRENCY = 16;
 
@@ -62,19 +59,19 @@ function assertRelativePrefix(prefix: string): void {
 }
 
 export class PrefixedR2Bucket {
-  readonly #inner: ObjectStore;
+  readonly #inner: AppObjectBucket;
   readonly prefix: string;
 
-  constructor(inner: ObjectStore, prefix: string) {
+  constructor(inner: AppObjectBucket, prefix: string) {
     this.#inner = inner;
     this.prefix = prefix;
   }
 
   put(
     key: string,
-    value: ObjectStorePutValue,
-    options?: ObjectStorePutOptions
-  ): Promise<ObjectStoreHead | null> {
+    value: Parameters<R2Bucket["put"]>[1],
+    options?: R2PutOptions
+  ): Promise<R2Object | null> {
     try {
       assertRelativeKey(key);
     } catch (err) {
@@ -109,7 +106,7 @@ export class PrefixedR2Bucket {
     return this.#inner.delete(list.map((key) => `${this.prefix}${key}`));
   }
 
-  async list(options?: ObjectStoreListOptions): Promise<{
+  async list(options?: R2ListOptions): Promise<{
     objects: PrefixedR2Head[];
     truncated: boolean;
     cursor?: string;
@@ -135,17 +132,26 @@ export interface PrefixedR2Head {
   size: number;
   etag: string;
   uploaded: Date;
-  httpMetadata?: ObjectStoreHead["httpMetadata"];
+  httpMetadata?: R2HTTPMetadata | Headers;
   customMetadata?: Record<string, string>;
 }
 
 export interface PrefixedR2Body extends PrefixedR2Head {
-  body: ObjectStoreBody["body"];
+  body: ReadableStream | null;
   arrayBuffer: () => Promise<ArrayBuffer>;
   text: () => Promise<string>;
 }
 
-function exposeHead(obj: ObjectStoreHead, key: string): PrefixedR2Head {
+function exposeHead(
+  obj: {
+    size: number;
+    etag: string;
+    uploaded: Date;
+    httpMetadata?: R2HTTPMetadata | Headers;
+    customMetadata?: Record<string, string>;
+  },
+  key: string
+): PrefixedR2Head {
   return {
     key,
     size: obj.size,
@@ -156,7 +162,19 @@ function exposeHead(obj: ObjectStoreHead, key: string): PrefixedR2Head {
   };
 }
 
-function exposeBody(obj: ObjectStoreBody, key: string): PrefixedR2Body {
+function exposeBody(
+  obj: {
+    size: number;
+    etag: string;
+    uploaded: Date;
+    httpMetadata?: R2HTTPMetadata | Headers;
+    customMetadata?: Record<string, string>;
+    body: ReadableStream | null;
+    arrayBuffer: () => Promise<ArrayBuffer>;
+    text: () => Promise<string>;
+  },
+  key: string
+): PrefixedR2Body {
   const exposed: PrefixedR2Body = {
     ...exposeHead(obj, key),
     body: obj.body,
@@ -167,7 +185,7 @@ function exposeBody(obj: ObjectStoreBody, key: string): PrefixedR2Body {
 }
 
 export async function deleteStoragePrefix(
-  bucket: ObjectStore,
+  bucket: AppObjectBucket,
   prefix: string
 ): Promise<void> {
   let cursor: string | undefined;
@@ -183,7 +201,7 @@ export async function deleteStoragePrefix(
 }
 
 export async function deleteAppObjectStorage(
-  bucket: ObjectStore,
+  bucket: AppObjectBucket,
   appId: string,
   workspaceIds: readonly string[]
 ): Promise<void> {

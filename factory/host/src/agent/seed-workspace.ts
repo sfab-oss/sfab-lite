@@ -1,8 +1,8 @@
 import { posix } from "node:path";
 import type { FileStat, FsStat, WorkspaceFsLike } from "@cloudflare/shell";
+import { createCodeHost } from "../code-host/artifacts-code-host.js";
 import type { GitWorkFs } from "../code-host/code-host.js";
 import { fsError } from "../code-host/fs-error.ts";
-import { createR2CodeHost } from "../code-host/r2-code-host.js";
 
 export const WORKSPACE_CLONED_KEY = "workspaceClonedFromCodeHost";
 
@@ -134,7 +134,7 @@ export async function cloneWorkspaceFromCodeHost(
   workspace: WorkspaceFsLike,
   appId: string
 ): Promise<{ sha: string | null }> {
-  const host = createR2CodeHost(env);
+  const host = createCodeHost(env);
   await host.ensureRepo(appId);
   return host.cloneTo(appId, workspaceAsGitWorkFs(workspace), "/");
 }
