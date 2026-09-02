@@ -157,7 +157,9 @@ function toClientFlatKey(spec) {
   if (spec === "zod/v4/core") {
     return "./zod-v4-core.js";
   }
-  if (spec === "zod" || spec.startsWith("zod/")) {
+  // Unknown zod/ subpaths stay bare so assertNoBareZodSubpathImports
+  // fails the kernel build instead of aliasing them onto classic zod.js.
+  if (spec === "zod") {
     return "./zod.js";
   }
   return spec;
@@ -344,7 +346,6 @@ async function vendorPkg(opts) {
       .replace(/from\s+["']react-hook-form["']/g, 'from "./rhf.js"')
       .replace(/from\s+["']zod\/v4\/core["']/g, 'from "./zod-v4-core.js"')
       .replace(/from\s+["']zod["']/g, 'from "./zod.js"')
-      .replace(/from\s+["']zod\/[^"']+["']/g, 'from "./zod.js"')
       // esbuild external plugin may already have emitted bare flat names.
       .replace(/from\s+["']react\.js["']/g, 'from "./react.js"')
       .replace(/from\s+["']jsx-runtime\.js["']/g, 'from "./jsx-runtime.js"')

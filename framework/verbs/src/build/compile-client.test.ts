@@ -14,4 +14,18 @@ test("kernel serves zod/v4/core for hookform resolvers", () => {
   const hookform = CLIENT_KERNEL_FILES["hookform-resolvers-zod.js"] ?? "";
   assert.match(hookform, /from\s+["']\.\/zod-v4-core\.js["']/);
   assert.doesNotMatch(hookform, /from\s+["']zod\//);
+
+  const facade = CLIENT_KERNEL_FILES["zod-v4-core.js"] ?? "";
+  assert.match(facade, /import \{ core \} from ["']\.\/zod\.js["']/);
+  assert.match(facade, /export const \$ZodError = core\[/);
+  assert.match(facade, /export const parse = core\[/);
+  assert.match(facade, /export const parseAsync = core\[/);
+
+  const zod = CLIENT_KERNEL_FILES["zod.js"] ?? "";
+  const exportBlock = zod.slice(zod.lastIndexOf("export {"));
+  assert.doesNotMatch(
+    exportBlock,
+    /\$ZodError/,
+    "classic zod.js must not export $ZodError; that name lives on zod/v4/core"
+  );
 });
