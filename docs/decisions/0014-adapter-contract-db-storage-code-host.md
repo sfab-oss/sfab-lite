@@ -90,8 +90,8 @@ chooses the engine; the framework never chooses an engine or a host.
 - Verbs take a file tree; the manifest says nothing about origins; an
   app is a git repository. Where that repository lives is a **harness
   adapter** (`CodeHost` in `factory/host/src/code-host/code-host.ts`):
-  R2 bare git is the reference implementation; GitHub or Cloudflare
-  Artifacts are alternative implementations of the same interface.
+  Cloudflare Artifacts is the git remote; GitHub would be another
+  implementation of the same interface.
 - Named, not solved: the harness's own pull-request model and its minted
   agent credentials are the first things a GitHub-backed code host would
   have to map or replace.

@@ -32,8 +32,7 @@ LOADER isolates  factory/check  factory/lint  factory/build
                  publish gate
 ```
 
-- **Code host** holds each app's Git repo (R2 stand-in now; Cloudflare
-  Artifacts later). **CD** writes immutable **builds** keyed by sha; D1
+- **Code host** holds each app's Git repo (Cloudflare Artifacts). **CD** writes immutable **builds** keyed by sha; D1
   `live_sha` is the thin pointer serve reads. **AppDataDO** is runtime
   SQLite only — one class, many ids (`${appId}:live`, `${appId}:pr:N`,
   `${workspaceId}:ws`). **AppCreateDO** (`idFromName(appId)`) owns create
