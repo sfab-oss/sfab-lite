@@ -3,7 +3,6 @@ import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
 import {
   clone,
-  fetch as gitFetch,
   type HttpClient,
   isDescendent,
   listServerRefs,
@@ -94,6 +93,51 @@ async function listRefsHttp(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+async function copyDir(
+  from: FileSystem,
+  fromDir: string,
+  to: FileSystem,
+  toDir: string
+): Promise<void> {
+  let names: string[];
+  try {
+    names = await from.readdir(fromDir);
+  } catch {
+    return;
+  }
+  await to.mkdir(toDir, { recursive: true });
+  for (const name of names) {
+    if (name === "." || name === "..") {
+      continue;
+    }
+    const src = fromDir === "/" ? `/${name}` : `${fromDir}/${name}`;
+    const dest = toDir === "/" ? `/${name}` : `${toDir}/${name}`;
+    const st = await from.lstat(src);
+    if (st.type === "directory") {
+      await copyDir(from, src, to, dest);
+    } else {
+      await to.writeFileBytes(dest, await from.readFileBytes(src));
+    }
+  }
+}
+
+async function copyGit(
+  from: FileSystem,
+  fromGitdir: string,
+  to: FileSystem,
+  toGitdir: string
+): Promise<void> {
+  await copyDir(from, `${fromGitdir}/objects`, to, `${toGitdir}/objects`);
+  await copyDir(from, `${fromGitdir}/refs`, to, `${toGitdir}/refs`);
+  if (await from.exists(`${fromGitdir}/HEAD`)) {
+    await to.mkdir(toGitdir, { recursive: true });
+    await to.writeFile(
+      `${toGitdir}/HEAD`,
+      await from.readFile(`${fromGitdir}/HEAD`)
+    );
+  }
+}
+
 async function cloneScratch(session: GitSession): Promise<InMemoryFs> {
   const work = new InMemoryFs();
   await clone({
@@ -107,6 +151,19 @@ async function cloneScratch(session: GitSession): Promise<InMemoryFs> {
     ...auth(session.token),
   });
   return work;
+}
+
+async function setOrigin(
+  destFs: FileSystem,
+  dir: string,
+  remoteUrl: string
+): Promise<void> {
+  const shell = createGit(destFs, dir);
+  try {
+    await shell.remote({ add: { name: "origin", url: remoteUrl } });
+  } catch {
+    /* origin already present */
+  }
 }
 
 export function createHttpGitRemote(): GitRemote {
@@ -140,39 +197,23 @@ export function createHttpGitRemote(): GitRemote {
 
     async fetchInto(session, destFs, dir) {
       const gitdir = gitdirOf(dir);
-      const shell = createGit(destFs, dir);
-      if (!(await destFs.exists(`${gitdir}/HEAD`))) {
-        await shell.init({ defaultBranch: "main" });
-      }
-      try {
-        await gitFetch({
-          fs: createGitFs(destFs),
-          http,
-          dir,
-          gitdir,
-          url: session.remoteUrl,
-          singleBranch: false,
-          ...auth(session.token),
-        });
-      } catch {
+      const refs = await listRefsHttp(session);
+      const main = refs.find((r) => r.name === "main");
+      if (!main) {
+        const shell = createGit(destFs, dir);
+        if (!(await destFs.exists(`${gitdir}/HEAD`))) {
+          await shell.init({ defaultBranch: "main" });
+        }
+        await setOrigin(destFs, dir, session.remoteUrl);
         return { sha: null };
       }
-      const sha =
-        (await resolveRefOrNull(destFs, `${HEADS}main`, gitdir)) ??
-        (await resolveRefOrNull(destFs, "refs/remotes/origin/main", gitdir));
-      if (sha) {
-        await destFs.mkdir(`${gitdir}/refs/heads`, { recursive: true });
-        await destFs.writeFile(`${gitdir}/refs/heads/main`, `${sha}\n`);
-        await destFs.writeFile(`${gitdir}/HEAD`, "ref: refs/heads/main\n");
-      }
-      try {
-        await shell.remote({
-          add: { name: "origin", url: session.remoteUrl },
-        });
-      } catch {
-        /* origin already present */
-      }
-      return { sha };
+      const scratch = await cloneScratch(session);
+      await copyGit(scratch, "/.git", destFs, gitdir);
+      await destFs.mkdir(`${gitdir}/refs/heads`, { recursive: true });
+      await destFs.writeFile(`${gitdir}/refs/heads/main`, `${main.sha}\n`);
+      await destFs.writeFile(`${gitdir}/HEAD`, "ref: refs/heads/main\n");
+      await setOrigin(destFs, dir, session.remoteUrl);
+      return { sha: main.sha };
     },
 
     async updateRef(session, ref, sha) {

@@ -3,12 +3,14 @@ import { describe, it } from "node:test";
 import { InMemoryFs } from "@cloudflare/shell";
 import { createGit } from "@cloudflare/shell/git";
 import { artifactsCodeHost, createCodeHost } from "./artifacts-code-host.ts";
+import type { GitRemote } from "./git-remote.ts";
 import { createFakeArtifacts } from "./test/fake-artifacts.ts";
 import { FakeR2Bucket } from "./test/fake-r2-bucket.ts";
 import { createTreeStore } from "./tree-store.ts";
 
 const AUTHOR = { name: "test", email: "test@example.com" };
 const MISSING_ARTIFACTS = /ARTIFACTS binding missing/;
+const FETCH_FAILED = /pack failed/;
 
 function hostFromFake() {
   const fake = createFakeArtifacts();
@@ -92,6 +94,34 @@ describe("artifactsCodeHost", () => {
     assert.equal(config.includes("art_v2_"), false);
     assert.equal(config.includes("token"), false);
     assert.ok(config.includes("artifacts.test/git/sfab-lite-apps/app_2"));
+    assert.equal((await dest.readFile("/.git/refs/heads/main")).trim(), sha);
+    const dirty = (await createGit(dest, "/").status()).filter(
+      (e) => e.status !== "unmodified"
+    );
+    assert.deepEqual(dirty, []);
+  });
+
+  it("cloneTo throws when fetchInto fails", async () => {
+    const fake = createFakeArtifacts();
+    const trees = createTreeStore(new FakeR2Bucket());
+    const git: GitRemote = {
+      listRefs: (session) => fake.git.listRefs(session),
+      tip: (session, ref) => fake.git.tip(session, ref),
+      push: (session, fs, dir, ref) => fake.git.push(session, fs, dir, ref),
+      fetchInto: () => Promise.reject(new Error("pack failed")),
+      updateRef: (session, ref, sha) => fake.git.updateRef(session, ref, sha),
+      isAncestor: (session, a, d) => fake.git.isAncestor(session, a, d),
+    };
+    const host = artifactsCodeHost({
+      artifacts: fake.artifacts,
+      trees,
+      git,
+    });
+    await host.commitTree("app_fail", { "src/server.ts": "ok\n" }, "seed");
+    await assert.rejects(
+      () => host.cloneTo("app_fail", new InMemoryFs(), "/"),
+      FETCH_FAILED
+    );
   });
 
   it("receivePush updates a feature branch and caches that tree", async () => {

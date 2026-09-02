@@ -25,6 +25,12 @@ export interface CodeHost {
     targetFs: GitWorkFs,
     dir?: string
   ) => Promise<{ sha: string | null }>;
+  /** Update `.git` from the remote without rewriting the worktree. */
+  fetchGitdir: (
+    appId: string,
+    targetFs: GitWorkFs,
+    dir?: string
+  ) => Promise<{ sha: string | null }>;
   commitTree: (
     appId: string,
     files: Record<string, string>,
