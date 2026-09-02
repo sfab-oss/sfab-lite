@@ -1,6 +1,6 @@
 import { createR2CodeHost } from "../../code-host/r2-code-host.js";
 import { getLiveSha } from "../../forge/cd.js";
-import { type ProtectedReply, protectedError } from "../../hono/reply.js";
+import { protectedError } from "../../hono/reply.js";
 import { appCreateStub } from "../../registry/app-stub.js";
 import type { AppCtx } from "../../serve/routes.js";
 
@@ -50,13 +50,4 @@ export async function handleGetAttempt(rc: AppCtx) {
       },
     },
   };
-}
-
-export function handleListAttempts(
-  _rc: AppCtx
-): Promise<ProtectedReply<unknown>> {
-  return Promise.resolve({
-    status: 200,
-    body: { ok: true as const, appId: _rc.appId, attempts: [] },
-  });
 }

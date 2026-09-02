@@ -8,7 +8,6 @@ import { Think } from "@cloudflare/think";
 import { createWorkspaceTools } from "@cloudflare/think/tools/workspace";
 import { callable } from "agents";
 import type { LanguageModel } from "ai";
-import { remoteUrlFor } from "../code-host/code-host.js";
 import { createR2CodeHost } from "../code-host/r2-code-host.js";
 import { createDb } from "../db/index.js";
 import { getLiveSha } from "../forge/cd.js";
@@ -474,10 +473,6 @@ export class AppAgent extends Think<Env> {
 
   liveSha(): Promise<string | null> {
     return this.#appId().then((appId) => getLiveSha(this.env, appId));
-  }
-
-  async remoteUrl(): Promise<string> {
-    return remoteUrlFor(await this.#appId());
   }
 
   /**

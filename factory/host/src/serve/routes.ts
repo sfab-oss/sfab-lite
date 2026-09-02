@@ -47,4 +47,4 @@ export interface AppCtx extends ProtectedCtx {
 }
 
 export const NOT_FOUND_BODY =
-  "sfab-lite factory: /api/protected/health | /api/protected/apps | .../commit | .../check | .../revert | .../attempts\n";
+  "sfab-lite factory: /api/protected/health | /api/protected/apps | .../check | .../live | .../attempts/:id | .../prs | .../runs\n";

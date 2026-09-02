@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SigninRouteImport } from './routes/signin'
-import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ProtectedIndexRouteImport } from './routes/_protected/index'
@@ -25,17 +24,13 @@ import { Route as ProtectedAppsAppIdWorkRouteImport } from './routes/_protected/
 import { Route as ProtectedAppsAppIdPrsRouteImport } from './routes/_protected/apps.$appId.prs'
 import { Route as ProtectedAppsAppIdDeploymentsRouteImport } from './routes/_protected/apps.$appId.deployments'
 import { Route as ProtectedAppsAppIdCodeRouteImport } from './routes/_protected/apps.$appId.code'
-import { Route as ProtectedAppsAppIdAgentRouteImport } from './routes/_protected/apps.$appId.agent'
 import { Route as ProtectedAppsAppIdActionsRouteImport } from './routes/_protected/apps.$appId.actions'
 import { Route as ProtectedAppsAppIdWorkspacesIndexRouteImport } from './routes/_protected/apps.$appId.workspaces.index'
 import { Route as ProtectedAppsAppIdWorkIndexRouteImport } from './routes/_protected/apps.$appId.work.index'
 import { Route as ProtectedAppsAppIdPrsIndexRouteImport } from './routes/_protected/apps.$appId.prs.index'
-import { Route as ProtectedAppsAppIdAgentIndexRouteImport } from './routes/_protected/apps.$appId.agent.index'
 import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId'
 import { Route as ProtectedAppsAppIdWorkThreadIdRouteImport } from './routes/_protected/apps.$appId.work.$threadId'
-import { Route as ProtectedAppsAppIdTThreadIdRouteImport } from './routes/_protected/apps.$appId.t.$threadId'
 import { Route as ProtectedAppsAppIdPrsPrNumberRouteImport } from './routes/_protected/apps.$appId.prs.$prNumber'
-import { Route as ProtectedAppsAppIdAgentThreadIdRouteImport } from './routes/_protected/apps.$appId.agent.$threadId'
 import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId.work'
 import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdWorkIndexRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId.work.index'
 import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRouteImport } from './routes/_protected/apps.$appId.workspaces.$workspaceId.work.$threadId'
@@ -43,11 +38,6 @@ import { Route as ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRouteImport
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
   path: '/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -121,11 +111,6 @@ const ProtectedAppsAppIdCodeRoute = ProtectedAppsAppIdCodeRouteImport.update({
   path: '/code',
   getParentRoute: () => ProtectedAppsAppIdRoute,
 } as any)
-const ProtectedAppsAppIdAgentRoute = ProtectedAppsAppIdAgentRouteImport.update({
-  id: '/agent',
-  path: '/agent',
-  getParentRoute: () => ProtectedAppsAppIdRoute,
-} as any)
 const ProtectedAppsAppIdActionsRoute =
   ProtectedAppsAppIdActionsRouteImport.update({
     id: '/actions',
@@ -150,12 +135,6 @@ const ProtectedAppsAppIdPrsIndexRoute =
     path: '/',
     getParentRoute: () => ProtectedAppsAppIdPrsRoute,
   } as any)
-const ProtectedAppsAppIdAgentIndexRoute =
-  ProtectedAppsAppIdAgentIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => ProtectedAppsAppIdAgentRoute,
-  } as any)
 const ProtectedAppsAppIdWorkspacesWorkspaceIdRoute =
   ProtectedAppsAppIdWorkspacesWorkspaceIdRouteImport.update({
     id: '/$workspaceId',
@@ -168,23 +147,11 @@ const ProtectedAppsAppIdWorkThreadIdRoute =
     path: '/$threadId',
     getParentRoute: () => ProtectedAppsAppIdWorkRoute,
   } as any)
-const ProtectedAppsAppIdTThreadIdRoute =
-  ProtectedAppsAppIdTThreadIdRouteImport.update({
-    id: '/t/$threadId',
-    path: '/t/$threadId',
-    getParentRoute: () => ProtectedAppsAppIdRoute,
-  } as any)
 const ProtectedAppsAppIdPrsPrNumberRoute =
   ProtectedAppsAppIdPrsPrNumberRouteImport.update({
     id: '/$prNumber',
     path: '/$prNumber',
     getParentRoute: () => ProtectedAppsAppIdPrsRoute,
-  } as any)
-const ProtectedAppsAppIdAgentThreadIdRoute =
-  ProtectedAppsAppIdAgentThreadIdRouteImport.update({
-    id: '/$threadId',
-    path: '/$threadId',
-    getParentRoute: () => ProtectedAppsAppIdAgentRoute,
   } as any)
 const ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRoute =
   ProtectedAppsAppIdWorkspacesWorkspaceIdWorkRouteImport.update({
@@ -206,29 +173,24 @@ const ProtectedAppsAppIdWorkspacesWorkspaceIdWorkThreadIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof ProtectedIndexRoute
   '/chat': typeof ChatRoute
-  '/sign-in': typeof SignInRoute
   '/signin': typeof SigninRoute
   '/apps': typeof ProtectedAppsRouteWithChildren
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
+  '/': typeof ProtectedIndexRoute
   '/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
   '/apps/': typeof ProtectedAppsIndexRoute
   '/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
-  '/apps/$appId/agent': typeof ProtectedAppsAppIdAgentRouteWithChildren
   '/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
   '/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
   '/apps/$appId/work': typeof ProtectedAppsAppIdWorkRouteWithChildren
   '/apps/$appId/workspaces': typeof ProtectedAppsAppIdWorkspacesRouteWithChildren
   '/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
-  '/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
-  '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/apps/$appId/work/$threadId': typeof ProtectedAppsAppIdWorkThreadIdRoute
   '/apps/$appId/workspaces/$workspaceId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren
-  '/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
   '/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
   '/apps/$appId/work/': typeof ProtectedAppsAppIdWorkIndexRoute
   '/apps/$appId/workspaces/': typeof ProtectedAppsAppIdWorkspacesIndexRoute
@@ -238,7 +200,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
-  '/sign-in': typeof SignInRoute
   '/signin': typeof SigninRoute
   '/dev/ui': typeof DevUiRoute
   '/mcp/consent': typeof McpConsentRoute
@@ -248,12 +209,9 @@ export interface FileRoutesByTo {
   '/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
   '/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/apps/$appId': typeof ProtectedAppsAppIdIndexRoute
-  '/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
-  '/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/apps/$appId/work/$threadId': typeof ProtectedAppsAppIdWorkThreadIdRoute
   '/apps/$appId/workspaces/$workspaceId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren
-  '/apps/$appId/agent': typeof ProtectedAppsAppIdAgentIndexRoute
   '/apps/$appId/prs': typeof ProtectedAppsAppIdPrsIndexRoute
   '/apps/$appId/work': typeof ProtectedAppsAppIdWorkIndexRoute
   '/apps/$appId/workspaces': typeof ProtectedAppsAppIdWorkspacesIndexRoute
@@ -264,7 +222,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_protected': typeof ProtectedRouteWithChildren
   '/chat': typeof ChatRoute
-  '/sign-in': typeof SignInRoute
   '/signin': typeof SigninRoute
   '/_protected/apps': typeof ProtectedAppsRouteWithChildren
   '/dev/ui': typeof DevUiRoute
@@ -273,19 +230,15 @@ export interface FileRoutesById {
   '/_protected/apps/$appId': typeof ProtectedAppsAppIdRouteWithChildren
   '/_protected/apps/': typeof ProtectedAppsIndexRoute
   '/_protected/apps/$appId/actions': typeof ProtectedAppsAppIdActionsRoute
-  '/_protected/apps/$appId/agent': typeof ProtectedAppsAppIdAgentRouteWithChildren
   '/_protected/apps/$appId/code': typeof ProtectedAppsAppIdCodeRoute
   '/_protected/apps/$appId/deployments': typeof ProtectedAppsAppIdDeploymentsRoute
   '/_protected/apps/$appId/prs': typeof ProtectedAppsAppIdPrsRouteWithChildren
   '/_protected/apps/$appId/work': typeof ProtectedAppsAppIdWorkRouteWithChildren
   '/_protected/apps/$appId/workspaces': typeof ProtectedAppsAppIdWorkspacesRouteWithChildren
   '/_protected/apps/$appId/': typeof ProtectedAppsAppIdIndexRoute
-  '/_protected/apps/$appId/agent/$threadId': typeof ProtectedAppsAppIdAgentThreadIdRoute
   '/_protected/apps/$appId/prs/$prNumber': typeof ProtectedAppsAppIdPrsPrNumberRoute
-  '/_protected/apps/$appId/t/$threadId': typeof ProtectedAppsAppIdTThreadIdRoute
   '/_protected/apps/$appId/work/$threadId': typeof ProtectedAppsAppIdWorkThreadIdRoute
   '/_protected/apps/$appId/workspaces/$workspaceId': typeof ProtectedAppsAppIdWorkspacesWorkspaceIdRouteWithChildren
-  '/_protected/apps/$appId/agent/': typeof ProtectedAppsAppIdAgentIndexRoute
   '/_protected/apps/$appId/prs/': typeof ProtectedAppsAppIdPrsIndexRoute
   '/_protected/apps/$appId/work/': typeof ProtectedAppsAppIdWorkIndexRoute
   '/_protected/apps/$appId/workspaces/': typeof ProtectedAppsAppIdWorkspacesIndexRoute
@@ -296,29 +249,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/chat'
-    | '/sign-in'
     | '/signin'
     | '/apps'
     | '/dev/ui'
     | '/mcp/consent'
+    | '/'
     | '/apps/$appId'
     | '/apps/'
     | '/apps/$appId/actions'
-    | '/apps/$appId/agent'
     | '/apps/$appId/code'
     | '/apps/$appId/deployments'
     | '/apps/$appId/prs'
     | '/apps/$appId/work'
     | '/apps/$appId/workspaces'
     | '/apps/$appId/'
-    | '/apps/$appId/agent/$threadId'
     | '/apps/$appId/prs/$prNumber'
-    | '/apps/$appId/t/$threadId'
     | '/apps/$appId/work/$threadId'
     | '/apps/$appId/workspaces/$workspaceId'
-    | '/apps/$appId/agent/'
     | '/apps/$appId/prs/'
     | '/apps/$appId/work/'
     | '/apps/$appId/workspaces/'
@@ -328,7 +276,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/chat'
-    | '/sign-in'
     | '/signin'
     | '/dev/ui'
     | '/mcp/consent'
@@ -338,12 +285,9 @@ export interface FileRouteTypes {
     | '/apps/$appId/code'
     | '/apps/$appId/deployments'
     | '/apps/$appId'
-    | '/apps/$appId/agent/$threadId'
     | '/apps/$appId/prs/$prNumber'
-    | '/apps/$appId/t/$threadId'
     | '/apps/$appId/work/$threadId'
     | '/apps/$appId/workspaces/$workspaceId'
-    | '/apps/$appId/agent'
     | '/apps/$appId/prs'
     | '/apps/$appId/work'
     | '/apps/$appId/workspaces'
@@ -353,7 +297,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_protected'
     | '/chat'
-    | '/sign-in'
     | '/signin'
     | '/_protected/apps'
     | '/dev/ui'
@@ -362,19 +305,15 @@ export interface FileRouteTypes {
     | '/_protected/apps/$appId'
     | '/_protected/apps/'
     | '/_protected/apps/$appId/actions'
-    | '/_protected/apps/$appId/agent'
     | '/_protected/apps/$appId/code'
     | '/_protected/apps/$appId/deployments'
     | '/_protected/apps/$appId/prs'
     | '/_protected/apps/$appId/work'
     | '/_protected/apps/$appId/workspaces'
     | '/_protected/apps/$appId/'
-    | '/_protected/apps/$appId/agent/$threadId'
     | '/_protected/apps/$appId/prs/$prNumber'
-    | '/_protected/apps/$appId/t/$threadId'
     | '/_protected/apps/$appId/work/$threadId'
     | '/_protected/apps/$appId/workspaces/$workspaceId'
-    | '/_protected/apps/$appId/agent/'
     | '/_protected/apps/$appId/prs/'
     | '/_protected/apps/$appId/work/'
     | '/_protected/apps/$appId/workspaces/'
@@ -386,7 +325,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   ChatRoute: typeof ChatRoute
-  SignInRoute: typeof SignInRoute
   SigninRoute: typeof SigninRoute
   DevUiRoute: typeof DevUiRoute
   McpConsentRoute: typeof McpConsentRoute
@@ -401,13 +339,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SigninRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/chat': {
       id: '/chat'
       path: '/chat'
@@ -418,7 +349,7 @@ declare module '@tanstack/react-router' {
     '/_protected': {
       id: '/_protected'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof ProtectedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -506,13 +437,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdCodeRouteImport
       parentRoute: typeof ProtectedAppsAppIdRoute
     }
-    '/_protected/apps/$appId/agent': {
-      id: '/_protected/apps/$appId/agent'
-      path: '/agent'
-      fullPath: '/apps/$appId/agent'
-      preLoaderRoute: typeof ProtectedAppsAppIdAgentRouteImport
-      parentRoute: typeof ProtectedAppsAppIdRoute
-    }
     '/_protected/apps/$appId/actions': {
       id: '/_protected/apps/$appId/actions'
       path: '/actions'
@@ -541,13 +465,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdPrsIndexRouteImport
       parentRoute: typeof ProtectedAppsAppIdPrsRoute
     }
-    '/_protected/apps/$appId/agent/': {
-      id: '/_protected/apps/$appId/agent/'
-      path: '/'
-      fullPath: '/apps/$appId/agent/'
-      preLoaderRoute: typeof ProtectedAppsAppIdAgentIndexRouteImport
-      parentRoute: typeof ProtectedAppsAppIdAgentRoute
-    }
     '/_protected/apps/$appId/workspaces/$workspaceId': {
       id: '/_protected/apps/$appId/workspaces/$workspaceId'
       path: '/$workspaceId'
@@ -562,26 +479,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppsAppIdWorkThreadIdRouteImport
       parentRoute: typeof ProtectedAppsAppIdWorkRoute
     }
-    '/_protected/apps/$appId/t/$threadId': {
-      id: '/_protected/apps/$appId/t/$threadId'
-      path: '/t/$threadId'
-      fullPath: '/apps/$appId/t/$threadId'
-      preLoaderRoute: typeof ProtectedAppsAppIdTThreadIdRouteImport
-      parentRoute: typeof ProtectedAppsAppIdRoute
-    }
     '/_protected/apps/$appId/prs/$prNumber': {
       id: '/_protected/apps/$appId/prs/$prNumber'
       path: '/$prNumber'
       fullPath: '/apps/$appId/prs/$prNumber'
       preLoaderRoute: typeof ProtectedAppsAppIdPrsPrNumberRouteImport
       parentRoute: typeof ProtectedAppsAppIdPrsRoute
-    }
-    '/_protected/apps/$appId/agent/$threadId': {
-      id: '/_protected/apps/$appId/agent/$threadId'
-      path: '/$threadId'
-      fullPath: '/apps/$appId/agent/$threadId'
-      preLoaderRoute: typeof ProtectedAppsAppIdAgentThreadIdRouteImport
-      parentRoute: typeof ProtectedAppsAppIdAgentRoute
     }
     '/_protected/apps/$appId/workspaces/$workspaceId/work': {
       id: '/_protected/apps/$appId/workspaces/$workspaceId/work'
@@ -606,22 +509,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface ProtectedAppsAppIdAgentRouteChildren {
-  ProtectedAppsAppIdAgentThreadIdRoute: typeof ProtectedAppsAppIdAgentThreadIdRoute
-  ProtectedAppsAppIdAgentIndexRoute: typeof ProtectedAppsAppIdAgentIndexRoute
-}
-
-const ProtectedAppsAppIdAgentRouteChildren: ProtectedAppsAppIdAgentRouteChildren =
-  {
-    ProtectedAppsAppIdAgentThreadIdRoute: ProtectedAppsAppIdAgentThreadIdRoute,
-    ProtectedAppsAppIdAgentIndexRoute: ProtectedAppsAppIdAgentIndexRoute,
-  }
-
-const ProtectedAppsAppIdAgentRouteWithChildren =
-  ProtectedAppsAppIdAgentRoute._addFileChildren(
-    ProtectedAppsAppIdAgentRouteChildren,
-  )
 
 interface ProtectedAppsAppIdPrsRouteChildren {
   ProtectedAppsAppIdPrsPrNumberRoute: typeof ProtectedAppsAppIdPrsPrNumberRoute
@@ -707,19 +594,16 @@ const ProtectedAppsAppIdWorkspacesRouteWithChildren =
 
 interface ProtectedAppsAppIdRouteChildren {
   ProtectedAppsAppIdActionsRoute: typeof ProtectedAppsAppIdActionsRoute
-  ProtectedAppsAppIdAgentRoute: typeof ProtectedAppsAppIdAgentRouteWithChildren
   ProtectedAppsAppIdCodeRoute: typeof ProtectedAppsAppIdCodeRoute
   ProtectedAppsAppIdDeploymentsRoute: typeof ProtectedAppsAppIdDeploymentsRoute
   ProtectedAppsAppIdPrsRoute: typeof ProtectedAppsAppIdPrsRouteWithChildren
   ProtectedAppsAppIdWorkRoute: typeof ProtectedAppsAppIdWorkRouteWithChildren
   ProtectedAppsAppIdWorkspacesRoute: typeof ProtectedAppsAppIdWorkspacesRouteWithChildren
   ProtectedAppsAppIdIndexRoute: typeof ProtectedAppsAppIdIndexRoute
-  ProtectedAppsAppIdTThreadIdRoute: typeof ProtectedAppsAppIdTThreadIdRoute
 }
 
 const ProtectedAppsAppIdRouteChildren: ProtectedAppsAppIdRouteChildren = {
   ProtectedAppsAppIdActionsRoute: ProtectedAppsAppIdActionsRoute,
-  ProtectedAppsAppIdAgentRoute: ProtectedAppsAppIdAgentRouteWithChildren,
   ProtectedAppsAppIdCodeRoute: ProtectedAppsAppIdCodeRoute,
   ProtectedAppsAppIdDeploymentsRoute: ProtectedAppsAppIdDeploymentsRoute,
   ProtectedAppsAppIdPrsRoute: ProtectedAppsAppIdPrsRouteWithChildren,
@@ -727,7 +611,6 @@ const ProtectedAppsAppIdRouteChildren: ProtectedAppsAppIdRouteChildren = {
   ProtectedAppsAppIdWorkspacesRoute:
     ProtectedAppsAppIdWorkspacesRouteWithChildren,
   ProtectedAppsAppIdIndexRoute: ProtectedAppsAppIdIndexRoute,
-  ProtectedAppsAppIdTThreadIdRoute: ProtectedAppsAppIdTThreadIdRoute,
 }
 
 const ProtectedAppsAppIdRouteWithChildren =
@@ -764,7 +647,6 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   ChatRoute: ChatRoute,
-  SignInRoute: SignInRoute,
   SigninRoute: SigninRoute,
   DevUiRoute: DevUiRoute,
   McpConsentRoute: McpConsentRoute,

@@ -19,7 +19,6 @@ const config: KnipConfig = {
       // Worker/Start entry + console under `src/`.
       entry: [
         "src/server.ts",
-        "src/index.ts",
         "src/router.tsx",
         "src/routes/**/*.tsx",
         "src/**/*.test.ts",
