@@ -104,22 +104,6 @@ export const checkBodySchema = z
   })
   .strict();
 
-export const commitBodySchema = z
-  .object({
-    files: z
-      .record(z.string(), z.string().nullable())
-      .refine((files) => Object.keys(files).length > 0, {
-        message: "files overlay required",
-      }),
-  })
-  .strict();
-
-export const revertBodySchema = z
-  .object({
-    versionId: z.string().min(1),
-  })
-  .strict();
-
 export type AddRecipeBody = z.infer<typeof addRecipeBodySchema>;
 export type CreateAppBody = z.infer<typeof createAppBodySchema>;
 export type RenameAppBody = z.infer<typeof renameAppBodySchema>;
@@ -128,5 +112,3 @@ export type RenameWorkspaceBody = z.infer<typeof renameWorkspaceBodySchema>;
 export type CreatePrBody = z.infer<typeof createPrBodySchema>;
 export type SqlBody = z.infer<typeof sqlBodySchema>;
 export type CheckBody = z.infer<typeof checkBodySchema>;
-export type CommitBody = z.infer<typeof commitBodySchema>;
-export type RevertBody = z.infer<typeof revertBodySchema>;

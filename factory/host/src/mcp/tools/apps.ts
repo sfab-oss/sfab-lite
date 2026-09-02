@@ -108,24 +108,6 @@ export function registerAppTools(server: McpServer, ctx: McpContext): void {
   );
 
   server.registerTool(
-    "apps_attempts",
-    {
-      description:
-        "Commit/create attempts for an app, newest first. The payload of a " +
-        "failed attempt carries the check and lint diagnostics that failed it.",
-      inputSchema: { appId },
-    },
-    async ({ appId: id }) =>
-      passThrough(
-        await protectedFetch(
-          ctx,
-          "GET",
-          `/api/protected/apps/${encodeURIComponent(id)}/attempts`
-        )
-      )
-  );
-
-  server.registerTool(
     "apps_add",
     {
       description:

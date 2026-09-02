@@ -451,7 +451,7 @@ call sites keep working; later PRs retarget them onto these names.
 | `app.pack` | `build()` (server + client + css + host-built `index.html`) | Image v0: `putBuild` stores `image: 0`, resolved `runtime`, manifest snapshot, asset keys, migration names. `getBuild` fills `image: null` on legacy records so existing live apps keep serving; the next CD writes an image. No backfill. |
 | `app.preview` | PR preview `/a/:appId/preview/:n`; workspace WIP `/a/:workspaceId/workspace` | Org-auth; empty+migrations SQLite, never a live clone. |
 | `app.serve` | LOADER child isolate, `live_sha` → immutable build | The serve-plane half of the adapter. |
-| `app.live` / `app.attempts` | `GET /apps/:id/live`, attempts; MCP `apps_live` / `apps_attempts` | Thin pointer + create-job status. |
+| `app.live` / `app.attempts` | `GET /apps/:id/live`; `GET /apps/:id/attempts/:id` (create-job poll); MCP `apps_live` | Thin pointer + create-job status. |
 | `app.sql` | `POST /apps/:id/sql` | App-database probe; not schema introspection (ADR-0005). |
 | `app.migrate` | CD apply-by-id-and-hash | Applied migrations immutable. |
 | `app.generate` | host `db:generate` — drizzle-kit API vs `migrations/meta` (journal + version-6 snapshots) | Ordinary drizzle loop. |

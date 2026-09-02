@@ -13,7 +13,7 @@ import {
 const root = new URL("..", import.meta.url).pathname;
 
 const products = [
-  ["factory/host", "@sfab-lite/factory"],
+  ["factory/host", "@sfab-lite/factory", "src/server.ts"],
   ["factory/check", "@sfab-lite/check"],
   ["factory/lint", "@sfab-lite/lint"],
   ["factory/build", "@sfab-lite/build"],
@@ -33,10 +33,10 @@ const tooling = [
 
 let failed = false;
 
-for (const [dir, name] of products) {
+for (const [dir, name, entryRel = "src/index.ts"] of products) {
   const base = join(root, dir);
   const pkgPath = join(base, "package.json");
-  const entry = join(base, "src", "index.ts");
+  const entry = join(base, entryRel);
   const tsconfig = join(base, "tsconfig.json");
   if (!(existsSync(pkgPath) && existsSync(entry) && existsSync(tsconfig))) {
     console.error(`missing product scaffold: ${dir}`);

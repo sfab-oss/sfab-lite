@@ -22,10 +22,6 @@ export function useConsoleRoute(): ConsoleRoute {
     from: "/_protected/apps/$appId/workspaces/$workspaceId/work",
     shouldThrow: false,
   });
-  const legacyThread = useMatch({
-    from: "/_protected/apps/$appId/t/$threadId",
-    shouldThrow: false,
-  });
   const appLayout = useMatch({
     from: "/_protected/apps/$appId",
     shouldThrow: false,
@@ -35,11 +31,10 @@ export function useConsoleRoute(): ConsoleRoute {
     shouldThrow: false,
   });
 
-  const threadMatch = workThread ?? legacyThread;
-  const threadId = threadMatch?.params.threadId ?? null;
+  const threadId = workThread?.params.threadId ?? null;
   const workspaceId =
     workThread?.params.workspaceId ?? workLayout?.params.workspaceId ?? null;
-  const appId = threadMatch?.params.appId ?? workLayout?.params.appId ?? null;
+  const appId = workThread?.params.appId ?? workLayout?.params.appId ?? null;
 
   const appsRoute = Boolean(appLayout) || Boolean(appsIndex);
   const appDashboardId = appLayout?.params.appId ?? null;

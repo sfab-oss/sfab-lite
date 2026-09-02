@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import {
+  handleCheck,
   handleCreatePr,
   handleGetPr,
   handleGetRun,
@@ -15,6 +16,7 @@ import {
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
 import {
+  checkBodySchema,
   createPrBodySchema,
   listRunsQuerySchema,
   treeFileQuerySchema,
@@ -32,6 +34,13 @@ function parsePrNumber(raw: string): number | null {
 }
 
 const forgeRoutes = new Hono<AdminEnv>()
+  .post("/:appId/check", requireApp, jsonBody(checkBodySchema), async (c) => {
+    const r = await handleCheck(appCtx(c), c.req.valid("json"));
+    if (r.status === 200) {
+      return c.json(r.body, 200);
+    }
+    return c.json(r.body, r.status);
+  })
   .get("/:appId/prs", requireApp, async (c) => {
     const r = await handleListPrs(appCtx(c));
     return c.json(r.body, r.status);

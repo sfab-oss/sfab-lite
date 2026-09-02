@@ -5,7 +5,6 @@ import type { AdminEnv } from "../types.js";
 import appsRoutes from "./apps.js";
 import forgeRoutes from "./forge.js";
 import healthRoutes from "./health.js";
-import lifecycleRoutes from "./lifecycle.js";
 import liveRoutes from "./live.js";
 import orgEventsRoutes from "./org-events.js";
 import sqlRoutes from "./sql.js";
@@ -26,7 +25,6 @@ const protectedApp = new Hono<AdminEnv>()
   .route("/apps", appsRoutes)
   .route("/apps", sqlRoutes)
   .route("/apps", liveRoutes)
-  .route("/apps", lifecycleRoutes)
   .route("/apps", forgeRoutes)
   .route("/org-events", orgEventsRoutes);
 

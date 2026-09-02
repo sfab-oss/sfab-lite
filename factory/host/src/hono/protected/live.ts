@@ -1,9 +1,5 @@
 import { Hono } from "hono";
-import {
-  handleGetAttempt,
-  handleGetLive,
-  handleListAttempts,
-} from "@/lib/protected/live.js";
+import { handleGetAttempt, handleGetLive } from "@/lib/protected/live.js";
 import { appCtx } from "../context.js";
 import { requireApp } from "../middleware.js";
 import type { AdminEnv } from "../types.js";
@@ -22,10 +18,6 @@ const liveRoutes = new Hono<AdminEnv>()
     if (r.status === 200) {
       return c.json(r.body, 200);
     }
-    return c.json(r.body, r.status);
-  })
-  .get("/:appId/attempts", requireApp, async (c) => {
-    const r = await handleListAttempts(appCtx(c));
     return c.json(r.body, r.status);
   });
 
