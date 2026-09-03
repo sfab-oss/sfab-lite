@@ -1,0 +1,23 @@
+{
+  "name": "lite/xlsx-export",
+  "type": "registry:block",
+  "title": "XLSX export",
+  "description": "Server helper that builds a small workbook via exceljs, plus an org-protected Hono route that returns the bytes. Enable the catalog module by adding this recipe. Mount xlsxExportRoutes under org-protected yourself.",
+  "dependencies": ["exceljs@4.4.0"],
+  "meta": {
+    "liteProfile": 1,
+    "liteRuntime": ">=0.4.0"
+  },
+  "files": [
+    {
+      "path": "export.ts",
+      "type": "registry:file",
+      "target": "src/xlsx/export.ts"
+    },
+    {
+      "path": "xlsx-export.ts",
+      "type": "registry:file",
+      "target": "src/hono/org-protected/xlsx-export.ts"
+    }
+  ]
+}

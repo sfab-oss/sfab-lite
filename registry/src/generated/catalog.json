@@ -1519,6 +1519,39 @@
       "contents": {
         "src/lib/utils.ts": "import { type ClassValue, clsx } from \"clsx\";\nimport { twMerge } from \"tailwind-merge\";\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs));\n}\n"
       }
+    },
+    "lite/xlsx-export": {
+      "version": "0.1.0",
+      "item": {
+        "name": "lite/xlsx-export",
+        "type": "registry:block",
+        "title": "XLSX export",
+        "description": "Server helper that builds a small workbook via exceljs, plus an org-protected Hono route that returns the bytes. Enable the catalog module by adding this recipe. Mount xlsxExportRoutes under org-protected yourself.",
+        "registryDependencies": [],
+        "dependencies": [
+          "exceljs@4.4.0"
+        ],
+        "files": [
+          {
+            "path": "export.ts",
+            "type": "registry:file",
+            "target": "src/xlsx/export.ts"
+          },
+          {
+            "path": "xlsx-export.ts",
+            "type": "registry:file",
+            "target": "src/hono/org-protected/xlsx-export.ts"
+          }
+        ],
+        "meta": {
+          "liteProfile": 1,
+          "liteRuntime": ">=0.4.0"
+        }
+      },
+      "contents": {
+        "src/xlsx/export.ts": "import ExcelJS from \"exceljs\";\n\nexport interface WorkbookRow {\n  values: (string | number)[];\n}\n\nexport interface WorkbookInput {\n  sheetName: string;\n  headers: string[];\n  rows: WorkbookRow[];\n}\n\nexport const XLSX_CONTENT_TYPE =\n  \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\";\n\nfunction asArrayBufferBytes(\n  bytes: ArrayBuffer | Uint8Array\n): Uint8Array<ArrayBuffer> {\n  if (bytes instanceof ArrayBuffer) {\n    return new Uint8Array(bytes);\n  }\n  const out = new Uint8Array(new ArrayBuffer(bytes.byteLength));\n  out.set(bytes);\n  return out;\n}\n\nexport async function renderWorkbook(\n  input: WorkbookInput\n): Promise<Uint8Array<ArrayBuffer>> {\n  const workbook = new ExcelJS.Workbook();\n  const sheet = workbook.addWorksheet(input.sheetName);\n  sheet.addRow(input.headers);\n  for (const row of input.rows) {\n    sheet.addRow(row.values);\n  }\n  return asArrayBufferBytes(await workbook.xlsx.writeBuffer());\n}\n",
+        "src/hono/org-protected/xlsx-export.ts": "import { Hono } from \"hono\";\nimport { renderWorkbook, XLSX_CONTENT_TYPE } from \"../../xlsx/export\";\nimport type { AppEnv } from \"../types\";\n\nexport const xlsxExportRoutes = new Hono<AppEnv>().get(\"/\", async (c) => {\n  const bytes = await renderWorkbook({\n    sheetName: \"Export\",\n    headers: [\"Org\", \"Item\", \"Amount\"],\n    rows: [\n      { values: [c.get(\"orgId\"), \"Professional services\", 1200] },\n      { values: [c.get(\"orgId\"), \"Support\", 150] },\n    ],\n  });\n  return new Response(bytes, {\n    status: 200,\n    headers: { \"Content-Type\": XLSX_CONTENT_TYPE },\n  });\n});\n"
+      }
     }
   }
 }

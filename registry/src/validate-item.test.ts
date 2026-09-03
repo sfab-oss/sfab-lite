@@ -73,6 +73,14 @@ test("the catalog pdf-lib pin is accepted", () => {
   }
 });
 
+test("the catalog exceljs pin is accepted", () => {
+  const result = validateItem(base({ dependencies: ["exceljs@4.4.0"] }));
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(result.item.dependencies, ["exceljs@4.4.0"]);
+  }
+});
+
 test("unknown item types are rejected", () => {
   const hit = messages(base({ type: "registry:theme" })).join("\n");
   assert.match(hit, UNKNOWN_THEME);

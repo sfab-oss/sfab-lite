@@ -425,5 +425,12 @@
       "registry-item.json": "sha256:8a65d1f05b8f5c0f083f5b4688c18bbd2eaeb3477857200d10f9f01abada206c",
       "utils.ts": "sha256:4acbc7165a8d54738ff62b51414e772c08fe78434e524e6d8770180d3ba2925f"
     }
+  },
+  "lite/xlsx-export@0.1.0": {
+    "files": {
+      "registry-item.json": "sha256:3fe655f6c914536c65489de0ba27390ffae198365a41243e17a1e360842a14a0",
+      "export.ts": "sha256:35fd9f01185254c795690f742a18db87b5667f5f6ee41bc12cc096ad45ccdf2c",
+      "xlsx-export.ts": "sha256:5ada10003850eb24a61eba41dadf8e3a746a9320da1ff4a554aab7300a0449df"
+    }
   }
 }

@@ -28,6 +28,27 @@ test("overlay recomputes modules from recipes after an owner lodash edit", () =>
   assert.equal(pkg.dependencies.lodash, undefined);
 });
 
+test("overlay of both recipes writes both modules and package.json deps", () => {
+  const pdf = applyAdd("lite/pdf-invoice", TREE);
+  assert.equal(pdf.ok, true);
+  if (!pdf.ok) {
+    return;
+  }
+  const xlsx = applyAdd("lite/xlsx-export", pdf.files);
+  assert.equal(xlsx.ok, true);
+  if (!xlsx.ok) {
+    return;
+  }
+  const overlaid = overlayFormatFiles(xlsx.files);
+  assert.deepEqual(overlaid.manifest.modules, [
+    { name: "exceljs", version: "4.4.0" },
+    { name: "pdf-lib", version: "1.17.1" },
+  ]);
+  const pkg = JSON.parse(overlaid.files["package.json"] ?? "{}");
+  assert.equal(pkg.dependencies.exceljs, "4.4.0");
+  assert.equal(pkg.dependencies["pdf-lib"], "1.17.1");
+});
+
 test("overlay strips a catalog pin that has no enabling recipe", () => {
   const parsed = JSON.parse(TREE["manifest.json"]);
   parsed.modules = [{ name: "pdf-lib", version: "1.17.1" }];
