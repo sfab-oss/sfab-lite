@@ -175,7 +175,10 @@ export function catalogServerExtras(manifest: ManifestV0): {
       continue;
     }
     externals.push(loaderKey);
-    virtualModules[declared.name] = reexport(loaderKey, false);
+    virtualModules[declared.name] = reexport(
+      loaderKey,
+      entry.reexportDefault === true
+    );
   }
   return { externals, virtualModules };
 }

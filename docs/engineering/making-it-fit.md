@@ -256,6 +256,19 @@ Do not embed that ESM in the host Worker (version-retention; host already
 next to kernel chunks. See
 [ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md).
 
+### 12. exceljs@4.4.0 as catalog pin #2 (2026-09-02)
+
+Same handling as pdf-lib: cheap stub at check, R2 ESM at serve, enable only
+via `apps_add lite/xlsx-export`. Isolated esbuild 0.28.1 with the P3 flags:
+**1 463 515 raw / 295 869 gzip-9** (node `gzipSync` level 9). The ESM is
+default-export only (`export default require_exceljs_min();`). Compile
+reexports that default from a catalog `reexportDefault` field — do not
+special-case the string `"exceljs"`. `catalog-modules.json` is assembled
+from every pin artifact so rebuilding pdf-lib cannot wipe pin #2. Host
+Worker must not import the 1.4 MiB ESM. Serve-time Node-isms inside the
+bundle are a hosted-tail (AC-4) risk, not a reason to switch to
+bundle-at-pack.
+
 ## Measured and rejected — do not re-derive these
 
 | Idea | Why it fails | Evidence |

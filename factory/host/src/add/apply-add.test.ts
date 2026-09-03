@@ -7,6 +7,8 @@ const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const BARE_NAME = /bare names are a hard error/;
 const ARRAY_BUFFER_BYTES = /Uint8Array<ArrayBuffer>/;
 const RESPONSE_RAW_BYTES = /new Response\(bytes/;
+const EXCELJS_DEFAULT_IMPORT = /import ExcelJS from "exceljs"/;
+const EXCELJS_WORKBOOK = /new ExcelJS\.Workbook\(\)/;
 const TREE = {
   "manifest.json": `${JSON.stringify(seed.manifest, null, 2)}\n`,
 };
@@ -55,6 +57,46 @@ test("add lite/pdf-invoice writes modules and the exact pdf-lib pin", () => {
   const route = result.files["src/hono/org-protected/pdf-invoice.ts"] ?? "";
   assert.match(helper, ARRAY_BUFFER_BYTES);
   assert.match(route, RESPONSE_RAW_BYTES);
+});
+
+test("add lite/xlsx-export writes modules and the exact exceljs pin", () => {
+  const result = applyAdd("lite/xlsx-export", TREE);
+  assert.equal(result.ok, true);
+  if (!result.ok) {
+    return;
+  }
+  assert.ok(result.files["src/xlsx/export.ts"]);
+  assert.ok(result.files["src/hono/org-protected/xlsx-export.ts"]);
+  const manifest = JSON.parse(result.files["manifest.json"] ?? "{}");
+  assert.deepEqual(manifest.modules, [{ name: "exceljs", version: "4.4.0" }]);
+  const pkg = JSON.parse(result.files["package.json"] ?? "{}");
+  assert.equal(pkg.dependencies.exceljs, "4.4.0");
+  const helper = result.files["src/xlsx/export.ts"] ?? "";
+  const route = result.files["src/hono/org-protected/xlsx-export.ts"] ?? "";
+  assert.match(helper, EXCELJS_DEFAULT_IMPORT);
+  assert.match(helper, EXCELJS_WORKBOOK);
+  assert.match(route, RESPONSE_RAW_BYTES);
+});
+
+test("add pdf-invoice then xlsx-export writes both catalog pins", () => {
+  const first = applyAdd("lite/pdf-invoice", TREE);
+  assert.equal(first.ok, true);
+  if (!first.ok) {
+    return;
+  }
+  const second = applyAdd("lite/xlsx-export", first.files);
+  assert.equal(second.ok, true);
+  if (!second.ok) {
+    return;
+  }
+  const manifest = JSON.parse(second.files["manifest.json"] ?? "{}");
+  assert.deepEqual(manifest.modules, [
+    { name: "exceljs", version: "4.4.0" },
+    { name: "pdf-lib", version: "1.17.1" },
+  ]);
+  const pkg = JSON.parse(second.files["package.json"] ?? "{}");
+  assert.equal(pkg.dependencies.exceljs, "4.4.0");
+  assert.equal(pkg.dependencies["pdf-lib"], "1.17.1");
 });
 
 test("add lite/field leaves modules empty", () => {

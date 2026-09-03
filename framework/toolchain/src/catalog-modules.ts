@@ -20,6 +20,7 @@ export interface CatalogModuleEntry {
   stubSha256: string;
   esbuild: string;
   evidence: string[];
+  reexportDefault: boolean;
   stub: string;
 }
 

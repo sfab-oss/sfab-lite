@@ -84,6 +84,11 @@ First pin: `pdf-lib@1.17.1`, server plane, runtime `^0`, 833 573 raw /
 Enable via `apps_add lite/pdf-invoice`. Helper lives at `src/pdf/invoice.ts`
 because `src/lib/` is the client tree.
 
+Second pin (planned next, landed 2026-09-02): `exceljs@4.4.0`, same
+handling, default-export ESM (`reexportDefault`), enable via
+`apps_add lite/xlsx-export`. Pin builders write artifacts only;
+`assemble-catalog.mjs` unions them into `catalog-modules.json`.
+
 ## Related
 
 - [ADR-0006](0006-base-runtime-is-platform-resolved.md)

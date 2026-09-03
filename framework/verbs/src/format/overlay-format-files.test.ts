@@ -5,6 +5,7 @@ import { overlayFormatFiles } from "./overlay-format-files.ts";
 
 const RECIPE_DEPS = {
   "lite/pdf-invoice": ["pdf-lib@1.17.1"],
+  "lite/xlsx-export": ["exceljs@4.4.0"],
 } as const;
 
 function manifest(overrides: Partial<ManifestV0> = {}): ManifestV0 {
@@ -67,6 +68,45 @@ test("overlay recomputes modules from recipes and drops owner edits", () => {
   const pkg = JSON.parse(overlaid.files["package.json"] ?? "{}");
   assert.equal(pkg.dependencies["pdf-lib"], "1.17.1");
   assert.equal(pkg.dependencies.lodash, undefined);
+});
+
+test("overlay of both recipes writes both modules and package.json deps", () => {
+  const overlaid = overlayFormatFiles(
+    tree({
+      recipes: {
+        "lite/pdf-invoice": {
+          version: "0.1.1",
+          files: {
+            "src/pdf/invoice.ts":
+              "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          },
+        },
+        "lite/xlsx-export": {
+          version: "0.1.0",
+          files: {
+            "src/xlsx/export.ts":
+              "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          },
+        },
+      },
+    }),
+    {
+      registryUrl: "https://lite.sfab.dev/r/{name}.json",
+      recipeDependencies: RECIPE_DEPS,
+    }
+  );
+  assert.deepEqual(overlaid.manifest.modules, [
+    { name: "exceljs", version: "4.4.0" },
+    { name: "pdf-lib", version: "1.17.1" },
+  ]);
+  const written = JSON.parse(overlaid.files["manifest.json"] ?? "{}");
+  assert.deepEqual(written.modules, [
+    { name: "exceljs", version: "4.4.0" },
+    { name: "pdf-lib", version: "1.17.1" },
+  ]);
+  const pkg = JSON.parse(overlaid.files["package.json"] ?? "{}");
+  assert.equal(pkg.dependencies.exceljs, "4.4.0");
+  assert.equal(pkg.dependencies["pdf-lib"], "1.17.1");
 });
 
 test("overlay clears modules when no enabling recipe remains", () => {

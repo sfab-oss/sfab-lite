@@ -207,6 +207,18 @@ test("the catalog pdf-lib pin validates", () => {
   }
 });
 
+test("the catalog exceljs pin validates", () => {
+  const result = validateManifest(
+    valid({ modules: [{ name: "exceljs", version: "4.4.0" }] })
+  );
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.deepEqual(result.manifest.modules, [
+      { name: "exceljs", version: "4.4.0" },
+    ]);
+  }
+});
+
 test("bad snapshot hash shape fails", () => {
   const body = valid({
     recipes: {

@@ -70,9 +70,10 @@ time for the schema-probe Loader child.
 
 `check:modules` is the same idea for catalog-module artifacts
 (`framework/modules/<name>@<version>/` plus the generated stubs JSON):
-re-runs the isolated pdf-lib esbuild and fails if committed ESM / stub /
-hashes drift. The host must not import the ESM (R2 at serve); check
-overlays only the cheap stubs.
+re-runs the isolated esbuild for every catalog pin and fails if committed
+ESM / stub / hashes or the assembled catalog drifted. The host must not
+import the ESM (R2 at serve); check overlays only the cheap stubs. Rebuild
+with `node framework/modules/scripts/rebuild-catalog-modules.mjs`.
 
 `check:route-tree` is the same idea for each
 `starters/<id>/app/src/routeTree.gen.ts`: re-runs that starter's
