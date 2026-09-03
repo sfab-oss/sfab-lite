@@ -29,6 +29,13 @@ from `KERNEL_R2` at `modules/<name>@<version>/`; enable only by
 `apps_add` of a recipe that lists a catalog pin), and **agent-written
 source**. There is no `npm install` in the happy path.
 
+Current catalog pins (runtime `^0`):
+
+| Pin | Plane | Enable via | Check overlay |
+| --- | --- | --- | --- |
+| `pdf-lib@1.17.1` | server | `apps_add lite/pdf-invoice` | cheap stubs |
+| `exceljs@4.4.0` | server | `apps_add lite/xlsx-export` | cheap stubs |
+
 Check enforces that closed import surface. A bare specifier the base
 runtime does not serve — and that is not a declared catalog module with
 its stub overlaid for that run — fails with a named `LITE-RESOLVE`

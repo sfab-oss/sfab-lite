@@ -20,7 +20,7 @@ We reuse the shadcn **item format** and the standard served registry
 
 Lite's profile: allowed types only, npm `dependencies` only when every
 entry is a catalog module at the catalog's exact pin
-(`pdf-lib@1.17.1`), no `devDependencies`, `lite/` catalog names, required
+(`pdf-lib@1.17.1`, `exceljs@4.4.0`), no `devDependencies`, `lite/` catalog names, required
 `meta.liteProfile: 1`. Unknown npm names stay red. Upstream schema
 changes are adopted by replacing the vendored file on our schedule.
 
@@ -134,6 +134,7 @@ until a screen imports it.
 
 The rest of the catalog is add-only. See `registry/recipes/`. Calendar,
 carousel, chart, command, resizable, and sonner stay out: they need
-npm packages the kernel does not serve. `lite/pdf-invoice` is add-only
-too (not in any starter seed or the heavy gallery); it enables the
-`pdf-lib@1.17.1` catalog module.
+npm packages the kernel does not serve. `lite/pdf-invoice` and
+`lite/xlsx-export` are add-only too (not in any starter seed or the
+heavy gallery); they enable the `pdf-lib@1.17.1` and `exceljs@4.4.0`
+catalog modules.
