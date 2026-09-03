@@ -1,0 +1,20 @@
+{
+  "name": "exceljs",
+  "version": "4.4.0",
+  "plane": "server",
+  "runtime": "^0",
+  "loaderKey": "exceljs.js",
+  "esmFile": "exceljs.esm.js",
+  "stubPath": "/node_modules/exceljs/index.d.ts",
+  "rawBytes": 1463515,
+  "gzipBytes": 295869,
+  "stubBytes": 300,
+  "sha256": "sha256:ba8b64796bc6924508d872b6b9de0a4f64e89ace2d5e4e9905b03869a472e2f5",
+  "stubSha256": "sha256:d2774e606849ba4d975bdb1d2cebc0af289fe0a2e1306e3961ea9811b2026446",
+  "esbuild": "0.28.1",
+  "evidence": [
+    "docs/engineering/making-it-fit.md",
+    "docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md"
+  ],
+  "reexportDefault": true
+}

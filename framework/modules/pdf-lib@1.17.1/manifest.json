@@ -15,5 +15,6 @@
   "evidence": [
     "docs/engineering/making-it-fit.md",
     "docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md"
-  ]
+  ],
+  "reexportDefault": false
 }

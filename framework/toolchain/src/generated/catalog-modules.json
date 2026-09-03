@@ -2,6 +2,27 @@
   "runtimeLine": "^0",
   "modules": [
     {
+      "name": "exceljs",
+      "version": "4.4.0",
+      "plane": "server",
+      "runtime": "^0",
+      "loaderKey": "exceljs.js",
+      "esmFile": "exceljs.esm.js",
+      "stubPath": "/node_modules/exceljs/index.d.ts",
+      "rawBytes": 1463515,
+      "gzipBytes": 295869,
+      "stubBytes": 300,
+      "sha256": "sha256:ba8b64796bc6924508d872b6b9de0a4f64e89ace2d5e4e9905b03869a472e2f5",
+      "stubSha256": "sha256:d2774e606849ba4d975bdb1d2cebc0af289fe0a2e1306e3961ea9811b2026446",
+      "esbuild": "0.28.1",
+      "evidence": [
+        "docs/engineering/making-it-fit.md",
+        "docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md"
+      ],
+      "reexportDefault": true,
+      "stub": "interface Worksheet {\n  addRow(values: unknown[]): unknown;\n}\n\ninterface Workbook {\n  addWorksheet(name: string): Worksheet;\n  readonly xlsx: {\n    writeBuffer(): Promise<ArrayBuffer | Uint8Array>;\n  };\n}\n\ndeclare const ExcelJS: {\n  Workbook: {\n    new (): Workbook;\n  };\n};\n\nexport default ExcelJS;\n"
+    },
+    {
       "name": "pdf-lib",
       "version": "1.17.1",
       "plane": "server",
@@ -19,6 +40,7 @@
         "docs/engineering/making-it-fit.md",
         "docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md"
       ],
+      "reexportDefault": false,
       "stub": "export const StandardFonts: {\n  readonly Courier: string;\n  readonly CourierBold: string;\n  readonly Helvetica: string;\n  readonly HelveticaBold: string;\n  readonly TimesRoman: string;\n  readonly TimesRomanBold: string;\n};\n\nexport class PDFFont {\n  readonly name: string;\n  widthOfTextAtSize(text: string, size: number): number;\n}\n\nexport class PDFPage {\n  getSize(): { width: number; height: number };\n  drawText(\n    text: string,\n    options: {\n      x: number;\n      y: number;\n      size: number;\n      font: PDFFont;\n    }\n  ): void;\n}\n\nexport class PDFDocument {\n  static create(): Promise<PDFDocument>;\n  addPage(size?: [number, number]): PDFPage;\n  embedFont(font: string): Promise<PDFFont>;\n  save(): Promise<Uint8Array<ArrayBuffer>>;\n}\n"
     }
   ]
