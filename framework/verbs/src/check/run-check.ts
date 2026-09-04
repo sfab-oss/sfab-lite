@@ -48,6 +48,10 @@ import {
   hashesMatch,
   snapshotFreshnessDiagnostic,
 } from "./snapshot-freshness.js";
+import {
+  diagnosticRelatedPaths,
+  rewriteSurfaceDiagnostic,
+} from "./surface-diagnostic.js";
 import { transactionFloorDiagnostics } from "./transaction-floor.js";
 import {
   type Diagnostic,
@@ -112,7 +116,8 @@ function overlayPathForRel(rel: string): string {
 function mapOneDiagnostic(
   d: Diagnostic | CheckDiagnostic,
   overlay: Map<string, string>,
-  clientPrefixes: readonly string[]
+  clientPrefixes: readonly string[],
+  catalogOverlayKeys: ReadonlySet<string>
 ): CheckDiagnostic {
   if ("message" in d && typeof d.message === "string") {
     return d;
@@ -148,6 +153,18 @@ function mapOneDiagnostic(
       message = closedMsg;
     }
   }
+  const surfaceMsg = rewriteSurfaceDiagnostic({
+    code: tsDiag.code,
+    message,
+    usageFile: tsDiag.file?.fileName,
+    relatedPaths: diagnosticRelatedPaths(tsDiag),
+    catalogOverlayKeys,
+    overlay,
+    isClientUsage: isClientAppPath(tsDiag.file?.fileName, clientPrefixes),
+  });
+  if (surfaceMsg != null) {
+    message = surfaceMsg;
+  }
   let line: number | undefined;
   let column: number | undefined;
   if (tsDiag.file && tsDiag.start != null) {
@@ -167,10 +184,13 @@ function mapOneDiagnostic(
 function summarize(
   diags: (Diagnostic | CheckDiagnostic)[],
   overlay: Map<string, string>,
-  clientPrefixes: readonly string[]
+  clientPrefixes: readonly string[],
+  catalogOverlayKeys: ReadonlySet<string>
 ): CheckDiagnostic[] {
   return diags
-    .map((d) => mapOneDiagnostic(d, overlay, clientPrefixes))
+    .map((d) =>
+      mapOneDiagnostic(d, overlay, clientPrefixes, catalogOverlayKeys)
+    )
     .slice(0, MAX_REPORTED_DIAGNOSTICS);
 }
 
@@ -341,6 +361,7 @@ interface RunCtx {
   rootFileCount: number;
   emittedFiles?: Record<string, string>;
   serverTreeHash?: string;
+  catalogOverlayKeys: ReadonlySet<string>;
 }
 
 /**
@@ -372,6 +393,7 @@ export function runCheck(
     allDiags: [],
     checkMs: 0,
     rootFileCount: 0,
+    catalogOverlayKeys: new Set(),
   };
 
   if (forceCold) {
@@ -380,6 +402,7 @@ export function runCheck(
 
   ctx.bumpedFiles = syncOverlay(st, body.files).bumpedFiles;
   const overlayKeys = applyModuleTypesOverlay(st, body.moduleTypes);
+  ctx.catalogOverlayKeys = new Set(overlayKeys);
   try {
     return runUnits(ctx, body, afterUnit);
   } finally {
@@ -511,7 +534,8 @@ function finish(ctx: RunCtx): CheckResult {
   const summarized = summarize(
     ctx.allDiags,
     ctx.st.overlay,
-    ctx.st.clientPrefixes
+    ctx.st.clientPrefixes,
+    ctx.catalogOverlayKeys
   );
   return {
     ok: true,
