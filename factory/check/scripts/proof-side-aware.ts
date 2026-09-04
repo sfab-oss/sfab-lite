@@ -460,6 +460,68 @@ if (
   failed = true;
 }
 
+const pdfSurfaceFiles = {
+  ...pdfFiles,
+  "src/pdf/surface-miss.ts": `import { PDFDocument } from "pdf-lib";
+export async function boom(doc: PDFDocument) {
+  return doc.removePage(0);
+}
+`,
+};
+const pdfSurface = check("18-pdf-lib-surface-miss", pdfSurfaceFiles, {
+  modules: [...pdfModules],
+  moduleTypes: moduleTypesForManifest([...pdfModules]),
+});
+const pdfSurfaceHit = pdfSurface.diagnostics.some(
+  (d) =>
+    d.code === 2339 &&
+    d.message.includes("LITE-SURFACE") &&
+    d.message.includes("pdf-lib") &&
+    d.message.includes("removePage") &&
+    (d.file?.includes("pdf/surface-miss") ?? false)
+);
+if (pdfSurface.clean || !pdfSurfaceHit) {
+  console.error(
+    "FAIL: pdf-lib member missing from surface.d.ts must be LITE-SURFACE",
+    pdfSurface.diagnostics
+  );
+  failed = true;
+}
+const pdfHelperStillClean = pdfSurface.diagnostics.filter((d) =>
+  d.file?.includes("pdf/invoice")
+);
+if (pdfHelperStillClean.length > 0) {
+  console.error(
+    "FAIL: in-boundary helper that stays on the surface must still typecheck",
+    pdfHelperStillClean
+  );
+  failed = true;
+}
+
+const honoSurfaceFiles = {
+  ...baseFiles,
+  "src/hono/org-protected/surface-miss.ts": `import { Hono } from "hono";
+export const app = new Hono();
+app.get("/surface-miss", (c) => c.text("nope"));
+`,
+};
+const honoSurface = check("19-hono-surface-miss", honoSurfaceFiles);
+const honoSurfaceHit = honoSurface.diagnostics.some(
+  (d) =>
+    d.code === 2339 &&
+    d.message.includes("LITE-SURFACE") &&
+    d.message.includes("hono") &&
+    d.message.includes("text") &&
+    (d.file?.includes("hono/org-protected/surface-miss") ?? false)
+);
+if (honoSurface.clean || !honoSurfaceHit) {
+  console.error(
+    "FAIL: Hono typed-overlay miss must be LITE-SURFACE, not a raw Hono bug",
+    honoSurface.diagnostics
+  );
+  failed = true;
+}
+
 if (failed) {
   process.exit(1);
 }
