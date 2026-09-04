@@ -15,6 +15,7 @@
     "check:seed": "node scripts/check-seed.mjs",
     "check:drizzle-kit-modules": "node scripts/check-drizzle-kit-modules.mjs",
     "check:modules": "node scripts/check-modules.mjs",
+    "check:pin-placement": "node scripts/check-pin-placement.mjs && node --test scripts/check-pin-placement.test.mjs",
     "check:route-tree": "node scripts/check-route-tree.mjs",
     "check:check-memory": "node factory/check/scripts/regression-store-bound-inprocess.mjs",
     "check:export-agreement": "node scripts/check-export-agreement.mjs",

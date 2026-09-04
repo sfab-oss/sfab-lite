@@ -148,6 +148,13 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm check:modules
 
+      # Catalog pins must not overlap the kernel served set, must have a
+      # recipe on-ramp, and must not be seeded by ≥2 starters (that is a
+      # kernel move). Without this, the next admission is a conversation.
+      - name: pin-placement
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm check:pin-placement
+
       # The template's snapshot is what a seeded app's first `db:generate`
       # diffs against. Editing the template schema without re-baking it would
       # have that first migration propose creating tables the seed already

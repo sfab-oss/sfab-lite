@@ -22,7 +22,7 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:workspace`, `pnpm check:app-lint`, `pnpm check:kernel`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:verb-independence`, `pnpm check:manifest`,
 `pnpm check:generated`, `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
-`pnpm check:seed`, `pnpm check:drizzle-kit-modules`, `pnpm check:modules`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
+`pnpm check:seed`, `pnpm check:drizzle-kit-modules`, `pnpm check:modules`, `pnpm check:pin-placement`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
 `pnpm check:catalog-agreement`, `pnpm check:registry-agreement`.
 
 `check:generated` fails when the generated format files under
@@ -74,6 +74,12 @@ re-runs the isolated esbuild for every catalog pin and fails if committed
 ESM / `surface.d.ts` / hashes or the assembled catalog drifted. The host must not
 import the ESM (R2 at serve); check overlays only the cheap surface. Rebuild
 with `node framework/modules/scripts/rebuild-catalog-modules.mjs`.
+
+`check:pin-placement` is the admission rule: a catalog pin name must not
+be a kernel served package, every catalog pin must have a recipe
+on-ramp, and a catalog-enabling recipe must not be seeded by ≥2
+starters (that is a kernel move). Placement table:
+[`docs/architecture/APP-FORMAT.md`](docs/architecture/APP-FORMAT.md) §1.
 
 `check:route-tree` is the same idea for each
 `starters/<id>/app/src/routeTree.gen.ts`: re-runs that starter's
