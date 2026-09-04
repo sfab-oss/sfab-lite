@@ -48,6 +48,7 @@ const config: KnipConfig = {
       entry: [
         "src/index.ts",
         "scripts/check-drizzle-agreement.ts",
+        "scripts/check-catalog-agreement.ts",
         "scripts/proof-check-units.ts",
       ],
       project: ["src/**/*.ts"],

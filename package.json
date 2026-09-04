@@ -19,6 +19,7 @@
     "check:check-memory": "node factory/check/scripts/regression-store-bound-inprocess.mjs",
     "check:export-agreement": "node scripts/check-export-agreement.mjs",
     "check:drizzle-agreement": "NODE_OPTIONS=--max-old-space-size=8192 node factory/check/scripts/run-measure.mjs check-drizzle-agreement.ts",
+    "check:catalog-agreement": "NODE_OPTIONS=--max-old-space-size=8192 node factory/check/scripts/run-measure.mjs check-catalog-agreement.ts",
     "upload-kernel-r2": "pnpm --filter @sfab-lite/factory upload-kernel-r2",
     "upload-modules-r2": "pnpm --filter @sfab-lite/factory upload-modules-r2",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",

@@ -1,0 +1,14 @@
+[
+  {
+    "file": "src/xlsx/export.ts",
+    "find": "workbook.addWorksheet(input.sheetName)",
+    "replace": "workbook.addWorksheet(1)",
+    "expect": "error"
+  },
+  {
+    "file": "src/xlsx/export.ts",
+    "find": "workbook.xlsx.writeBuffer()",
+    "replace": "workbook.xlsx.writeBuffer(\"x\")",
+    "expect": "error"
+  }
+]
