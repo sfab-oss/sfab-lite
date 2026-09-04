@@ -120,7 +120,7 @@ export function filePathsFromGlob(result) {
 
 function shouldCollect(path) {
   const abs = path.startsWith("/") ? path : `/${path}`;
-  if (abs === "/tmp" || abs === "/.git") {
+  if (abs === "/" || abs === "/tmp" || abs === "/.git") {
     return false;
   }
   if (EXCLUDED_PREFIXES.some((root) => abs.startsWith(root))) {
