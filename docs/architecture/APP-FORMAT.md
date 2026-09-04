@@ -11,7 +11,7 @@ check units in the check-plumbing PR; generated `package.json` /
 `tsconfig` / `index.html` / `components.json` and image v0 in the
 image PR; the starter rebuild on this tree in the starter-rebuild PR.
 
-Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md);
+Decisions behind it: [ADR-0006](../decisions/0006-base-runtime-is-platform-resolved.md)–[ADR-0017](../decisions/0017-catalog-type-surfaces-agreement-gated.md);
 close-out: [`../notes/2026-08-15-milestone-1-closeout.md`](../notes/2026-08-15-milestone-1-closeout.md).
 Names:
 [`../engineering/terminology.md`](../engineering/terminology.md).
@@ -31,10 +31,10 @@ source**. There is no `npm install` in the happy path.
 
 Current catalog pins (runtime `^0`):
 
-| Pin | Plane | Enable via | Check overlay |
-| --- | --- | --- | --- |
-| `pdf-lib@1.17.1` | server | `apps_add lite/pdf-invoice` | cheap stubs |
-| `exceljs@4.4.0` | server | `apps_add lite/xlsx-export` | cheap stubs |
+| Pin | Plane | Enable via | Surface | Boundary | Check overlay |
+| --- | --- | --- | --- | --- | --- |
+| `pdf-lib@1.17.1` | server | `apps_add lite/pdf-invoice` | L2 | `src/pdf` | cheap stubs |
+| `exceljs@4.4.0` | server | `apps_add lite/xlsx-export` | L2 | `src/xlsx` | cheap stubs |
 
 A library goes to **one** of four places. Never both kernel and catalog.
 `check:pin-placement` fails closed on overlap, on a catalog pin with no
@@ -56,7 +56,9 @@ its stub overlaid for that run — fails with a named `LITE-RESOLVE`
 diagnostic. Types for transitive packages may still sit in the types VFS so served
 packages' `.d.ts` can resolve; they are not an app import surface.
 Catalog-module check types are cheap stubs overlaid per run, not the
-package's `.d.ts` closure ([ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md)).
+package's `.d.ts` closure
+([ADR-0017](../decisions/0017-catalog-type-surfaces-agreement-gated.md);
+serve remains [ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md)).
 
 ## 2. App directory layout
 
@@ -360,6 +362,14 @@ if api.hash ≠ hash(server tree): fail (invariant 6); do not start client
 runUnit(client)     — sync; roots = client entry + api.d.ts; dispose LS
 return combined diagnostics
 ```
+
+Hosted check overlays the cheap catalog `surface.d.ts` on the server
+unit. Boundary files are agreement-gated against the real `.d.ts` in
+CI (`check:catalog-agreement`), not as a fourth `runUnit`. A local
+both-pins boundary program retained 52 MB / 191 files; the production
+isolate is unproven — do not add a fourth unit until a hosted 50-shot
+of that shape is green
+([ADR-0017](../decisions/0017-catalog-type-surfaces-agreement-gated.md)).
 
 Rules, in writing:
 

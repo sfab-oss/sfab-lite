@@ -254,7 +254,18 @@ Create/merge/stamp/fill: 48/48 tail `ok`, 0 `exceededMemory`.
 Do not embed that ESM in the host Worker (version-retention; host already
 ~47.6%). Git is source of truth; CI uploads `modules/<name>@<version>/`
 next to kernel chunks. See
-[ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md).
+[ADR-0016](../decisions/0016-catalog-modules-r2-and-typed-stubs.md) (serve)
+and [ADR-0017](../decisions/0017-catalog-type-surfaces-agreement-gated.md)
+(check).
+
+**E3 — local boundary unit vs real `.d.ts` (2026-09-04).** Recipe helpers
+only (`src/pdf/invoice.ts`, `src/xlsx/export.ts`), both pins, real
+overlay: **0 diagnostics, 191 files, 52 MB** Node retained. Local 128 MB
+indicator green. Production isolate **unproven** — P2 overlaid real
+pdf-lib on the 84-root server unit and killed 19/50 while local rank
+was only +7.7 MB. Do not ship a fourth `runUnits` step until a hosted
+50-shot of the boundary-only shape is green. Not a Measured-and-rejected
+row: we did not observe isolate OOM on that shape.
 
 ### 12. exceljs@4.4.0 as catalog pin #2 (2026-09-02)
 

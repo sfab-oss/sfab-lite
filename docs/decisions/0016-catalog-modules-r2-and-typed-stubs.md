@@ -1,6 +1,6 @@
 # ADR-0016: Catalog modules are R2-served Loader ESM with per-run typed stubs
 
-**Status:** Accepted
+**Status:** Accepted (serve). Check half superseded by [ADR-0017](0017-catalog-type-surfaces-agreement-gated.md).
 **Date:** 2026-08-19
 **Deciders:** Alwurts
 
@@ -39,11 +39,10 @@ runtime line. Enable only through `apps_add` of a recipe whose
 - **Runtime:** extra ESM in the app Worker Loader child, fetched from
   `KERNEL_R2` at `modules/<name>@<version>/`. Compile-time external.
   Missing R2 manifest is a named 409. No workerd patches for pdf-lib.
-- **Check:** per-run overlay of **cheap stubs**, not the `.d.ts`
-  closure. `runCheck` stays synchronous; stubs are stripped in
-  `finally` so they cannot leak into the LanguageService store. Apps
-  with `modules: []` pay zero. `import "pdf-lib"` is `LITE-RESOLVE`
-  unless the stub is overlaid.
+- **Check:** superseded by [ADR-0017](0017-catalog-type-surfaces-agreement-gated.md)
+  (agreement-gated cheap `surface.d.ts` on the boundary; hosted overlay
+  stays cheap until a hosted isolate probe of that shape is green).
+  ADR-0016 shipped the first cheap stubs after P2.
 - **Store:** git is source of truth (`check:modules` regenerate-and-diff).
   CI uploads module objects next to kernel chunks (idempotent,
   manifest-written-last).
@@ -92,5 +91,6 @@ handling, default-export ESM (`reexportDefault`), enable via
 ## Related
 
 - [ADR-0006](0006-base-runtime-is-platform-resolved.md)
+- [ADR-0017](0017-catalog-type-surfaces-agreement-gated.md) (check half)
 - [`../architecture/APP-FORMAT.md`](../architecture/APP-FORMAT.md) §1, §3
 - [`../engineering/making-it-fit.md`](../engineering/making-it-fit.md)
