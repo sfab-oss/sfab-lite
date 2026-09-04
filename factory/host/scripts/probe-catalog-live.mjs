@@ -249,6 +249,7 @@ function summarizeCold(result) {
   return {
     passed: Boolean(result?.ok && result?.publishGate !== false),
     wallMs: result?.wallMs ?? null,
+    http: result?.http ?? null,
     checkAttempts: result?.check?.attempts ?? result?.checkAttempts ?? null,
   };
 }
@@ -373,6 +374,7 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
       return files;
     },
     async typecheckCold(appId, files) {
+      const started = Date.now();
       const res = await factoryFetch(
         `${origin}/api/protected/apps/${encodeURIComponent(appId)}/check`,
         {
@@ -382,13 +384,24 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
         },
         180_000
       );
-      const body = await readRpcBody(res);
-      if (!res.ok) {
-        throw new Error(
-          `probe-catalog — cold check HTTP ${res.status}: ${JSON.stringify(body).slice(0, 240)}`
-        );
+      const text = await res.text();
+      let body = null;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = { raw: text.slice(0, 240) };
       }
-      return body;
+      const wallMs = Date.now() - started;
+      if (!res.ok) {
+        return {
+          ok: false,
+          http: res.status,
+          wallMs,
+          publishGate: false,
+          check: body,
+        };
+      }
+      return { ...body, wallMs };
     },
     async startTail(currentPlan) {
       if (!cfToken) {
