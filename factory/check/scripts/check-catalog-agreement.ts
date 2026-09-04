@@ -44,6 +44,7 @@ interface CatalogPin {
   version: string;
   stubVfsPath: string;
   reexportDefault?: boolean;
+  boundary: string;
 }
 
 interface Seam {
@@ -156,6 +157,14 @@ const pins = CATALOG_PINS as CatalogPin[];
 
 function seamsForPin(spec: string): readonly Seam[] {
   return SEAMS_BY_PIN[spec] ?? [];
+}
+
+function pinAppRel(pin: CatalogPin, file: string): string {
+  return `${pin.boundary}/${file}`;
+}
+
+function pinOverlayPath(pin: CatalogPin, file: string): string {
+  return `/app/${pinAppRel(pin, file)}`;
 }
 
 function heapMb(): number {
@@ -727,25 +736,19 @@ function checkMemberExistence(
   const probe = pin.reexportDefault
     ? `import M from "${pin.name}";\nexport const keep = M;\n`
     : `import * as M from "${pin.name}";\nexport const keep = M;\n`;
-  const files = { "src/__catalog_members.ts": probe };
+  const membersRel = pinAppRel(pin, "__catalog_members.ts");
+  const membersPath = pinOverlayPath(pin, "__catalog_members.ts");
+  const files = { [membersRel]: probe };
   const cheapOverlay = new Map<string, string>([[pin.stubVfsPath, cheapText]]);
-  const cheap = programForOverlay(files, cheapOverlay, [
-    "/app/src/__catalog_members.ts",
-  ]);
-  const cheapType = exportedKeepType(
-    cheap.checker,
-    cheap.program,
-    "/app/src/__catalog_members.ts"
-  );
+  const cheap = programForOverlay(files, cheapOverlay, [membersPath]);
+  const cheapType = exportedKeepType(cheap.checker, cheap.program, membersPath);
   const members: string[] = [];
   typePaths(cheap.checker, cheapType, "", 0, new Set(), members);
-  const realProg = programForOverlay(files, real, [
-    "/app/src/__catalog_members.ts",
-  ]);
+  const realProg = programForOverlay(files, real, [membersPath]);
   const realType = exportedKeepType(
     realProg.checker,
     realProg.program,
-    "/app/src/__catalog_members.ts"
+    membersPath
   );
   const missing: string[] = [];
   for (const path of members) {
@@ -782,17 +785,19 @@ function checkSeams(
   const missingWhy = seams
     .filter((s) => !s.why || s.why.trim().length === 0)
     .map((s) => s.name);
+  const surfaceRel = pinAppRel(pin, "__catalog_surface.d.ts");
+  const assignRel = pinAppRel(pin, "__catalog_assign.ts");
   const files = {
-    "src/__catalog_surface.d.ts": cheapText,
-    "src/__catalog_assign.ts": assignabilitySource(pin),
+    [surfaceRel]: cheapText,
+    [assignRel]: assignabilitySource(pin),
   };
   const st = createAppLsState(clientPrefixesFromManifest(SEED_MANIFEST));
   overlayAppFiles(st, files);
   overlayReal(st, real);
-  const assignPath = "/app/src/__catalog_assign.ts";
+  const assignPath = pinOverlayPath(pin, "__catalog_assign.ts");
   st.rootFiles = [
     assignPath,
-    "/app/src/__catalog_surface.d.ts",
+    pinOverlayPath(pin, "__catalog_surface.d.ts"),
     ...AMBIENT_ROOTS,
   ];
   const ls = getLanguageService(st);

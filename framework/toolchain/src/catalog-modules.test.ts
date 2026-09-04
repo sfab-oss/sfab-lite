@@ -23,6 +23,8 @@ test("the catalog allowlists the pdf-lib and exceljs pins and no other npm names
   assert.equal(catalogEntry("exceljs", "4.4.0")?.plane, "server");
   assert.equal(catalogEntry("exceljs", "4.4.0")?.reexportDefault, true);
   assert.equal(catalogEntry("pdf-lib", "1.17.1")?.reexportDefault, false);
+  assert.equal(catalogEntry("pdf-lib", "1.17.1")?.boundary, "src/pdf");
+  assert.equal(catalogEntry("exceljs", "4.4.0")?.boundary, "src/xlsx");
   assert.equal(
     catalogModuleR2Prefix("pdf-lib", "1.17.1"),
     "modules/pdf-lib@1.17.1"

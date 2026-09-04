@@ -13,6 +13,7 @@ export const CATALOG_PINS = [
     esmFile: "pdf-lib.esm.js",
     stubVfsPath: "/node_modules/pdf-lib/index.d.ts",
     reexportDefault: false,
+    boundary: "src/pdf",
   },
   {
     name: "exceljs",
@@ -21,6 +22,7 @@ export const CATALOG_PINS = [
     esmFile: "exceljs.esm.js",
     stubVfsPath: "/node_modules/exceljs/index.d.ts",
     reexportDefault: true,
+    boundary: "src/xlsx",
   },
 ];
 

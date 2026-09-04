@@ -21,6 +21,7 @@ export interface CatalogModuleEntry {
   esbuild: string;
   evidence: string[];
   reexportDefault: boolean;
+  boundary: string;
   stub: string;
 }
 
@@ -74,6 +75,10 @@ export function catalogEntry(
     return;
   }
   return entry;
+}
+
+export function catalogBoundary(name: string): string | undefined {
+  return catalogEntry(name)?.boundary;
 }
 
 export function isAllowedCatalogDependency(spec: string): boolean {

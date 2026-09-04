@@ -22,6 +22,7 @@ export interface RecipeFile {
 export interface RecipeMeta {
   liteProfile: 1;
   liteRuntime: string;
+  liteBoundary?: string;
 }
 
 export interface RecipeItem {

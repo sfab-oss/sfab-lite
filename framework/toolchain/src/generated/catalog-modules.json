@@ -20,6 +20,7 @@
         "docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md"
       ],
       "reexportDefault": true,
+      "boundary": "src/xlsx",
       "stub": "interface Font {\n  name?: string;\n  size?: number;\n  bold?: boolean;\n}\n\ninterface Cell {\n  font: Font;\n  value: string | number;\n}\n\ninterface Column {\n  header?: string;\n  key?: string;\n  width?: number;\n}\n\ninterface Worksheet {\n  columns: Column[];\n  addRow: (values: (string | number)[]) => Cell;\n  addRows: (rows: (string | number)[][]) => Cell[];\n  getCell: (address: string) => Cell;\n}\n\ninterface Workbook {\n  addWorksheet: (name: string) => Worksheet;\n  readonly xlsx: {\n    writeBuffer: () => Promise<ArrayBuffer | Uint8Array>;\n    load: (data: Uint8Array) => Promise<Workbook>;\n  };\n}\n\ndeclare const ExcelJS: {\n  Workbook: {\n    new (): Workbook;\n  };\n};\n\nexport default ExcelJS;\n"
     },
     {
@@ -41,6 +42,7 @@
         "docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md"
       ],
       "reexportDefault": false,
+      "boundary": "src/pdf",
       "stub": "export interface RGB {\n  type: \"RGB\";\n  red: number;\n  green: number;\n  blue: number;\n}\n\nexport function rgb(red: number, green: number, blue: number): RGB;\n\nexport const StandardFonts: {\n  readonly Courier: string;\n  readonly CourierBold: string;\n  readonly Helvetica: string;\n  readonly HelveticaBold: string;\n  readonly TimesRoman: string;\n  readonly TimesRomanBold: string;\n};\n\nexport class PDFFont {\n  readonly name: string;\n  widthOfTextAtSize(text: string, size: number): number;\n}\n\nexport class PDFImage {\n  readonly width: number;\n  readonly height: number;\n  scale(factor: number): { width: number; height: number };\n}\n\nexport class PDFPage {\n  getSize(): { width: number; height: number };\n  drawText(\n    text: string,\n    options: {\n      x: number;\n      y: number;\n      size: number;\n      font: PDFFont;\n      color?: RGB;\n    }\n  ): void;\n  drawImage(\n    image: PDFImage,\n    options: {\n      x: number;\n      y: number;\n      width: number;\n      height: number;\n    }\n  ): void;\n}\n\nexport class PDFDocument {\n  static create(): Promise<PDFDocument>;\n  static load(pdf: Uint8Array): Promise<PDFDocument>;\n  addPage(size?: [number, number]): PDFPage;\n  embedFont(font: string): Promise<PDFFont>;\n  embedPng(png: Uint8Array): Promise<PDFImage>;\n  copyPages(srcDoc: PDFDocument, indices: number[]): Promise<PDFPage[]>;\n  setTitle(title: string): void;\n  save(): Promise<Uint8Array<ArrayBuffer>>;\n}\n"
     }
   ]

@@ -26,6 +26,7 @@ export type {
 export {
   CATALOG_MODULES,
   CATALOG_RUNTIME_LINE,
+  catalogBoundary,
   catalogEntry,
   catalogLoaderKey,
   catalogModuleR2Prefix,

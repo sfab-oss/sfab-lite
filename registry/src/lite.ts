@@ -58,7 +58,8 @@ const LITE_ITEM_KEYS = new Set([
 ]);
 
 const LITE_FILE_KEYS = new Set(["path", "type", "target"]);
-const LITE_META_KEYS = new Set(["liteProfile", "liteRuntime"]);
+const LITE_META_KEYS = new Set(["liteProfile", "liteRuntime", "liteBoundary"]);
+const LITE_BOUNDARY_RE = /^src\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MIGRATION_TARGET_PREFIXES = ["migrations/"] as const;
 const INTERPOLATION = /\$\{|\{\{/;
 const LITE_RUNTIME = /^>=\d+\.\d+\.\d+$/;
@@ -200,10 +201,72 @@ function validateMeta(issues: Issue[], value: unknown): RecipeMeta | null {
   if (liteRuntime !== null && !LITE_RUNTIME.test(liteRuntime)) {
     add(issues, "meta.liteRuntime", "expected a minimum runtime like >=0.4.0");
   }
+  let liteBoundary: string | undefined;
+  if (value.liteBoundary !== undefined) {
+    const raw = requireString(issues, "meta.liteBoundary", value.liteBoundary);
+    if (raw !== null && !LITE_BOUNDARY_RE.test(raw)) {
+      add(
+        issues,
+        "meta.liteBoundary",
+        'expected a directory like "src/pdf" (no trailing slash)'
+      );
+    } else if (raw !== null) {
+      liteBoundary = raw;
+    }
+  }
   if (value.liteProfile !== 1 || liteRuntime === null) {
     return null;
   }
-  return { liteProfile: 1, liteRuntime };
+  return {
+    liteProfile: 1,
+    liteRuntime,
+    ...(liteBoundary === undefined ? {} : { liteBoundary }),
+  };
+}
+
+function helperTargetDirs(files: RecipeFile[]): string[] {
+  const dirs = new Set<string>();
+  for (const file of files) {
+    const target = file.target.replace(/^\/+|\/+$/g, "");
+    if (target.startsWith("src/hono/")) {
+      continue;
+    }
+    const slash = target.lastIndexOf("/");
+    if (slash <= 0) {
+      continue;
+    }
+    dirs.add(target.slice(0, slash));
+  }
+  return [...dirs].sort();
+}
+
+function assertCatalogBoundary(
+  issues: Issue[],
+  dependencies: string[],
+  files: RecipeFile[],
+  meta: RecipeMeta
+): void {
+  if (dependencies.length === 0) {
+    return;
+  }
+  const inferred = helperTargetDirs(files);
+  const inferredOne = inferred.length === 1 ? inferred[0] : undefined;
+  const got = meta.liteBoundary ?? inferredOne;
+  for (const spec of dependencies) {
+    const parsed = parseCatalogPin(spec);
+    const want =
+      parsed == null ? undefined : catalogEntry(parsed.name)?.boundary;
+    if (want == null) {
+      continue;
+    }
+    if (got !== want) {
+      add(
+        issues,
+        "meta.liteBoundary",
+        `catalog pin ${spec} requires boundary "${want}" (set meta.liteBoundary or place the helper under ${want}/)`
+      );
+    }
+  }
 }
 
 function validateTarget(issues: Issue[], path: string, target: string): void {
@@ -393,6 +456,9 @@ export function validateItem(input: unknown): ItemValidation {
   const dependencies = validateCatalogDependencies(issues, input.dependencies);
   const files = validateFiles(issues, input.files);
   const meta = validateMeta(issues, input.meta);
+  if (dependencies !== null && files !== null && meta !== null) {
+    assertCatalogBoundary(issues, dependencies, files, meta);
+  }
 
   if (issues.length > 0) {
     return { ok: false, issues };

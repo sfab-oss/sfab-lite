@@ -13,6 +13,7 @@ import type {
   CheckUnitResult,
 } from "@sfab-lite/core";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
+import { catalogExportLeakageDiagnostics } from "./catalog-export-leak.js";
 import {
   clientPrefixesFromManifest,
   isClientAppPath,
@@ -138,7 +139,8 @@ function mapOneDiagnostic(
         : closedResolveUnresolvedMessage(
             mod,
             tsDiag.file?.fileName,
-            clientPrefixes
+            clientPrefixes,
+            overlay
           );
     if (sideMsg) {
       message = sideMsg;
@@ -394,6 +396,7 @@ function runUnits(
   const clientPrefixes = st.clientPrefixes;
   applyHonoOverlay(st.overlay, st.versions, null);
   ctx.allDiags.push(...transactionFloorDiagnostics(body.files));
+  ctx.allDiags.push(...catalogExportLeakageDiagnostics(body.files));
 
   const entryRel = serverEntryRel(body.manifest);
   const entryPath = overlayAppPath(entryRel);
