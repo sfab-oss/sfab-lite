@@ -64,6 +64,11 @@ const reds = [
     needle: "bare names are a hard error",
     label: "bare-name",
   },
+  {
+    file: join(redRoot, "catalog-boundary/registry-item.json"),
+    needle: 'catalog pin pdf-lib@1.17.1 requires boundary "src/pdf"',
+    label: "catalog-boundary",
+  },
 ];
 
 for (const red of reds) {

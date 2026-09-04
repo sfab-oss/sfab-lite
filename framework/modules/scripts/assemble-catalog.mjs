@@ -61,6 +61,7 @@ function loadEntry(dir, pin) {
     esbuild: manifest.esbuild,
     evidence: manifest.evidence,
     reexportDefault: manifest.reexportDefault === true,
+    boundary: pin.boundary,
     stub,
   };
 }

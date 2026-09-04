@@ -405,6 +405,51 @@ if (helperDiags.length > 0) {
   );
   failed = true;
 }
+
+const pdfOutOfBoundFiles = {
+  ...pdfFiles,
+  "src/hono/org-protected/out-of-bound.ts": `import { PDFDocument } from "pdf-lib";\nexport const leak = PDFDocument;\n`,
+};
+const pdfOutOfBound = check("16-pdf-lib-out-of-boundary", pdfOutOfBoundFiles, {
+  modules: [...pdfModules],
+  moduleTypes: moduleTypesForManifest([...pdfModules]),
+});
+const pdfOutHit = pdfOutOfBound.diagnostics.some(
+  (d) =>
+    d.message.includes("LITE-RESOLVE") &&
+    d.message.includes('"pdf-lib"') &&
+    d.message.includes("src/pdf/") &&
+    (d.file?.includes("out-of-bound") ?? false)
+);
+if (pdfOutOfBound.clean || !pdfOutHit) {
+  console.error(
+    "FAIL: importing pdf-lib outside src/pdf/ must be LITE-RESOLVE",
+    pdfOutOfBound.diagnostics
+  );
+  failed = true;
+}
+
+const pdfLeakFiles = {
+  ...pdfFiles,
+  "src/pdf/invoice.ts": `${PDF_HELPER}\nexport type { PDFDocument } from "pdf-lib";\n`,
+};
+const pdfLeak = check("17-pdf-lib-reexport", pdfLeakFiles, {
+  modules: [...pdfModules],
+  moduleTypes: moduleTypesForManifest([...pdfModules]),
+});
+const pdfLeakHit = pdfLeak.diagnostics.some(
+  (d) =>
+    d.message.includes("LITE-BOUNDARY") &&
+    d.message.includes("pdf-lib") &&
+    (d.file?.includes("pdf/invoice") ?? false)
+);
+if (pdfLeak.clean || !pdfLeakHit) {
+  console.error(
+    "FAIL: re-exporting pdf-lib from a boundary file must be LITE-BOUNDARY",
+    pdfLeak.diagnostics
+  );
+  failed = true;
+}
 const pdfOverlayState = store.get("side-proof-15-pdf-lib-stub-overlay");
 if (
   [...(pdfOverlayState?.overlay.keys() ?? [])].some((k) =>

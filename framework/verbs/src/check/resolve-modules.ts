@@ -7,6 +7,7 @@
  * / one VFS — classification only changes which specifiers resolve, not how
  * many programs are built.
  */
+import { catalogBoundary } from "@sfab-lite/core/catalog-modules";
 import {
   CLIENT_IMPORT_MAP,
   SERVER_IMPORT_MAP,
@@ -185,6 +186,26 @@ function catalogModuleOverlaid(
   );
 }
 
+function catalogBoundaryPrefix(name: string): string | undefined {
+  const boundary = catalogBoundary(packageRoot(name));
+  if (boundary == null || boundary.length === 0) {
+    return;
+  }
+  const rel = boundary.replace(/^\/+|\/+$/g, "");
+  return `/app/${rel}/`;
+}
+
+function insideCatalogBoundary(
+  name: string,
+  containingFile: string | undefined
+): boolean {
+  const prefix = catalogBoundaryPrefix(name);
+  if (prefix == null || containingFile == null) {
+    return false;
+  }
+  return normalizePath(containingFile).startsWith(prefix);
+}
+
 function bareAllowed(
   name: string,
   containingFile: string | undefined,
@@ -203,7 +224,11 @@ function bareAllowed(
     // server type). Value imports may not.
     return typeOnly && KERNEL_SERVED.has(name);
   }
-  return KERNEL_SERVED.has(name) || catalogModuleOverlaid(name, overlay);
+  return (
+    KERNEL_SERVED.has(name) ||
+    (catalogModuleOverlaid(name, overlay) &&
+      insideCatalogBoundary(name, containingFile))
+  );
 }
 
 function candidatesForPackage(pkg: string, rest: string): string[] {
@@ -500,7 +525,8 @@ export function sideAwareUnresolvedMessage(
 export function closedResolveUnresolvedMessage(
   moduleName: string,
   containingFile: string | undefined,
-  clientPrefixes: readonly string[]
+  clientPrefixes: readonly string[],
+  overlay: Map<string, string>
 ): string | undefined {
   if (
     containingFile == null ||
@@ -519,6 +545,17 @@ export function closedResolveUnresolvedMessage(
   }
 
   const pkg = packageRoot(moduleName);
+  if (
+    catalogModuleOverlaid(moduleName, overlay) &&
+    !insideCatalogBoundary(moduleName, containingFile)
+  ) {
+    const boundary = catalogBoundary(pkg) ?? "src/<boundary>";
+    return [
+      `LITE-RESOLVE: Cannot import "${moduleName}" — catalog module "${pkg}" may only be imported from ${boundary}/.`,
+      SERVED_SURFACE,
+      `Fix: call helpers in ${boundary}/ instead of importing "${moduleName}" here.`,
+    ].join("\n");
+  }
   let why: string;
   if (SERVED_PACKAGE_ROOTS.has(pkg)) {
     why = `the kernel serves "${pkg}", but not the specifier "${moduleName}"`;

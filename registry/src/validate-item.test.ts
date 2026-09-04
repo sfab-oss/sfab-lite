@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { validateItem } from "./lite.ts";
 import type { RecipeItem } from "./types.ts";
+
+const recipesRoot = join(dirname(fileURLToPath(import.meta.url)), "../recipes");
 
 const DEPENDENCIES_PIN = /expected an exact catalog pin name@version/;
 const DEPENDENCIES_UNKNOWN = /unknown catalog module "lodash"/;
@@ -10,6 +15,7 @@ const DEPENDENCIES_EMPTY = /non-empty array of catalog pins/;
 const UNKNOWN_THEME = /unknown item type "registry:theme"/;
 const BARE_NAME = /bare names are a hard error/;
 const MIGRATION_TARGET = /must not target applied-migration files/;
+const CATALOG_BOUNDARY = /requires boundary "src\/pdf"/;
 
 type ItemOverrides = {
   [K in keyof RecipeItem]?: unknown;
@@ -65,20 +71,111 @@ test("empty dependencies arrays are rejected", () => {
   assert.match(hit, DEPENDENCIES_EMPTY);
 });
 
-test("the catalog pdf-lib pin is accepted", () => {
-  const result = validateItem(base({ dependencies: ["pdf-lib@1.17.1"] }));
+test("the catalog pdf-lib pin is accepted under src/pdf", () => {
+  const result = validateItem(
+    base({
+      dependencies: ["pdf-lib@1.17.1"],
+      files: [
+        {
+          path: "invoice.ts",
+          type: "registry:file",
+          target: "src/pdf/invoice.ts",
+        },
+      ],
+    })
+  );
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.deepEqual(result.item.dependencies, ["pdf-lib@1.17.1"]);
   }
 });
 
-test("the catalog exceljs pin is accepted", () => {
-  const result = validateItem(base({ dependencies: ["exceljs@4.4.0"] }));
+test("the catalog exceljs pin is accepted under src/xlsx", () => {
+  const result = validateItem(
+    base({
+      dependencies: ["exceljs@4.4.0"],
+      files: [
+        {
+          path: "export.ts",
+          type: "registry:file",
+          target: "src/xlsx/export.ts",
+        },
+      ],
+    })
+  );
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.deepEqual(result.item.dependencies, ["exceljs@4.4.0"]);
   }
+});
+
+test("catalog pins without a matching helper directory stay red", () => {
+  const hit = messages(base({ dependencies: ["pdf-lib@1.17.1"] })).join("\n");
+  assert.match(hit, CATALOG_BOUNDARY);
+});
+
+test("meta.liteBoundary satisfies the pin when helpers are only under src/hono", () => {
+  const result = validateItem(
+    base({
+      dependencies: ["pdf-lib@1.17.1"],
+      meta: {
+        liteProfile: 1,
+        liteRuntime: ">=0.4.0",
+        liteBoundary: "src/pdf",
+      },
+      files: [
+        {
+          path: "route.ts",
+          type: "registry:file",
+          target: "src/hono/org-protected/route.ts",
+        },
+      ],
+    })
+  );
+  assert.equal(result.ok, true);
+});
+
+test("meta.liteBoundary that disagrees with the pin stays red", () => {
+  const hit = messages(
+    base({
+      dependencies: ["pdf-lib@1.17.1"],
+      meta: {
+        liteProfile: 1,
+        liteRuntime: ">=0.4.0",
+        liteBoundary: "src/xlsx",
+      },
+      files: [
+        {
+          path: "invoice.ts",
+          type: "registry:file",
+          target: "src/pdf/invoice.ts",
+        },
+      ],
+    })
+  ).join("\n");
+  assert.match(hit, CATALOG_BOUNDARY);
+});
+
+test("published pdf-invoice 0.1.1 still validates without meta.liteBoundary", () => {
+  const item = JSON.parse(
+    readFileSync(
+      join(recipesRoot, "pdf-invoice/0.1.1/registry-item.json"),
+      "utf8"
+    )
+  );
+  const result = validateItem(item);
+  assert.equal(result.ok, true);
+});
+
+test("published xlsx-export 0.1.0 still validates without meta.liteBoundary", () => {
+  const item = JSON.parse(
+    readFileSync(
+      join(recipesRoot, "xlsx-export/0.1.0/registry-item.json"),
+      "utf8"
+    )
+  );
+  const result = validateItem(item);
+  assert.equal(result.ok, true);
 });
 
 test("unknown item types are rejected", () => {
