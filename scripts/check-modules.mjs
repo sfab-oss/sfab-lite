@@ -74,9 +74,9 @@ try {
       drifted
     );
     compareBytes(
-      `${spec}/index.d.ts`,
-      join(committedDir, "index.d.ts"),
-      readFileSync(join(outDir, "index.d.ts")),
+      `${spec}/surface.d.ts`,
+      join(committedDir, "surface.d.ts"),
+      readFileSync(join(outDir, "surface.d.ts")),
       drifted
     );
     compareBytes(

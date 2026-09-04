@@ -8,9 +8,9 @@
   "stubPath": "/node_modules/exceljs/index.d.ts",
   "rawBytes": 1463515,
   "gzipBytes": 295869,
-  "stubBytes": 300,
+  "stubBytes": 688,
   "sha256": "sha256:ba8b64796bc6924508d872b6b9de0a4f64e89ace2d5e4e9905b03869a472e2f5",
-  "stubSha256": "sha256:d2774e606849ba4d975bdb1d2cebc0af289fe0a2e1306e3961ea9811b2026446",
+  "stubSha256": "sha256:e343e12cb9f84e8e9e257aa165cfc9245495f0d940b32bc4be4219c3d3179d0c",
   "esbuild": "0.28.1",
   "evidence": [
     "docs/engineering/making-it-fit.md",

@@ -41,6 +41,10 @@ test("moduleTypesForManifest overlays the cheap stub, not the .d.ts closure", ()
   const stub = overlay["/node_modules/pdf-lib/index.d.ts"] ?? "";
   assert.ok(stub.includes("export class PDFDocument"));
   assert.ok(stub.includes("StandardFonts"));
+  assert.ok(stub.includes("function rgb"));
+  assert.ok(stub.includes("embedPng"));
+  assert.ok(stub.includes("copyPages"));
+  assert.ok(stub.includes("drawImage"));
   assert.equal(Object.keys(overlay).length, 1);
   assert.equal(stub.includes("cjs/"), false);
 });
@@ -56,6 +60,8 @@ test("moduleTypesForManifest overlays both cheap stubs when both are declared", 
   assert.ok(pdf.includes("export class PDFDocument"));
   assert.ok(xlsx.includes("export default ExcelJS"));
   assert.ok(xlsx.includes("Workbook"));
+  assert.ok(xlsx.includes("getCell"));
+  assert.ok(xlsx.includes("addRows"));
   assert.equal(xlsx.includes("cjs/"), false);
   assert.deepEqual(Object.keys(overlay).sort(), [
     "/node_modules/exceljs/index.d.ts",

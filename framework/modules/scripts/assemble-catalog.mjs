@@ -37,7 +37,7 @@ const catalogOut = catalogFlag
 
 function loadEntry(dir, pin) {
   const manifestPath = join(dir, "manifest.json");
-  const stubFile = join(dir, "index.d.ts");
+  const stubFile = join(dir, "surface.d.ts");
   if (!(existsSync(manifestPath) && existsSync(stubFile))) {
     throw new Error(
       `assemble-catalog — missing artifact files under ${dir} for ${pinSpec(pin)}`

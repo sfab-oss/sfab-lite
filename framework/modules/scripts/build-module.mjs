@@ -42,7 +42,7 @@ if (!pin) {
 
 const PIN = pinSpec(pin);
 const artifactDir = join(repoRoot, "framework/modules", PIN);
-const stubPath = join(artifactDir, "index.d.ts");
+const stubPath = join(artifactDir, "surface.d.ts");
 const outFlag = process.argv.find((arg) => arg.startsWith("--out-dir="));
 const outDir = outFlag ? outFlag.slice("--out-dir=".length) : artifactDir;
 
@@ -64,7 +64,7 @@ function run(cmd, args, opts) {
 }
 
 if (!existsSync(stubPath)) {
-  console.error(`build-module — missing stub ${stubPath}`);
+  console.error(`build-module — missing surface ${stubPath}`);
   process.exit(1);
 }
 
@@ -144,7 +144,7 @@ try {
 
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, pin.esmFile), esm);
-  writeFileSync(join(outDir, "index.d.ts"), stub);
+  writeFileSync(join(outDir, "surface.d.ts"), stub);
   writeFileSync(
     join(outDir, "manifest.json"),
     `${JSON.stringify(manifest, null, 2)}\n`

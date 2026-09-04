@@ -10,5 +10,24 @@
     "find": "workbook.xlsx.writeBuffer()",
     "replace": "workbook.xlsx.writeBuffer(\"x\")",
     "expect": "error"
+  },
+  {
+    "file": "src/xlsx/export.ts",
+    "find": "sheet.addRow(input.headers)",
+    "replace": "sheet.addRow(123)",
+    "expect": "error",
+    "sides": "cheap"
+  },
+  {
+    "file": "src/xlsx/export.ts",
+    "find": "sheet.addRow(row.values)",
+    "replace": "sheet.addRows(123)",
+    "expect": "error"
+  },
+  {
+    "file": "src/xlsx/export.ts",
+    "find": "for (const row of input.rows) {",
+    "replace": "sheet.getCell(true);\n  for (const row of input.rows) {",
+    "expect": "error"
   }
 ]

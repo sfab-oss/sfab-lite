@@ -16,5 +16,23 @@
     "find": "doc.addPage([612, 792])",
     "replace": "doc.addPage(\"letter\")",
     "expect": "error"
+  },
+  {
+    "file": "src/pdf/invoice.ts",
+    "find": "const doc = await PDFDocument.create();",
+    "replace": "const doc = await PDFDocument.load(true);",
+    "expect": "error"
+  },
+  {
+    "file": "src/pdf/invoice.ts",
+    "find": "import { PDFDocument, StandardFonts } from \"pdf-lib\";",
+    "replace": "import { PDFDocument, StandardFonts, rgb } from \"pdf-lib\";\nconst _rgb = rgb(\"red\", 0, 0);",
+    "expect": "error"
+  },
+  {
+    "file": "src/pdf/invoice.ts",
+    "find": "return asArrayBufferBytes(await doc.save());",
+    "replace": "doc.setTitle(0);\n  return asArrayBufferBytes(await doc.save());",
+    "expect": "error"
   }
 ]
