@@ -36,6 +36,20 @@ Current catalog pins (runtime `^0`):
 | `pdf-lib@1.17.1` | server | `apps_add lite/pdf-invoice` | cheap stubs |
 | `exceljs@4.4.0` | server | `apps_add lite/xlsx-export` | cheap stubs |
 
+A library goes to **one** of four places. Never both kernel and catalog.
+`check:pin-placement` fails closed on overlap, on a catalog pin with no
+recipe on-ramp, and on a catalog-enabling recipe seeded by ≥2 starters.
+
+| Goes to | When | Pays | Gate |
+| --- | --- | --- | --- |
+| **Recipe** | Source the app should own and edit; no vendor bytes | nothing shared | `check:registry`, `check:registry-agreement` |
+| **Kernel** | Used by a starter *and* by most apps; client-plane libs in the ~≤25 KiB gzip class; or a package whose types other kernel surfaces need | every app: types VFS + client chunks + every check | pins independence, `check:export-agreement`, prod re-tail |
+| **Catalog** | Opt-in capability; server-plane until a client-plane catalog exists; boots in a Loader child unpatched or with a documented patch; has a recipe on-ramp with a boundary | only apps that add it: surface bytes per check request, ESM per Loader child | `check:modules`, `check:catalog-agreement`, `probe-catalog.mjs` |
+| **Refuse** | Needs Node-only APIs the Loader child does not have; needs a canvas/DOM in the server plane; multi-MB families until a hosted probe says otherwise | | |
+
+A library moves kernel→catalog when a starter stops needing it;
+catalog→kernel when ≥2 starters seed it.
+
 Check enforces that closed import surface. A bare specifier the base
 runtime does not serve — and that is not a declared catalog module with
 its stub overlaid for that run — fails with a named `LITE-RESOLVE`
