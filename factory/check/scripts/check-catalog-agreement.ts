@@ -31,6 +31,7 @@ import {
   getLanguageService,
 } from "@sfab-lite/verbs/check";
 import ts from "typescript";
+import { SEAMS as EXCELJS_SEAMS } from "../../../framework/modules/exceljs@4.4.0/seams.mjs";
 import { SEAMS as PDF_LIB_SEAMS } from "../../../framework/modules/pdf-lib@1.17.1/seams.mjs";
 import {
   CATALOG_PINS,
@@ -55,6 +56,7 @@ interface Plant {
   find: string;
   replace: string;
   expect: "error";
+  sides?: "cheap" | "both";
 }
 
 interface RecipeTarget {
@@ -78,11 +80,25 @@ const AMBIENT_ROOTS: string[] = [
 
 const SEAMS_BY_PIN: Record<string, readonly Seam[]> = {
   "pdf-lib@1.17.1": PDF_LIB_SEAMS,
+  "exceljs@4.4.0": EXCELJS_SEAMS,
 };
 
 const REQUIRED_PLANT_NEEDLES: Record<string, string[]> = {
-  "lite/pdf-invoice": ["drawText(123", "embedFont(42)", 'addPage("letter")'],
-  "lite/xlsx-export": ["addWorksheet(1)", 'writeBuffer("x")'],
+  "lite/pdf-invoice": [
+    "drawText(123",
+    "embedFont(42)",
+    'addPage("letter")',
+    "setTitle(0)",
+    'rgb("red"',
+    "load(true)",
+  ],
+  "lite/xlsx-export": [
+    "addWorksheet(1)",
+    'writeBuffer("x")',
+    "addRow(123)",
+    "addRows(123)",
+    "getCell(true)",
+  ],
 };
 
 const NODE_BUILTINS = new Set([
@@ -211,6 +227,10 @@ function readPlants(path: string): Plant[] {
       throw new Error(
         `${path}[${i}] is not a { file, find, replace, expect: "error" } plant`
       );
+    }
+    const sides = (row as Plant).sides;
+    if (sides != null && sides !== "cheap" && sides !== "both") {
+      throw new Error(`${path}[${i}] sides must be "cheap" or "both"`);
     }
     return row as Plant;
   });
@@ -807,6 +827,7 @@ function dropDrawText(surface: string): string {
       y: number;
       size: number;
       font: PDFFont;
+      color?: RGB;
     }
   ): void;
 `;
@@ -842,7 +863,7 @@ const surfaceByPin = new Map<string, string>();
 
 for (const pin of pins) {
   const spec = pinSpec(pin);
-  const surfacePath = join(MODULES_ROOT, spec, "index.d.ts");
+  const surfacePath = join(MODULES_ROOT, spec, "surface.d.ts");
   if (!existsSync(surfacePath)) {
     throw new Error(`missing surface ${surfacePath}`);
   }
@@ -924,7 +945,8 @@ for (const pin of pins) {
     for (const plant of recipe.plants) {
       const cheapHit = cheapBroken.plantHits?.[plant.replace] === true;
       const realHit = realBroken.plantHits?.[plant.replace] === true;
-      if (!(cheapHit && realHit)) {
+      const requireReal = plant.sides !== "cheap";
+      if (!cheapHit || (requireReal && !realHit)) {
         plantCaughtBoth = false;
       }
     }

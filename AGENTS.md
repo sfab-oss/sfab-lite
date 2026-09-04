@@ -71,8 +71,8 @@ time for the schema-probe Loader child.
 `check:modules` is the same idea for catalog-module artifacts
 (`framework/modules/<name>@<version>/` plus the generated stubs JSON):
 re-runs the isolated esbuild for every catalog pin and fails if committed
-ESM / stub / hashes or the assembled catalog drifted. The host must not
-import the ESM (R2 at serve); check overlays only the cheap stubs. Rebuild
+ESM / `surface.d.ts` / hashes or the assembled catalog drifted. The host must not
+import the ESM (R2 at serve); check overlays only the cheap surface. Rebuild
 with `node framework/modules/scripts/rebuild-catalog-modules.mjs`.
 
 `check:route-tree` is the same idea for each
@@ -105,10 +105,11 @@ runs in CI only — not in pre-commit.
 
 `check:catalog-agreement` is the cheap-vs-real catalog-stub gate: recipe
 boundary files (`src/pdf/invoice.ts`, `src/xlsx/export.ts`) must be 0
-diagnostics under both the committed cheap surface and the real package
+diagnostics under both the committed cheap `surface.d.ts` and the real package
 `.d.ts` from an isolated `npm install --ignore-scripts`, planted calls
 (`drawText(123)`, `embedFont(42)`, `addPage("letter")`, `addWorksheet(1)`,
-`writeBuffer("x")`) must be caught under both, every surface member must
+`writeBuffer("x")`, `addRow(123)` cheap-only, `addRows(123)`, `getCell(true)`)
+must be caught as specified, every surface member must
 exist on the real types, and signature seams (pdf-lib `save()` vs
 `Uint8Array<ArrayBuffer>` / hosted `Response` `BodyInit`, #177) must have
 a why. Heap is recorded, not gated. CI-only — not in pre-commit.
