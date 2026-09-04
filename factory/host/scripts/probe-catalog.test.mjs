@@ -15,6 +15,11 @@ import {
   runProbeCatalog,
   scoreTailEvents,
 } from "./probe-catalog-lib.mjs";
+import {
+  isProtectedApp,
+  NEVER_TOUCH_APP_IDS,
+  runLiveSequence,
+} from "./probe-catalog-live.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, "probe-catalog.mjs");
@@ -48,7 +53,7 @@ export const orgProtectedRoutes = new Hono<AppEnv>()
   .route("/balances", balanceRoutes);
 `;
 
-test("dry-run is the default and prints recipes, N, worker, artifact", () => {
+test("dry-run is the default and prints recipes, N, worker, artifact", async () => {
   const args = parseProbeArgs([]);
   assert.equal(args.mode, "dry-run");
   const plan = buildPlan(args, new Date("2026-09-04T00:00:00Z"));
@@ -57,17 +62,18 @@ test("dry-run is the default and prints recipes, N, worker, artifact", () => {
   assert.equal(plan.nCold, 10);
   assert.equal(plan.tailWorker, "sfab-lite-check");
   assert.equal(plan.artifact, "artifacts/2026-09-04-probe-catalog.md");
+  assert.equal(plan.factory, "https://lite.sfab.dev");
   assert.equal(plan.kill.fastBandCpuMs, FAST_BAND_CPU_MS);
   const cap = captureIo();
-  const code = runProbeCatalog([], {}, cap.io);
+  const code = await runProbeCatalog([], {}, cap.io);
   assert.equal(code, 0);
   assert.ok(cap.log.join("\n").includes("lite/pdf-invoice"));
   assert.ok(cap.log.join("\n").includes("sfab-lite-check"));
 });
 
-test("--live without the env flag is refused", () => {
+test("--live without the env flag is refused", async () => {
   const cap = captureIo();
-  const code = runProbeCatalog(["--live"], {}, cap.io);
+  const code = await runProbeCatalog(["--live"], {}, cap.io);
   assert.equal(code, 2);
   assert.ok(cap.error.join("\n").includes("PROBE_CATALOG_LIVE=1"));
   assert.throws(
@@ -76,11 +82,141 @@ test("--live without the env flag is refused", () => {
   );
 });
 
-test("--live with the env flag still does not create apps", () => {
+test("--live with the env flag calls the injected driver and does not create apps", async () => {
   const cap = captureIo();
-  const code = runProbeCatalog(["--live"], { [PROBE_LIVE_ENV]: "1" }, cap.io);
-  assert.equal(code, 2);
-  assert.ok(cap.error.join("\n").includes("not wired"));
+  let seen = null;
+  const code = await runProbeCatalog(
+    ["--live"],
+    { [PROBE_LIVE_ENV]: "1" },
+    cap.io,
+    {
+      runLive: async (plan) => {
+        seen = plan;
+        return 0;
+      },
+    }
+  );
+  assert.equal(code, 0);
+  assert.equal(seen.mode, "live");
+  assert.equal(seen.template, "erp");
+  assert.equal(cap.error.length, 0);
+});
+
+test("live sequence deletes the created app when a later step throws", async () => {
+  const deleted = [];
+  const bash = [];
+  await assert.rejects(
+    () =>
+      runLiveSequence(
+        {
+          appName: "probe-test",
+          template: "erp",
+          recipes: ["lite/pdf-invoice"],
+          nWarm: 1,
+          nCold: 0,
+          spaceMs: 0,
+        },
+        {
+          log: () => {},
+          sleep: async () => {},
+          createApp: async () => ({ appId: "app_probe_test" }),
+          waitReady: async () => ({}),
+          addRecipe: async () => {
+            throw new Error("add failed");
+          },
+          deleteApp: async (id) => {
+            deleted.push(id);
+          },
+          bash: async (_id, command) => {
+            bash.push(command);
+            return { stdout: "", exitCode: 0, passed: true };
+          },
+        }
+      ),
+    /add failed/
+  );
+  assert.deepEqual(deleted, ["app_probe_test"]);
+  assert.equal(bash.length, 0);
+});
+
+test("live sequence create → add → mount → typecheck → delete", async () => {
+  const calls = [];
+  const result = await runLiveSequence(
+    {
+      appName: "probe-test",
+      template: "erp",
+      recipes: ["lite/pdf-invoice"],
+      nWarm: 1,
+      nCold: 1,
+      spaceMs: 0,
+      tailWorker: "sfab-lite-check",
+    },
+    {
+      log: () => {},
+      sleep: async () => {},
+      createApp: async () => {
+        calls.push("create");
+        return { appId: "app_probe_ok" };
+      },
+      waitReady: async () => {
+        calls.push("ready");
+      },
+      addRecipe: async (_id, name) => {
+        calls.push(`add:${name}`);
+      },
+      readFile: async () => SEED_INDEX,
+      writeFile: async () => {
+        calls.push("mount");
+      },
+      bash: async (_id, command) => {
+        calls.push(`bash:${command.split(" ")[0]}`);
+        if (command === "git status") {
+          return {
+            stdout: "modified     src/hono/org-protected/index.ts\n",
+            exitCode: 0,
+            passed: true,
+          };
+        }
+        return { stdout: "ok\n", exitCode: 0, passed: true };
+      },
+      typecheckWarm: async () => {
+        calls.push("warm");
+        return { passed: true, exitCode: 0 };
+      },
+      collectFiles: async () => ({ "src/server.ts": "export {}" }),
+      typecheckCold: async () => {
+        calls.push("cold");
+        return { ok: true, publishGate: true, wallMs: 9000 };
+      },
+      startTail: async () => {
+        calls.push("tail-start");
+      },
+      stopTail: async () => {
+        calls.push("tail-stop");
+        return [{ outcome: "ok", cpuTime: 900 }];
+      },
+      deleteApp: async (id) => {
+        calls.push(`delete:${id}`);
+      },
+    }
+  );
+  assert.equal(result.appId, "app_probe_ok");
+  assert.equal(result.scored.kill, false);
+  assert.ok(calls.includes("create"));
+  assert.ok(calls.includes("add:lite/pdf-invoice"));
+  assert.ok(calls.includes("mount"));
+  assert.ok(calls.includes("warm"));
+  assert.ok(calls.includes("cold"));
+  assert.equal(calls.at(-1), "delete:app_probe_ok");
+});
+
+test("protected live M3 ERP and Pin2 ids are refused", () => {
+  assert.equal(
+    isProtectedApp({ id: [...NEVER_TOUCH_APP_IDS][0], name: "x" }),
+    true
+  );
+  assert.equal(isProtectedApp({ id: "app_other", name: "M3 ERP" }), true);
+  assert.equal(isProtectedApp({ id: "app_other", name: "probe-catalog" }), false);
 });
 
 test("CLI dry-run subprocess creates no side effects and exits 0", () => {
