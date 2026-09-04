@@ -119,6 +119,7 @@ must be caught as specified, every surface member must
 exist on the real types, and signature seams (pdf-lib `save()` vs
 `Uint8Array<ArrayBuffer>` / hosted `Response` `BodyInit`, #177) must have
 a why. Heap is recorded, not gated. CI-only — not in pre-commit.
+See [ADR-0017](docs/decisions/0017-catalog-type-surfaces-agreement-gated.md).
 
 `check:verb-independence` is the consume-as-libraries gate (D-005):
 `@sfab-lite/{core,verbs,kernel}` resolve under `framework/`, esbuild-bundle
