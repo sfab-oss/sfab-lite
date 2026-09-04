@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" scripts/parse-cli.test.mjs",
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" scripts/parse-cli.test.mjs scripts/probe-catalog.test.mjs",
+    "probe-catalog": "node scripts/probe-catalog.mjs",
     "build": "vite build",
     "build:ui": "vite build",
     "dev": "vite dev --port ${FACTORY_PORT:-8790}",
