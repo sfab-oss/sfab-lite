@@ -1,0 +1,20 @@
+[
+  {
+    "file": "src/pdf/invoice.ts",
+    "find": "page.drawText(`Invoice ${input.number}`, { x: 72, y, size: 18, font })",
+    "replace": "page.drawText(123, { x: 72, y, size: 18, font })",
+    "expect": "error"
+  },
+  {
+    "file": "src/pdf/invoice.ts",
+    "find": "doc.embedFont(StandardFonts.Helvetica)",
+    "replace": "doc.embedFont(42)",
+    "expect": "error"
+  },
+  {
+    "file": "src/pdf/invoice.ts",
+    "find": "doc.addPage([612, 792])",
+    "replace": "doc.addPage(\"letter\")",
+    "expect": "error"
+  }
+]

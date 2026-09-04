@@ -23,7 +23,7 @@ From the monorepo root: `pnpm typecheck`, `pnpm lint:check`, `pnpm lint:fix`,
 `pnpm check:cycles`, `pnpm check:direction`, `pnpm check:verb-independence`, `pnpm check:manifest`,
 `pnpm check:generated`, `pnpm check:registry`, `pnpm check:pins`, `pnpm check:dead-code`,
 `pnpm check:seed`, `pnpm check:drizzle-kit-modules`, `pnpm check:modules`, `pnpm check:route-tree`, `pnpm check:check-memory`, `pnpm check:drizzle-agreement`,
-`pnpm check:registry-agreement`.
+`pnpm check:catalog-agreement`, `pnpm check:registry-agreement`.
 
 `check:generated` fails when the generated format files under
 `starters/<id>/app/` (`package.json`, `tsconfig.json`, `index.html`,
@@ -102,6 +102,16 @@ drizzle-using server files must be 0 diagnostics under both the real drizzle
 both (codes may differ). Heap is recorded, not gated. It needs
 `--max-old-space-size=8192` and several LanguageService programs, so it
 runs in CI only — not in pre-commit.
+
+`check:catalog-agreement` is the cheap-vs-real catalog-stub gate: recipe
+boundary files (`src/pdf/invoice.ts`, `src/xlsx/export.ts`) must be 0
+diagnostics under both the committed cheap surface and the real package
+`.d.ts` from an isolated `npm install --ignore-scripts`, planted calls
+(`drawText(123)`, `embedFont(42)`, `addPage("letter")`, `addWorksheet(1)`,
+`writeBuffer("x")`) must be caught under both, every surface member must
+exist on the real types, and signature seams (pdf-lib `save()` vs
+`Uint8Array<ArrayBuffer>` / hosted `Response` `BodyInit`, #177) must have
+a why. Heap is recorded, not gated. CI-only — not in pre-commit.
 
 `check:verb-independence` is the consume-as-libraries gate (D-005):
 `@sfab-lite/{core,verbs,kernel}` resolve under `framework/`, esbuild-bundle

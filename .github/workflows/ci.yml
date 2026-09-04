@@ -181,6 +181,15 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
         run: pnpm check:drizzle-agreement
 
+      # Cheap-vs-real catalog stubs vs isolated-install `.d.ts` + planted
+      # errors on recipe boundary files. Needs ~8 GB (LanguageService over
+      # the real pdf-lib closure), so it is CI-only — not in pre-commit.
+      - name: catalog-agreement
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: pnpm check:catalog-agreement
+
       # Factory console is built by Vite + TanStack Start (`dist/`). Needed
       # before the bundle-size gate / deploy that consume the worker build.
       - id: ui-build
