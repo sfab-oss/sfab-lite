@@ -98,11 +98,24 @@ function parseStatusPaths(stdout) {
     .filter((path) => path && path !== "." && path !== "/");
 }
 
-function globPaths(result) {
+export function filePathsFromGlob(result) {
   const paths = result?.paths ?? [];
-  return paths
-    .map((entry) => (typeof entry === "string" ? entry : entry?.path))
-    .filter((path) => typeof path === "string" && path.length > 0);
+  const files = [];
+  for (const entry of paths) {
+    if (typeof entry === "string") {
+      files.push(entry);
+      continue;
+    }
+    if (entry && typeof entry === "object") {
+      if (entry.type != null && entry.type !== "file") {
+        continue;
+      }
+      if (typeof entry.path === "string") {
+        files.push(entry.path);
+      }
+    }
+  }
+  return files;
 }
 
 function shouldCollect(path) {
@@ -342,15 +355,19 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
         pattern: "**/*",
       });
       const files = {};
-      for (const path of globPaths(listed)) {
+      for (const path of filePathsFromGlob(listed)) {
         if (!shouldCollect(path)) {
           continue;
         }
         const abs = path.startsWith("/") ? path : `/${path}`;
-        const result = await mcp.callTool("workspace_read", { appId, path: abs });
-        const content = result.content ?? result.text;
-        if (typeof content === "string") {
-          files[sourceKey(abs)] = content;
+        try {
+          const result = await mcp.callTool("workspace_read", { appId, path: abs });
+          const content = result.content ?? result.text;
+          if (typeof content === "string") {
+            files[sourceKey(abs)] = content;
+          }
+        } catch {
+          // directories and missing paths are not source files
         }
       }
       return files;

@@ -16,6 +16,7 @@ import {
   scoreTailEvents,
 } from "./probe-catalog-lib.mjs";
 import {
+  filePathsFromGlob,
   isProtectedApp,
   NEVER_TOUCH_APP_IDS,
   runLiveSequence,
@@ -217,6 +218,19 @@ test("protected live M3 ERP and Pin2 ids are refused", () => {
   );
   assert.equal(isProtectedApp({ id: "app_other", name: "M3 ERP" }), true);
   assert.equal(isProtectedApp({ id: "app_other", name: "probe-catalog" }), false);
+});
+
+test("glob file filter skips directories", () => {
+  assert.deepEqual(
+    filePathsFromGlob({
+      paths: [
+        { path: "/src/server.ts", type: "file" },
+        { path: "/src", type: "directory" },
+        "src/pdf/invoice.ts",
+      ],
+    }),
+    ["/src/server.ts", "src/pdf/invoice.ts"]
+  );
 });
 
 test("CLI dry-run subprocess creates no side effects and exits 0", () => {
