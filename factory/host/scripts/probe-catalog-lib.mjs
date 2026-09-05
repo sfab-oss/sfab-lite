@@ -1,7 +1,6 @@
 /**
  * Catalog hosted-probe helpers. The CLI (`probe-catalog.mjs`) prints a plan
- * by default. `--live` is ask-first and refused unless PROBE_CATALOG_LIVE=1;
- * this PR does not wire the live driver, so even that env cannot create apps.
+ * by default. `--live` is ask-first and refused unless PROBE_CATALOG_LIVE=1.
  */
 import { parseCli } from "./parse-cli.mjs";
 
@@ -9,11 +8,13 @@ export const PROBE_LIVE_ENV = "PROBE_CATALOG_LIVE";
 export const FAST_BAND_CPU_MS = 6000;
 export const DEFAULT_ORG = "01KYTG1VEYSX6BG282XGD7M318";
 export const DEFAULT_RECIPES = "lite/pdf-invoice,lite/xlsx-export";
+export const DEFAULT_FACTORY = "https://lite.sfab.dev";
 
 const RECIPE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const LAST_IMPORT = /(?:^|\n)(import [\s\S]*?;)(?=\n(?!import ))/;
 const LEADING_AT = /^@/;
 const LITE_PREFIX = /^lite\//;
+const TRAILING_SLASH = /\/$/;
 
 export function parseProbeArgs(argv) {
   const { values } = parseCli(
@@ -27,6 +28,8 @@ export function parseProbeArgs(argv) {
       worker: { type: "string", default: "sfab-lite-check" },
       template: { type: "string", default: "erp" },
       org: { type: "string", default: DEFAULT_ORG },
+      factory: { type: "string", default: DEFAULT_FACTORY },
+      artifact: { type: "string", default: "" },
     },
     argv
   );
@@ -44,6 +47,8 @@ export function parseProbeArgs(argv) {
     worker: values.worker,
     template: values.template,
     org: values.org,
+    factory: values.factory.replace(TRAILING_SLASH, ""),
+    artifact: values.artifact,
   };
 }
 
@@ -59,7 +64,8 @@ export function buildPlan(args, when = new Date()) {
     nCold: args.nCold,
     spaceMs: args.spaceMs,
     tailWorker: args.worker,
-    artifact: `artifacts/${day}-probe-catalog.md`,
+    factory: args.factory,
+    artifact: args.artifact || `artifacts/${day}-probe-catalog.md`,
     liveEnv: PROBE_LIVE_ENV,
     kill: {
       exceededMemory: true,
@@ -147,7 +153,7 @@ export function scoreTailEvents(events) {
   return { ...counts, kill };
 }
 
-export function runProbeCatalog(argv, env, io) {
+export async function runProbeCatalog(argv, env, io, hooks = {}) {
   let args;
   try {
     args = parseProbeArgs(argv);
@@ -166,10 +172,11 @@ export function runProbeCatalog(argv, env, io) {
     io.error(err instanceof Error ? err.message : String(err));
     return 2;
   }
-  io.error(
-    "probe-catalog — live driver is not wired in this PR (ask-first follow-up)"
-  );
-  return 2;
+  if (hooks.runLive) {
+    return hooks.runLive(plan, env, io, hooks);
+  }
+  const { runLiveProbe } = await import("./probe-catalog-live.mjs");
+  return runLiveProbe(plan, env, io, hooks);
 }
 
 function splitRecipes(raw) {
