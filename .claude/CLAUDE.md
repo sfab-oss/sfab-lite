@@ -174,7 +174,8 @@ applies no memory limit, so `wrangler dev` cannot observe an OOM at all — use
   [`docs/architecture/APP-FORMAT.md`](docs/architecture/APP-FORMAT.md)
 - Skills (on demand) → [`.agents/skills/`](.agents/skills/) — `wrangler`,
   `cloudflare`, `durable-objects`, `workers-best-practices`, `ai-sdk`,
-  `agent-browser`, `shadcn`, `tanstack-start-best-practices`, `find-skills`
+  `agent-browser`, `shadcn`, `tanstack-start-best-practices`, `find-skills`,
+  `catalog-modules`
   (symlinked under `.claude/skills/`; locked in `skills-lock.json`)
 - Factory console UI tokens / primitives →
   [`factory/host/AGENTS.md`](factory/host/AGENTS.md) (shadcn semantic
