@@ -5,13 +5,9 @@ import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { mintMcpAccessToken, signInFactory } from "./probe-catalog-auth.mjs";
-import {
-  factoryFetch,
-  factoryOrigin,
-  readRpcBody,
-} from "./probe-catalog-http.mjs";
-import { createMcpClient } from "./probe-catalog-mcp.mjs";
+import { factoryFetch, factoryOrigin } from "./probe-catalog-http.mjs";
 import { mountOrgProtected, scoreTailEvents } from "./probe-catalog-lib.mjs";
+import { createMcpClient } from "./probe-catalog-mcp.mjs";
 
 export const NEVER_TOUCH_APP_IDS = new Set([
   "app_01M1J3576FDTZJS4ZQHRP4P271",
@@ -43,6 +39,10 @@ const EXCLUDED_PREFIXES = [
   "/tmp/",
   "/.git/",
 ];
+const OAUTH_TOKEN = /^oauth_token\s*=\s*"([^"]+)"/m;
+const STATUS_PREFIX = /^\S+\s+/;
+const LEADING_SLASH = /^\//;
+const DATE_STAMP = /[-:T]/g;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../..");
@@ -69,7 +69,7 @@ export function cloudflareTokenFromEnv(env) {
   if (!existsSync(toml)) {
     return "";
   }
-  const match = readFileSync(toml, "utf8").match(/^oauth_token\s*=\s*"([^"]+)"/m);
+  const match = readFileSync(toml, "utf8").match(OAUTH_TOKEN);
   return match?.[1] ?? "";
 }
 
@@ -94,7 +94,7 @@ function parseStatusPaths(stdout) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => line.replace(/^\S+\s+/, "").trim())
+    .map((line) => line.replace(STATUS_PREFIX, "").trim())
     .filter((path) => path && path !== "." && path !== "/");
 }
 
@@ -133,6 +133,70 @@ function sourceKey(path) {
   return path.startsWith("/") ? path.slice(1) : path;
 }
 
+function stripLeadingSlash(path) {
+  return path.replace(LEADING_SLASH, "");
+}
+
+function gitAddPaths(dirty) {
+  const toAdd = RECIPE_PATHS.filter(
+    (path) => dirty.includes(path) || dirty.includes(`/${path}`)
+  );
+  const extras = dirty.filter((path) => {
+    const relative = stripLeadingSlash(path);
+    return (
+      !RECIPE_PATHS.includes(relative) &&
+      path !== "." &&
+      !path.startsWith("biome")
+    );
+  });
+  const addList = [...new Set([...toAdd, ...extras.map(stripLeadingSlash)])];
+  if (addList.includes(".")) {
+    throw new Error("probe-catalog — refused git add .");
+  }
+  return addList.length === 0 ? RECIPE_PATHS : addList;
+}
+
+async function stageAndOpenProbePr(ops, appId, log) {
+  const branch = "feat/probe-catalog";
+  await ops.bash(appId, `git checkout -b ${branch}`);
+  const status = await ops.bash(appId, "git status");
+  for (const path of gitAddPaths(parseStatusPaths(status.stdout))) {
+    await ops.bash(appId, `git add ${path}`);
+  }
+  await ops.bash(appId, 'git commit -m "probe: mount catalog recipes"');
+  await ops.bash(appId, `git push origin ${branch}`);
+  const createdPr = await ops.bash(
+    appId,
+    `gh pr create --title "probe catalog" --head ${branch}`
+  );
+  log("probe-catalog — hosted PR opened");
+  return bashText(createdPr);
+}
+
+async function runWarmShots(ops, plan, appId, log, shots) {
+  for (let i = 0; i < plan.nWarm; i += 1) {
+    log(`probe-catalog — warm ${i + 1}/${plan.nWarm}`);
+    const result = await ops.typecheckWarm(appId);
+    shots.push({ band: "warm", i: i + 1, ...summarizeBash(result) });
+    if (i + 1 < plan.nWarm && plan.spaceMs > 0) {
+      await ops.sleep(plan.spaceMs);
+    }
+  }
+}
+
+async function runColdShots(ops, plan, appId, log, shots) {
+  let files = null;
+  for (let i = 0; i < plan.nCold; i += 1) {
+    log(`probe-catalog — cold ${i + 1}/${plan.nCold}`);
+    files = files ?? (await ops.collectFiles(appId));
+    const result = await ops.typecheckCold(appId, files);
+    shots.push({ band: "cold", i: i + 1, ...summarizeCold(result) });
+    if (i + 1 < plan.nCold && plan.spaceMs > 0) {
+      await ops.sleep(plan.spaceMs);
+    }
+  }
+}
+
 export async function runLiveSequence(plan, ops) {
   const log = ops.log ?? ((line) => ops.io?.log?.(line));
   let appId = null;
@@ -169,63 +233,13 @@ export async function runLiveSequence(plan, ops) {
       await ops.writeFile(appId, ORG_INDEX, mounted);
     }
 
-    const branch = "feat/probe-catalog";
-    await ops.bash(appId, `git checkout -b ${branch}`);
-    const status = await ops.bash(appId, "git status");
-    const dirty = parseStatusPaths(status.stdout);
-    const toAdd = RECIPE_PATHS.filter(
-      (path) => dirty.includes(path) || dirty.includes(`/${path}`)
-    );
-    const extras = dirty.filter(
-      (path) =>
-        !RECIPE_PATHS.includes(path.replace(/^\//, "")) &&
-        path !== "." &&
-        !path.startsWith("biome")
-    );
-    const addList = [...new Set([...toAdd, ...extras.map((p) => p.replace(/^\//, ""))])];
-    if (addList.includes(".") || addList.length === 0) {
-      if (addList.includes(".")) {
-        throw new Error("probe-catalog — refused git add .");
-      }
-      for (const path of RECIPE_PATHS) {
-        await ops.bash(appId, `git add ${path}`);
-      }
-    } else {
-      for (const path of addList) {
-        await ops.bash(appId, `git add ${path}`);
-      }
-    }
-    await ops.bash(appId, 'git commit -m "probe: mount catalog recipes"');
-    await ops.bash(appId, `git push origin ${branch}`);
-    const createdPr = await ops.bash(
-      appId,
-      `gh pr create --title "probe catalog" --head ${branch}`
-    );
-    pr = bashText(createdPr);
-    log("probe-catalog — hosted PR opened");
-
+    pr = await stageAndOpenProbePr(ops, appId, log);
     await ops.startTail?.(plan);
-    for (let i = 0; i < plan.nWarm; i += 1) {
-      log(`probe-catalog — warm ${i + 1}/${plan.nWarm}`);
-      const result = await ops.typecheckWarm(appId);
-      shots.push({ band: "warm", i: i + 1, ...summarizeBash(result) });
-      if (i + 1 < plan.nWarm && plan.spaceMs > 0) {
-        await ops.sleep(plan.spaceMs);
-      }
-    }
+    await runWarmShots(ops, plan, appId, log, shots);
     if (plan.nWarm > 0 && plan.nCold > 0 && plan.spaceMs > 0) {
       await ops.sleep(plan.spaceMs);
     }
-    let files = null;
-    for (let i = 0; i < plan.nCold; i += 1) {
-      log(`probe-catalog — cold ${i + 1}/${plan.nCold}`);
-      files = files ?? (await ops.collectFiles(appId));
-      const result = await ops.typecheckCold(appId, files);
-      shots.push({ band: "cold", i: i + 1, ...summarizeCold(result) });
-      if (i + 1 < plan.nCold && plan.spaceMs > 0) {
-        await ops.sleep(plan.spaceMs);
-      }
-    }
+    await runColdShots(ops, plan, appId, log, shots);
     const events = (await ops.stopTail?.()) ?? [];
     scored = scoreTailEvents(events);
   } finally {
@@ -271,7 +285,7 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
   let cookie = "";
   let accessToken = env.SFAB_LITE_MCP_TOKEN || "";
 
-  if (!adminToken && !accessToken) {
+  if (!(adminToken || accessToken)) {
     io.log("probe-catalog — signing in to mint an MCP token");
     cookie = await signInFactory(env, origin);
     accessToken = await mintMcpAccessToken({
@@ -299,14 +313,18 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
     } else if (cookie) {
       headers.cookie = cookie;
     } else {
-      throw new Error("probe-catalog — REST check needs ADMIN_TOKEN or a session cookie");
+      throw new Error(
+        "probe-catalog — REST check needs ADMIN_TOKEN or a session cookie"
+      );
     }
     return headers;
   };
 
   const livePlan = {
     ...plan,
-    appName: plan.appName ?? `probe-catalog-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}`,
+    appName:
+      plan.appName ??
+      `probe-catalog-${new Date().toISOString().slice(0, 16).replace(DATE_STAMP, "")}`,
     factory: origin,
   };
 
@@ -314,7 +332,7 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
     io,
     log: (line) => io.log(line),
     sleep,
-    async createApp({ name, template }) {
+    createApp({ name, template }) {
       return mcp.callTool("apps_create", { name, template });
     },
     async waitReady(appId) {
@@ -332,14 +350,14 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
       }
       throw new Error(`probe-catalog — timed out waiting for ${appId}`);
     },
-    async addRecipe(appId, name) {
+    addRecipe(appId, name) {
       return mcp.callTool("apps_add", { appId, name });
     },
     async readFile(appId, path) {
       const result = await mcp.callTool("workspace_read", { appId, path });
       return result.content ?? result.text ?? null;
     },
-    async writeFile(appId, path, content) {
+    writeFile(appId, path, content) {
       return mcp.callTool("workspace_write", { appId, path, content });
     },
     async bash(appId, command) {
@@ -347,7 +365,7 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
       const result = await mcp.callTool("bash", { appId, command });
       return { ...result, wallMs: Date.now() - started };
     },
-    async typecheckWarm(appId) {
+    typecheckWarm(appId) {
       return ops.bash(appId, "pnpm typecheck");
     },
     async collectFiles(appId) {
@@ -362,7 +380,10 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
         }
         const abs = path.startsWith("/") ? path : `/${path}`;
         try {
-          const result = await mcp.callTool("workspace_read", { appId, path: abs });
+          const result = await mcp.callTool("workspace_read", {
+            appId,
+            path: abs,
+          });
           const content = result.content ?? result.text;
           if (typeof content === "string") {
             files[sourceKey(abs)] = content;
@@ -405,7 +426,9 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
     },
     async startTail(currentPlan) {
       if (!cfToken) {
-        io.log("probe-catalog — no CLOUDFLARE_API_TOKEN; scoring bash/check only");
+        io.log(
+          "probe-catalog — no CLOUDFLARE_API_TOKEN; scoring bash/check only"
+        );
         return;
       }
       mkdirSync(tailDir, { recursive: true });
@@ -449,7 +472,7 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
         .filter(Boolean)
         .map((line) => JSON.parse(line));
     },
-    async deleteApp(appId) {
+    deleteApp(appId) {
       return mcp.callTool("apps_delete", { appId });
     },
   };
@@ -481,7 +504,13 @@ export async function runLiveProbe(plan, env, io, hooks = {}) {
   mkdirSync(dirname(absArtifact), { recursive: true });
   writeFileSync(absArtifact, `${renderArtifact(artifact)}\n`);
   io.log(`probe-catalog — wrote ${absArtifact}`);
-  io.log(JSON.stringify({ appId: result.appId, kill: artifact.kill, tail: result.scored }, null, 2));
+  io.log(
+    JSON.stringify(
+      { appId: result.appId, kill: artifact.kill, tail: result.scored },
+      null,
+      2
+    )
+  );
   return artifact.kill ? 1 : 0;
 }
 

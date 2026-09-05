@@ -24,6 +24,7 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const cli = join(here, "probe-catalog.mjs");
+const ADD_FAILED = /add failed/;
 
 function captureIo() {
   const log = [];
@@ -91,9 +92,9 @@ test("--live with the env flag calls the injected driver and does not create app
     { [PROBE_LIVE_ENV]: "1" },
     cap.io,
     {
-      runLive: async (plan) => {
+      runLive: (plan) => {
         seen = plan;
-        return 0;
+        return Promise.resolve(0);
       },
     }
   );
@@ -118,23 +119,22 @@ test("live sequence deletes the created app when a later step throws", async () 
           spaceMs: 0,
         },
         {
-          log: () => {},
-          sleep: async () => {},
-          createApp: async () => ({ appId: "app_probe_test" }),
-          waitReady: async () => ({}),
-          addRecipe: async () => {
-            throw new Error("add failed");
-          },
-          deleteApp: async (id) => {
+          log: () => undefined,
+          sleep: () => Promise.resolve(),
+          createApp: () => Promise.resolve({ appId: "app_probe_test" }),
+          waitReady: () => Promise.resolve({}),
+          addRecipe: () => Promise.reject(new Error("add failed")),
+          deleteApp: (id) => {
             deleted.push(id);
+            return Promise.resolve();
           },
-          bash: async (_id, command) => {
+          bash: (_id, command) => {
             bash.push(command);
-            return { stdout: "", exitCode: 0, passed: true };
+            return Promise.resolve({ stdout: "", exitCode: 0, passed: true });
           },
         }
       ),
-    /add failed/
+    ADD_FAILED
   );
   assert.deepEqual(deleted, ["app_probe_test"]);
   assert.equal(bash.length, 0);
@@ -153,51 +153,56 @@ test("live sequence create → add → mount → typecheck → delete", async ()
       tailWorker: "sfab-lite-check",
     },
     {
-      log: () => {},
-      sleep: async () => {},
-      createApp: async () => {
+      log: () => undefined,
+      sleep: () => Promise.resolve(),
+      createApp: () => {
         calls.push("create");
-        return { appId: "app_probe_ok" };
+        return Promise.resolve({ appId: "app_probe_ok" });
       },
-      waitReady: async () => {
+      waitReady: () => {
         calls.push("ready");
+        return Promise.resolve();
       },
-      addRecipe: async (_id, name) => {
+      addRecipe: (_id, name) => {
         calls.push(`add:${name}`);
+        return Promise.resolve();
       },
-      readFile: async () => SEED_INDEX,
-      writeFile: async () => {
+      readFile: () => Promise.resolve(SEED_INDEX),
+      writeFile: () => {
         calls.push("mount");
+        return Promise.resolve();
       },
-      bash: async (_id, command) => {
+      bash: (_id, command) => {
         calls.push(`bash:${command.split(" ")[0]}`);
         if (command === "git status") {
-          return {
+          return Promise.resolve({
             stdout: "modified     src/hono/org-protected/index.ts\n",
             exitCode: 0,
             passed: true,
-          };
+          });
         }
-        return { stdout: "ok\n", exitCode: 0, passed: true };
+        return Promise.resolve({ stdout: "ok\n", exitCode: 0, passed: true });
       },
-      typecheckWarm: async () => {
+      typecheckWarm: () => {
         calls.push("warm");
-        return { passed: true, exitCode: 0 };
+        return Promise.resolve({ passed: true, exitCode: 0 });
       },
-      collectFiles: async () => ({ "src/server.ts": "export {}" }),
-      typecheckCold: async () => {
+      collectFiles: () => Promise.resolve({ "src/server.ts": "export {}" }),
+      typecheckCold: () => {
         calls.push("cold");
-        return { ok: true, publishGate: true, wallMs: 9000 };
+        return Promise.resolve({ ok: true, publishGate: true, wallMs: 9000 });
       },
-      startTail: async () => {
+      startTail: () => {
         calls.push("tail-start");
+        return Promise.resolve();
       },
-      stopTail: async () => {
+      stopTail: () => {
         calls.push("tail-stop");
-        return [{ outcome: "ok", cpuTime: 900 }];
+        return Promise.resolve([{ outcome: "ok", cpuTime: 900 }]);
       },
-      deleteApp: async (id) => {
+      deleteApp: (id) => {
         calls.push(`delete:${id}`);
+        return Promise.resolve();
       },
     }
   );
@@ -217,7 +222,10 @@ test("protected live M3 ERP and Pin2 ids are refused", () => {
     true
   );
   assert.equal(isProtectedApp({ id: "app_other", name: "M3 ERP" }), true);
-  assert.equal(isProtectedApp({ id: "app_other", name: "probe-catalog" }), false);
+  assert.equal(
+    isProtectedApp({ id: "app_other", name: "probe-catalog" }),
+    false
+  );
 });
 
 test("glob file filter skips directories", () => {

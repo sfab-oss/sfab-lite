@@ -69,8 +69,10 @@ export async function signInFactory(env, origin = factoryOrigin(env)) {
     },
     body: JSON.stringify({ email, password }),
   });
-  const cookie = cookieHeaderFromSetCookie(res.headers.getSetCookie?.() ?? res.headers.get("set-cookie"));
-  if (!res.ok || !cookie) {
+  const cookie = cookieHeaderFromSetCookie(
+    res.headers.getSetCookie?.() ?? res.headers.get("set-cookie")
+  );
+  if (!(res.ok && cookie)) {
     const text = await res.text().catch(() => "");
     throw new Error(
       `probe-catalog — sign-in failed (${res.status}): ${text.slice(0, 240)}`
@@ -98,7 +100,7 @@ export async function mintMcpAccessToken({ origin, cookie, organizationId }) {
   });
   const registered = await readRpcBody(register);
   const clientId = registered?.client_id;
-  if (!register.ok || !clientId) {
+  if (!(register.ok && clientId)) {
     throw new Error(
       `probe-catalog — DCR failed (${register.status}): ${JSON.stringify(registered).slice(0, 240)}`
     );
@@ -133,7 +135,9 @@ export async function mintMcpAccessToken({ origin, cookie, organizationId }) {
   }
   const consentUrl = new URL(consentHref, origin);
   if (!consentUrl.pathname.endsWith("/mcp/consent")) {
-    throw new Error(`probe-catalog — authorize redirected to ${consentUrl.pathname}`);
+    throw new Error(
+      `probe-catalog — authorize redirected to ${consentUrl.pathname}`
+    );
   }
   const oauthQuery = restoreSignedOAuthQuery(
     consentUrl.search.replace(LEADING_QUESTION, "")
@@ -153,7 +157,7 @@ export async function mintMcpAccessToken({ origin, cookie, organizationId }) {
     }),
   });
   const consented = await readRpcBody(consent);
-  if (!consent.ok || !consented?.url) {
+  if (!(consent.ok && consented?.url)) {
     throw new Error(
       `probe-catalog — consent failed (${consent.status}): ${JSON.stringify(consented).slice(0, 240)}`
     );
@@ -179,7 +183,7 @@ export async function mintMcpAccessToken({ origin, cookie, organizationId }) {
     }),
   });
   const tokenBody = await readRpcBody(tokenRes);
-  if (!tokenRes.ok || !tokenBody?.access_token) {
+  if (!(tokenRes.ok && tokenBody?.access_token)) {
     throw new Error(
       `probe-catalog — token failed (${tokenRes.status}): ${JSON.stringify(tokenBody).slice(0, 240)}`
     );

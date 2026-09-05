@@ -2,9 +2,10 @@ export const BROWSER_UA =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 
 export const DEFAULT_FACTORY = "https://lite.sfab.dev";
+const TRAILING_SLASH = /\/$/;
 
 export function factoryOrigin(env, fallback = DEFAULT_FACTORY) {
-  return (env.SFAB_LITE_ORIGIN || fallback).replace(/\/$/, "");
+  return (env.SFAB_LITE_ORIGIN || fallback).replace(TRAILING_SLASH, "");
 }
 
 export async function factoryFetch(url, init = {}, timeoutMs = 120_000) {
@@ -22,7 +23,12 @@ export async function factoryFetch(url, init = {}, timeoutMs = 120_000) {
 }
 
 export function cookieHeaderFromSetCookie(setCookie) {
-  const lines = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
+  let lines = [];
+  if (Array.isArray(setCookie)) {
+    lines = setCookie;
+  } else if (setCookie) {
+    lines = [setCookie];
+  }
   return lines
     .map((line) => String(line).split(";", 1)[0].trim())
     .filter(Boolean)
@@ -40,16 +46,19 @@ export async function readRpcBody(res) {
         }
       }
     }
-    throw new Error(`probe-catalog — no SSE data (${res.status}): ${text.slice(0, 400)}`);
+    throw new Error(
+      `probe-catalog — no SSE data (${res.status}): ${text.slice(0, 400)}`
+    );
   }
   if (!text) {
     return null;
   }
   try {
     return JSON.parse(text);
-  } catch {
+  } catch (err) {
     throw new Error(
-      `probe-catalog — non-JSON ${res.status}: ${text.slice(0, 400)}`
+      `probe-catalog — non-JSON ${res.status}: ${text.slice(0, 400)}`,
+      { cause: err }
     );
   }
 }

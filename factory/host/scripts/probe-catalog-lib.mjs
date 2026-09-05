@@ -14,6 +14,7 @@ const RECIPE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const LAST_IMPORT = /(?:^|\n)(import [\s\S]*?;)(?=\n(?!import ))/;
 const LEADING_AT = /^@/;
 const LITE_PREFIX = /^lite\//;
+const TRAILING_SLASH = /\/$/;
 
 export function parseProbeArgs(argv) {
   const { values } = parseCli(
@@ -46,7 +47,7 @@ export function parseProbeArgs(argv) {
     worker: values.worker,
     template: values.template,
     org: values.org,
-    factory: values.factory.replace(/\/$/, ""),
+    factory: values.factory.replace(TRAILING_SLASH, ""),
     artifact: values.artifact,
   };
 }

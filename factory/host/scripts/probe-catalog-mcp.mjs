@@ -1,4 +1,8 @@
-import { factoryFetch, factoryOrigin, readRpcBody } from "./probe-catalog-http.mjs";
+import {
+  factoryFetch,
+  factoryOrigin,
+  readRpcBody,
+} from "./probe-catalog-http.mjs";
 
 function toolValue(rpc) {
   if (rpc?.error) {
@@ -9,9 +13,14 @@ function toolValue(rpc) {
   const result = rpc?.result ?? {};
   if (result.isError) {
     const text = result.content?.[0]?.text;
-    throw new Error(`probe-catalog — tool error: ${text ?? JSON.stringify(result)}`);
+    throw new Error(
+      `probe-catalog — tool error: ${text ?? JSON.stringify(result)}`
+    );
   }
-  if (result.structuredContent && typeof result.structuredContent === "object") {
+  if (
+    result.structuredContent &&
+    typeof result.structuredContent === "object"
+  ) {
     return result.structuredContent;
   }
   const text = result.content?.[0]?.text;
@@ -25,7 +34,12 @@ function toolValue(rpc) {
   return result;
 }
 
-export function createMcpClient({ origin, organizationId, adminToken, accessToken }) {
+export function createMcpClient({
+  origin,
+  organizationId,
+  adminToken,
+  accessToken,
+}) {
   const mcpUrl = `${origin}/mcp?organizationId=${encodeURIComponent(organizationId)}`;
   let sessionId = null;
   let nextId = 1;
