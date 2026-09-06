@@ -149,7 +149,9 @@ const config: KnipConfig = {
       ],
     },
     "framework/toolchain": {
-      entry: ["src/index.ts", "src/**/*.test.ts"],
+      // catalog-real-vfs is a dedicated export path so the host barrel never
+      // pulls the real .d.ts union (~430 KB). Verbs/check imports it.
+      entry: ["src/index.ts", "src/catalog-real-vfs.ts", "src/**/*.test.ts"],
       project: ["src/**/*.ts"],
     },
     registry: {

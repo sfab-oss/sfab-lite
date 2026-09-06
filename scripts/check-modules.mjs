@@ -1,12 +1,19 @@
 #!/usr/bin/env node
 /**
  * Fail if committed catalog-module artifacts drifted from a fresh isolated
- * build of every pin, or if the assembled catalog-modules.json drifted.
+ * build of every pin, if the assembled catalog-modules.json drifted, or if
+ * a pin is missing real-vfs.json / catalog-real-vfs.json drifted.
  *
  * Git is the source of truth. The host Worker must not import the ESM.
  */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,9 +28,17 @@ const assembleCatalog = join(
   repoRoot,
   "framework/modules/scripts/assemble-catalog.mjs"
 );
+const assembleRealVfs = join(
+  repoRoot,
+  "framework/modules/scripts/assemble-real-vfs.mjs"
+);
 const committedCatalog = join(
   repoRoot,
   "framework/toolchain/src/generated/catalog-modules.json"
+);
+const committedRealVfs = join(
+  repoRoot,
+  "framework/toolchain/src/generated/catalog-real-vfs.json"
 );
 const FIX = "Fix: node framework/modules/scripts/rebuild-catalog-modules.mjs";
 
@@ -59,6 +74,7 @@ function compareBytes(label, committedPath, freshBuf, drifted) {
 
 const tmp = mkdtempSync(join(tmpdir(), "sfab-check-modules-"));
 const catalogJson = join(tmp, "catalog-modules.json");
+const realVfsJson = join(tmp, "catalog-real-vfs.json");
 
 try {
   const drifted = [];
@@ -85,6 +101,9 @@ try {
       readFileSync(join(outDir, "manifest.json")),
       drifted
     );
+    if (!existsSync(join(committedDir, "real-vfs.json"))) {
+      drifted.push(`${spec}/real-vfs.json is missing`);
+    }
   }
 
   run(assembleCatalog, [
@@ -95,6 +114,14 @@ try {
     "catalog-modules.json",
     committedCatalog,
     readFileSync(catalogJson),
+    drifted
+  );
+
+  run(assembleRealVfs, [`--catalog-json=${realVfsJson}`]);
+  compareBytes(
+    "catalog-real-vfs.json",
+    committedRealVfs,
+    readFileSync(realVfsJson),
     drifted
   );
 

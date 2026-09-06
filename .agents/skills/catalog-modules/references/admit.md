@@ -67,9 +67,12 @@ Flags (do not invent new ones without a P3-style Loader boot):
 
 Isolated `npm install --ignore-scripts --save-exact`. Writes `esmFile`,
 copies `surface.d.ts`, writes `manifest.json` into
-`framework/modules/<name>@<version>/` only.
+`framework/modules/<name>@<version>/` only. Commit `real-vfs.json` (the
+package `.d.ts` overlay for the extra check unit) beside those files.
+`build-module.mjs` does not write it.
 
-Then `node framework/modules/scripts/assemble-catalog.mjs`.
+Then `node framework/modules/scripts/assemble-catalog.mjs` and
+`node framework/modules/scripts/assemble-real-vfs.mjs`.
 
 ## 5. CI gates
 

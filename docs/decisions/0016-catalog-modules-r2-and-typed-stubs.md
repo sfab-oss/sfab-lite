@@ -40,8 +40,8 @@ runtime line. Enable only through `apps_add` of a recipe whose
   `KERNEL_R2` at `modules/<name>@<version>/`. Compile-time external.
   Missing R2 manifest is a named 409. No workerd patches for pdf-lib.
 - **Check:** superseded by [ADR-0017](0017-catalog-type-surfaces-agreement-gated.md)
-  (agreement-gated cheap `surface.d.ts` on the boundary; hosted overlay
-  stays cheap until a hosted isolate probe of that shape is green).
+  (agreement-gated cheap `surface.d.ts` on the server unit; real `.d.ts`
+  on the extra `modules` unit when boundary files exist — ADR-0017).
   ADR-0016 shipped the first cheap stubs after P2.
 - **Store:** git is source of truth (`check:modules` regenerate-and-diff).
   CI uploads module objects next to kernel chunks (idempotent,

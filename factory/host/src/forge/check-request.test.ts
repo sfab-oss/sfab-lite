@@ -60,4 +60,5 @@ test("declared pdf-lib attaches the cheap stub map", () => {
       "PDFDocument"
     )
   );
+  assert.equal("boundaryModuleTypes" in body, false);
 });
