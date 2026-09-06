@@ -9,7 +9,7 @@ import { z } from "zod";
 import { appIdSchema, filesSchema, parseRequest } from "./request.js";
 import { requestManifestSchema } from "./validate-manifest.js";
 
-export type CheckUnitName = "server" | "emit" | "client";
+export type CheckUnitName = "server" | "emit" | "client" | "modules";
 
 export const checkRequestSchema = z.object({
   appId: appIdSchema,
@@ -19,6 +19,11 @@ export const checkRequestSchema = z.object({
   moduleTypes: z
     .record(z.string(), z.string(), {
       error: "body.moduleTypes (path→text) required when present",
+    })
+    .optional(),
+  boundaryModuleTypes: z
+    .record(z.string(), z.string(), {
+      error: "body.boundaryModuleTypes (path→text) required when present",
     })
     .optional(),
 });

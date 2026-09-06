@@ -132,6 +132,9 @@ if (
 if (emitUnit != null && emitUnit.skipped !== true) {
   fail("healthy matching snapshot must skip emit");
 }
+if (healthy.units?.some((u) => u.unit === "modules")) {
+  fail("ERP seed without catalog helpers must not run the modules unit");
+}
 if (healthy.emittedFiles && Object.keys(healthy.emittedFiles).length > 0) {
   fail("skipped emit must not rewrite the snapshot");
 }

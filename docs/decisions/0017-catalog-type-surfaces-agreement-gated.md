@@ -30,11 +30,13 @@ against the real package `.d.ts` on the recipe **boundary** files
 sides (codes may differ). A miss against the overlay is `LITE-SURFACE`;
 an import of the pin from outside the boundary is `LITE-RESOLVE`.
 
-The hosted product check stays **three** synchronous units (server →
-emit → client) and still overlays the cheap surface on the server unit.
-Boundary-vs-real is a CI gate, not a fourth `runUnit`. Overlaying the
-real `.d.ts` on the product server unit, or adding a fourth unit, waits
-on a hosted isolate 50-shot of that exact shape.
+The hosted product check overlays the cheap surface on the **server**
+unit (server → emit → client). When catalog boundary files exist
+(`src/pdf/*.ts(x)`, `src/xlsx/*.ts(x)`), a fourth synchronous `modules`
+unit overlays the committed real `.d.ts` vfs, then strips it. Overlaying
+the real `.d.ts` on the product **server** unit stays rejected (P2:
+19/50). Hosted E3 of the extra-unit shape is green (0/50
+`exceededMemory` on control / pdf-lib / exceljs / both; 2026-09-06).
 
 Catalog **serve** is unchanged: R2 Loader ESM, opt-in via `apps_add`,
 closed allowlist ([ADR-0016](0016-catalog-modules-r2-and-typed-stubs.md)).
@@ -48,22 +50,22 @@ Placement (kernel vs catalog vs recipe vs refuse) is a separate gate
 
 - Stubs cannot drift from the real library without a CI red.
 - Recipe bodies are not the place to paper over stub/real disagreement.
-- The 128 MB isolate keeps the cheap overlay until a hosted probe of
-  the boundary-only shape is green.
+- The 128 MB isolate keeps the cheap overlay on the server unit. The
+  extra `modules` unit is authorized by hosted E3 (0/50).
 
 ### Negative
 
 - Agents that reach past the agreed L2 surface get `LITE-SURFACE` until
   the surface grows (republish, agreement, hosted probe).
-- Isolate E3 is unproven; local 52 MB does not authorize a fourth unit.
+- Apps with catalog helpers pay a fourth LanguageService construct.
 
 ### Mitigations
 
 - Surface growth is a catalog republish with plants and
   `check:catalog-agreement`. Hosted `probe-catalog.mjs` is the
   publish-gate script; `--live` is ask-first.
-- Hosted E3 (`sfab-lite-check-exp`, 50-shot) is a follow-up, not this
-  decision.
+- Real types stay off the server unit. The extra unit loads them from
+  `@sfab-lite/core/catalog-real-vfs`, not the host barrel.
 
 ## Related
 

@@ -355,20 +355,20 @@ is dropped so two programs are never live.
 
 ```text
 evict other apps
-runUnit(server)     — sync; dispose LS
-if server failed: stop (no emit, no client)
+runUnit(server)     — sync; dispose LS; cheap catalog surface.d.ts
+if server failed: skip emit/client; still run modules if boundary files exist
 runUnit(emit)       — sync; writes api.d.ts + api.hash into the files map; dispose LS
 if api.hash ≠ hash(server tree): fail (invariant 6); do not start client
 runUnit(client)     — sync; roots = client entry + api.d.ts; dispose LS
+runUnit(modules)    — sync; only when /app/<boundary>/ .ts(x) exist; real .d.ts; strip
 return combined diagnostics
 ```
 
 Hosted check overlays the cheap catalog `surface.d.ts` on the server
-unit. Boundary files are agreement-gated against the real `.d.ts` in
-CI (`check:catalog-agreement`), not as a fourth `runUnit`. A local
-both-pins boundary program retained 52 MB / 191 files; the production
-isolate is unproven — do not add a fourth unit until a hosted 50-shot
-of that shape is green
+unit. When catalog boundary files are present, a fourth `modules` unit
+overlays the real `.d.ts` vfs and strips it before return. Hosted E3 of
+that extra-unit shape was 0/50 `exceededMemory` (2026-09-06). Overlaying
+real types on the server unit stays rejected (P2 19/50)
 ([ADR-0017](../decisions/0017-catalog-type-surfaces-agreement-gated.md)).
 
 Rules, in writing:

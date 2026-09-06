@@ -2,9 +2,10 @@
  * Per-app LanguageService cache + unit-shaped typecheck entry point.
  *
  * One check run = one worker invocation = ordered sync units (server → emit →
- * client) with LanguageService disposed between them. Two programs are never
- * live. runCheck stays synchronous: an await between construct and dispose
- * would let two programs coexist and re-OOM the isolate.
+ * client, then `modules` when catalog boundary files are present) with
+ * LanguageService disposed between them. Two programs are never live. runCheck
+ * stays synchronous: an await between construct and dispose would let two
+ * programs coexist and re-OOM the isolate.
  */
 import type {
   CheckDiagnostic,
@@ -12,6 +13,7 @@ import type {
   CheckResult,
   CheckUnitResult,
 } from "@sfab-lite/core";
+import { realModuleTypesForOverlay } from "@sfab-lite/core/catalog-real-vfs";
 import { TYPES_VFS_MANIFEST } from "@sfab-lite/kernel";
 import { catalogExportLeakageDiagnostics } from "./catalog-export-leak.js";
 import {
@@ -450,12 +452,12 @@ function runUnits(
       rootFileCount: st.rootFiles?.length ?? 0,
     };
     ctx.units.push(serverResult);
-    afterUnit?.(serverResult);
+    afterUnit?.(serverResult, st.overlay);
     disposeService(st);
     applyHonoOverlay(st.overlay, st.versions, null);
     if (server.diags.length > 0) {
       ctx.units.push(skippedUnit("emit"), skippedUnit("client"));
-      return finish(ctx);
+      return complete(ctx, body, runUnit, afterUnit);
     }
   } else {
     ctx.units.push(skippedUnit("server"));
@@ -485,7 +487,7 @@ function runUnits(
   if (emit.error) {
     ctx.allDiags.push(emit.error);
     ctx.units.push(skippedUnit("client"));
-    return finish(ctx);
+    return complete(ctx, body, runUnit, afterUnit);
   }
 
   const gotHash = parseHashFile(
@@ -498,7 +500,7 @@ function runUnits(
   ) {
     ctx.allDiags.push(snapshotFreshnessDiagnostic(hashed.treeHash, gotHash));
     ctx.units.push(skippedUnit("client"));
-    return finish(ctx);
+    return complete(ctx, body, runUnit, afterUnit);
   }
 
   const clientRoots = clientUnitRoots(st.overlay, clientPrefixes);
@@ -516,10 +518,58 @@ function runUnits(
       rootFileCount: st.rootFiles?.length ?? 0,
     };
     ctx.units.push(clientResult);
-    afterUnit?.(clientResult);
+    afterUnit?.(clientResult, st.overlay);
     disposeService(st);
   }
 
+  return complete(ctx, body, runUnit, afterUnit);
+}
+
+function runBoundaryUnit(
+  ctx: RunCtx,
+  body: CheckRequest,
+  runUnit: UnitRun,
+  afterUnit: AfterUnit | undefined
+): void {
+  const planned = realModuleTypesForOverlay(ctx.st.overlay);
+  if (planned.roots.length === 0) {
+    return;
+  }
+  const types = body.boundaryModuleTypes ?? planned.types;
+  if (Object.keys(types).length === 0) {
+    throw new Error("catalog boundary files present but real vfs is empty");
+  }
+  disposeService(ctx.st);
+  applyHonoOverlay(ctx.st.overlay, ctx.st.versions, null);
+  const realKeys = applyModuleTypesOverlay(ctx.st, types);
+  try {
+    const extra = runUnit(planned.roots, null);
+    ctx.checkMs += extra.checkMs;
+    ctx.rootFileCount += ctx.st.rootFiles?.length ?? 0;
+    ctx.allDiags.push(...extra.diags);
+    const extraResult: CheckUnitResult = {
+      unit: "modules",
+      diagnosticCount: extra.diags.length,
+      checkMs: extra.checkMs,
+      rootFileCount: ctx.st.rootFiles?.length ?? 0,
+    };
+    ctx.units.push(extraResult);
+    afterUnit?.(extraResult, ctx.st.overlay);
+    disposeService(ctx.st);
+  } finally {
+    stripModuleTypesOverlay(ctx.st, realKeys);
+    // Summarize rewrites LITE-SURFACE / LITE-RESOLVE from cheap overlay text.
+    applyModuleTypesOverlay(ctx.st, body.moduleTypes);
+  }
+}
+
+function complete(
+  ctx: RunCtx,
+  body: CheckRequest,
+  runUnit: UnitRun,
+  afterUnit: AfterUnit | undefined
+): CheckResult {
+  runBoundaryUnit(ctx, body, runUnit, afterUnit);
   return finish(ctx);
 }
 

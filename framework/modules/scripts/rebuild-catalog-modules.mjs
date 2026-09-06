@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Rebuild every catalog pin, then assemble catalog-modules.json.
- * This is the check:modules fix command.
+ * Rebuild every catalog pin, then assemble catalog-modules.json and
+ * catalog-real-vfs.json. This is the check:modules fix command.
+ * build-module.mjs does not write real-vfs.json.
  */
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -12,6 +13,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "../../..");
 const buildModule = join(here, "build-module.mjs");
 const assemble = join(here, "assemble-catalog.mjs");
+const assembleReal = join(here, "assemble-real-vfs.mjs");
 
 function run(script, extraArgs = []) {
   const result = spawnSync(process.execPath, [script, ...extraArgs], {
@@ -29,3 +31,4 @@ for (const pin of CATALOG_PINS) {
   run(buildModule, [`--pin=${pinSpec(pin)}`]);
 }
 run(assemble);
+run(assembleReal);

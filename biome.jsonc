@@ -18,6 +18,8 @@
       "!!**/framework/modules/**/index.d.ts",
       "!!**/framework/modules/**/manifest.json",
       "!!**/framework/toolchain/src/generated/catalog-modules.json",
+      "!!**/framework/toolchain/src/generated/catalog-real-vfs.json",
+      "!!**/framework/modules/**/real-vfs.json",
       "!!**/framework/runtime/results",
       "!!**/framework/runtime/scripts/.shims",
       "!!**/framework/runtime/scripts/.shims-client",

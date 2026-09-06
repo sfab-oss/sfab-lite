@@ -9,8 +9,10 @@ Closed allowlist of opt-in npm pins. Serve is R2 Loader ESM
 ([ADR-0016](../../../docs/decisions/0016-catalog-modules-r2-and-typed-stubs.md)).
 Check is a curated cheap `surface.d.ts` gated by CI agreement
 ([ADR-0017](../../../docs/decisions/0017-catalog-type-surfaces-agreement-gated.md)).
-Hosted product check overlays the cheap surface, never the real `.d.ts`
-closure (P2: 19/50 `exceededMemory`).
+Hosted product check overlays the cheap surface on the **server** unit,
+never the real `.d.ts` closure there (P2: 19/50 `exceededMemory`). When
+catalog boundary files are present, a fourth sync `modules` unit overlays
+the committed real vfs, then strips it.
 
 Do not drive hosted typecheck by hand (MCP `apps_create` / `workspace_write`
 / live tails). Use the scripts below.
@@ -53,10 +55,13 @@ Under `framework/modules/<name>@<version>/`:
 | `seams.mjs` | `SEAMS[]` with a `why` for each cheap-vs-real signature miss |
 | `manifest.json` | Written by `build-module.mjs` (bytes, hashes, `esbuild` pin) |
 | `<esmFile>` | Isolated esbuild ESM (not imported by the host Worker) |
+| `real-vfs.json` | Real package `.d.ts` overlay for the extra `modules` unit |
 
 `assemble-catalog.mjs` unions pin dirs into
 `framework/toolchain/src/generated/catalog-modules.json` (includes
-`boundary` from `pins.mjs`). Pin builders must not write that JSON.
+`boundary` from `pins.mjs`). `assemble-real-vfs.mjs` unions
+`real-vfs.json` into `catalog-real-vfs.json`. Pin builders must not write
+those JSON files. `build-module.mjs` does not write `real-vfs.json`.
 
 Recipe on-ramp: `registry/recipes/<slug>/<ver>/plants.json` targets **one**
 boundary file (e.g. `src/pdf/invoice.ts`). Enable only via `apps_add` of a
@@ -69,6 +74,7 @@ Run from the repo root.
 ```bash
 node framework/modules/scripts/build-module.mjs --pin=<name>@<version>
 node framework/modules/scripts/assemble-catalog.mjs
+node framework/modules/scripts/assemble-real-vfs.mjs
 node framework/modules/scripts/rebuild-catalog-modules.mjs   # all pins + assemble
 pnpm check:modules                                           # regenerate-and-diff + red-test
 pnpm check:catalog-agreement                                 # 0=0, plants, members, seams
@@ -112,7 +118,8 @@ Do not paper over a stub/real disagreement inside a recipe body.
 
 ## Never
 
-- Overlay the real package `.d.ts` on the hosted product server unit.
+- Overlay the real package `.d.ts` on the hosted product **server** unit.
+- Export the real vfs from the `@sfab-lite/core` barrel (`index.ts`).
 - Hand-drive hosted tails.
 - `wrangler --remote` / `upload-modules-r2 -- --remote` except from the
   deploy job or an explicit owner ask.

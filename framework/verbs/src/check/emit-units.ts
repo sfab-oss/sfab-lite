@@ -39,7 +39,10 @@ const FRAGMENT_ENTRY = "/app/src/hono/_fragment.ts";
 const TS_EXT = /\.(ts|tsx)$/;
 
 /** Node measure scripts sample heap while the unit's LanguageService is live. */
-export type AfterUnit = (unit: CheckUnitResult) => void;
+export type AfterUnit = (
+  unit: CheckUnitResult,
+  overlay: ReadonlyMap<string, string>
+) => void;
 
 export type UnitRun = (
   unitRoots: string[],
@@ -223,7 +226,7 @@ function emitWarmLeaves(
     checkMs: emitMs,
     rootFileCount: emitRoots,
   };
-  afterUnit?.(unit);
+  afterUnit?.(unit, st.overlay);
   return { unit, emittedFiles };
 }
 
@@ -247,7 +250,7 @@ function emitFullTree(
     checkMs: emit.checkMs,
     rootFileCount: st.rootFiles?.length ?? 0,
   };
-  afterUnit?.(unit);
+  afterUnit?.(unit, st.overlay);
   disposeService(st);
   applyHonoOverlay(st.overlay, st.versions, null);
   return { unit, emittedFiles };

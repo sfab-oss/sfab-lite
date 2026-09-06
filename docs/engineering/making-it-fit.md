@@ -258,14 +258,16 @@ next to kernel chunks. See
 and [ADR-0017](../decisions/0017-catalog-type-surfaces-agreement-gated.md)
 (check).
 
-**E3 — local boundary unit vs real `.d.ts` (2026-09-04).** Recipe helpers
-only (`src/pdf/invoice.ts`, `src/xlsx/export.ts`), both pins, real
-overlay: **0 diagnostics, 191 files, 52 MB** Node retained. Local 128 MB
-indicator green. Production isolate **unproven** — P2 overlaid real
-pdf-lib on the 84-root server unit and killed 19/50 while local rank
-was only +7.7 MB. Do not ship a fourth `runUnits` step until a hosted
-50-shot of the boundary-only shape is green. Not a Measured-and-rejected
-row: we did not observe isolate OOM on that shape.
+**E3 — hosted boundary unit vs real `.d.ts` (2026-09-06).** Recipe
+helpers only (`src/pdf/invoice.ts`, `src/xlsx/export.ts`) as an extra
+sync `modules` unit after cheap server → emit → client. Throwaway
+`sfab-lite-check-exp`, 50 cold shots per cell: **0/50 `exceededMemory`**
+on control / pdf-lib / exceljs / both. Fast-band kills none (cpu
+~15–19 s, same band as control). P2's 19/50 was real pdf-lib on the
+84-root **server** unit, not this extra unit. Product check now runs the
+fourth unit when catalog boundary files are present; the server unit
+stays on the cheap stub. Local prior: 0 diagnostics, 191 files, 52 MB Node
+retained (2026-09-04).
 
 ### 12. exceljs@4.4.0 as catalog pin #2 (2026-09-02)
 
